@@ -1,1 +1,0 @@
-Act as a Senior Full-Stack Developer and UI/UX Expert. Your task is to write the complete, production-ready code for a highly optimized, fully responsive website. This five images is Teacher UI, using html, css + tailwind, javascript + react make a frontend code, but follow specifically features based on five images. and make a frontend folder inside SmartGrade.
