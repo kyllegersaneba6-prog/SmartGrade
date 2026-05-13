@@ -77,7 +77,7 @@ const GradeBreakdownTable = () => {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
-      <div className="p-6 flex justify-between items-center border-b border-border">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded-xl shadow-sm border border-border gap-4">
         <h3 className="text-gold font-bold text-lg">Grade Breakdown Analysis</h3>
         <div className="flex items-center gap-4 text-xs font-bold">
           <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500"></div> Weighted</span>
@@ -85,7 +85,7 @@ const GradeBreakdownTable = () => {
         </div>
       </div>
 
-      <table className="w-full text-left">
+      <div className="table-responsive w-full overflow-x-auto"><table className="w-full text-left min-w-[700px]">
         <thead className="bg-bg-light text-[10px] font-bold text-text-muted uppercase tracking-wider">
           <tr>
             <th className="px-6 py-4">Assessment Name</th>
@@ -100,7 +100,7 @@ const GradeBreakdownTable = () => {
           {assessments.map((a, i) => (
             <tr key={i} className="hover:bg-bg-light/50 transition-colors">
               <td className="px-6 py-4">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
                   {a.flag && <AlertTriangle size={14} className="text-orange-500 shrink-0" />}
                   <div>
                     <div className="font-bold text-sidebar">{a.name}</div>
@@ -118,7 +118,7 @@ const GradeBreakdownTable = () => {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
 
       {/* Remaining Potential */}
       <div className="px-6 py-3 border-t border-dashed border-border flex justify-between items-center text-sm italic text-text-muted">
@@ -129,7 +129,7 @@ const GradeBreakdownTable = () => {
       {/* Total Row */}
       <div className="px-6 py-4 bg-bg-light border-t-2 border-gold flex justify-between items-center">
         <span className="font-bold text-sidebar uppercase tracking-wider text-sm">TOTAL WEIGHTED CALCULATION</span>
-        <div className="flex items-center gap-8 text-sm">
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 text-sm w-full sm:w-auto mt-4 sm:mt-0">
           <div className="text-center">
             <div className="font-bold text-sidebar">70.0%</div>
             <div className="text-[10px] text-text-muted font-semibold">Done</div>
@@ -185,7 +185,7 @@ const Gradebook = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <div>
           <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
             Classes / <span className="text-gold">CS 402: Advanced Algorithms</span>
@@ -193,7 +193,7 @@ const Gradebook = () => {
           <h1 className="text-3xl font-bold text-sidebar">Detailed Performance Gradebook</h1>
           <p className="text-text-muted mt-1">Academic Year 2023-24 • Semester II</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <button className="border-2 border-gold text-gold font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 hover:bg-gold-light transition-colors text-sm">
             <Download size={16} /> Export PDF
           </button>
@@ -204,7 +204,7 @@ const Gradebook = () => {
       </div>
 
       {/* Top Cards Row */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <ActivePerformanceFlags />
         <CalculatedGradeCard />
       </div>
@@ -216,7 +216,7 @@ const Gradebook = () => {
       <CalculationLogic />
 
       {/* FAB */}
-      <button className="fixed bottom-8 right-8 w-14 h-14 bg-sidebar hover:bg-sidebar-hover text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110">
+      <button className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-12 h-12 md:w-14 md:h-14 bg-sidebar hover:bg-sidebar-hover text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110">
         <MessageSquare size={24} />
       </button>
     </div>

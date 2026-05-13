@@ -66,7 +66,7 @@ const GlobalAnalytics = () => (
       </div>
     </div>
 
-    <div className="grid grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       {/* Left 2/3 */}
       <div className="col-span-2 flex flex-col gap-5">
         {/* Heatmap Card */}
@@ -81,8 +81,8 @@ const GlobalAnalytics = () => (
           </div>
 
           {/* Simple heatmap grid */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+          <div className="table-responsive">
+            <table className="w-full text-xs min-w-[500px]">
               <thead>
                 <tr>
                   <th className="text-left pb-2 pr-4 font-medium text-gray-400 w-40">School / Dept</th>
@@ -112,7 +112,7 @@ const GlobalAnalytics = () => (
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-4 gap-4 mt-5 pt-4 border-t" style={{ borderColor: '#e5e0d5' }}>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5 pt-4 border-t" style={{ borderColor: '#e5e0d5' }}>
             {[
               { label: 'AVERAGE GPA', value: '3.82', color: '#1a2233' },
               { label: 'PASS RATE', value: '94.2%', color: '#22c55e' },

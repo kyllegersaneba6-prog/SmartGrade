@@ -20,6 +20,9 @@
 }
 
 @layer base {
+  html, body {
+    overflow-x: hidden;
+  }
   body {
     background-color: var(--color-bg-light);
     color: var(--color-text-main);
@@ -28,5 +31,15 @@
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
     padding: 0;
+  }
+}
+
+@layer utilities {
+  .sidebar-transition {
+    transition: transform 0.3s ease-in-out;
+  }
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }

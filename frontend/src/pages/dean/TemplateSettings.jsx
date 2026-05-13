@@ -33,11 +33,11 @@ const TemplateSettings = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold text-gold mb-1">Template Settings</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-gold mb-1">Template Settings</h1>
         <p className="text-sm text-text-muted">Manage and configure academic reporting templates for institutional standards.</p>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
         {/* Left Column */}
         <div className="flex-1 space-y-6">
           <div className="bg-white rounded-2xl shadow-sm border border-border p-6">
@@ -48,7 +48,7 @@ const TemplateSettings = () => {
               </button>
             </div>
             
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <TemplateCard title="DepEd ECR Standard" desc="Official Electronic Class Record for public schools." format="EXCEL" status="IN USE" isArchived={false} />
               <TemplateCard title="Custom School Report Card" desc="Branded institutional progress report template." format="PDF" status="IN USE" isArchived={false} />
               <TemplateCard title="Faculty Evaluation Summary" desc="Historical evaluation metrics for legacy staff." format="EXCEL" status="ARCHIVED" isArchived={true} />
@@ -64,7 +64,7 @@ const TemplateSettings = () => {
                </div>
              </div>
 
-             <table className="w-full text-left">
+             <div className="table-responsive"><table className="w-full text-left min-w-[600px]">
                <thead className="bg-bg-light text-[10px] font-bold text-text-muted uppercase tracking-wider">
                  <tr>
                    <th className="px-4 py-4">VERSION ID</th>
@@ -92,7 +92,7 @@ const TemplateSettings = () => {
                    </tr>
                  ))}
                </tbody>
-             </table>
+             </table></div>
           </div>
         </div>
 

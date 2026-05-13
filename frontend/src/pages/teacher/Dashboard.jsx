@@ -3,12 +3,12 @@ import clsx from 'clsx';
 
 const Dashboard = () => {
   return (
-    <div className="flex gap-6 items-start">
+    <div className="flex flex-col lg:flex-row gap-4 md:gap-6 items-start">
       {/* Left Column */}
       <div className="flex-1 space-y-6">
         {/* Export Card */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
             <div className="flex items-center gap-3">
               <div className="bg-gold-light p-2 rounded-lg text-gold">
                 <FileSpreadsheet size={24} />
@@ -18,7 +18,7 @@ const Dashboard = () => {
             <button className="text-sm text-sidebar font-medium hover:text-gold transition-colors">Configuration Settings</button>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-8">
             <div>
               <label className="block text-xs font-semibold text-text-muted mb-2 tracking-wider">SELECT ACADEMIC CLASS</label>
               <select className="w-full bg-bg-light border border-border rounded-lg p-3 text-sm text-text-main focus:outline-none focus:border-gold">
@@ -33,7 +33,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <button className="flex-1 bg-gold hover:bg-gold-hover text-sidebar font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors">
               <FileSpreadsheet size={18} /> EXPORT TO EXCEL
             </button>
@@ -52,7 +52,7 @@ const Dashboard = () => {
             <h3 className="text-lg font-medium text-sidebar">Recent Export History</h3>
             <span className="text-xs font-medium text-text-muted uppercase tracking-wider">Last 30 Days</span>
           </div>
-          <table className="w-full text-left">
+          <div className="table-responsive"><table className="w-full text-left min-w-[400px]">
             <thead className="bg-bg-light text-xs font-semibold text-text-muted uppercase tracking-wider border-b border-border">
               <tr>
                 <th className="px-6 py-4">Filename</th>
@@ -95,12 +95,12 @@ const Dashboard = () => {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
 
       {/* Right Column */}
-      <div className="w-[400px] space-y-6">
+      <div className="w-full lg:w-[400px] space-y-6">
         <div className="flex justify-between items-center px-1">
           <h3 className="text-lg font-medium text-sidebar">Behavioral Summary</h3>
           <button className="text-xs font-bold text-gold bg-gold-light px-3 py-1.5 rounded-full hover:bg-gold transition-colors hover:text-sidebar">VIEW ALL REPORTS</button>

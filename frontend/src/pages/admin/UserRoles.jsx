@@ -27,7 +27,7 @@ const UserRoles = () => (
   <div>
     <h1 className="text-2xl font-bold text-gray-900 mb-6">User &amp; Role Management</h1>
 
-    <div className="grid grid-cols-3 gap-5 mb-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
       {/* User Table */}
       <div className="col-span-2">
         <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
@@ -42,7 +42,7 @@ const UserRoles = () => (
             </div>
           </div>
 
-          <table className="w-full text-xs">
+          <div className="table-responsive"><table className="w-full text-xs min-w-[700px]">
             <thead>
               <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
                 {['USER ID', 'NAME', 'DEPARTMENT', 'ROLE', 'PERMISSIONS'].map((h) => (
@@ -89,7 +89,7 @@ const UserRoles = () => (
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t text-xs" style={{ borderColor: '#f0ede6' }}>
             <span className="text-gray-400">Showing 3 of 1,248 users</span>
@@ -140,7 +140,7 @@ const UserRoles = () => (
     </div>
 
     {/* Bottom charts */}
-    <div className="grid grid-cols-2 gap-5">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
       {/* Traffic */}
       <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
         <div className="flex items-center justify-between mb-4">

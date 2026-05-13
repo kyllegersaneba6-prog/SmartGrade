@@ -19,7 +19,7 @@ const ReportsTable = () => {
         </div>
       </div>
 
-      <table className="w-full text-left">
+      <div className="table-responsive"><table className="w-full text-left min-w-[600px]">
         <thead className="bg-bg-light text-[10px] font-bold text-text-muted uppercase tracking-wider">
           <tr>
             <th className="px-6 py-4">Report Name</th>
@@ -55,7 +55,7 @@ const ReportsTable = () => {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
 
       <div className="p-4 text-center">
         <button className="text-sm font-bold text-gold hover:text-gold-hover transition-colors uppercase tracking-wider">
@@ -145,18 +145,18 @@ const ActiveInterventions = () => (
 /* ─── Reports Page ─── */
 const Reports = () => {
   return (
-    <div className="flex gap-6 items-start max-w-7xl mx-auto">
+    <div className="flex flex-col lg:flex-row gap-4 md:gap-6 items-start max-w-7xl mx-auto">
       {/* Left Column */}
       <div className="flex-1 space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
             <h1 className="text-2xl font-bold text-sidebar uppercase tracking-wide">Academic Performance Reports</h1>
             <p className="text-text-muted mt-1">
               Archived and generated records for the 2023-2024 academic year.
             </p>
           </div>
-          <button className="bg-gold hover:bg-gold-hover text-sidebar font-bold py-3 px-5 rounded-lg flex items-center gap-2 transition-colors text-sm">
+          <button className="w-full sm:w-auto bg-gold hover:bg-gold-hover text-sidebar font-bold py-3 px-5 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm">
             <Sparkles size={18} /> Generate New Report
           </button>
         </div>
@@ -166,7 +166,7 @@ const Reports = () => {
       </div>
 
       {/* Right Column */}
-      <div className="w-[300px]">
+      <div className="w-full lg:w-[300px]">
         <ActiveInterventions />
       </div>
     </div>

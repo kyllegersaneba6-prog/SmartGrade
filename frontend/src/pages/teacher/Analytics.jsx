@@ -13,11 +13,11 @@ const Analytics = () => {
   ];
 
   return (
-    <div className="flex gap-6 items-start">
+    <div className="flex flex-col lg:flex-row gap-4 md:gap-6 items-start">
       {/* Left Column */}
       <div className="flex-1 space-y-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
-          <div className="flex justify-between items-start mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-6">
             <div>
               <h3 className="text-lg font-medium text-sidebar">Academic Performance Distribution</h3>
               <p className="text-sm text-text-muted mt-1">Correlation between participation and final grade outcomes across all sections.</p>
@@ -42,7 +42,7 @@ const Analytics = () => {
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-bold text-text-muted tracking-widest uppercase">Student Engagement Metric</div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
             <div className="border border-border p-4 rounded-xl text-center">
               <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">R² Correlation</div>
               <div className="text-xl font-bold text-sidebar">0.84</div>
@@ -74,7 +74,7 @@ const Analytics = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Chart 1 */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-border">
               <div className="flex justify-between items-center mb-4 text-sm font-medium">
@@ -140,7 +140,7 @@ const Analytics = () => {
       </div>
 
       {/* Right Column */}
-      <div className="w-[380px] space-y-6">
+      <div className="w-full lg:w-[380px] space-y-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
           <h3 className="text-lg font-medium text-sidebar mb-1">Behavioral Intervention Funnel</h3>
           <p className="text-sm text-text-muted mb-8">Tracking progression from initial flag to resolution.</p>

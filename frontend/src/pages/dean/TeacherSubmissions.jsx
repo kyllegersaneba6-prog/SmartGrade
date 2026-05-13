@@ -16,7 +16,7 @@ const TeacherSubmissions = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-medium text-sidebar">Teacher Submissions</h1>
           <p className="text-text-muted mt-1">Review and approve gradebook submissions for the 2023-2024 Academic Year.</p>
@@ -26,18 +26,18 @@ const TeacherSubmissions = () => {
         </div>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
         {/* Left Column */}
         <div className="flex-1 space-y-6">
           <div className="bg-white rounded-2xl shadow-sm border border-border flex flex-col">
-            <div className="p-6 flex justify-between items-center border-b border-border">
+            <div className="p-4 md:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-border">
               <h3 className="text-lg font-medium text-sidebar">Submissions Approval Queue (Batch Review)</h3>
               <button className="text-xs font-bold text-sidebar flex items-center gap-2 hover:text-gold transition-colors">
                 <Filter size={14}/> Filter by Department
               </button>
             </div>
             
-            <table className="w-full text-left">
+            <div className="table-responsive"><table className="w-full text-left min-w-[600px]">
               <thead className="bg-bg-light text-[10px] font-bold text-text-muted uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4">TEACHER NAME</th>
@@ -77,7 +77,7 @@ const TeacherSubmissions = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             
             <div className="mt-auto border-t border-border p-4 text-center">
               <button className="text-sm font-bold text-gold hover:text-gold-hover transition-colors flex items-center justify-center gap-1 w-full">

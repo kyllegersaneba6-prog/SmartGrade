@@ -61,9 +61,9 @@ const Dashboard = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-start mb-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-2">
         <div>
-          <h1 className="text-3xl font-bold text-sidebar">Compliance Dashboard</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-sidebar">Compliance Dashboard</h1>
           <p className="text-text-muted mt-1">Real-time oversight of institutional grading standards and intervention metrics.</p>
         </div>
         <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase shadow-sm">
@@ -72,7 +72,7 @@ const Dashboard = () => {
       </div>
 
       {/* Top Cards Row */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <GaugeCard 
           title="Submission Compliance" 
           value={88} 
@@ -115,7 +115,7 @@ const Dashboard = () => {
       </div>
 
       {/* Middle Row */}
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
         {/* Table */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
           <div className="p-6 flex justify-between items-center border-b border-border">
@@ -125,7 +125,7 @@ const Dashboard = () => {
               <button className="text-xs font-bold text-gold border border-gold px-3 py-1.5 rounded-lg hover:bg-gold-light">CSV</button>
             </div>
           </div>
-          <table className="w-full text-left">
+          <div className="table-responsive"><table className="w-full text-left min-w-[600px]">
             <thead className="bg-bg-light text-[10px] font-bold text-text-muted uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4">FACULTY MEMBER</th>
@@ -176,7 +176,7 @@ const Dashboard = () => {
                 <td className="px-6 py-4 text-gray-400"><MoreVertical size={16}/></td>
               </tr>
             </tbody>
-          </table>
+          </table></div>
         </div>
 
         {/* Grade Distribution */}
@@ -225,7 +225,7 @@ const Dashboard = () => {
 
       {/* Bottom Chart */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
-        <div className="flex justify-between items-start mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-6">
           <div>
             <h3 className="text-lg font-medium text-sidebar">Attendance Sustainability Trend</h3>
             <p className="text-sm text-text-muted mt-1">Monthly cross-departmental attendance engagement</p>

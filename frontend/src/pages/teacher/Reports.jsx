@@ -35,7 +35,7 @@ const Reports = () => {
   return (
     <div className="space-y-8">
       {/* Header Area */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex bg-border p-1 rounded-xl">
           <button className="px-6 py-2.5 text-sm font-bold bg-gold text-sidebar rounded-lg shadow-sm">Standard Templates</button>
           <button className="px-6 py-2.5 text-sm font-bold text-text-muted hover:text-sidebar transition-colors">Custom Reports</button>
@@ -46,7 +46,7 @@ const Reports = () => {
       </div>
 
       {/* Report Cards Grid */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <ReportCard 
           title="ECR Standard" 
           format="PDF / XLS" 
@@ -77,7 +77,7 @@ const Reports = () => {
         </div>
 
         <div className="bg-bg-light rounded-2xl border border-border shadow-sm overflow-hidden">
-          <table className="w-full text-left bg-white">
+          <div className="table-responsive"><table className="w-full text-left bg-white min-w-[600px]">
             <thead className="bg-bg-light text-sm font-bold text-sidebar border-b border-border">
               <tr>
                 <th className="px-6 py-4">Report Name</th>
@@ -122,7 +122,7 @@ const Reports = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
     </div>

@@ -154,9 +154,9 @@ const MyClasses = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-sidebar">My Classes</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-sidebar">My Classes</h1>
           <p className="text-text-muted mt-1">
             Academic Year 2023-2024 • Second Semester. Manage your enrollments, track real-time performance, and access instructor resources.
           </p>
@@ -167,14 +167,14 @@ const MyClasses = () => {
       </div>
 
       {/* Class Cards Grid */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {classes.map((cls, idx) => (
           <ClassCard key={idx} {...cls} />
         ))}
       </div>
 
       {/* Bottom Row */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <TermPerformanceTrend />
         <InterventionSummary />
       </div>

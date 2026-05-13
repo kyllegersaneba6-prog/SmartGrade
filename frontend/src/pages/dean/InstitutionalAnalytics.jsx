@@ -29,11 +29,11 @@ const InstitutionalAnalytics = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Top Row */}
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 bg-sidebar rounded-2xl p-8 text-white relative overflow-hidden flex flex-col justify-center">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="lg:col-span-2 bg-sidebar rounded-2xl p-5 md:p-8 text-white relative overflow-hidden flex flex-col justify-center">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl"></div>
           
-          <div className="flex justify-between items-start mb-4 relative z-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-4 relative z-10">
              <div className="bg-gold/20 text-gold border border-gold/30 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase flex items-center gap-2">
                <div className="w-1.5 h-1.5 bg-gold rounded-full"></div> LIVE SYSTEM AUDIT
              </div>
@@ -44,15 +44,15 @@ const InstitutionalAnalytics = () => {
           </div>
 
           <div className="relative z-10">
-            <h1 className="text-3xl font-bold mb-2">Institutional Analytics</h1>
-            <h2 className="text-3xl font-bold text-gold mb-4">Performance Pulse</h2>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">Institutional Analytics</h1>
+            <h2 className="text-2xl md:text-3xl font-bold text-gold mb-4">Performance Pulse</h2>
             <p className="text-gray-300 max-w-lg leading-relaxed text-sm">
               Comprehensive assessment of academic integrity, grade consistency, and departmental engagement across the current academic cycle.
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3 md:gap-4">
           <MetricCard title="Total Enrollment" value="42,892" icon={Users} trend="+12.4%" isPositive={true} />
           <MetricCard title="GPA Median" value="3.42" icon={Star} trend="-2.1%" isPositive={false} />
           <MetricCard title="Absenteeism" value="4.1%" icon={Calendar} trend="-8.3%" isPositive={true} />
@@ -61,7 +61,7 @@ const InstitutionalAnalytics = () => {
       </div>
 
       {/* Middle Row */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
           <div className="flex justify-between items-center mb-8">
             <h3 className="text-lg font-medium text-sidebar">Submission Compliance Funnel</h3>
@@ -81,7 +81,7 @@ const InstitutionalAnalytics = () => {
           </div>
         </div>
 
-        <div className="col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-border flex flex-col">
+        <div className="lg:col-span-2 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-border flex flex-col">
           <div className="flex justify-between items-start mb-6">
             <div>
               <h3 className="text-lg font-medium text-sidebar">Grade Distribution Anomalies</h3>
@@ -109,7 +109,7 @@ const InstitutionalAnalytics = () => {
       </div>
 
       {/* Bottom Row */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
           <div className="flex justify-between items-center mb-6">
              <h3 className="text-lg font-medium text-sidebar">Chronic Absenteeism Hotspots</h3>
@@ -158,7 +158,7 @@ const InstitutionalAnalytics = () => {
             <Star size={14}/> Automate Interventions
           </button>
         </div>
-        <table className="w-full text-left">
+        <div className="table-responsive"><table className="w-full text-left min-w-[700px]">
           <thead className="bg-bg-light text-[10px] font-bold text-text-muted uppercase tracking-wider">
             <tr>
               <th className="px-6 py-4">TARGET CLASS</th>
@@ -186,7 +186,7 @@ const InstitutionalAnalytics = () => {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );

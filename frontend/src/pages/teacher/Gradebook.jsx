@@ -12,12 +12,12 @@ const Gradebook = () => {
   return (
     <div className="space-y-6">
       {/* Top Bar */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-border">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-xl shadow-sm border border-border">
         <div>
           <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Current Module</div>
           <div className="text-lg font-medium text-sidebar">Advanced Calculus II</div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
           <button className="px-4 py-2 bg-white border border-border rounded-lg text-sm font-medium text-sidebar flex items-center gap-2 hover:bg-gray-50">
             <Filter size={16} /> Filter View
           </button>
@@ -31,7 +31,7 @@ const Gradebook = () => {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-border relative overflow-hidden">
           <TrendingUp size={80} className="absolute -right-4 -bottom-4 text-gray-100" />
           <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 relative z-10">Class Average</h4>
@@ -56,8 +56,8 @@ const Gradebook = () => {
       </div>
 
       {/* Gradebook Table */}
-      <div className="bg-bg-light p-6 rounded-2xl shadow-inner border border-border">
-        <table className="w-full text-left bg-white rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-bg-light p-3 md:p-6 rounded-2xl shadow-inner border border-border">
+        <div className="table-responsive"><table className="w-full text-left bg-white rounded-xl overflow-hidden shadow-sm min-w-[700px]">
           <thead className="bg-sidebar text-xs font-semibold text-white tracking-wider">
             <tr>
               <th className="px-6 py-4">Student Name</th>
@@ -111,11 +111,11 @@ const Gradebook = () => {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {/* Bottom Section */}
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
         <div className="flex-2 bg-bg-light p-6 rounded-2xl border border-border">
           <div className="flex justify-between items-start mb-6">
             <div>

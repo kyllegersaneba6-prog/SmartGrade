@@ -98,7 +98,7 @@ const MyClasses = () => {
   return (
     <div className="space-y-8">
       {/* Metrics Row */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-border border-l-4 border-l-sidebar relative overflow-hidden">
           <Users size={64} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-100" />
           <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 relative z-10">Total Students</p>
@@ -128,14 +128,14 @@ const MyClasses = () => {
       </div>
 
       {/* Class Cards Grid */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {classes.map((cls, idx) => (
           <ClassCard key={idx} {...cls} />
         ))}
       </div>
 
       {/* Bulk Sync Footer */}
-      <div className="bg-sidebar rounded-2xl p-6 flex items-center justify-between mt-auto shadow-md">
+      <div className="bg-sidebar rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-auto shadow-md">
         <div className="flex items-center gap-4">
           <Sparkles className="text-gold" size={24} />
           <div>
@@ -143,7 +143,7 @@ const MyClasses = () => {
             <p className="text-gray-400 text-sm">Synchronize all classes with the central registry</p>
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full sm:w-auto">
           <button className="text-white bg-sidebar-hover hover:bg-sidebar-active px-6 py-2.5 rounded-lg font-medium transition-colors text-sm">Export All Reports</button>
           <button className="bg-gold hover:bg-gold-hover text-sidebar font-bold px-6 py-2.5 rounded-lg transition-colors text-sm">Start Bulk Sync</button>
         </div>

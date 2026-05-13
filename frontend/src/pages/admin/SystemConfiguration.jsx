@@ -95,7 +95,7 @@ const SystemConfiguration = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Left 2/3 */}
         <div className="col-span-2 flex flex-col gap-5">
           {/* Active Report Templates */}
@@ -110,7 +110,7 @@ const SystemConfiguration = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {templates.map((t) => (
                 <div
                   key={t.id}
@@ -178,8 +178,8 @@ const SystemConfiguration = () => {
             </div>
             <p className="text-xs text-gray-400 mb-4">Full record of configuration changes and publication logs</p>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+            <div className="table-responsive">
+              <table className="w-full text-xs min-w-[800px]">
                 <thead>
                   <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
                     {['VERSION ID', 'TEMPLATE NAME', 'CHANGE DESCRIPTION', 'MODIFIED BY', 'TIMESTAMP', 'STATUS', 'ACTIONS'].map((h) => (

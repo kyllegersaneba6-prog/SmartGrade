@@ -255,10 +255,10 @@ const PromoCard = () => (
 /* ─── Dashboard Page ─── */
 const Dashboard = () => {
   return (
-    <div className="flex gap-6 items-start max-w-7xl mx-auto">
+    <div className="flex flex-col lg:flex-row gap-4 md:gap-6 items-start max-w-7xl mx-auto">
       {/* Left Column */}
       <div className="flex-1 space-y-6">
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <GradeHealthRing />
           <PerformanceFlags />
         </div>
@@ -267,7 +267,7 @@ const Dashboard = () => {
       </div>
 
       {/* Right Column */}
-      <div className="w-[340px] space-y-6">
+      <div className="w-full lg:w-[340px] space-y-6">
         <CourseProgress />
         <PromoCard />
       </div>

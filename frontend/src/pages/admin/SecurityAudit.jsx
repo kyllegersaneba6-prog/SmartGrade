@@ -30,7 +30,7 @@ const SecurityAudit = () => {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Security &amp; Audit Logs</h1>
 
       {/* Top metrics */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {metrics.map(({ label, value, color, bg, icon }) => (
           <div key={label} className="rounded-xl p-4 shadow-sm flex items-center justify-between" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
             <div>
@@ -42,7 +42,7 @@ const SecurityAudit = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Audit Trail */}
         <div className="col-span-2">
           <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
@@ -56,7 +56,7 @@ const SecurityAudit = () => {
                 <button className="p-1.5 rounded border" style={{ borderColor: '#e5e0d5' }}><RefreshCw size={14} className="text-gray-400" /></button>
               </div>
             </div>
-            <table className="w-full text-xs">
+            <div className="table-responsive"><table className="w-full text-xs min-w-[800px]">
               <thead>
                 <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
                   {['Timestamp', 'User', 'Role', 'Action', 'Description', '#'].map((h) => (
@@ -78,7 +78,7 @@ const SecurityAudit = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             <div className="flex items-center justify-between mt-4 pt-4 border-t text-xs" style={{ borderColor: '#f0ede6' }}>
               <span className="text-gray-400">Showing 10 of 1,482 entries</span>
               <div className="flex items-center gap-1">

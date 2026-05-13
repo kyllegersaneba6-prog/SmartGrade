@@ -9,15 +9,15 @@ const ReportGenerator = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
         {/* Left Column - Form */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-border p-8">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-border p-4 md:p-6 lg:p-8">
           <div className="flex items-start gap-4 mb-8">
             <p className="text-sidebar text-sm leading-relaxed flex-1 mt-1">Configure parameters for cross-departmental auditing and compliance verification.</p>
             <div className="bg-gold-light p-3 rounded-full text-gold shrink-0"><FileText size={20}/></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-8">
             <div>
               <label className="block text-xs font-bold text-sidebar tracking-wider uppercase mb-2">INSTITUTIONAL LEVEL</label>
               <select className="w-full bg-white border border-border rounded-lg p-3 text-sm text-text-main focus:outline-none focus:border-gold">
@@ -45,7 +45,7 @@ const ReportGenerator = () => {
           </div>
 
           <label className="block text-xs font-bold text-sidebar tracking-wider uppercase mb-4">OUTPUT FORMAT & DELIVERY</label>
-          <div className="grid grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 mb-8">
             <button className="border-2 border-gold rounded-xl p-4 flex flex-col items-center justify-center gap-3 bg-gold/5 text-sidebar transition-colors">
               <FileText className="text-gold" size={24} />
               <span className="text-xs font-bold">Adobe PDF</span>
@@ -122,7 +122,7 @@ const ReportGenerator = () => {
           LIVE SYNC STATUS: <span className="text-[#10b981] flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></div> ACTIVE</span>
         </div>
         
-        <table className="w-full text-left mt-8">
+        <div className="table-responsive"><table className="w-full text-left mt-8 min-w-[700px]">
           <thead className="text-[10px] font-bold text-text-muted uppercase tracking-wider border-b border-border">
             <tr>
               <th className="pb-4">Report ID</th>
@@ -158,7 +158,7 @@ const ReportGenerator = () => {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
         
         <div className="mt-4 pt-4 border-t border-border flex justify-between items-center text-xs text-text-muted">
            <span>Showing last 3 exports</span>
