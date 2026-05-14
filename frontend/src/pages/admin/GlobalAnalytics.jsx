@@ -55,7 +55,7 @@ const GlobalAnalytics = () => (
           className="text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full border whitespace-nowrap"
           style={{ borderColor: '#d1c9ba', color: '#6b7280' }}
         >
-          ACADEMIC YEAR 2024-25
+          ACADEMIC YEAR 2026-2027
         </span>
         <span
           className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white whitespace-nowrap"

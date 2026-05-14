@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, User, Lock, AlertCircle } from 'lucide-react';
+import { User, Lock, AlertCircle, GraduationCap, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   // Check if already logged in
@@ -41,7 +42,7 @@ const Login = () => {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Redirect to admin dashboard
+      // Redirect based on role (for now redirect to admin as per previous code)
       navigate('/admin');
     } catch (err) {
       setError(err.message);
@@ -51,84 +52,142 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-light)] p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-[var(--color-border)]">
-        {/* Header */}
-        <div className="bg-[var(--color-sidebar)] p-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--color-gold)] mb-4">
-            <LogIn className="text-white w-8 h-8" />
-          </div>
-          <h2 className="text-2xl font-bold text-white">SmartGrade Admin</h2>
-          <p className="text-gray-400 mt-2">Sign in to access the portal</p>
-        </div>
+    <div className="min-h-screen flex flex-col justify-between bg-[#FDFCF8] relative overflow-hidden font-sans">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-[-10%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle,_#FDF6E3_0%,_transparent_60%)] opacity-80 pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[80vw] h-[80vw] rounded-full bg-[radial-gradient(circle,_#FCF5DF_0%,_transparent_60%)] opacity-80 pointer-events-none"></div>
+      
+      {/* Subtle concentric rings like in the image (optional, approximated with repeating radial gradient) */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'repeating-radial-gradient(circle at 0% 0%, transparent 0, transparent 40px, #D1A638 40px, #D1A638 41px)' }}></div>
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'repeating-radial-gradient(circle at 100% 100%, transparent 0, transparent 40px, #D1A638 40px, #D1A638 41px)' }}></div>
 
-        {/* Form */}
-        <div className="p-8">
+      {/* Main Form Container */}
+      <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-10">
+        <div className="max-w-[420px] w-full bg-white rounded-[24px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] border border-[#F0EBE1] p-10 flex flex-col items-center relative">
+          
+          {/* Logo & Title */}
+          <div className="w-14 h-14 bg-[#D1A638] rounded-xl flex items-center justify-center mb-4 shadow-[0_4px_14px_0_rgba(209,166,56,0.3)]">
+            <GraduationCap className="w-8 h-8 text-[#3A2E12]" strokeWidth={2.5} />
+          </div>
+          <h1 className="text-gold font-extrabold text-3xl tracking-wide mb-1">SmartGrade</h1>
+         
+
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border-l-4 border-[var(--color-red-critical)] flex items-center gap-3 text-[var(--color-red-critical)]">
+            <div className="w-full mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-600">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <p className="text-sm font-medium">{error}</p>
+              <p className="text-sm font-semibold">{error}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="w-full space-y-5">
+            {/* Username Field */}
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text-main)] mb-2">
+              <label className="block text-xs font-bold text-[#4A4A4A] mb-1.5 uppercase tracking-wider">
                 Username
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-[#A09682]" />
                 </div>
                 <input
                   type="text"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--color-gold)] focus:border-[var(--color-gold)] transition-all outline-none"
-                  placeholder="Enter your username"
+                  className="block w-full pl-11 pr-4 py-3.5 bg-[#FDFBF7] border border-[#EBE1CD] rounded-xl text-sm font-medium text-[#1A1A1A] placeholder-[#A09682] focus:ring-2 focus:ring-[#D1A638] focus:border-[#D1A638] transition-all outline-none shadow-sm"
+                  placeholder="Enter your academic ID"
                 />
               </div>
             </div>
 
+            {/* Password Field */}
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text-main)] mb-2">
-                Password
-              </label>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-xs font-bold text-[#4A4A4A] uppercase tracking-wider">
+                  Password
+                </label>
+                <a href="#" className="text-xs font-bold text-[#826A28] hover:text-[#D1A638] transition-colors">
+                  Forgot Password?
+                </a>
+              </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-[#A09682]" />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--color-gold)] focus:border-[var(--color-gold)] transition-all outline-none"
+                  className="block w-full pl-11 pr-11 py-3.5 bg-[#FDFBF7] border border-[#EBE1CD] rounded-xl text-sm font-medium text-[#1A1A1A] placeholder-[#A09682] focus:ring-2 focus:ring-[#D1A638] focus:border-[#D1A638] transition-all outline-none shadow-sm tracking-widest"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#A09682] hover:text-[#4A4A4A] transition-colors focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
 
+            {/* Remember Me */}
+            <div className="flex items-center pt-1 pb-2">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                className="h-4 w-4 rounded border-[#EBE1CD] text-[#D1A638] focus:ring-[#D1A638] bg-[#FDFBF7] cursor-pointer"
+              />
+              <label htmlFor="remember-me" className="ml-2 block text-sm font-medium text-[#5A5A5A] cursor-pointer">
+                Remember me on this device
+              </label>
+            </div>
+
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[var(--color-gold)] hover:bg-[var(--color-gold-hover)] text-white font-bold py-3 px-4 rounded-lg transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-[#D1A638] hover:bg-[#C2982B] text-[#3A2E12] font-bold py-3.5 px-4 rounded-xl transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(209,166,56,0.35)]"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-5 h-5 border-2 border-[#3A2E12] border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                'Sign In'
+                <>
+                  <span className="text-[15px]">Sign In</span>
+                  <ArrowRight className="w-5 h-5" strokeWidth={2.5} />
+                </>
               )}
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="w-full border-t border-[#EBE1CD] my-6"></div>
+
+          {/* Bottom Card Info */}
+          <div className="flex items-center justify-center gap-2 text-[#A09682]">
+            <ShieldCheck className="w-4 h-4" />
+            <span className="text-xs font-semibold">Institutional Access Only</span>
+          </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 bg-gray-50 text-center border-t border-gray-100">
-          <p className="text-xs text-[var(--color-text-muted)]">
+
+      </div>
+
+      {/* Main Footer */}
+      <div className="w-full bg-[#EBE3D3] py-5 px-8 border-t border-[#DED4C1] flex flex-col sm:flex-row justify-between items-center gap-4 relative z-10">
+        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6">
+          <span className="text-gold font-extrabold text-sm tracking-wide">SmartGrade</span>
+          <span className="text-[#6B624E] text-xs font-medium">
             &copy; 2026 SmartGrade Educational Systems. All rights reserved.
-          </p>
+          </span>
+        </div>
+        <div className="flex gap-6 text-xs font-bold text-[#6B624E]">
+          <a href="#" className="hover:text-[#3A2E12] transition-colors">Privacy Policy</a>
+          <a href="#" className="hover:text-[#3A2E12] transition-colors">Terms of Service</a>
+          <a href="#" className="hover:text-[#3A2E12] transition-colors">Contact Support</a>
         </div>
       </div>
     </div>
