@@ -277,7 +277,7 @@ const SystemConfiguration = () => {
 
       {/* Bottom status bar */}
       <div
-        className="fixed bottom-0 left-44 right-0 flex items-center justify-between px-6 py-3 text-xs font-medium"
+        className="fixed bottom-0 left-0 lg:left-64 right-0 flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-2 sm:py-3 text-[10px] sm:text-xs font-medium gap-3 sm:gap-0 z-30"
         style={{ background: '#1a2233', color: '#fff' }}
       >
         <div className="flex items-center gap-2">
@@ -285,17 +285,17 @@ const SystemConfiguration = () => {
           <span>SYSTEM LIVE</span>
           <span className="text-white/40 ml-3">Global Grade Computation Engine: <span className="text-white">READY</span></span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
           <div className="flex">
             {['JS', 'MT'].map((u) => (
-              <span key={u} className="w-7 h-7 -ml-1.5 first:ml-0 rounded-full border-2 border-[#1a2233] bg-[#f5a623] flex items-center justify-center text-[10px] font-bold text-white">
+              <span key={u} className="w-6 h-6 sm:w-7 sm:h-7 -ml-1.5 first:ml-0 rounded-full border-2 border-[#1a2233] bg-[#f5a623] flex items-center justify-center text-[9px] sm:text-[10px] font-bold text-white">
                 {u}
               </span>
             ))}
-            <span className="w-7 h-7 -ml-1.5 rounded-full border-2 border-[#1a2233] bg-gray-500 flex items-center justify-center text-[10px] font-bold text-white">+4</span>
+            <span className="w-6 h-6 sm:w-7 sm:h-7 -ml-1.5 rounded-full border-2 border-[#1a2233] bg-gray-500 flex items-center justify-center text-[9px] sm:text-[10px] font-bold text-white">+4</span>
           </div>
           <button
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold text-white"
+            className="flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold text-white whitespace-nowrap"
             style={{ background: '#f5a623' }}
           >
             ⚡ EXECUTE GLOBAL RE-SYNC

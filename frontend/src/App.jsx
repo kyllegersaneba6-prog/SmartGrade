@@ -29,12 +29,29 @@ import StudentDashboard from './pages/student/Dashboard';
 import StudentMyClasses from './pages/student/MyClasses';
 import StudentGradebook from './pages/student/Gradebook';
 import StudentReports from './pages/student/Reports';
+import Login from './pages/Login';
+
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
 function App() {
+  const token = localStorage.getItem('token');
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/dean" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route 
+          path="/" 
+          element={<Navigate to={token ? "/admin" : "/login"} replace />} 
+        />
+
         
         {/* Dean Routes */}
         <Route path="/dean" element={<DeanLayout />}>
@@ -57,7 +74,14 @@ function App() {
         </Route>
 
         {/* Admin Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<GlobalAnalytics />} />
           <Route path="system-config" element={<SystemConfiguration />} />
           <Route path="security" element={<SecurityAudit />} />

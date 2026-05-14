@@ -43,22 +43,22 @@ const heatColor = (val) => {
 const GlobalAnalytics = () => (
   <div>
     {/* Header */}
-    <div className="flex items-start justify-between mb-6">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
       <div>
-        <h1 className="text-2xl font-bold" style={{ color: '#f5a623' }}>Global Analytics</h1>
-        <p className="text-sm mt-0.5" style={{ color: '#6b7280' }}>
+        <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#f5a623' }}>Global Analytics</h1>
+        <p className="text-xs sm:text-sm mt-0.5" style={{ color: '#6b7280' }}>
           Comprehensive Institutional performance oversight and trend forecasting.
         </p>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <span
-          className="text-xs font-semibold px-3 py-1 rounded-full border"
+          className="text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full border whitespace-nowrap"
           style={{ borderColor: '#d1c9ba', color: '#6b7280' }}
         >
           ACADEMIC YEAR 2024-25
         </span>
         <span
-          className="text-xs font-bold px-3 py-1 rounded-full text-white"
+          className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white whitespace-nowrap"
           style={{ background: '#f5a623' }}
         >
           LIVE DATA
@@ -68,7 +68,7 @@ const GlobalAnalytics = () => (
 
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       {/* Left 2/3 */}
-      <div className="col-span-2 flex flex-col gap-5">
+      <div className="lg:col-span-2 flex flex-col gap-5">
         {/* Heatmap Card */}
         <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
           <div className="flex items-center justify-between mb-4">
@@ -128,12 +128,12 @@ const GlobalAnalytics = () => (
         </div>
 
         {/* Enrollment Trend */}
-        <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold" style={{ color: '#f5a623' }}>
+        <div className="rounded-xl p-4 sm:p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <h2 className="text-sm sm:text-base font-bold" style={{ color: '#f5a623' }}>
               System-Wide Enrollment & Attendance Trend
             </h2>
-            <div className="flex items-center gap-4 text-xs text-gray-500">
+            <div className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-gray-500">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full" style={{ background: '#f5a623' }} />
                 Enrollment
@@ -144,19 +144,21 @@ const GlobalAnalytics = () => (
               </span>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={enrollmentData} barGap={4}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f0ede6" />
-              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} />
-              <Tooltip
-                contentStyle={{ background: '#1a2233', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12 }}
-                cursor={{ fill: 'rgba(245,166,35,0.05)' }}
-              />
-              <Bar dataKey="enrollment" fill="#f5a623" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="attendance" fill="#d1c9ba" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="h-[180px] sm:h-[220px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={enrollmentData} barGap={4}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f0ede6" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                <Tooltip
+                  contentStyle={{ background: '#1a2233', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11 }}
+                  cursor={{ fill: 'rgba(245,166,35,0.05)' }}
+                />
+                <Bar dataKey="enrollment" fill="#f5a623" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="attendance" fill="#d1c9ba" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 

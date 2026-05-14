@@ -4,6 +4,12 @@ import clsx from 'clsx';
 
 const AdminSidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
+
 
   const navItems = [
     { name: 'Global Analytics', path: '/admin', icon: LayoutDashboard, exact: true },
@@ -23,8 +29,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
 
       <div
         className={clsx(
-          'w-64 bg-sidebar text-white flex flex-col h-screen sticky top-0 shrink-0 z-50',
-          'fixed lg:static sidebar-transition',
+          'w-64 bg-sidebar text-white flex flex-col h-[100dvh] fixed top-0 left-0 shrink-0 z-50 sidebar-transition',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
@@ -73,10 +78,14 @@ const AdminSidebar = ({ isOpen, onClose }) => {
             <Settings size={18} />
             Support
           </button>
-          <button className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium w-full"
+          >
             <LogOut size={18} />
             Sign Out
           </button>
+
         </div>
       </div>
     </>
