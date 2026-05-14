@@ -75,7 +75,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           </button>
           <button className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium">
             <LogOut size={18} />
-            Logout
+            Sign Out
           </button>
         </div>
       </div>

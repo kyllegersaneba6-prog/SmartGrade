@@ -29,7 +29,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
 
       <div
         className={clsx(
-          'w-64 bg-sidebar text-white flex flex-col h-[100dvh] fixed top-0 left-0 shrink-0 z-50 sidebar-transition',
+          'w-64 bg-sidebar text-white flex flex-col h-dvh fixed top-0 left-0 shrink-0 z-50 sidebar-transition',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
@@ -76,7 +76,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
           </div>
           <button className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium">
             <Settings size={18} />
-            Support
+            Settings
           </button>
           <button 
             onClick={handleLogout}

@@ -1,17 +1,23 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, BarChart2, BookOpen, FileText, Settings, LogOut, GraduationCap, X } from 'lucide-react';
+import { LayoutDashboard, Users, BarChart2, BookOpen, FileText, Settings, LogOut, Download, X } from 'lucide-react';
 import clsx from 'clsx';
+
+const navItems = [
+  { name: 'Dashboard', path: '/teacher/dashboard', icon: LayoutDashboard },
+  { name: 'My Classes', path: '/teacher/classes', icon: Users },
+  { name: 'Analytics Central', path: '/teacher/analytics', icon: BarChart2 },
+  { name: 'Gradebook', path: '/teacher/gradebook', icon: BookOpen },
+  { name: 'Reports', path: '/teacher/reports', icon: FileText },
+];
 
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
 
-  const navItems = [
-    { name: 'Dashboard', path: '/teacher/dashboard', icon: LayoutDashboard },
-    { name: 'My Classes', path: '/teacher/classes', icon: Users },
-    { name: 'Analytics Central', path: '/teacher/analytics', icon: BarChart2 },
-    { name: 'Gradebook', path: '/teacher/gradebook', icon: BookOpen },
-    { name: 'Reports', path: '/teacher/reports', icon: FileText },
-  ];
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
 
   return (
     <>
@@ -36,46 +42,48 @@ const Sidebar = ({ isOpen, onClose }) => {
           <X size={20} />
         </button>
 
-        <div className="p-6 pb-8 flex items-center gap-3">
-          <div className="bg-gold p-2 rounded-lg">
-            <GraduationCap size={24} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-gold font-bold text-xl leading-tight">SmartGrade</h1>
-            <p className="text-xs text-gray-400 tracking-wider">TEACHER PORTAL</p>
-          </div>
+        <div className="p-6 pb-8">
+          <h1 className="text-gold font-bold text-xl leading-tight uppercase tracking-wider">SmartGrade</h1>
+          <p className="text-xs text-gray-400 tracking-wider font-semibold mt-1 uppercase">TEACHER PORTAL</p>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2">
+        <nav className="flex-1 space-y-1">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
             return (
               <Link
                 key={item.name}
                 to={item.path}
                 onClick={onClose}
                 className={clsx(
-                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                  'flex items-center gap-3 px-6 py-3 transition-colors',
                   isActive
                     ? 'bg-sidebar-active text-gold font-medium border-l-4 border-gold'
                     : 'text-gray-300 hover:bg-sidebar-hover hover:text-white border-l-4 border-transparent'
                 )}
               >
-                <item.icon size={20} className={isActive ? 'text-gold' : 'text-gray-400'} />
+                <Icon size={20} className={isActive ? 'text-gold' : 'text-gray-400'} />
                 {item.name}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 px-8 space-y-4 mb-4">
-          <button className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors">
-            <Settings size={20} />
+        <div className="p-6 space-y-4 mb-2">
+          <button className="w-full bg-gold hover:bg-gold-hover text-sidebar font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors mb-4">
+            <Download size={18} /> Export Reports
+          </button>
+          <button className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium">
+            <Settings size={18} />
             Settings
           </button>
-          <button className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors">
-            <LogOut size={20} />
-            Logout
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium w-full"
+          >
+            <LogOut size={18} />
+            Sign Out
           </button>
         </div>
       </div>

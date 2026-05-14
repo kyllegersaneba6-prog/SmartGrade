@@ -1,12 +1,18 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, ClipboardList, FileBarChart, HelpCircle, LogOut, GraduationCap, X } from 'lucide-react';
+import { LayoutDashboard, BookOpen, ClipboardList, FileBarChart, HelpCircle, LogOut, Settings, X } from 'lucide-react';
 import clsx from 'clsx';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
+
   const navItems = [
-    { name: 'Dashboard', path: '/student', icon: LayoutDashboard },
+    { name: 'Dashboard', path: '/student', icon: LayoutDashboard, exact: true },
     { name: 'My Classes', path: '/student/classes', icon: BookOpen },
     { name: 'Gradebook', path: '/student/gradebook', icon: ClipboardList },
     { name: 'Reports', path: '/student/reports', icon: FileBarChart },
@@ -35,20 +41,15 @@ const Sidebar = ({ isOpen, onClose }) => {
           <X size={20} />
         </button>
 
-        <div className="p-6 pb-8 flex items-center gap-3">
-          <div className="bg-gold p-2 rounded-lg">
-            <GraduationCap size={24} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-gold font-bold text-xl leading-tight">SmartGrade</h1>
-            <p className="text-xs text-gray-400 tracking-wider">STUDENT PORTAL</p>
-          </div>
+        <div className="p-6 pb-8">
+          <h1 className="text-gold font-bold text-xl leading-tight uppercase tracking-wider">SmartGrade</h1>
+          <p className="text-xs text-gray-400 tracking-wider font-semibold mt-1 uppercase">STUDENT PORTAL</p>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2">
+        <nav className="flex-1 space-y-1">
           {navItems.map((item) => {
-            const isActive = item.path === '/student'
-              ? location.pathname === '/student'
+            const isActive = item.exact
+              ? location.pathname === item.path
               : location.pathname.startsWith(item.path);
             return (
               <Link
@@ -56,7 +57,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 to={item.path}
                 onClick={onClose}
                 className={clsx(
-                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                  'flex items-center gap-3 px-6 py-3 transition-colors',
                   isActive
                     ? 'bg-sidebar-active text-gold font-medium border-l-4 border-gold'
                     : 'text-gray-300 hover:bg-sidebar-hover hover:text-white border-l-4 border-transparent'
@@ -69,15 +70,21 @@ const Sidebar = ({ isOpen, onClose }) => {
           })}
         </nav>
 
-        <div className="border-t border-sidebar-hover mx-4 mb-2"></div>
-        <div className="p-4 px-8 space-y-4 mb-4">
-          <button className="flex items-center gap-3 text-gold hover:text-white transition-colors font-medium">
-            <HelpCircle size={20} />
+        <div className="p-6 space-y-4 mb-2">
+          <button className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium">
+            <HelpCircle size={18} />
             Support
           </button>
-          <button className="flex items-center gap-3 text-gold hover:text-white transition-colors font-medium">
-            <LogOut size={20} />
-            Logout
+          <button className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium">
+            <Settings size={18} />
+            Settings
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium w-full"
+          >
+            <LogOut size={18} />
+            Sign Out
           </button>
         </div>
       </div>
