@@ -13,8 +13,22 @@ const Login = () => {
   // Check if already logged in
   React.useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      navigate('/admin');
+    const userStr = localStorage.getItem('user');
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role === 'dean') {
+          navigate('/dean');
+        } else if (user.role === 'teacher') {
+          navigate('/teacher');
+        } else if (user.role === 'student') {
+          navigate('/student');
+        } else {
+          navigate('/admin');
+        }
+      } catch (e) {
+        navigate('/admin');
+      }
     }
   }, [navigate]);
 
@@ -42,8 +56,16 @@ const Login = () => {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Redirect based on role (for now redirect to admin as per previous code)
-      navigate('/admin');
+      // Redirect based on role
+      if (data.user.role === 'dean') {
+        navigate('/dean');
+      } else if (data.user.role === 'teacher') {
+        navigate('/teacher');
+      } else if (data.user.role === 'student') {
+        navigate('/student');
+      } else {
+        navigate('/admin');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -54,8 +76,8 @@ const Login = () => {
   return (
     <div className="min-h-screen flex flex-col justify-between bg-[#FDFCF8] relative overflow-hidden font-sans">
       {/* Decorative Background Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle,_#FDF6E3_0%,_transparent_60%)] opacity-80 pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[80vw] h-[80vw] rounded-full bg-[radial-gradient(circle,_#FCF5DF_0%,_transparent_60%)] opacity-80 pointer-events-none"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle,#FDF6E3_0%,transparent_60%)] opacity-80 pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[80vw] h-[80vw] rounded-full bg-[radial-gradient(circle,#FCF5DF_0%,transparent_60%)] opacity-80 pointer-events-none"></div>
       
       {/* Subtle concentric rings like in the image (optional, approximated with repeating radial gradient) */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'repeating-radial-gradient(circle at 0% 0%, transparent 0, transparent 40px, #D1A638 40px, #D1A638 41px)' }}></div>
@@ -74,7 +96,7 @@ const Login = () => {
 
           {error && (
             <div className="w-full mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-600">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 shrink-0" />
               <p className="text-sm font-semibold">{error}</p>
             </div>
           )}

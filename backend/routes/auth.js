@@ -14,13 +14,39 @@ router.post('/login', async (req, res) => {
 
   try {
     // 1. Find user in Supabase
-    const { data: user, error } = await supabase
+    let user;
+    let role = 'admin';
+    let dbUsername = username;
+
+    const { data: adminUser } = await supabase
       .from('admin_users')
       .select('*')
       .eq('username', username)
       .single();
 
-    if (error || !user) {
+    if (adminUser) {
+      user = adminUser;
+    } else if (username.toUpperCase().startsWith('USR-')) {
+      // The 'id' column is a UUID type — ilike won't work on it.
+      // Fetch all staff users and match the ID prefix in code instead.
+      const shortId = username.substring(4).toLowerCase();
+      const { data: staffUsers } = await supabase
+        .from('staff_users')
+        .select('*');
+
+      if (staffUsers && staffUsers.length > 0) {
+        const matched = staffUsers.find(u =>
+          u.id.substring(0, shortId.length).toLowerCase() === shortId
+        );
+        if (matched) {
+          user = matched;
+          role = matched.system_role;
+          dbUsername = `USR-${matched.id.substring(0, 4).toUpperCase()}`;
+        }
+      }
+    }
+
+    if (!user) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
@@ -32,7 +58,7 @@ router.post('/login', async (req, res) => {
 
     // 3. Generate JWT
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: 'admin' },
+      { id: user.id, username: dbUsername, role },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
@@ -41,8 +67,8 @@ router.post('/login', async (req, res) => {
       token,
       user: {
         id: user.id,
-        username: user.username,
-        role: 'admin'
+        username: dbUsername,
+        role
       }
     });
   } catch (err) {

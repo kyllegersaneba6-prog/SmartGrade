@@ -6,6 +6,7 @@ import StudentLayout from './layouts/StudentLayout';
 
 // Dean Pages
 import DeanDashboard from './pages/dean/Dashboard';
+import StudentSections from './pages/dean/StudentSections';
 import TeacherSubmissions from './pages/dean/TeacherSubmissions';
 import InstitutionalAnalytics from './pages/dean/InstitutionalAnalytics';
 import ReportGenerator from './pages/dean/ReportGenerator';
@@ -16,6 +17,7 @@ import TeacherDashboard from './pages/teacher/Dashboard';
 import MyClasses from './pages/teacher/MyClasses';
 import TeacherAnalytics from './pages/teacher/Analytics';
 import Gradebook from './pages/teacher/Gradebook';
+import Attendance from './pages/teacher/Attendance';
 import TeacherReports from './pages/teacher/Reports';
 
 // Admin Pages
@@ -23,6 +25,7 @@ import GlobalAnalytics from './pages/admin/GlobalAnalytics';
 import SystemConfiguration from './pages/admin/SystemConfiguration';
 import SecurityAudit from './pages/admin/SecurityAudit';
 import UserRoles from './pages/admin/UserRoles';
+import CreateUser from './pages/admin/CreateUser';
 
 // Student Pages
 import StudentDashboard from './pages/student/Dashboard';
@@ -49,7 +52,25 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route 
           path="/" 
-          element={<Navigate to={token ? "/admin" : "/login"} replace />} 
+          element={
+            token ? (
+              <Navigate to={
+                (() => {
+                  try {
+                    const user = JSON.parse(localStorage.getItem('user'));
+                    if (user?.role === 'dean') return '/dean';
+                    if (user?.role === 'teacher') return '/teacher';
+                    if (user?.role === 'student') return '/student';
+                    return '/admin';
+                  } catch (e) {
+                    return '/admin';
+                  }
+                })()
+              } replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
         />
 
         
@@ -57,6 +78,7 @@ function App() {
         <Route path="/dean" element={<DeanLayout />}>
           <Route index element={<DeanDashboard />} />
           <Route path="dashboard" element={<DeanDashboard />} />
+          <Route path="sections" element={<StudentSections />} />
           <Route path="submissions" element={<TeacherSubmissions />} />
           <Route path="analytics" element={<InstitutionalAnalytics />} />
           <Route path="reports" element={<ReportGenerator />} />
@@ -70,6 +92,7 @@ function App() {
           <Route path="classes" element={<MyClasses />} />
           <Route path="analytics" element={<TeacherAnalytics />} />
           <Route path="gradebook" element={<Gradebook />} />
+          <Route path="attendance" element={<Attendance />} />
           <Route path="reports" element={<TeacherReports />} />
         </Route>
 
@@ -86,6 +109,7 @@ function App() {
           <Route path="system-config" element={<SystemConfiguration />} />
           <Route path="security" element={<SecurityAudit />} />
           <Route path="users" element={<UserRoles />} />
+          <Route path="users/create" element={<CreateUser />} />
         </Route>
 
         {/* Student Routes */}

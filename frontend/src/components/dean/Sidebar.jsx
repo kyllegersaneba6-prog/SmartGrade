@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, BarChart2, FileText, Settings, LogOut, Download, Settings2, X } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, BarChart2, FileText, Settings, LogOut, Download, Settings2, X, Users } from 'lucide-react';
 import clsx from 'clsx';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -7,6 +7,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const navItems = [
     { name: 'Compliance Dashboard', path: '/dean/dashboard', icon: LayoutDashboard },
+    { name: 'Student Sections', path: '/dean/sections', icon: Users },
     { name: 'Teacher Submissions', path: '/dean/submissions', icon: CheckSquare },
     { name: 'Institutional Analytics', path: '/dean/analytics', icon: BarChart2 },
     { name: 'Report Generator', path: '/dean/reports', icon: FileText },

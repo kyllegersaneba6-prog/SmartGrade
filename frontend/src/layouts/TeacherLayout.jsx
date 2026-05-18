@@ -13,6 +13,7 @@ const TeacherLayout = () => {
       case '/teacher/classes': return 'My Classes';
       case '/teacher/analytics': return 'Analytics Central';
       case '/teacher/gradebook': return 'Gradebook';
+      case '/teacher/attendance': return 'Attendance Records';
       case '/teacher/reports': return 'Reports';
       default: return 'SmartGrade';
     }

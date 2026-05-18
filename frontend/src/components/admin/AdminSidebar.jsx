@@ -12,7 +12,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
 
 
   const navItems = [
-    { name: 'Global Analytics', path: '/admin', icon: LayoutDashboard, exact: true },
+    { name: 'Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
     { name: 'System Configuration', path: '/admin/system-config', icon: Settings2 },
     { name: 'Security & Audit', path: '/admin/security', icon: ShieldCheck },
     { name: 'User & Roles', path: '/admin/users', icon: Users },

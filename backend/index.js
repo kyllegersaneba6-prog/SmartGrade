@@ -12,8 +12,38 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+const usersRoutes = require('./routes/users');
+const activityRoutes = require('./routes/activity');
+
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/activity', activityRoutes);
+
+// One-time setup: create activity_log table if it doesn't exist
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+(async () => {
+  try {
+    const { error } = await supabase.rpc('exec_sql', {
+      query: `CREATE TABLE IF NOT EXISTS public.activity_log (
+        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        user_name TEXT NOT NULL,
+        action TEXT NOT NULL,
+        details TEXT,
+        created_at TIMESTAMPTZ DEFAULT now()
+      );`
+    });
+    // If rpc doesn't exist, try direct insert to test the table
+    if (error) {
+      // Table may already exist — just test it
+      await supabase.from('activity_log').select('id').limit(1);
+    }
+  } catch (e) {
+    console.log('activity_log table setup: table may need to be created manually in Supabase dashboard.');
+  }
+})();
 
 app.get('/', (req, res) => {
   res.send('SmartGrade Backend is running...');

@@ -17,7 +17,7 @@ const AdminLayout = () => {
 
   const getTitle = () => {
     switch (location.pathname) {
-      case '/admin': return 'Global Analytics';
+      case '/admin': return 'Dashboard';
       case '/admin/system-config': return 'System Configuration';
       case '/admin/security': return 'Security & Audit Logs';
       case '/admin/users': return 'User & Role Management';
