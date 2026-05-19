@@ -153,31 +153,29 @@ const MyClasses = () => {
     let termGrades = [];
     const terms = ['Prelim', 'Midterm', 'Pre-Finals', 'Finals'];
     
-    terms.forEach(term => {
-      const termKey = `term_records_${sectionId}`;
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith(termKey)) {
-          const raw = localStorage.getItem(k);
-          if (raw) {
-            const recs = JSON.parse(raw);
+    // Gather finalized term grades from semester-scoped keys
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(`term_records_${sectionId}_`)) {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const recs = JSON.parse(raw);
+          terms.forEach(term => {
             if (recs[studentId] && recs[studentId][term] !== undefined && recs[studentId][term] !== null) {
               termGrades.push(recs[studentId][term]);
             }
-          }
+          });
         }
       }
-    });
+    }
 
     let inProgressGrades = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith(`grades_${sectionId}_`)) {
-        const parts = key.split('_');
-        const academicYear = parts[2];
-        const term = parts[3];
-        
-        const assessmentsRaw = localStorage.getItem(`assessments_${sectionId}_${academicYear}_${term}`);
+        // Key format: grades_{sectionId}_{year}_{semester}_{term}
+        const assessmentsKey = key.replace('grades_', 'assessments_');
+        const assessmentsRaw = localStorage.getItem(assessmentsKey);
         const gradesRaw = localStorage.getItem(key);
         
         if (assessmentsRaw && gradesRaw) {
@@ -259,19 +257,21 @@ const MyClasses = () => {
           attendancePct = Math.round((presentCount / dates.length) * 100);
         }
 
-        // Progress mock estimation based on locked terms
+        // Progress estimation based on locked terms across all semesters
         let lockedCount = 0;
         const terms = ['Prelim', 'Midterm', 'Pre-Finals', 'Finals'];
-        terms.forEach(t => {
-          const key = `term_records_${section.id}`;
-          for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (k && k.startsWith(key)) {
-              const raw = localStorage.getItem(k);
-              if (raw && JSON.parse(raw)[resolvedStudentId]?.[t] !== undefined) lockedCount++;
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(`term_records_${section.id}_`)) {
+            const raw = localStorage.getItem(k);
+            if (raw) {
+              const recs = JSON.parse(raw);
+              terms.forEach(t => {
+                if (recs[resolvedStudentId]?.[t] !== undefined && recs[resolvedStudentId]?.[t] !== null) lockedCount++;
+              });
             }
           }
-        });
+        }
         const progress = Math.min(100, Math.max(15, lockedCount * 25 + (computedGrade !== null ? 10 : 0)));
 
         const status = displayGrade >= 85 ? 'Reassuring' : displayGrade >= 75 ? 'Review Needed' : 'Action Required';

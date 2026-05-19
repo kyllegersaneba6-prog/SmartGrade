@@ -73,9 +73,12 @@ const InstitutionalAnalytics = () => {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('term_records_')) {
-          const parts = key.split('_');
-          const classId = parts[2];
-          const academicYear = parts[3];
+          // format: term_records_{classId}_{academicYear}_{semester}
+          const withoutPrefix = key.substring('term_records_'.length);
+          const segments = withoutPrefix.split('_');
+          if (segments.length < 3) continue;
+          const classId = segments[0];
+          const academicYear = segments[1];
           const rawData = localStorage.getItem(key);
           if (rawData) {
             const records = JSON.parse(rawData);

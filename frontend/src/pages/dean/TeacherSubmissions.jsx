@@ -23,21 +23,22 @@ const TeacherSubmissions = () => {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith('term_records_')) {
-        const parts = key.split('_');
-        // format: term_records_{classId}_{academicYear}
-        const classId = parts[2];
-        const academicYear = parts[3];
+        // format: term_records_{classId}_{academicYear}_{semester}
+        const withoutPrefix = key.substring('term_records_'.length);
+        const segments = withoutPrefix.split('_');
+        if (segments.length < 3) continue;
+        const classId = segments[0];
+        const academicYear = segments[1];
+        const semester = segments.slice(2).join('_');
         const rawData = localStorage.getItem(key);
         
         if (rawData) {
           const records = JSON.parse(rawData);
-          // Find which terms have been finalized by checking the first student
           const studentIds = Object.keys(records);
           if (studentIds.length > 0) {
             const firstStudentRecords = records[studentIds[0]];
             const terms = Object.keys(firstStudentRecords).filter(term => firstStudentRecords[term] !== null && firstStudentRecords[term] !== undefined);
             
-            // Try to find class details
             const savedSections = localStorage.getItem('student_sections');
             let className = 'Unknown Class';
             let subject = 'Unknown Subject';
@@ -50,7 +51,6 @@ const TeacherSubmissions = () => {
               if (section) {
                 className = section.name;
                 subject = section.subject;
-                // Teacher name would normally be joined, using placeholder logic for now
                 teacherName = 'Assigned Teacher'; 
                 studentsData = section.students || [];
               }
@@ -58,12 +58,13 @@ const TeacherSubmissions = () => {
 
             terms.forEach(term => {
               allSubmissions.push({
-                id: `${classId}-${academicYear}-${term}`,
+                id: `${classId}-${academicYear}-${semester}-${term}`,
                 classId,
                 className,
                 subject,
                 teacherName,
                 academicYear,
+                semester,
                 term,
                 studentCount: studentIds.length,
                 studentGrades: studentsData.map(s => ({

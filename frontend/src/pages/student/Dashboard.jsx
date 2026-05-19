@@ -279,33 +279,30 @@ const Dashboard = () => {
     let termGrades = [];
     const terms = ['Prelim', 'Midterm', 'Pre-Finals', 'Finals'];
     
-    // 1. Gather finalized term grades
-    terms.forEach(term => {
-      const termKey = `term_records_${sectionId}`;
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith(termKey)) {
-          const raw = localStorage.getItem(k);
-          if (raw) {
-            const recs = JSON.parse(raw);
+    // 1. Gather finalized term grades from semester-scoped keys
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(`term_records_${sectionId}_`)) {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const recs = JSON.parse(raw);
+          terms.forEach(term => {
             if (recs[studentId] && recs[studentId][term] !== undefined && recs[studentId][term] !== null) {
               termGrades.push(recs[studentId][term]);
             }
-          }
+          });
         }
       }
-    });
+    }
 
-    // 2. Gather in-progress assessment grades
+    // 2. Gather in-progress assessment grades (semester-scoped keys)
     let inProgressGrades = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith(`grades_${sectionId}_`)) {
-        const parts = key.split('_');
-        const academicYear = parts[2];
-        const term = parts[3];
-        
-        const assessmentsRaw = localStorage.getItem(`assessments_${sectionId}_${academicYear}_${term}`);
+        // Key format: grades_{sectionId}_{year}_{semester}_{term}
+        const assessmentsKey = key.replace('grades_', 'assessments_');
+        const assessmentsRaw = localStorage.getItem(assessmentsKey);
         const gradesRaw = localStorage.getItem(key);
         
         if (assessmentsRaw && gradesRaw) {
