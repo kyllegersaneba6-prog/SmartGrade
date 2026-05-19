@@ -116,7 +116,7 @@ function App() {
         <Route path="/student" element={<StudentLayout />}>
           <Route index element={<StudentDashboard />} />
           <Route path="classes" element={<StudentMyClasses />} />
-          <Route path="gradebook" element={<StudentGradebook />} />
+          <Route path="classes/:classId" element={<StudentGradebook />} />
           <Route path="reports" element={<StudentReports />} />
         </Route>
       </Routes>

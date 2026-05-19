@@ -23,7 +23,6 @@ const Sidebar = ({ isOpen, onClose }) => {
   const navItems = [
     { name: 'Dashboard', path: '/student', icon: LayoutDashboard, exact: true },
     { name: 'My Classes', path: '/student/classes', icon: BookOpen },
-    { name: 'Gradebook', path: '/student/gradebook', icon: ClipboardList },
     { name: 'Reports', path: '/student/reports', icon: FileBarChart },
   ];
 

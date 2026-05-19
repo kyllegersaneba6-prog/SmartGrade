@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, MessageSquare, AlertTriangle, Info, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -18,7 +19,7 @@ const StatusBadge = ({ status }) => {
 };
 
 /* ─── Class Card ─── */
-const ClassCard = ({ subject, section, topic, instructor, initials, avgGrade, attendance, progress, status, borderColor }) => (
+const ClassCard = ({ id, subject, section, topic, instructor, initials, avgGrade, attendance, progress, status, borderColor, onViewFull }) => (
   <div className={`bg-white rounded-2xl shadow-sm border border-border overflow-hidden`}>
     <div className="p-5">
       <div className="flex items-start justify-between mb-1">
@@ -70,7 +71,10 @@ const ClassCard = ({ subject, section, topic, instructor, initials, avgGrade, at
     </div>
 
     <div className="px-5 pb-4 pt-3">
-      <button className="w-full border-2 border-gold text-gold font-bold py-2 rounded-lg hover:bg-gold-light transition-colors text-sm">
+      <button 
+        onClick={() => onViewFull(id)}
+        className="w-full border-2 border-gold text-gold font-bold py-2 rounded-lg hover:bg-gold-light transition-colors text-sm"
+      >
         View Full Record
       </button>
     </div>
@@ -140,6 +144,7 @@ const InterventionSummary = ({ interventions }) => (
 
 /* ─── My Classes Page ─── */
 const MyClasses = () => {
+  const navigate = useNavigate();
   const [classesList, setClassesList] = useState([]);
   const [trendData, setTrendData] = useState([]);
   const [interventions, setInterventions] = useState([]);
@@ -272,7 +277,6 @@ const MyClasses = () => {
         const status = displayGrade >= 85 ? 'Reassuring' : displayGrade >= 75 ? 'Review Needed' : 'Action Required';
         const borderColor = displayGrade >= 85 ? 'border-green-400' : displayGrade >= 75 ? 'border-orange-400' : 'border-red-400';
 
-        // Add to interventions if status is critical
         if (displayGrade < 75) {
           generatedInterventions.push({
             type: 'critical',
@@ -283,6 +287,7 @@ const MyClasses = () => {
         }
 
         list.push({
+          id: section.id,
           subject: section.subject,
           section: section.name,
           topic: teacher.department || 'Science & Engineering',
@@ -316,12 +321,12 @@ const MyClasses = () => {
     } else {
       // Default Mock Data
       setClassesList([
-        { subject: 'Mathematics', section: 'Section A-1', topic: 'Advanced Calculus', instructor: 'Dr. Robert Miller', initials: 'RM', avgGrade: 94.5, attendance: 98, progress: 85, status: 'Reassuring', borderColor: 'border-green-400' },
-        { subject: 'English', section: 'Section B-4', topic: 'Literature & Analysis', instructor: 'Prof. Sarah Jenkins', initials: 'SJ', avgGrade: 76.2, attendance: 82, progress: 62, status: 'Review Needed', borderColor: 'border-orange-400' },
-        { subject: 'Filipino', section: 'Section C-2', topic: 'Panitikang Pilipino', instructor: 'Ms. Maria Santos', initials: 'MS', avgGrade: 89.8, attendance: 95, progress: 92, status: 'Reassuring', borderColor: 'border-green-400' },
-        { subject: 'Science', section: 'Section D-1', topic: 'Organic Chemistry', instructor: 'Dr. Alan Turing', initials: 'AT', avgGrade: 91.2, attendance: 94, progress: 45, status: 'Reassuring', borderColor: 'border-green-400' },
-        { subject: 'History', section: 'Section E-3', topic: 'World Civilizations', instructor: 'Prof. David Graham', initials: 'DG', avgGrade: 64.5, attendance: 75, progress: 30, status: 'Action Required', borderColor: 'border-red-400' },
-        { subject: 'Comp Sci', section: 'Section F-1', topic: 'Data Structures', instructor: 'Dr. Kevin Zhang', initials: 'KZ', avgGrade: 97.0, attendance: 100, progress: 88, status: 'Reassuring', borderColor: 'border-green-400' },
+        { id: 'mock-math', subject: 'Mathematics', section: 'Section A-1', topic: 'Advanced Calculus', instructor: 'Dr. Robert Miller', initials: 'RM', avgGrade: 94.5, attendance: 98, progress: 85, status: 'Reassuring', borderColor: 'border-green-400' },
+        { id: 'mock-english', subject: 'English', section: 'Section B-4', topic: 'Literature & Analysis', instructor: 'Prof. Sarah Jenkins', initials: 'SJ', avgGrade: 76.2, attendance: 82, progress: 62, status: 'Review Needed', borderColor: 'border-orange-400' },
+        { id: 'mock-filipino', subject: 'Filipino', section: 'Section C-2', topic: 'Panitikang Pilipino', instructor: 'Ms. Maria Santos', initials: 'MS', avgGrade: 89.8, attendance: 95, progress: 92, status: 'Reassuring', borderColor: 'border-green-400' },
+        { id: 'mock-science', subject: 'Science', section: 'Section D-1', topic: 'Organic Chemistry', instructor: 'Dr. Alan Turing', initials: 'AT', avgGrade: 91.2, attendance: 94, progress: 45, status: 'Reassuring', borderColor: 'border-green-400' },
+        { id: 'mock-history', subject: 'History', section: 'Section E-3', topic: 'World Civilizations', instructor: 'Prof. David Graham', initials: 'DG', avgGrade: 64.5, attendance: 75, progress: 30, status: 'Action Required', borderColor: 'border-red-400' },
+        { id: 'mock-compsci', subject: 'Comp Sci', section: 'Section F-1', topic: 'Data Structures', instructor: 'Dr. Kevin Zhang', initials: 'KZ', avgGrade: 97.0, attendance: 100, progress: 88, status: 'Reassuring', borderColor: 'border-green-400' },
       ]);
       setTrendData([
         { name: 'MATH', value: 88 },
@@ -342,6 +347,10 @@ const MyClasses = () => {
     loadAllClasses();
   }, []);
 
+  const handleViewFull = (classId) => {
+    navigate(`/student/classes/${classId}`);
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full">
       {/* Header */}
@@ -360,7 +369,7 @@ const MyClasses = () => {
       {/* Class Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full">
         {classesList.map((cls, idx) => (
-          <ClassCard key={idx} {...cls} />
+          <ClassCard key={idx} {...cls} onViewFull={handleViewFull} />
         ))}
       </div>
 

@@ -8,13 +8,11 @@ const StudentLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const getTitle = () => {
-    switch (location.pathname) {
-      case '/student': return 'Academic Performance Overview';
-      case '/student/classes': return 'My Classes';
-      case '/student/gradebook': return 'Detailed Performance Gradebook';
-      case '/student/reports': return 'Academic Performance Reports';
-      default: return 'SmartGrade';
-    }
+    if (location.pathname === '/student') return 'Academic Performance Overview';
+    if (location.pathname === '/student/classes') return 'My Classes';
+    if (location.pathname.startsWith('/student/classes/')) return 'Detailed Performance Gradebook';
+    if (location.pathname === '/student/reports') return 'Academic Performance Reports';
+    return 'SmartGrade';
   };
 
   return (
