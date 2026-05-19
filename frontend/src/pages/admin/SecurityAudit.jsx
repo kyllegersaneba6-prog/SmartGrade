@@ -1,20 +1,5 @@
-import { useState } from 'react';
-import { Filter, RefreshCw, Download, Share2, FileText, Table2, BookOpen } from 'lucide-react';
-
-const metrics = [
-  { label: 'CRITICAL ALERTS', value: '02', color: '#ef4444', bg: '#fee2e2', icon: '⚠' },
-  { label: 'SYSTEM ACCESSES', value: '1,482', color: '#1a2233', bg: '#f0ede6', icon: '↗' },
-  { label: 'DATA EXPORTS', value: '84', color: '#1a2233', bg: '#f0ede6', icon: '📋' },
-  { label: 'UPTIME HEALTH', value: '99.9%', color: '#22c55e', bg: '#dcfce7', icon: '☁' },
-];
-
-const auditRows = [
-  { ts: '2023-10-24\n09:14:22', user: 'admin.j.doe', role: 'ROOT', roleColor: '#ef4444', action: 'DB_QUERY', desc: 'Global performance re-indexing', count: 1, critical: false },
-  { ts: '2023-10-24\n09:12:05', user: 'sys.automation', role: 'SERVICE', roleColor: '#3b82f6', action: 'SYS_CLEAN', desc: 'Purged temporary cache files (4.2GB)', count: 1, critical: false },
-  { ts: '2023-10-24\n08:55:12', user: 'user.m.smith', role: 'FACULTY', roleColor: '#6b7280', action: 'EXPORT_PDF', desc: 'Grade report generation – CS101', count: 1, critical: false },
-  { ts: '2023-10-24\n08:42:10', user: 'unknown.node', role: 'EXTERNAL', roleColor: '#f97316', action: 'AUTH_FAIL', desc: 'Repeated login attempts detected', count: 8, critical: true },
-  { ts: '2023-10-24\n08:30:00', user: 'sys.backup', role: 'SERVICE', roleColor: '#3b82f6', action: 'BKP_FULL', desc: 'Nightly encrypted backup completed', count: 1, critical: false },
-];
+import { useState, useEffect } from 'react';
+import { Filter, RefreshCw, Download, Share2, FileText, Table2, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const outputFormats = [
   { label: 'RAW LOGS', sub: 'JSON/TXT Format', pct: 100, icon: FileText, color: '#b5a98a' },
@@ -24,6 +9,108 @@ const outputFormats = [
 
 const SecurityAudit = () => {
   const [page, setPage] = useState(1);
+  const [logs, setLogs] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [activityRes, usersRes] = await Promise.all([
+        fetch('http://localhost:5000/api/activity'),
+        fetch('http://localhost:5000/api/users')
+      ]);
+      
+      const activityData = activityRes.ok ? await activityRes.json() : [];
+      const usersData = usersRes.ok ? await usersRes.json() : [];
+      
+      setUsers(usersData);
+      setLogs(activityData);
+    } catch (err) {
+      console.error("Failed to fetch audit data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const getRoleInfo = (userName) => {
+    if (userName === 'Super Admin' || userName.toLowerCase().includes('admin')) {
+      return { role: 'ROOT', color: '#ef4444' };
+    }
+    const user = users.find(u => u.full_name === userName);
+    if (!user) return { role: 'SYSTEM', color: '#3b82f6' };
+    
+    switch (user.system_role) {
+      case 'sysadmin': return { role: 'ADMIN', color: '#ef4444' };
+      case 'dean': return { role: 'DEAN', color: '#8b5cf6' };
+      case 'teacher': return { role: 'FACULTY', color: '#6b7280' };
+      case 'student': return { role: 'STUDENT', color: '#10b981' };
+      case 'registrar': return { role: 'REGISTRAR', color: '#f59e0b' };
+      default: return { role: 'USER', color: '#3b82f6' };
+    }
+  };
+
+  const formatAction = (actionStr) => {
+    if (!actionStr) return 'UNKNOWN';
+    return actionStr.toUpperCase().replace(/\s+/g, '_');
+  };
+
+  const isCritical = (actionStr, descStr) => {
+    const combined = (actionStr + ' ' + descStr).toLowerCase();
+    return combined.includes('delete') || combined.includes('fail') || combined.includes('error') || combined.includes('critical');
+  };
+
+  const dynamicRows = logs.map(log => {
+    const roleInfo = getRoleInfo(log.user_name);
+    const critical = isCritical(log.action, log.details);
+    const dateObj = new Date(log.created_at);
+    // Format timestamp like: '2023-10-24\n09:14:22'
+    const ts = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}\n${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
+    return {
+      id: log.id,
+      ts,
+      user: log.user_name,
+      role: roleInfo.role,
+      roleColor: roleInfo.color,
+      action: formatAction(log.action),
+      desc: log.details || 'No description provided',
+      count: 1,
+      critical
+    };
+  });
+
+  const criticalCount = dynamicRows.filter(r => r.critical).length;
+  // Fallback to total logs if no explicit login events found to ensure non-zero display when applicable
+  const loginAccesses = logs.filter(l => l.action.toLowerCase().includes('login') || l.action.toLowerCase().includes('access')).length;
+  const systemAccesses = loginAccesses > 0 ? loginAccesses : logs.length;
+  const dataExports = logs.filter(l => l.action.toLowerCase().includes('export') || l.action.toLowerCase().includes('download')).length;
+  
+  const metrics = [
+    { label: 'CRITICAL ALERTS', value: criticalCount.toString().padStart(2, '0'), color: '#ef4444', bg: '#fee2e2', icon: '⚠' },
+    { label: 'SYSTEM ACCESSES', value: systemAccesses.toLocaleString(), color: '#1a2233', bg: '#f0ede6', icon: '↗' },
+    { label: 'DATA EXPORTS', value: dataExports.toString(), color: '#1a2233', bg: '#f0ede6', icon: '📋' },
+    { label: 'UPTIME HEALTH', value: '99.9%', color: '#22c55e', bg: '#dcfce7', icon: '☁' },
+  ];
+
+  const ROWS_PER_PAGE = 10;
+  const totalPages = Math.max(1, Math.ceil(dynamicRows.length / ROWS_PER_PAGE));
+  const paginatedRows = dynamicRows.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
+
+  const getPageNumbers = () => {
+    let pages = [];
+    if (totalPages <= 3) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (page === 1) pages = [1, 2, 3];
+      else if (page === totalPages) pages = [totalPages - 2, totalPages - 1, totalPages];
+      else pages = [page - 1, page, page + 1];
+    }
+    return pages;
+  };
 
   return (
     <div>
@@ -53,7 +140,9 @@ const SecurityAudit = () => {
               </div>
               <div className="flex gap-2">
                 <button className="p-1.5 rounded border" style={{ borderColor: '#e5e0d5' }}><Filter size={14} className="text-gray-400" /></button>
-                <button className="p-1.5 rounded border" style={{ borderColor: '#e5e0d5' }}><RefreshCw size={14} className="text-gray-400" /></button>
+                <button onClick={fetchData} className="p-1.5 rounded border" style={{ borderColor: '#e5e0d5' }}>
+                  <RefreshCw size={14} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
+                </button>
               </div>
             </div>
             <div className="table-responsive"><table className="w-full text-xs min-w-[800px]">
@@ -65,31 +154,49 @@ const SecurityAudit = () => {
                 </tr>
               </thead>
               <tbody>
-                {auditRows.map((row, i) => (
-                  <tr key={i} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="py-8 text-center text-gray-400">Loading audit trail...</td>
+                  </tr>
+                ) : paginatedRows.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="py-8 text-center text-gray-400">No activity recorded yet.</td>
+                  </tr>
+                ) : paginatedRows.map((row, i) => (
+                  <tr key={row.id || i} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
                     <td className="py-3 pr-3 whitespace-pre font-mono text-[11px]" style={{ color: row.critical ? '#ef4444' : '#555' }}>{row.ts}</td>
                     <td className="py-3 pr-3 font-bold text-gray-800">{row.user}</td>
                     <td className="py-3 pr-3">
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold text-white" style={{ background: row.roleColor }}>{row.role}</span>
                     </td>
                     <td className="py-3 pr-3 font-mono text-gray-700">{row.action}</td>
-                    <td className="py-3 pr-3 text-gray-500">{row.desc}</td>
+                    <td className="py-3 pr-3 text-gray-500 max-w-[300px] truncate" title={row.desc}>{row.desc}</td>
                     <td className="py-3 text-gray-400 font-semibold">{row.count}</td>
                   </tr>
                 ))}
               </tbody>
             </table></div>
             <div className="flex items-center justify-between mt-4 pt-4 border-t text-xs" style={{ borderColor: '#f0ede6' }}>
-              <span className="text-gray-400">Showing 10 of 1,482 entries</span>
+              <span className="text-gray-400">
+                Showing {Math.min((page - 1) * ROWS_PER_PAGE + 1, dynamicRows.length)} to {Math.min(page * ROWS_PER_PAGE, dynamicRows.length)} of {dynamicRows.length.toLocaleString()} entries
+              </span>
               <div className="flex items-center gap-1">
-                <button className="px-3 py-1 rounded border text-gray-500" style={{ borderColor: '#e5e0d5' }}>Previous</button>
-                {[1, 2, 3].map((p) => (
+                <button 
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1 rounded border text-gray-500 disabled:opacity-50" 
+                  style={{ borderColor: '#e5e0d5' }}>Previous</button>
+                {getPageNumbers().map((p) => (
                   <button key={p} onClick={() => setPage(p)} className="w-7 h-7 rounded font-semibold"
                     style={page === p ? { background: '#1a2233', color: '#fff' } : { background: '#f0ede6', color: '#6b7280' }}>
                     {p}
                   </button>
                 ))}
-                <button className="px-3 py-1 rounded border text-gray-500" style={{ borderColor: '#e5e0d5' }}>Next</button>
+                <button 
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages || totalPages === 0}
+                  className="px-3 py-1 rounded border text-gray-500 disabled:opacity-50" 
+                  style={{ borderColor: '#e5e0d5' }}>Next</button>
               </div>
             </div>
           </div>

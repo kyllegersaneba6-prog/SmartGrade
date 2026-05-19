@@ -292,6 +292,83 @@ const Gradebook = () => {
     return (graded.reduce((a, b) => a + b, 0) / graded.length).toFixed(1);
   };
 
+  const handleExportCSV = () => {
+    if (!selectedClass || selectedClass.students.length === 0) {
+      alert("No students to export.");
+      return;
+    }
+
+    const headers = ['Student ID', 'Student Name'];
+    assessments.forEach(ass => {
+      headers.push(`${ass.name} (${ass.weight}%)`);
+    });
+    if (attendanceWeight > 0) {
+      headers.push(`Attendance (${attendanceWeight}%)`);
+    }
+    headers.push('Final Grade');
+
+    let csvContent = headers.join(',') + '\n';
+
+    selectedClass.students.forEach(student => {
+      // Use the exact User ID format generated in the Admin Portal (USR-XXXX)
+      const formattedId = student.id ? `USR-${student.id.substring(0,4).toUpperCase()}` : 'UNKNOWN';
+      
+      const row = [
+        formattedId,
+        `"${student.full_name}"`
+      ];
+
+      assessments.forEach(ass => {
+        const score = grades[student.id]?.[ass.id];
+        const hasScore = score !== undefined && score !== '';
+        if (hasScore) {
+          const pct = ((score / ass.totalItems) * 100).toFixed(1);
+          row.push(`"${score}/${ass.totalItems} (${pct}%)"`);
+        } else {
+          row.push('-');
+        }
+      });
+
+      if (attendanceWeight > 0) {
+        const rate = getAttendanceRate(student.id);
+        if (rate !== null) {
+          row.push(`"${rate.toFixed(1)}%"`);
+        } else {
+          row.push('-');
+        }
+      }
+
+      const finalScore = calculateFinalGrade(student.id);
+      row.push(finalScore !== '-' ? `"${finalScore}%"` : '-');
+
+      csvContent += row.join(',') + '\n';
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${selectedClass.subject.replace(/[^a-zA-Z0-9]/g, '_')}_${selectedTerm}_Grades.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Record the export action in the security audit logs
+    try {
+      fetch('http://localhost:5000/api/activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_name: 'Current Teacher',
+          action: 'EXPORT_GRADES',
+          details: `Exported ${selectedTerm} grades for ${selectedClass.subject} as CSV`
+        })
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Bar */}
@@ -340,7 +417,7 @@ const Gradebook = () => {
                 <Lock size={16} /> Finalize {selectedTerm}
               </button>
             )}
-            <button className="px-4 py-2 bg-white border border-border rounded-lg text-sm font-medium text-sidebar flex items-center gap-2 hover:bg-gray-50">
+            <button onClick={handleExportCSV} className="px-4 py-2 bg-white border border-border rounded-lg text-sm font-medium text-sidebar flex items-center gap-2 hover:bg-gray-50">
               <Download size={16} /> Export
             </button>
           </div>

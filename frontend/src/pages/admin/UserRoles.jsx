@@ -19,29 +19,20 @@ const UserRoles = () => {
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [activityLog, setActivityLog] = useState([]);
-  const [showAllActivity, setShowAllActivity] = useState(false);
+  const [activityPage, setActivityPage] = useState(1);
   const [userPage, setUserPage] = useState(1);
-  const [errorChartData, setErrorChartData] = useState([]);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [sortBy, setSortBy] = useState('default');
+  const ACTIVITY_PER_PAGE = 10;
 
+  const [feedbackList, setFeedbackList] = useState([]);
   useEffect(() => {
-    const calculateErrorData = () => {
-      const baseData = [
-        { t: 'Week 1', v: 12 },
-        { t: 'Week 2', v: 15 },
-        { t: 'Week 3', v: 8 },
-        { t: 'Week 4', v: 5 } // Current week base
-      ];
-      const feedbackList = JSON.parse(localStorage.getItem('smartgrade_feedback') || '[]');
-      // Add feedback clicks to the current week
-      baseData[3].v += feedbackList.length;
-      setErrorChartData(baseData);
+    const fetchFeedback = () => {
+      setFeedbackList(JSON.parse(localStorage.getItem('smartgrade_feedback') || '[]'));
     };
-
-    calculateErrorData();
-    window.addEventListener('feedback_added', calculateErrorData);
-    return () => window.removeEventListener('feedback_added', calculateErrorData);
+    fetchFeedback();
+    window.addEventListener('feedback_added', fetchFeedback);
+    return () => window.removeEventListener('feedback_added', fetchFeedback);
   }, []);
 
   const getSortedUsers = () => {
@@ -73,6 +64,16 @@ const UserRoles = () => {
     const m = getMonday(new Date());
     return m.toISOString().split('T')[0];
   });
+  const [errorWeekStart, setErrorWeekStart] = useState(() => {
+    const m = getMonday(new Date());
+    return m.toISOString().split('T')[0];
+  });
+
+  const totalActivityPages = Math.max(1, Math.ceil(activityLog.length / ACTIVITY_PER_PAGE));
+  const paginatedActivity = activityLog.slice(
+    (activityPage - 1) * ACTIVITY_PER_PAGE,
+    activityPage * ACTIVITY_PER_PAGE
+  );
 
   const confirmDelete = async () => {
     if (confirmText !== 'Confirm' || !userToDelete) return;
@@ -179,8 +180,8 @@ const UserRoles = () => {
     </div>
 
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
-      {/* User Table */}
-      <div className="col-span-2">
+      {/* User Table and Charts */}
+      <div className="col-span-2 flex flex-col gap-5">
         <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -308,6 +309,113 @@ const UserRoles = () => {
             </div>
           </div>
         </div>
+
+        {/* Current Active Users */}
+        <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+              <h2 className="text-sm font-bold text-gray-900">Current Active Users</h2>
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest">Weekly Activity Overview</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar size={14} className="text-gray-400" />
+              <input
+                type="date"
+                value={weekStart}
+                onChange={(e) => setWeekStart(e.target.value)}
+                className="text-xs px-2 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] border-[#e5e0d5] text-gray-700"
+              />
+            </div>
+          </div>
+          {(() => {
+            const ws = new Date(weekStart + 'T00:00:00');
+            const weekData = DAY_LABELS.map((label, i) => {
+              const dayDate = new Date(ws);
+              dayDate.setDate(ws.getDate() + i);
+              const dayStr = dayDate.toISOString().split('T')[0];
+              const count = usersList.filter(u => {
+                if (!u.rawId) return false;
+                const created = u.createdAt;
+                if (!created) return false;
+                return created.split('T')[0] === dayStr;
+              }).length;
+              const dateNum = dayDate.getDate();
+              return { day: `${label} ${dateNum}`, users: count };
+            });
+            return (
+              <>
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart data={weekData} barCategoryGap="20%">
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f0ede6" />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{ background: '#1a2233', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11 }}
+                      formatter={(value) => [`${value} user${value !== 1 ? 's' : ''}`, 'Active']}
+                    />
+                    <Bar dataKey="users" fill="#f5a623" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <div className="flex items-center justify-between mt-2 text-[10px] text-gray-400 px-1">
+                  <span>Week of {new Date(weekStart + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  <span className="font-semibold" style={{ color: '#f5a623' }}>{weekData.reduce((sum, d) => sum + d.users, 0)} total this week</span>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+
+        {/* Error trend */}
+        <div className="rounded-xl p-5 shadow-sm relative" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+              <h2 className="text-sm font-bold text-gray-900">Error Reporting Trend</h2>
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest">Daily Error Overview</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar size={14} className="text-gray-400" />
+              <input
+                type="date"
+                value={errorWeekStart}
+                onChange={(e) => setErrorWeekStart(e.target.value)}
+                className="text-xs px-2 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] border-[#e5e0d5] text-gray-700"
+              />
+            </div>
+          </div>
+          {(() => {
+            const ws = new Date(errorWeekStart + 'T00:00:00');
+            const errorWeekData = DAY_LABELS.map((label, i) => {
+              const dayDate = new Date(ws);
+              dayDate.setDate(ws.getDate() + i);
+              const dayStr = dayDate.toISOString().split('T')[0];
+              const dummyBase = [2, 1, 3, 0, 1, 0, 0][i];
+              const actualErrors = feedbackList.filter(f => {
+                const fDate = f.created_at || f.timestamp || new Date().toISOString();
+                return fDate.startsWith(dayStr);
+              }).length;
+              const dateNum = dayDate.getDate();
+              return { day: `${label} ${dateNum}`, errors: dummyBase + actualErrors };
+            });
+            return (
+              <>
+                <ResponsiveContainer width="100%" height={160}>
+                  <LineChart data={errorWeekData}>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f0ede6" />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                    <Tooltip contentStyle={{ background: '#1a2233', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11 }} />
+                    <Line type="monotone" dataKey="errors" stroke="#f5a623" strokeWidth={2.5} dot={{ r: 4, fill: '#f5a623' }} />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div className="flex items-center justify-between mt-2 text-[10px] text-gray-400 px-1">
+                  <span>Week of {new Date(errorWeekStart + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  <span className="font-semibold" style={{ color: '#f5a623' }}>{errorWeekData.reduce((sum, d) => sum + d.errors, 0)} total this week</span>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+
       </div>
 
       {/* Right: User Flow Stats */}
@@ -343,7 +451,7 @@ const UserRoles = () => {
           ) : (
             <>
               <div className="flex flex-col gap-2">
-                {(showAllActivity ? activityLog : activityLog.slice(0, 5)).map((a, idx) => {
+                {paginatedActivity.map((a, idx) => {
                   const isCreate = a.action.toLowerCase().includes('created');
                   const isDelete = a.action.toLowerCase().includes('deleted');
                   const dotColor = isCreate ? 'bg-green-400' : isDelete ? 'bg-red-400' : 'bg-yellow-400';
@@ -369,101 +477,35 @@ const UserRoles = () => {
                   );
                 })}
               </div>
-              {activityLog.length > 5 && (
-                <button
-                  onClick={() => setShowAllActivity(!showAllActivity)}
-                  className="w-full mt-2 flex items-center justify-center gap-1 text-xs text-gray-500 hover:text-gray-700 py-2 rounded-lg transition-colors hover:bg-[#f0ede6]"
-                >
-                  {showAllActivity ? (
-                    <><ChevronUp size={14} /> Show less</>
-                  ) : (
-                    <><ChevronDown size={14} /> Show all {activityLog.length} activities</>
-                  )}
-                </button>
+              {activityLog.length > ACTIVITY_PER_PAGE && (
+                <div className="flex items-center justify-between mt-4 pt-3 border-t text-xs" style={{ borderColor: '#f0ede6' }}>
+                  <span className="text-gray-400">Showing {Math.min((activityPage - 1) * ACTIVITY_PER_PAGE + 1, activityLog.length)}–{Math.min(activityPage * ACTIVITY_PER_PAGE, activityLog.length)}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setActivityPage(p => Math.max(1, p - 1))}
+                      disabled={activityPage === 1}
+                      className="p-1.5 rounded border text-gray-400 hover:text-sidebar hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      style={{ borderColor: '#e5e0d5' }}
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <span className="text-gray-500 font-medium">{activityPage} / {totalActivityPages}</span>
+                    <button
+                      onClick={() => setActivityPage(p => Math.min(totalActivityPages, p + 1))}
+                      disabled={activityPage === totalActivityPages}
+                      className="p-1.5 rounded border text-gray-400 hover:text-sidebar hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      style={{ borderColor: '#e5e0d5' }}
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
               )}
             </>
           )}
         </div>
       </div>
     </div>
-
-    {/* Bottom charts */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-      {/* Current Active Users */}
-      <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <div>
-            <h2 className="text-sm font-bold text-gray-900">Current Active Users</h2>
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest">Weekly Activity Overview</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar size={14} className="text-gray-400" />
-            <input
-              type="date"
-              value={weekStart}
-              onChange={(e) => setWeekStart(e.target.value)}
-              className="text-xs px-2 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] border-[#e5e0d5] text-gray-700"
-            />
-          </div>
-        </div>
-        {(() => {
-          const ws = new Date(weekStart + 'T00:00:00');
-          const weekData = DAY_LABELS.map((label, i) => {
-            const dayDate = new Date(ws);
-            dayDate.setDate(ws.getDate() + i);
-            const dayStr = dayDate.toISOString().split('T')[0];
-            const count = usersList.filter(u => {
-              if (!u.rawId) return false;
-              // Find the raw user's created_at from the fetched data
-              const created = u.createdAt;
-              if (!created) return false;
-              return created.split('T')[0] === dayStr;
-            }).length;
-            const dateNum = dayDate.getDate();
-            return { day: `${label} ${dateNum}`, users: count };
-          });
-          const maxVal = Math.max(...weekData.map(d => d.users), 1);
-          return (
-            <>
-              <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={weekData} barCategoryGap="20%">
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f0ede6" />
-                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{ background: '#1a2233', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11 }}
-                    formatter={(value) => [`${value} user${value !== 1 ? 's' : ''}`, 'Active']}
-                  />
-                  <Bar dataKey="users" fill="#f5a623" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-              <div className="flex items-center justify-between mt-2 text-[10px] text-gray-400 px-1">
-                <span>Week of {new Date(weekStart + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                <span className="font-semibold" style={{ color: '#f5a623' }}>{weekData.reduce((sum, d) => sum + d.users, 0)} total this week</span>
-              </div>
-            </>
-          );
-        })()}
-      </div>
-
-      {/* Error trend */}
-      <div className="rounded-xl p-5 shadow-sm relative" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-gray-900">Error Reporting Trend</h2>
-        </div>
-        <ResponsiveContainer width="100%" height={160}>
-          <LineChart data={errorChartData}>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f0ede6" />
-            <XAxis dataKey="t" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-            <Tooltip contentStyle={{ background: '#1a2233', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11 }} />
-            <Line type="monotone" dataKey="v" stroke="#f5a623" strokeWidth={2.5} dot={{ r: 4, fill: '#f5a623' }} />
-          </LineChart>
-        </ResponsiveContainer>
-
-
-      </div>
-      </div>
       {deleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">

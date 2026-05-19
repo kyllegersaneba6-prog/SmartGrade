@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Trash2, ArrowRight, UserPlus, X, RefreshCw, BookOpen } from 'lucide-react';
+import { Users, Plus, Trash2, ArrowRight, UserPlus, X, RefreshCw, BookOpen, Search } from 'lucide-react';
 
 const StudentSections = () => {
-  const [students, setStudents] = useState([]);
+  const [allStudents, setAllStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [sections, setSections] = useState([]);
   const [newSectionName, setNewSectionName] = useState('');
-  const [unassigned, setUnassigned] = useState([]);
   
   // Modal for adding a student manually
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [targetSectionId, setTargetSectionId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Submit state
   const [showSuccess, setShowSuccess] = useState(false);
@@ -45,10 +45,8 @@ const StudentSections = () => {
   useEffect(() => {
     // Load sections from local storage
     const savedSections = localStorage.getItem('student_sections');
-    let initialSections = [];
     if (savedSections) {
-      initialSections = JSON.parse(savedSections);
-      setSections(initialSections);
+      setSections(JSON.parse(savedSections));
     }
 
     // Fetch all users and filter students and teachers
@@ -58,24 +56,14 @@ const StudentSections = () => {
         if (res.ok) {
           const data = await res.json();
           
-          // Filter students
+          // Filter students — always keep the full list available
           const studentList = data.filter(u => u.system_role === 'student');
           studentList.sort((a, b) => a.full_name.localeCompare(b.full_name));
-          setStudents(studentList);
+          setAllStudents(studentList);
           
           // Filter teachers
           const teacherList = data.filter(u => u.system_role === 'teacher');
           setTeachers(teacherList);
-
-          // Calculate unassigned students
-          // Any student not found in initialSections is unassigned
-          const assignedStudentIds = new Set();
-          initialSections.forEach(sec => {
-            sec.students.forEach(s => assignedStudentIds.add(s.id));
-          });
-          
-          const unassignedStudents = studentList.filter(s => !assignedStudentIds.has(s.id));
-          setUnassigned(unassignedStudents);
         }
       } catch (err) {
         console.error('Failed to fetch users', err);
@@ -83,8 +71,6 @@ const StudentSections = () => {
     };
     fetchUsers();
   }, []);
-
-  // We will now save to localStorage manually when the user clicks 'Submit'.
 
   const handleAddSection = (e) => {
     e.preventDefault();
@@ -101,57 +87,37 @@ const StudentSections = () => {
   };
 
   const handleRemoveSection = (sectionId) => {
-    const sectionToRemove = sections.find(s => s.id === sectionId);
-    if (!sectionToRemove) return;
-    
-    // Return students back to unassigned pool
-    const returnedStudents = [...unassigned, ...sectionToRemove.students];
-    returnedStudents.sort((a, b) => a.full_name.localeCompare(b.full_name));
-    
-    setUnassigned(returnedStudents);
     setSections(sections.filter(s => s.id !== sectionId));
   };
 
+  // Auto-sort: distribute ALL students into sections that have empty slots
+  // Students CAN appear in multiple sections (different subjects)
   const handleAutoSort = () => {
     if (sections.length === 0) return alert("Please create at least one section first.");
-    if (unassigned.length === 0) return alert("No unassigned students to sort.");
 
-    let currentUnassigned = [...unassigned];
-    currentUnassigned.sort((a, b) => a.full_name.localeCompare(b.full_name));
+    // Only fill sections that currently have NO students
+    const emptySections = sections.filter(s => s.students.length === 0);
+    if (emptySections.length === 0) return alert("All sections already have students assigned. Create a new section or clear an existing one.");
+
+    const sorted = [...allStudents].sort((a, b) => a.full_name.localeCompare(b.full_name));
 
     const updatedSections = sections.map(section => {
-      const availableSpace = 40 - section.students.length;
-      if (availableSpace > 0 && currentUnassigned.length > 0) {
-        const toAdd = currentUnassigned.splice(0, availableSpace);
-        return {
-          ...section,
-          students: [...section.students, ...toAdd].sort((a, b) => a.full_name.localeCompare(b.full_name))
-        };
-      }
-      return section;
+      if (section.students.length > 0) return section; // Skip sections that already have students
+      const cap = Math.min(40, sorted.length);
+      return {
+        ...section,
+        students: sorted.slice(0, cap)
+      };
     });
 
     setSections(updatedSections);
-    setUnassigned(currentUnassigned);
   };
 
   const handleRemoveStudentFromSection = (sectionId, studentId) => {
-    const sectionIndex = sections.findIndex(s => s.id === sectionId);
-    if (sectionIndex === -1) return;
-
-    const section = sections[sectionIndex];
-    const studentToRemove = section.students.find(s => s.id === studentId);
-    
-    if (!studentToRemove) return;
-
-    const updatedStudents = section.students.filter(s => s.id !== studentId);
-    const updatedSections = [...sections];
-    updatedSections[sectionIndex] = { ...section, students: updatedStudents };
-
-    const updatedUnassigned = [...unassigned, studentToRemove].sort((a, b) => a.full_name.localeCompare(b.full_name));
-
-    setSections(updatedSections);
-    setUnassigned(updatedUnassigned);
+    setSections(sections.map(s => {
+      if (s.id !== sectionId) return s;
+      return { ...s, students: s.students.filter(st => st.id !== studentId) };
+    }));
   };
 
   const handleAddStudentToSection = (student) => {
@@ -166,15 +132,18 @@ const StudentSections = () => {
       return;
     }
 
+    // Prevent duplicate within the SAME section
+    if (section.students.some(s => s.id === student.id)) {
+      alert("This student is already in this section.");
+      return;
+    }
+
     const updatedStudents = [...section.students, student].sort((a, b) => a.full_name.localeCompare(b.full_name));
     const updatedSections = [...sections];
     updatedSections[sectionIndex] = { ...section, students: updatedStudents };
 
-    const updatedUnassigned = unassigned.filter(s => s.id !== student.id);
-
     setSections(updatedSections);
-    setUnassigned(updatedUnassigned);
-    setIsAddModalOpen(false);
+    // Do NOT close modal — allow adding more students quickly
   };
 
   const handleUpdateSectionDetails = (sectionId, field, value) => {
@@ -186,7 +155,23 @@ const StudentSections = () => {
 
   const openAddModal = (sectionId) => {
     setTargetSectionId(sectionId);
+    setSearchQuery('');
     setIsAddModalOpen(true);
+  };
+
+  // Filter students in the Add modal: show all students, but indicate if already in this section
+  const getFilteredStudents = () => {
+    const section = sections.find(s => s.id === targetSectionId);
+    const sectionStudentIds = new Set(section ? section.students.map(s => s.id) : []);
+    
+    return allStudents
+      .filter(s => s.full_name.toLowerCase().includes(searchQuery.toLowerCase()))
+      .map(s => ({ ...s, alreadyInSection: sectionStudentIds.has(s.id) }));
+  };
+
+  // Count how many sections each student appears in (for the right panel)
+  const getStudentSectionCount = (studentId) => {
+    return sections.filter(s => s.students.some(st => st.id === studentId)).length;
   };
 
   return (
@@ -195,7 +180,7 @@ const StudentSections = () => {
         <div>
           <h1 className="text-2xl font-bold text-sidebar">Student Sections</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Manage section capacities, assign teachers & subjects, and auto-sort students.
+            Assign students to sections with teachers & subjects. Students can be enrolled in multiple subjects.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -259,6 +244,11 @@ const StudentSections = () => {
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${section.students.length >= 40 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                           {section.students.length} / 40 Students
                         </span>
+                        {section.subject && (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gold-light text-gold">
+                            {section.subject}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <button 
@@ -344,25 +334,33 @@ const StudentSections = () => {
           )}
         </div>
 
-        {/* Right Column: Unassigned Students */}
+        {/* Right Column: All Students Directory */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm h-full flex flex-col sticky top-24 max-h-[calc(100vh-100px)]">
           <div className="p-5 border-b border-gray-100 bg-gray-50 rounded-t-xl shrink-0">
             <h3 className="font-bold text-gray-800 flex items-center gap-2">
-              <Users size={18} className="text-gold" /> Unassigned Students
+              <Users size={18} className="text-gold" /> Student Directory
             </h3>
-            <p className="text-xs text-gray-500 mt-1">Pending section allocation ({unassigned.length})</p>
+            <p className="text-xs text-gray-500 mt-1">All registered students ({allStudents.length})</p>
           </div>
           
           <div className="p-2 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-            {unassigned.length === 0 ? (
-              <p className="text-xs text-center text-gray-400 italic py-10">All students assigned!</p>
+            {allStudents.length === 0 ? (
+              <p className="text-xs text-center text-gray-400 italic py-10">No students registered.</p>
             ) : (
               <ul className="space-y-1">
-                {unassigned.map(student => (
-                  <li key={student.id} className="p-2 rounded hover:bg-blue-50 text-sm font-medium text-gray-700 truncate border border-transparent hover:border-blue-100 transition-colors">
-                    {student.full_name}
-                  </li>
-                ))}
+                {allStudents.map(student => {
+                  const sectionCount = getStudentSectionCount(student.id);
+                  return (
+                    <li key={student.id} className="p-2 rounded hover:bg-blue-50 text-sm font-medium text-gray-700 flex items-center justify-between border border-transparent hover:border-blue-100 transition-colors">
+                      <span className="truncate">{student.full_name}</span>
+                      {sectionCount > 0 && (
+                        <span className="text-[10px] font-bold bg-gold-light text-gold px-1.5 py-0.5 rounded-full shrink-0 ml-2">
+                          {sectionCount}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -380,23 +378,49 @@ const StudentSections = () => {
                 <X size={20} />
               </button>
             </div>
+
+            {/* Search bar */}
+            <div className="px-4 pt-4 pb-2">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search student name..."
+                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold"
+                  autoFocus
+                />
+              </div>
+            </div>
             
             <div className="p-4 overflow-y-auto flex-1" style={{ scrollbarWidth: 'thin' }}>
-              {unassigned.length === 0 ? (
-                <p className="text-sm text-center text-gray-500 italic py-8">No unassigned students available.</p>
+              {getFilteredStudents().length === 0 ? (
+                <p className="text-sm text-center text-gray-500 italic py-8">No students match your search.</p>
               ) : (
                 <div className="space-y-2">
-                  {unassigned.map(student => (
+                  {getFilteredStudents().map(student => (
                     <button 
                       key={student.id}
-                      onClick={() => handleAddStudentToSection(student)}
-                      className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-gold hover:bg-yellow-50 transition-colors text-left"
+                      onClick={() => !student.alreadyInSection && handleAddStudentToSection(student)}
+                      disabled={student.alreadyInSection}
+                      className={`w-full flex items-center justify-between p-3 border rounded-lg text-left transition-colors ${
+                        student.alreadyInSection
+                          ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
+                          : 'border-gray-200 hover:border-gold hover:bg-yellow-50'
+                      }`}
                     >
                       <div>
                         <p className="text-sm font-bold text-gray-800">{student.full_name}</p>
-                        <p className="text-[10px] text-gray-500">{student.email}</p>
+                        <p className="text-[10px] text-gray-500">
+                          {student.alreadyInSection ? 'Already in this section' : student.email || 'Click to add'}
+                        </p>
                       </div>
-                      <ArrowRight size={16} className="text-gold" />
+                      {student.alreadyInSection ? (
+                        <span className="text-[10px] font-bold bg-green-100 text-green-600 px-2 py-0.5 rounded-full">Added</span>
+                      ) : (
+                        <ArrowRight size={16} className="text-gold" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -408,7 +432,7 @@ const StudentSections = () => {
                 onClick={() => setIsAddModalOpen(false)}
                 className="w-full py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
               >
-                Cancel
+                Done
               </button>
             </div>
           </div>
