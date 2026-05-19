@@ -16,8 +16,9 @@ const Gradebook = () => {
   const [classes, setClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState('');
 
-  // Academic Year & Term
+  // Academic Year, Semester & Term
   const [academicYear, setAcademicYear] = useState(ACADEMIC_YEARS[0]);
+  const [selectedSemester, setSelectedSemester] = useState('2nd Semester');
   const [selectedTerm, setSelectedTerm] = useState('Prelim');
   const [termRecords, setTermRecords] = useState({}); // { [term]: finalGradeValue } per student
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
@@ -30,25 +31,25 @@ const Gradebook = () => {
   
   // grades structure: { [studentId]: { [assessmentId]: score } }
   const [grades, setGrades] = useState({});
-
+ 
   // New assessment modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [newAssessmentName, setNewAssessmentName] = useState('');
   const [newAssessmentWeight, setNewAssessmentWeight] = useState('');
   const [newAssessmentTotalItems, setNewAssessmentTotalItems] = useState('');
-
+ 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-
+ 
   // Attendance integration
   const [attendanceDates, setAttendanceDates] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState({});
   const [attendanceWeight, setAttendanceWeight] = useState(0);
   const [showAttendanceConfig, setShowAttendanceConfig] = useState(false);
   const [tempAttWeight, setTempAttWeight] = useState('');
-
-  // Helper: build a storage key scoped to class + year + term
-  const storageKey = (base) => `${base}_${selectedClassId}_${academicYear}_${selectedTerm}`;
+ 
+  // Helper: build a storage key scoped to class + year + semester + term
+  const storageKey = (base) => `${base}_${selectedClassId}_${academicYear}_${selectedSemester}_${selectedTerm}`;
 
   // Load sections from local storage
   useEffect(() => {
@@ -67,7 +68,7 @@ const Gradebook = () => {
     }
   }, [location]);
 
-  // Load assessments and grades when class/term/year changes
+  // Load assessments and grades when class/term/year/semester changes
   useEffect(() => {
     if (selectedClassId) {
       const savedAssessments = localStorage.getItem(storageKey('assessments'));
@@ -89,27 +90,27 @@ const Gradebook = () => {
       setAttendanceWeight(savedAttWeight ? parseFloat(savedAttWeight) : 0);
 
       // Load term records for GPA
-      const savedTermRecords = localStorage.getItem(`term_records_${selectedClassId}_${academicYear}`);
+      const savedTermRecords = localStorage.getItem(`term_records_${selectedClassId}_${academicYear}_${selectedSemester}`);
       setTermRecords(savedTermRecords ? JSON.parse(savedTermRecords) : {});
 
       // Load unlock requests to check status
       const savedRequests = localStorage.getItem('unlock_requests');
       setUnlockRequests(savedRequests ? JSON.parse(savedRequests) : []);
     }
-  }, [selectedClassId, selectedTerm, academicYear]);
+  }, [selectedClassId, selectedTerm, academicYear, selectedSemester]);
 
   // Save assessments and grades when they change
   useEffect(() => {
     if (selectedClassId) {
       localStorage.setItem(storageKey('assessments'), JSON.stringify(assessments));
     }
-  }, [assessments, selectedClassId, selectedTerm, academicYear]);
+  }, [assessments, selectedClassId, selectedTerm, academicYear, selectedSemester]);
 
   useEffect(() => {
     if (selectedClassId) {
       localStorage.setItem(storageKey('grades'), JSON.stringify(grades));
     }
-  }, [grades, selectedClassId, selectedTerm, academicYear]);
+  }, [grades, selectedClassId, selectedTerm, academicYear, selectedSemester]);
 
   const selectedClass = classes.find(c => c.id === selectedClassId) || { name: 'Unknown', subject: 'No Class Selected', students: [] };
 
@@ -240,7 +241,7 @@ const Gradebook = () => {
       newTermRecords[student.id][selectedTerm] = fg !== '-' ? parseFloat(fg) : null;
     });
     setTermRecords(newTermRecords);
-    localStorage.setItem(`term_records_${selectedClassId}_${academicYear}`, JSON.stringify(newTermRecords));
+    localStorage.setItem(`term_records_${selectedClassId}_${academicYear}_${selectedSemester}`, JSON.stringify(newTermRecords));
     setShowFinalizeModal(false);
 
     // Auto-advance to next term
@@ -255,6 +256,7 @@ const Gradebook = () => {
     return unlockRequests.some(r => 
       r.classId === selectedClassId && 
       r.academicYear === academicYear && 
+      r.semester === selectedSemester &&
       r.term === selectedTerm && 
       r.status === 'PENDING'
     );
@@ -270,6 +272,7 @@ const Gradebook = () => {
       className: selectedClass.name,
       subject: selectedClass.subject,
       academicYear,
+      semester: selectedSemester,
       term: selectedTerm,
       reason: unlockReason,
       status: 'PENDING',
@@ -400,6 +403,17 @@ const Gradebook = () => {
                 ))}
               </select>
             </div>
+            <div>
+              <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Semester</div>
+              <select
+                value={selectedSemester}
+                onChange={(e) => setSelectedSemester(e.target.value)}
+                className="text-sm font-medium text-sidebar bg-transparent border-b-2 border-sidebar focus:outline-none pb-1 pr-4 cursor-pointer"
+              >
+                <option value="1st Semester">1st Semester</option>
+                <option value="2nd Semester">2nd Semester</option>
+              </select>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 md:gap-3">
             <button 
@@ -430,7 +444,7 @@ const Gradebook = () => {
               const first = selectedClass.students[0];
               return first && termRecords[first.id]?.[term] !== undefined;
             })();
-            const isPendingUnlock = unlockRequests.some(r => r.classId === selectedClassId && r.academicYear === academicYear && r.term === term && r.status === 'PENDING');
+            const isPendingUnlock = unlockRequests.some(r => r.classId === selectedClassId && r.academicYear === academicYear && r.semester === selectedSemester && r.term === term && r.status === 'PENDING');
 
             return (
               <button

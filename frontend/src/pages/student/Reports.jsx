@@ -237,8 +237,8 @@ const Reports = () => {
           full_name: 'Assigned Teacher'
         };
 
-        // Try to load term records key: term_records_${section.id}_${selectedYear}
-        const termKey = `term_records_${section.id}_${selectedYear}`;
+        // Try to load term records key: term_records_${section.id}_${selectedYear}_${selectedSemester}
+        const termKey = `term_records_${section.id}_${selectedYear}_${selectedSemester}`;
         const raw = localStorage.getItem(termKey);
         let finalGrade = null;
         let status = 'PENDING';
@@ -256,9 +256,9 @@ const Reports = () => {
         const assessments = [];
         const studentGrades = {};
         
-        // Scan for assessments in local storage matching this year/term
-        const assessmentsRaw = localStorage.getItem(`assessments_${section.id}_${selectedYear}_${selectedTerm}`);
-        const gradesRaw = localStorage.getItem(`grades_${section.id}_${selectedYear}_${selectedTerm}`);
+        // Scan for assessments in local storage matching this year/semester/term
+        const assessmentsRaw = localStorage.getItem(`assessments_${section.id}_${selectedYear}_${selectedSemester}_${selectedTerm}`);
+        const gradesRaw = localStorage.getItem(`grades_${section.id}_${selectedYear}_${selectedSemester}_${selectedTerm}`);
 
         if (assessmentsRaw && gradesRaw) {
           const list = JSON.parse(assessmentsRaw);

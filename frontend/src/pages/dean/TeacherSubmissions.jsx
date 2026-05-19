@@ -82,7 +82,9 @@ const TeacherSubmissions = () => {
 
   const handleApproveUnlock = (req) => {
     // 1. Remove the term from term_records for that class
-    const key = `term_records_${req.classId}_${req.academicYear}`;
+    const key = req.semester
+      ? `term_records_${req.classId}_${req.academicYear}_${req.semester}`
+      : `term_records_${req.classId}_${req.academicYear}`;
     const rawData = localStorage.getItem(key);
     if (rawData) {
       const records = JSON.parse(rawData);
