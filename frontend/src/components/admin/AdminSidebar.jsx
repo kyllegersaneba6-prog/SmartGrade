@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Settings2, ShieldCheck, Users, LogOut, Settings, Circle, X } from 'lucide-react';
+import { LayoutDashboard, Settings2, ShieldCheck, Users, LogOut, Settings, X, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
 
 const AdminSidebar = ({ isOpen, onClose }) => {
@@ -10,6 +10,13 @@ const AdminSidebar = ({ isOpen, onClose }) => {
     window.location.href = '/login';
   };
 
+  const handleFeedbackClick = () => {
+    const feedbackList = JSON.parse(localStorage.getItem('smartgrade_feedback') || '[]');
+    feedbackList.push(new Date().toISOString());
+    localStorage.setItem('smartgrade_feedback', JSON.stringify(feedbackList));
+    window.dispatchEvent(new Event('feedback_added'));
+    alert('Feedback submitted!');
+  };
 
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
@@ -70,10 +77,13 @@ const AdminSidebar = ({ isOpen, onClose }) => {
         </nav>
 
         <div className="p-6 space-y-4 mb-2">
-          <div className="flex items-center gap-2 text-xs text-green-400 font-medium mb-2">
-            <Circle size={8} fill="currentColor" />
-            System Status: Active
-          </div>
+          <button 
+            onClick={handleFeedbackClick}
+            className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium w-full"
+          >
+            <MessageSquare size={18} />
+            Feedback
+          </button>
           <button className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium">
             <Settings size={18} />
             Settings

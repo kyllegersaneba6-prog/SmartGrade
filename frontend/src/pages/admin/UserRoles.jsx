@@ -2,18 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-import { ChevronLeft, ChevronRight, UserPlus, Trash2, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, UserPlus, Trash2, Calendar, ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 
 
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-const errorData = [
-  { t: 'Jan', v: 80 }, { t: 'Feb', v: 70 }, { t: 'Mar', v: 60 }, { t: 'Apr', v: 55 },
-  { t: 'May', v: 50 }, { t: 'Jun', v: 45 }, { t: 'Jul', v: 40 }, { t: 'Aug', v: 38 },
-];
 
 const USERS_PER_PAGE = 10;
 
@@ -26,9 +21,41 @@ const UserRoles = () => {
   const [activityLog, setActivityLog] = useState([]);
   const [showAllActivity, setShowAllActivity] = useState(false);
   const [userPage, setUserPage] = useState(1);
+  const [errorChartData, setErrorChartData] = useState([]);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [sortBy, setSortBy] = useState('default');
 
-  const totalUserPages = Math.max(1, Math.ceil(usersList.length / USERS_PER_PAGE));
-  const paginatedUsers = usersList.slice(
+  useEffect(() => {
+    const calculateErrorData = () => {
+      const baseData = [
+        { t: 'Week 1', v: 12 },
+        { t: 'Week 2', v: 15 },
+        { t: 'Week 3', v: 8 },
+        { t: 'Week 4', v: 5 } // Current week base
+      ];
+      const feedbackList = JSON.parse(localStorage.getItem('smartgrade_feedback') || '[]');
+      // Add feedback clicks to the current week
+      baseData[3].v += feedbackList.length;
+      setErrorChartData(baseData);
+    };
+
+    calculateErrorData();
+    window.addEventListener('feedback_added', calculateErrorData);
+    return () => window.removeEventListener('feedback_added', calculateErrorData);
+  }, []);
+
+  const getSortedUsers = () => {
+    if (sortBy === 'department') {
+      return [...usersList].sort((a, b) => (a.dept || '').localeCompare(b.dept || ''));
+    } else if (sortBy === 'role') {
+      return [...usersList].sort((a, b) => (a.role || '').localeCompare(b.role || ''));
+    }
+    return usersList;
+  };
+
+  const sortedUsers = getSortedUsers();
+  const totalUserPages = Math.max(1, Math.ceil(sortedUsers.length / USERS_PER_PAGE));
+  const paginatedUsers = sortedUsers.slice(
     (userPage - 1) * USERS_PER_PAGE,
     userPage * USERS_PER_PAGE
   );
@@ -160,9 +187,39 @@ const UserRoles = () => {
               <h2 className="text-base font-bold" style={{ color: '#f5a623' }}>Global User Provisioning &amp; Roles</h2>
               <span className="text-xs text-gray-400">(Master Control)</span>
             </div>
-            <div className="flex gap-2">
-              <button className="p-1.5 rounded border" style={{ borderColor: '#e5e0d5' }}>≡</button>
-              <button className="p-1.5 rounded border" style={{ borderColor: '#e5e0d5' }}>⋮</button>
+            <div className="flex gap-2 relative">
+              <button className="p-1.5 rounded border text-gray-500 hover:bg-gray-50 transition-colors" style={{ borderColor: '#e5e0d5' }}>≡</button>
+              <button 
+                onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                className="flex items-center gap-1.5 p-1.5 px-3 rounded border text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors" 
+                style={{ borderColor: '#e5e0d5' }}
+              >
+                <Filter size={14} /> Filter
+              </button>
+
+              {filterDropdownOpen && (
+                <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-[#e5e0d5] rounded-xl shadow-lg z-10 py-1 overflow-hidden">
+                  <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-[#e5e0d5]">Sort Options</div>
+                  <button
+                    onClick={() => { setSortBy('department'); setFilterDropdownOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 ${sortBy === 'department' ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-700 font-medium'}`}
+                  >
+                    Sort by Department
+                  </button>
+                  <button
+                    onClick={() => { setSortBy('role'); setFilterDropdownOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 ${sortBy === 'role' ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-700 font-medium'}`}
+                  >
+                    Sort by Role
+                  </button>
+                  <button
+                    onClick={() => { setSortBy('default'); setFilterDropdownOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 border-t border-[#f0ede6] mt-1 ${sortBy === 'default' ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-500 font-medium'}`}
+                  >
+                    Clear Sorting
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -393,10 +450,9 @@ const UserRoles = () => {
       <div className="rounded-xl p-5 shadow-sm relative" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold text-gray-900">Error Reporting Trend</h2>
-          <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: '#dcfce7', color: '#15803d' }}>-12% YoY</span>
         </div>
         <ResponsiveContainer width="100%" height={160}>
-          <LineChart data={errorData}>
+          <LineChart data={errorChartData}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f0ede6" />
             <XAxis dataKey="t" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
@@ -405,11 +461,7 @@ const UserRoles = () => {
           </LineChart>
         </ResponsiveContainer>
 
-        <div className="flex justify-between text-[10px] text-gray-400 mt-2 uppercase tracking-wider px-1">
-          {['Resolved', 'Avg Response', 'Security Flag'].map((l) => (
-            <span key={l}>{l}</span>
-          ))}
-        </div>
+
       </div>
       </div>
       {deleteModalOpen && (

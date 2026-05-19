@@ -10,7 +10,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Login Route
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+  let { username, password } = req.body;
+  username = username.trim();
 
   try {
     // 1. Find user in Supabase
@@ -36,7 +37,7 @@ router.post('/login', async (req, res) => {
 
       if (staffUsers && staffUsers.length > 0) {
         const matched = staffUsers.find(u =>
-          u.id.substring(0, shortId.length).toLowerCase() === shortId
+          shortId.length > 0 && u.id.substring(0, shortId.length).toLowerCase() === shortId
         );
         if (matched) {
           user = matched;

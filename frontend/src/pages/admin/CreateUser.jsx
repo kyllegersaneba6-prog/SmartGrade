@@ -17,8 +17,16 @@ const CreateUser = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'system_role' && value === 'student') {
-      setFormData({ ...formData, system_role: value, permissions_profile: 'read_only' });
+    if (name === 'system_role') {
+      if (value === 'sysadmin') {
+        setFormData({ ...formData, system_role: value, permissions_profile: 'manage' });
+      } else if (value === 'teacher' || value === 'dean') {
+        setFormData({ ...formData, system_role: value, permissions_profile: 'create_update' });
+      } else if (value === 'student') {
+        setFormData({ ...formData, system_role: value, permissions_profile: 'read_only' });
+      } else {
+        setFormData({ ...formData, [name]: value });
+      }
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -90,6 +98,7 @@ const CreateUser = () => {
                   name="department"
                   value={formData.department}
                   onChange={handleInputChange}
+                  autoComplete="off"
                   placeholder="e.g., IT Admin, Registrar, Dean, Admissions, etc" 
                   className="w-full px-4 py-3 bg-[#fbf8f1] border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:border-transparent text-gray-800 placeholder-gray-400"
                 />
@@ -117,7 +126,7 @@ const CreateUser = () => {
                     className="w-full px-4 py-3 bg-[#fbf8f1] border border-[#e5e0d5] rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:border-transparent text-gray-800"
                   >
                     <option value="" disabled className="text-gray-400">Select an access level</option>
-                    <option value="sysadmin">System Admin</option>
+                    <option value="sysadmin">Super Admin</option>
                     <option value="dean">College Dean</option>
                     <option value="teacher">Teacher</option>
                     <option value="student">Student</option>
@@ -138,6 +147,7 @@ const CreateUser = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
+                    autoComplete="new-password"
                     placeholder="••••••••••••" 
                     className="w-full px-4 py-3 bg-[#fbf8f1] border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:border-transparent text-gray-800 placeholder-gray-400 pr-12"
                   />
@@ -160,14 +170,14 @@ const CreateUser = () => {
         {/* Bottom Section: Permissions */}
         <div className="pt-6 border-t border-[#f0ede6] mb-8">
           <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-            Account Limitations &amp; Permissions (Optional)
+            Account Limitations &amp; Permissions (Auto-assigned)
           </label>
           <div className="relative">
             <select 
               name="permissions_profile"
               value={formData.permissions_profile}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 bg-[#fbf8f1] border border-[#e5e0d5] rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:border-transparent text-gray-800"
+              disabled
+              className="w-full px-4 py-3 bg-gray-100 border border-[#e5e0d5] rounded-lg appearance-none focus:outline-none text-gray-700 cursor-not-allowed"
             >
               <option value="" disabled className="text-gray-400">Select permissions profile...</option>
               <option value="read_only">Read-Only</option>

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, BarChart2, BookOpen, FileText, Settings, LogOut, Download, X } from 'lucide-react';
+import { LayoutDashboard, Users, BarChart2, BookOpen, FileText, Settings, LogOut, Download, X, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
 
 const navItems = [
@@ -12,6 +12,14 @@ const navItems = [
 
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
+
+  const handleFeedbackClick = () => {
+    const feedbackList = JSON.parse(localStorage.getItem('smartgrade_feedback') || '[]');
+    feedbackList.push(new Date().toISOString());
+    localStorage.setItem('smartgrade_feedback', JSON.stringify(feedbackList));
+    window.dispatchEvent(new Event('feedback_added'));
+    alert('Feedback submitted!');
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -30,8 +38,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
       <div
         className={clsx(
-          'w-64 bg-sidebar text-white flex flex-col h-screen sticky top-0 shrink-0 z-50',
-          'fixed lg:static sidebar-transition',
+          'w-64 bg-sidebar text-white flex flex-col h-dvh fixed top-0 left-0 shrink-0 z-50 sidebar-transition',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
@@ -71,8 +78,13 @@ const Sidebar = ({ isOpen, onClose }) => {
         </nav>
 
         <div className="p-6 space-y-4 mb-2">
-          <button className="w-full bg-gold hover:bg-gold-hover text-sidebar font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors mb-4">
-            <Download size={18} /> Export Reports
+
+          <button 
+            onClick={handleFeedbackClick}
+            className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium w-full"
+          >
+            <MessageSquare size={18} />
+            Feedback
           </button>
           <button className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium">
             <Settings size={18} />

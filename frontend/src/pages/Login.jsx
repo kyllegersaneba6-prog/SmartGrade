@@ -125,14 +125,9 @@ const Login = () => {
 
             {/* Password Field */}
             <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-xs font-bold text-[#4A4A4A] uppercase tracking-wider">
-                  Password
-                </label>
-                <a href="#" className="text-xs font-bold text-[#826A28] hover:text-[#D1A638] transition-colors">
-                  Forgot Password?
-                </a>
-              </div>
+              <label className="block text-xs font-bold text-[#4A4A4A] uppercase tracking-wider mb-1.5">
+                Password
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                   <Lock className="h-5 w-5 text-[#A09682]" />
@@ -152,6 +147,11 @@ const Login = () => {
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
+              </div>
+              <div className="flex justify-end mt-2">
+                <a href="#" className="text-xs font-bold text-[#826A28] hover:text-[#D1A638] transition-colors">
+                  Forgot Password?
+                </a>
               </div>
             </div>
 

@@ -2,7 +2,7 @@ import { Search, Bell, MonitorPlay, User, Menu } from 'lucide-react';
 
 const Header = ({ title, onMenuToggle }) => {
   return (
-    <header className="h-16 bg-sidebar flex items-center justify-between px-4 md:px-6 lg:px-8 text-white border-b border-sidebar-hover shadow-sm z-10">
+    <header className="h-16 bg-sidebar flex items-center justify-between px-4 md:px-6 lg:px-8 text-white border-b border-sidebar-hover shadow-sm sticky top-0 z-40 shrink-0">
       <div className="flex items-center gap-3 lg:gap-4 min-w-0">
         <button onClick={onMenuToggle} className="text-gray-300 hover:text-white lg:hidden shrink-0">
           <Menu size={22} />
@@ -21,10 +21,6 @@ const Header = ({ title, onMenuToggle }) => {
             className="pl-9 pr-4 py-1.5 bg-sidebar-hover text-xs rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gold w-48 lg:w-64 border border-sidebar-active"
           />
         </div>
-        
-        <button className="text-gold border border-gold hover:bg-gold-light hover:text-sidebar px-3 lg:px-4 py-1.5 rounded-full text-xs font-bold transition-colors hidden sm:block">
-          Quick Audit
-        </button>
 
         <div className="flex items-center gap-3 md:gap-4 text-gray-300">
           <button className="hover:text-white transition-colors relative">

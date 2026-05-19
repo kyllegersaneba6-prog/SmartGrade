@@ -51,17 +51,8 @@ const AdminLayout = () => {
               />
             </div>
 
-            {/* Action buttons */}
-            <button className="flex items-center gap-1.5 bg-gold hover:bg-gold-hover text-sidebar font-bold px-3 lg:px-4 py-1.5 rounded-full text-xs transition-colors">
-              <Zap size={13} />
-              <span className="hidden sm:inline">Compute</span>
-            </button>
-            <button className="text-gold border border-gold hover:bg-gold-light hover:text-sidebar px-3 lg:px-4 py-1.5 rounded-full text-xs font-bold transition-colors items-center gap-1.5 hidden sm:flex">
-              <Download size={13} />
-              Export
-            </button>
 
-            {/* Icons */}
+
             <div className="flex items-center gap-2 sm:gap-4 text-gray-300">
               <button className="hover:text-white transition-colors">
                 <Bell size={18} />
@@ -69,36 +60,6 @@ const AdminLayout = () => {
               <button className="hover:text-white transition-colors hidden sm:block">
                 <History size={18} />
               </button>
-              <div className="relative">
-                <button 
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="hover:text-white transition-colors hidden sm:block focus:outline-none"
-                >
-                  <User size={18} />
-                </button>
-                
-                {userMenuOpen && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-20" 
-                      onClick={() => setUserMenuOpen(false)}
-                    ></div>
-                    <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl py-2 z-30 border border-gray-100 overflow-hidden transform origin-top-right transition-all">
-                      <div className="px-4 py-2 border-b border-gray-50 mb-1">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Account</p>
-                        <p className="text-sm font-bold text-sidebar truncate">Admin User</p>
-                      </div>
-                      <button 
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors font-semibold"
-                      >
-                        <Zap size={14} className="rotate-180" />
-                        Log Out
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
             </div>
           </div>
         </header>

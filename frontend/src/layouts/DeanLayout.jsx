@@ -19,9 +19,9 @@ const DeanLayout = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-bg-light font-sans text-text-main">
+    <div className="min-h-screen bg-bg-light font-sans text-text-main">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="lg:pl-64 flex flex-col h-[100dvh] overflow-hidden">
         <Header title={getTitle()} onMenuToggle={() => setSidebarOpen(true)} />
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
           <Outlet />
