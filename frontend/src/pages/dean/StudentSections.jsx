@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Trash2, ArrowRight, UserPlus, X, RefreshCw, BookOpen, Search, Eye, Edit, Calendar } from 'lucide-react';
+import { Users, Plus, Trash2, ArrowRight, UserPlus, X, RefreshCw, BookOpen, Search, Eye, Edit, Calendar, AlertTriangle } from 'lucide-react';
 
 const StudentSections = () => {
   const [allStudents, setAllStudents] = useState([]);
@@ -19,6 +19,49 @@ const StudentSections = () => {
   
   // Submit state
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Custom confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    type: 'danger'
+  });
+
+  // Custom notification alert state
+  const [notification, setNotification] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning'
+  });
+
+  const triggerConfirmation = ({ title, message, onConfirm, confirmText = 'Delete', type = 'danger' }) => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+      },
+      confirmText,
+      cancelText: 'Cancel',
+      type
+    });
+  };
+
+  const triggerNotification = (title, message, type = 'warning') => {
+    setNotification({
+      isOpen: true,
+      title,
+      message,
+      type
+    });
+  };
 
   // Sync editor state changes to local storage so dean doesn't lose in-progress work
   useEffect(() => {
@@ -73,164 +116,191 @@ const StudentSections = () => {
 
   const handleSubmitAssignments = () => {
     if (sections.length === 0) {
-      alert("No sections to publish. Please create at least one section first.");
+      triggerNotification("Empty Editor", "No sections to publish. Please create at least one section first.", "warning");
       return;
     }
+
+    const performPublish = () => {
+      const savedPublished = JSON.parse(localStorage.getItem('published_assignments') || '[]');
+      const now = new Date().toISOString();
+
+      // Map teacher IDs to teacher names for the compilation display
+      const compiledSections = sections.map(s => {
+        const teacher = teachers.find(t => t.id === s.teacherId);
+        return {
+          ...s,
+          teacherName: teacher ? teacher.full_name : 'Unassigned'
+        };
+      });
+
+      let updatedPublished = [];
+      if (editingAssignmentId) {
+        // Update existing assignment
+        updatedPublished = savedPublished.map(pub => {
+          if (pub.id === editingAssignmentId) {
+            return {
+              ...pub,
+              lastModified: now,
+              sections: compiledSections
+            };
+          }
+          return pub;
+        });
+        setEditingAssignmentId(null);
+      } else {
+        // Create new assignment
+        const newPub = {
+          id: `PUB-${Date.now()}`,
+          publishDate: now,
+          sections: compiledSections
+        };
+        updatedPublished = [newPub, ...savedPublished];
+      }
+
+      localStorage.setItem('published_assignments', JSON.stringify(updatedPublished));
+
+      // Clear active editor sections
+      localStorage.removeItem('student_sections_editor');
+      setSections([]);
+
+      // Compile ALL sections from all published assignments into `student_sections` for other pages to read
+      const flatSections = [];
+      updatedPublished.forEach(pub => {
+        pub.sections.forEach(s => {
+          flatSections.push({
+            id: s.id,
+            name: s.name,
+            teacherId: s.teacherId,
+            subject: s.subject,
+            students: s.students
+          });
+        });
+      });
+      localStorage.setItem('student_sections', JSON.stringify(flatSections));
+
+      // Log a single consolidated entry to dean_activity_log for ReportGenerator
+      const existingLog = JSON.parse(localStorage.getItem('dean_activity_log') || '[]');
+      const newLogEntry = {
+        id: `ACT-${Date.now()}`,
+        action: editingAssignmentId ? 'Assignment Updated' : 'Assignment Published',
+        sectionName: `${sections.length} Section(s)`,
+        subject: sections.map(s => s.subject).filter(Boolean).join(', ') || 'Multiple Subjects',
+        teacher: sections.map(s => {
+          const teacher = teachers.find(t => t.id === s.teacherId);
+          return teacher ? teacher.full_name : '';
+        }).filter(Boolean).join(', ') || 'Multiple Teachers',
+        studentCount: sections.reduce((sum, s) => sum + s.students.length, 0),
+        timestamp: now,
+        status: 'COMPLETED'
+      };
+      localStorage.setItem('dean_activity_log', JSON.stringify([newLogEntry, ...existingLog]));
+
+      // Fetch / update local state
+      setPublishedAssignments(updatedPublished);
+
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    };
 
     // Check if sections have teachers and subjects assigned
     const incomplete = sections.some(s => !s.teacherId || !s.subject);
     if (incomplete) {
-      if (!confirm("Some sections do not have a teacher or subject assigned. Do you want to publish anyway?")) {
-        return;
-      }
-    }
-
-    const savedPublished = JSON.parse(localStorage.getItem('published_assignments') || '[]');
-    const now = new Date().toISOString();
-
-    // Map teacher IDs to teacher names for the compilation display
-    const compiledSections = sections.map(s => {
-      const teacher = teachers.find(t => t.id === s.teacherId);
-      return {
-        ...s,
-        teacherName: teacher ? teacher.full_name : 'Unassigned'
-      };
-    });
-
-    let updatedPublished = [];
-    if (editingAssignmentId) {
-      // Update existing assignment
-      updatedPublished = savedPublished.map(pub => {
-        if (pub.id === editingAssignmentId) {
-          return {
-            ...pub,
-            lastModified: now,
-            sections: compiledSections
-          };
-        }
-        return pub;
+      triggerConfirmation({
+        title: 'Publish Assignment Incomplete',
+        message: 'Some sections do not have a teacher or subject assigned. Do you want to publish anyway?',
+        confirmText: 'Publish Anyway',
+        type: 'warning',
+        onConfirm: performPublish
       });
-      setEditingAssignmentId(null);
     } else {
-      // Create new assignment
-      const newPub = {
-        id: `PUB-${Date.now()}`,
-        publishDate: now,
-        sections: compiledSections
-      };
-      updatedPublished = [newPub, ...savedPublished];
+      performPublish();
     }
-
-    localStorage.setItem('published_assignments', JSON.stringify(updatedPublished));
-
-    // Clear active editor sections
-    localStorage.removeItem('student_sections_editor');
-    setSections([]);
-
-    // Compile ALL sections from all published assignments into `student_sections` for other pages to read
-    const flatSections = [];
-    updatedPublished.forEach(pub => {
-      pub.sections.forEach(s => {
-        flatSections.push({
-          id: s.id,
-          name: s.name,
-          teacherId: s.teacherId,
-          subject: s.subject,
-          students: s.students
-        });
-      });
-    });
-    localStorage.setItem('student_sections', JSON.stringify(flatSections));
-
-    // Log a single consolidated entry to dean_activity_log for ReportGenerator
-    const existingLog = JSON.parse(localStorage.getItem('dean_activity_log') || '[]');
-    const newLogEntry = {
-      id: `ACT-${Date.now()}`,
-      action: editingAssignmentId ? 'Assignment Updated' : 'Assignment Published',
-      sectionName: `${sections.length} Section(s)`,
-      subject: sections.map(s => s.subject).filter(Boolean).join(', ') || 'Multiple Subjects',
-      teacher: sections.map(s => {
-        const teacher = teachers.find(t => t.id === s.teacherId);
-        return teacher ? teacher.full_name : '';
-      }).filter(Boolean).join(', ') || 'Multiple Teachers',
-      studentCount: sections.reduce((sum, s) => sum + s.students.length, 0),
-      timestamp: now,
-      status: 'COMPLETED'
-    };
-    localStorage.setItem('dean_activity_log', JSON.stringify([newLogEntry, ...existingLog]));
-
-    // Fetch / update local state
-    setPublishedAssignments(updatedPublished);
-
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
   };
 
   const handleEditAssignment = (pub) => {
+    const loadBatch = () => {
+      setSections(pub.sections);
+      setEditingAssignmentId(pub.id);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     if (sections.length > 0) {
-      if (!confirm("Loading this published assignment will overwrite current items in the editor. Do you want to proceed?")) {
-        return;
-      }
+      triggerConfirmation({
+        title: 'Overwrite Editor',
+        message: 'Loading this published assignment will overwrite current items in the editor. Do you want to proceed?',
+        confirmText: 'Load Assignment',
+        type: 'warning',
+        onConfirm: loadBatch
+      });
+    } else {
+      loadBatch();
     }
-    setSections(pub.sections);
-    setEditingAssignmentId(pub.id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDisposeAssignment = (pubId) => {
-    if (!confirm("Are you sure you want to delete (dispose) this published assignment? This will remove these sections, subjects, teachers, and student allocations from all classes.")) {
-      return;
-    }
+    triggerConfirmation({
+      title: 'Dispose Published Assignment',
+      message: 'Are you sure you want to delete (dispose) this published assignment? This will remove these sections, subjects, teachers, and student allocations from all classes.',
+      confirmText: 'Dispose Assignment',
+      type: 'danger',
+      onConfirm: () => {
+        const savedPublished = JSON.parse(localStorage.getItem('published_assignments') || '[]');
+        const updatedPublished = savedPublished.filter(pub => pub.id !== pubId);
+        
+        localStorage.setItem('published_assignments', JSON.stringify(updatedPublished));
 
-    const savedPublished = JSON.parse(localStorage.getItem('published_assignments') || '[]');
-    const updatedPublished = savedPublished.filter(pub => pub.id !== pubId);
-    
-    localStorage.setItem('published_assignments', JSON.stringify(updatedPublished));
-
-    // Re-compile student_sections
-    const flatSections = [];
-    updatedPublished.forEach(pub => {
-      pub.sections.forEach(s => {
-        flatSections.push({
-          id: s.id,
-          name: s.name,
-          teacherId: s.teacherId,
-          subject: s.subject,
-          students: s.students
+        // Re-compile student_sections
+        const flatSections = [];
+        updatedPublished.forEach(pub => {
+          pub.sections.forEach(s => {
+            flatSections.push({
+              id: s.id,
+              name: s.name,
+              teacherId: s.teacherId,
+              subject: s.subject,
+              students: s.students
+            });
+          });
         });
-      });
+        localStorage.setItem('student_sections', JSON.stringify(flatSections));
+
+        // If we were currently editing the deleted assignment, reset editing state
+        if (editingAssignmentId === pubId) {
+          setEditingAssignmentId(null);
+          setSections([]);
+          localStorage.removeItem('student_sections_editor');
+        }
+
+        // Log the dispose action
+        const existingLog = JSON.parse(localStorage.getItem('dean_activity_log') || '[]');
+        const newLogEntry = {
+          id: `ACT-${Date.now()}`,
+          action: 'Assignment Disposed',
+          sectionName: 'N/A',
+          subject: 'N/A',
+          teacher: 'N/A',
+          studentCount: 0,
+          timestamp: new Date().toISOString(),
+          status: 'COMPLETED'
+        };
+        localStorage.setItem('dean_activity_log', JSON.stringify([newLogEntry, ...existingLog]));
+
+        setPublishedAssignments(updatedPublished);
+      }
     });
-    localStorage.setItem('student_sections', JSON.stringify(flatSections));
-
-    // If we were currently editing the deleted assignment, reset editing state
-    if (editingAssignmentId === pubId) {
-      setEditingAssignmentId(null);
-      setSections([]);
-      localStorage.removeItem('student_sections_editor');
-    }
-
-    // Log the dispose action
-    const existingLog = JSON.parse(localStorage.getItem('dean_activity_log') || '[]');
-    const newLogEntry = {
-      id: `ACT-${Date.now()}`,
-      action: 'Assignment Disposed',
-      sectionName: 'N/A',
-      subject: 'N/A',
-      teacher: 'N/A',
-      studentCount: 0,
-      timestamp: new Date().toISOString(),
-      status: 'COMPLETED'
-    };
-    localStorage.setItem('dean_activity_log', JSON.stringify([newLogEntry, ...existingLog]));
-
-    setPublishedAssignments(updatedPublished);
   };
 
   const handleClearEditor = () => {
-    if (confirm("Are you sure you want to clear the active sections editor? This will clear all in-progress work in the editor above.")) {
-      setSections([]);
-      localStorage.removeItem('student_sections_editor');
-    }
+    triggerConfirmation({
+      title: 'Clear Editor',
+      message: 'Are you sure you want to clear the active sections editor? This will clear all in-progress work in the editor above.',
+      confirmText: 'Clear Editor',
+      type: 'danger',
+      onConfirm: () => {
+        setSections([]);
+        localStorage.removeItem('student_sections_editor');
+      }
+    });
   };
   
   const handleAddSection = (e) => {
@@ -248,17 +318,32 @@ const StudentSections = () => {
   };
 
   const handleRemoveSection = (sectionId) => {
-    setSections(sections.filter(s => s.id !== sectionId));
+    const section = sections.find(s => s.id === sectionId);
+    triggerConfirmation({
+      title: 'Delete Section',
+      message: `Are you sure you want to delete "${section?.name || 'this section'}"? This will remove all student assignments inside this section.`,
+      confirmText: 'Delete Section',
+      type: 'danger',
+      onConfirm: () => {
+        setSections(sections.filter(s => s.id !== sectionId));
+      }
+    });
   };
 
   // Auto-sort: distribute ALL students into sections that have empty slots
   // Students CAN appear in multiple sections (different subjects)
   const handleAutoSort = () => {
-    if (sections.length === 0) return alert("Please create at least one section first.");
+    if (sections.length === 0) {
+      triggerNotification("Auto-Sort Error", "Please create at least one section first.", "warning");
+      return;
+    }
 
     // Only fill sections that currently have NO students
     const emptySections = sections.filter(s => s.students.length === 0);
-    if (emptySections.length === 0) return alert("All sections already have students assigned. Create a new section or clear an existing one.");
+    if (emptySections.length === 0) {
+      triggerNotification("Auto-Sort Info", "All sections already have students assigned. Create a new section or clear an existing one.", "warning");
+      return;
+    }
 
     const sorted = [...allStudents].sort((a, b) => a.full_name.localeCompare(b.full_name));
 
@@ -289,13 +374,13 @@ const StudentSections = () => {
 
     const section = sections[sectionIndex];
     if (section.students.length >= 40) {
-      alert("This section is at its maximum capacity of 40 students.");
+      triggerNotification("Capacity Limit", "This section is at its maximum capacity of 40 students.", "warning");
       return;
     }
 
     // Prevent duplicate within the SAME section
     if (section.students.some(s => s.id === student.id)) {
-      alert("This student is already in this section.");
+      triggerNotification("Duplicate Student", "This student is already in this section.", "warning");
       return;
     }
 
@@ -670,6 +755,75 @@ const StudentSections = () => {
           </div>
         )}
       </div>
+
+      {/* Custom Confirmation Dialog Modal */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden border border-gray-100 transform transition-all">
+            <div className="p-6">
+              <div className="flex items-start gap-4">
+                <div className={`p-3 rounded-full shrink-0 ${
+                  confirmDialog.type === 'danger' ? 'bg-red-50 text-red-600' : 'bg-yellow-50 text-yellow-600'
+                }`}>
+                  <AlertTriangle size={24} />
+                </div>
+                <div className="space-y-1 flex-1">
+                  <h3 className="text-base font-bold text-sidebar">{confirmDialog.title}</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">{confirmDialog.message}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-gray-100">
+              <button
+                onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                {confirmDialog.cancelText}
+              </button>
+              <button
+                onClick={confirmDialog.onConfirm}
+                className={`px-4 py-2 text-white text-xs font-bold rounded-lg transition-colors ${
+                  confirmDialog.type === 'danger' 
+                    ? 'bg-red-600 hover:bg-red-700 shadow-sm shadow-red-200' 
+                    : 'bg-yellow-600 hover:bg-yellow-700 shadow-sm shadow-yellow-200'
+                }`}
+              >
+                {confirmDialog.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Notification Dialog Modal */}
+      {notification.isOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden border border-gray-100 transform transition-all">
+            <div className="p-6">
+              <div className="flex items-start gap-4">
+                <div className={`p-3 rounded-full shrink-0 ${
+                  notification.type === 'success' ? 'bg-green-50 text-green-600' :
+                  notification.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-yellow-50 text-yellow-600'
+                }`}>
+                  <AlertTriangle size={24} />
+                </div>
+                <div className="space-y-1 flex-1">
+                  <h3 className="text-base font-bold text-sidebar">{notification.title}</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">{notification.message}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 px-6 py-4 flex items-center justify-end border-t border-gray-100">
+              <button
+                onClick={() => setNotification(prev => ({ ...prev, isOpen: false }))}
+                className="px-5 py-2 bg-sidebar text-white text-xs font-bold rounded-lg hover:bg-sidebar-hover transition-colors"
+              >
+                Okay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* View Assignment Details Modal */}
       {selectedViewAssignment && (
