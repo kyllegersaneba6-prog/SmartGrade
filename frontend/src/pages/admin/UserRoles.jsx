@@ -22,7 +22,10 @@ const UserRoles = () => {
   const [activityPage, setActivityPage] = useState(1);
   const [userPage, setUserPage] = useState(1);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [dropdownMode, setDropdownMode] = useState('main');
   const [sortBy, setSortBy] = useState('default');
+  const [filterDept, setFilterDept] = useState(null);
+  const [filterRole, setFilterRole] = useState(null);
   const ACTIVITY_PER_PAGE = 10;
 
   const [feedbackList, setFeedbackList] = useState([]);
@@ -35,16 +38,23 @@ const UserRoles = () => {
     return () => window.removeEventListener('feedback_added', fetchFeedback);
   }, []);
 
-  const getSortedUsers = () => {
-    if (sortBy === 'department') {
-      return [...usersList].sort((a, b) => (a.dept || '').localeCompare(b.dept || ''));
-    } else if (sortBy === 'role') {
-      return [...usersList].sort((a, b) => (a.role || '').localeCompare(b.role || ''));
+  const getProcessedUsers = () => {
+    let result = [...usersList];
+    if (filterDept) {
+      result = result.filter(u => u.dept === filterDept);
     }
-    return usersList;
+    if (filterRole) {
+      result = result.filter(u => u.role === filterRole);
+    }
+    if (sortBy === 'department') {
+      result.sort((a, b) => (a.dept || '').localeCompare(b.dept || ''));
+    } else if (sortBy === 'role') {
+      result.sort((a, b) => (a.role || '').localeCompare(b.role || ''));
+    }
+    return result;
   };
 
-  const sortedUsers = getSortedUsers();
+  const sortedUsers = getProcessedUsers();
   const totalUserPages = Math.max(1, Math.ceil(sortedUsers.length / USERS_PER_PAGE));
   const paginatedUsers = sortedUsers.slice(
     (userPage - 1) * USERS_PER_PAGE,
@@ -170,13 +180,6 @@ const UserRoles = () => {
   <div>
     <div className="flex items-center justify-between mb-6">
       <h1 className="text-2xl font-bold text-gray-900">User &amp; Role Management</h1>
-      <Link
-        to="/admin/users/create"
-        className="w-20 h-10 rounded-full flex items-center justify-center text-white shadow-md shrink-0 transition-transform hover:scale-105"
-        style={{ background: '#1a2233' }}
-      >
-        <UserPlus size={16} />
-      </Link>
     </div>
 
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
@@ -188,37 +191,97 @@ const UserRoles = () => {
               <h2 className="text-base font-bold" style={{ color: '#f5a623' }}>Global User Provisioning &amp; Roles</h2>
               <span className="text-xs text-gray-400">(Master Control)</span>
             </div>
-            <div className="flex gap-2 relative">
+            <div className="flex gap-2 relative items-center">
+              <Link
+                to="/admin/users/create"
+                className="w-8 h-8 rounded border flex items-center justify-center text-white shadow-sm shrink-0 transition-transform hover:scale-105"
+                style={{ background: '#1a2233', borderColor: '#1a2233' }}
+              >
+                <UserPlus size={14} />
+              </Link>
               <button className="p-1.5 rounded border text-gray-500 hover:bg-gray-50 transition-colors" style={{ borderColor: '#e5e0d5' }}>≡</button>
               <button 
-                onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
-                className="flex items-center gap-1.5 p-1.5 px-3 rounded border text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors" 
-                style={{ borderColor: '#e5e0d5' }}
+                onClick={() => { setFilterDropdownOpen(!filterDropdownOpen); setDropdownMode('main'); }}
+                className={`flex items-center gap-1.5 p-1.5 px-3 rounded border text-xs font-bold transition-colors ${filterDept || filterRole || sortBy !== 'default' ? 'bg-[#fbf8f1] text-[#f5a623] border-[#f5a623]' : 'text-gray-700 hover:bg-gray-50 border-[#e5e0d5]'}`}
               >
                 <Filter size={14} /> Filter
               </button>
 
               {filterDropdownOpen && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-[#e5e0d5] rounded-xl shadow-lg z-10 py-1 overflow-hidden">
-                  <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-[#e5e0d5]">Sort Options</div>
-                  <button
-                    onClick={() => { setSortBy('department'); setFilterDropdownOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 ${sortBy === 'department' ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-700 font-medium'}`}
-                  >
-                    Sort by Department
-                  </button>
-                  <button
-                    onClick={() => { setSortBy('role'); setFilterDropdownOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 ${sortBy === 'role' ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-700 font-medium'}`}
-                  >
-                    Sort by Role
-                  </button>
-                  <button
-                    onClick={() => { setSortBy('default'); setFilterDropdownOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 border-t border-[#f0ede6] mt-1 ${sortBy === 'default' ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-500 font-medium'}`}
-                  >
-                    Clear Sorting
-                  </button>
+                <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-[#e5e0d5] rounded-xl shadow-lg z-20 py-1 overflow-hidden">
+                  {dropdownMode === 'main' && (
+                    <>
+                      <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-[#e5e0d5]">Sort Options</div>
+                      <button
+                        onClick={() => setDropdownMode('department')}
+                        className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 flex justify-between items-center ${sortBy === 'department' || filterDept ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-700 font-medium'}`}
+                      >
+                        Sort by Department <ChevronRight size={12}/>
+                      </button>
+                      <button
+                        onClick={() => setDropdownMode('role')}
+                        className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 flex justify-between items-center ${sortBy === 'role' || filterRole ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-700 font-medium'}`}
+                      >
+                        Sort by Role <ChevronRight size={12}/>
+                      </button>
+                      <button
+                        onClick={() => { setSortBy('default'); setFilterDept(null); setFilterRole(null); setFilterDropdownOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 border-t border-[#f0ede6] mt-1 ${sortBy === 'default' && !filterDept && !filterRole ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-500 font-medium'}`}
+                      >
+                        Clear Filters & Sorting
+                      </button>
+                    </>
+                  )}
+
+                  {dropdownMode === 'department' && (
+                    <>
+                      <div className="flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-[#e5e0d5]">
+                        <button onClick={() => setDropdownMode('main')} className="hover:text-gray-700"><ChevronLeft size={12}/></button> Select Department
+                      </div>
+                      <button
+                        onClick={() => { setSortBy('department'); setFilterDept(null); setFilterDropdownOpen(false); }}
+                        className={`w-full text-left px-4 py-2 text-xs transition-colors hover:bg-gray-50 ${!filterDept && sortBy === 'department' ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-700 font-medium'}`}
+                      >
+                        All (Sort Only)
+                      </button>
+                      <div className="max-h-48 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                        {[...new Set(usersList.map(u => u.dept).filter(Boolean))].map(dept => (
+                          <button
+                            key={dept}
+                            onClick={() => { setFilterDept(dept); setSortBy('department'); setFilterDropdownOpen(false); }}
+                            className={`w-full text-left px-4 py-2 text-xs transition-colors hover:bg-gray-50 ${filterDept === dept ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-600'}`}
+                          >
+                            {dept}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {dropdownMode === 'role' && (
+                    <>
+                      <div className="flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-[#e5e0d5]">
+                        <button onClick={() => setDropdownMode('main')} className="hover:text-gray-700"><ChevronLeft size={12}/></button> Select Role
+                      </div>
+                      <button
+                        onClick={() => { setSortBy('role'); setFilterRole(null); setFilterDropdownOpen(false); }}
+                        className={`w-full text-left px-4 py-2 text-xs transition-colors hover:bg-gray-50 ${!filterRole && sortBy === 'role' ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-700 font-medium'}`}
+                      >
+                        All (Sort Only)
+                      </button>
+                      <div className="max-h-48 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                        {[...new Set(usersList.map(u => u.role).filter(Boolean))].map(r => (
+                          <button
+                            key={r}
+                            onClick={() => { setFilterRole(r); setSortBy('role'); setFilterDropdownOpen(false); }}
+                            className={`w-full text-left px-4 py-2 text-xs transition-colors hover:bg-gray-50 ${filterRole === r ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-600'}`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

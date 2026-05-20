@@ -1,4 +1,5 @@
-import { Search, Bell, MonitorPlay, User, Menu } from 'lucide-react';
+import { Search, Bell, Menu } from 'lucide-react';
+import ProfileMenu from '../common/ProfileMenu';
 
 const Header = ({ title, onMenuToggle }) => {
   return (
@@ -7,7 +8,7 @@ const Header = ({ title, onMenuToggle }) => {
         <button onClick={onMenuToggle} className="text-gray-300 hover:text-white lg:hidden shrink-0">
           <Menu size={22} />
         </button>
-        <h2 className="text-sm font-bold text-gold tracking-widest uppercase truncate hidden sm:block">Reviewer Console</h2>
+        <h2 className="text-sm font-bold text-gold tracking-widest uppercase truncate hidden sm:block">Dean Console</h2>
         <span className="text-gray-500 hidden md:block">|</span>
         <h3 className="text-sm text-gray-300 truncate">{title}</h3>
       </div>
@@ -26,12 +27,7 @@ const Header = ({ title, onMenuToggle }) => {
           <button className="hover:text-white transition-colors relative">
             <Bell size={18} />
           </button>
-          <button className="hover:text-white transition-colors hidden sm:block">
-            <MonitorPlay size={18} />
-          </button>
-          <button className="hover:text-white transition-colors hidden sm:block">
-            <User size={18} />
-          </button>
+          <ProfileMenu />
         </div>
       </div>
     </header>

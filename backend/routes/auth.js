@@ -69,7 +69,11 @@ router.post('/login', async (req, res) => {
       user: {
         id: user.id,
         username: dbUsername,
-        role
+        role,
+        full_name: user.full_name,
+        department: user.department,
+        system_role: user.system_role,
+        permissions_profile: user.permissions_profile
       }
     });
   } catch (err) {

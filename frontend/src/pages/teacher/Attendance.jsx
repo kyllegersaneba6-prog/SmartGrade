@@ -269,10 +269,10 @@ const Attendance = () => {
                     <tr key={student.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-3 sticky left-0 bg-white z-10">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-bg-light border border-border flex items-center justify-center text-xs font-bold text-sidebar">
-                            {student.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                          <div className="w-8 h-8 rounded-full bg-bg-light border border-border flex items-center justify-center text-xs font-bold text-sidebar uppercase">
+                            {(student.full_name || student.name || student.username || 'U S').split(' ').map(n => n[0]).join('').substring(0, 2)}
                           </div>
-                          <div className="font-medium text-sidebar">{student.full_name}</div>
+                          <div className="font-medium text-sidebar">{student.full_name || student.name || student.username || 'Unknown Student'}</div>
                         </div>
                       </td>
                       {attendanceDates.map(d => {

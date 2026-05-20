@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, MessageSquare, AlertTriangle, Info, TrendingUp } from 'lucide-react';
+import { Plus, MessageSquare, AlertTriangle, Info, TrendingUp, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 
 /* ─── Status Badge ─── */
@@ -148,6 +148,78 @@ const MyClasses = () => {
   const [classesList, setClassesList] = useState([]);
   const [trendData, setTrendData] = useState([]);
   const [interventions, setInterventions] = useState([]);
+  
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinError, setJoinError] = useState('');
+
+  const handleJoinClass = () => {
+    if (!joinCode.trim()) {
+      setJoinError('Please enter a valid subject code.');
+      return;
+    }
+    
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user.id) {
+      setJoinError('User not found. Please log in again.');
+      return;
+    }
+
+    const code = joinCode.trim().toUpperCase();
+    const savedPublished = JSON.parse(localStorage.getItem('published_assignments') || '[]');
+    let found = false;
+    let alreadyJoined = false;
+
+    const updatedPublished = savedPublished.map(pub => {
+      const updatedSections = pub.sections.map(sec => {
+        if (sec.subjectCode === code) {
+          found = true;
+          if (sec.students.some(s => s.id === user.id || s.full_name?.toLowerCase() === user.full_name?.toLowerCase())) {
+            alreadyJoined = true;
+          } else {
+            return {
+              ...sec,
+              students: [...sec.students, user]
+            };
+          }
+        }
+        return sec;
+      });
+      return { ...pub, sections: updatedSections };
+    });
+
+    if (!found) {
+      setJoinError('Invalid subject code.');
+      return;
+    }
+
+    if (alreadyJoined) {
+      setJoinError('You are already enrolled in this class.');
+      return;
+    }
+
+    localStorage.setItem('published_assignments', JSON.stringify(updatedPublished));
+
+    const flatSections = [];
+    updatedPublished.forEach(pub => {
+      pub.sections.forEach(s => {
+        flatSections.push({
+          id: s.id,
+          name: s.name,
+          teacherId: s.teacherId,
+          subject: s.subject,
+          students: s.students,
+          subjectCode: s.subjectCode
+        });
+      });
+    });
+    localStorage.setItem('student_sections', JSON.stringify(flatSections));
+
+    setShowJoinModal(false);
+    setJoinCode('');
+    setJoinError('');
+    loadAllClasses();
+  };
 
   const calculateGrade = (studentId, sectionId) => {
     let termGrades = [];
@@ -302,8 +374,9 @@ const MyClasses = () => {
       }
     });
 
+    setClassesList(list);
+
     if (list.length > 0) {
-      setClassesList(list);
       setTrendData(list.map(c => ({
         name: c.subject.substring(0, 4).toUpperCase(),
         value: c.avgGrade
@@ -319,27 +392,8 @@ const MyClasses = () => {
       }
       setInterventions(generatedInterventions);
     } else {
-      // Default Mock Data
-      setClassesList([
-        { id: 'mock-math', subject: 'Mathematics', section: 'Section A-1', topic: 'Advanced Calculus', instructor: 'Dr. Robert Miller', initials: 'RM', avgGrade: 94.5, attendance: 98, progress: 85, status: 'Reassuring', borderColor: 'border-green-400' },
-        { id: 'mock-english', subject: 'English', section: 'Section B-4', topic: 'Literature & Analysis', instructor: 'Prof. Sarah Jenkins', initials: 'SJ', avgGrade: 76.2, attendance: 82, progress: 62, status: 'Review Needed', borderColor: 'border-orange-400' },
-        { id: 'mock-filipino', subject: 'Filipino', section: 'Section C-2', topic: 'Panitikang Pilipino', instructor: 'Ms. Maria Santos', initials: 'MS', avgGrade: 89.8, attendance: 95, progress: 92, status: 'Reassuring', borderColor: 'border-green-400' },
-        { id: 'mock-science', subject: 'Science', section: 'Section D-1', topic: 'Organic Chemistry', instructor: 'Dr. Alan Turing', initials: 'AT', avgGrade: 91.2, attendance: 94, progress: 45, status: 'Reassuring', borderColor: 'border-green-400' },
-        { id: 'mock-history', subject: 'History', section: 'Section E-3', topic: 'World Civilizations', instructor: 'Prof. David Graham', initials: 'DG', avgGrade: 64.5, attendance: 75, progress: 30, status: 'Action Required', borderColor: 'border-red-400' },
-        { id: 'mock-compsci', subject: 'Comp Sci', section: 'Section F-1', topic: 'Data Structures', instructor: 'Dr. Kevin Zhang', initials: 'KZ', avgGrade: 97.0, attendance: 100, progress: 88, status: 'Reassuring', borderColor: 'border-green-400' },
-      ]);
-      setTrendData([
-        { name: 'MATH', value: 88 },
-        { name: 'ENGL', value: 82 },
-        { name: 'FILI', value: 90 },
-        { name: 'SCIE', value: 85 },
-        { name: 'HST', value: 65 },
-        { name: 'CS', value: 92 },
-      ]);
-      setInterventions([
-        { type: 'critical', title: 'History Quiz 3 Retake', description: 'Scheduled for Friday, 3:00 PM', actionText: 'Details' },
-        { type: 'warning', title: 'English Essay Feedback', description: 'Instructor waiting for response', actionText: 'Reply' }
-      ]);
+      setTrendData([]);
+      setInterventions([]);
     }
   };
 
@@ -361,17 +415,30 @@ const MyClasses = () => {
             Track real-time performance, attendance compliance, and active instructor milestones.
           </p>
         </div>
-        <button className="bg-sidebar hover:bg-sidebar-hover text-white font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition-colors text-sm">
+        <button 
+          onClick={() => setShowJoinModal(true)}
+          className="bg-sidebar hover:bg-sidebar-hover text-white font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition-colors text-sm"
+        >
           <Plus size={18} /> Join New Class
         </button>
       </div>
 
       {/* Class Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full">
-        {classesList.map((cls, idx) => (
-          <ClassCard key={idx} {...cls} onViewFull={handleViewFull} />
-        ))}
-      </div>
+      {classesList.length === 0 ? (
+        <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-10 flex flex-col items-center justify-center text-center w-full my-8">
+          <Info size={48} className="text-gray-300 mb-4" />
+          <h3 className="text-lg font-bold text-gray-500">No Classes Yet</h3>
+          <p className="text-sm text-gray-400 max-w-md mt-2">
+            You haven't joined any classes. Click the "Join New Class" button above and enter the subject code provided by your teacher.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full">
+          {classesList.map((cls, idx) => (
+            <ClassCard key={idx} {...cls} onViewFull={handleViewFull} />
+          ))}
+        </div>
+      )}
 
       {/* Bottom Row */}
       <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full items-start">
@@ -383,6 +450,50 @@ const MyClasses = () => {
       <button className="fixed bottom-8 right-8 w-14 h-14 bg-sidebar hover:bg-sidebar-hover text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110">
         <MessageSquare size={24} />
       </button>
+
+      {/* Join Class Modal */}
+      {showJoinModal && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden border border-gray-100">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="font-bold text-lg text-sidebar">Join New Class</h3>
+              <button onClick={() => {setShowJoinModal(false); setJoinError('');}} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-gray-500 mb-4">Enter the subject code provided by your instructor or dean to join a class.</p>
+              
+              <div className="mb-4">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Subject Code</label>
+                <input 
+                  type="text" 
+                  value={joinCode}
+                  onChange={(e) => {setJoinCode(e.target.value); setJoinError('');}}
+                  placeholder="e.g., A1B2C3"
+                  className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold font-mono uppercase"
+                  maxLength={6}
+                />
+                {joinError && <p className="text-xs text-red-500 mt-2 font-bold">{joinError}</p>}
+              </div>
+            </div>
+            <div className="bg-gray-50 px-5 py-4 flex items-center justify-end gap-3 border-t border-gray-100">
+              <button
+                onClick={() => {setShowJoinModal(false); setJoinError('');}}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleJoinClass}
+                className="px-4 py-2 text-white bg-sidebar hover:bg-sidebar-hover text-xs font-bold rounded-lg transition-colors"
+              >
+                Join Class
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

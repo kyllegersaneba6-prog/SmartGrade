@@ -230,38 +230,26 @@ const InstitutionalAnalytics = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Top Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        <div className="lg:col-span-2 bg-sidebar rounded-2xl p-5 md:p-8 text-white relative overflow-hidden flex flex-col justify-center">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl"></div>
-          
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-4 relative z-10">
-             <div className="bg-gold/20 text-gold border border-gold/30 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase flex items-center gap-2">
-               <div className="w-1.5 h-1.5 bg-gold rounded-full animate-pulse"></div> LIVE SYSTEM AUDIT
-             </div>
-             <button
-               onClick={() => { setLoading(true); fetchAllData(); }}
-               className="bg-gold hover:bg-gold-hover text-sidebar font-bold px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2"
-             >
-               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Metrics
-             </button>
-          </div>
-
-          <div className="relative z-10">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Institutional Analytics</h1>
-            <h2 className="text-2xl md:text-3xl font-bold text-gold mb-4">Performance Pulse</h2>
-            <p className="text-gray-300 max-w-lg leading-relaxed text-sm">
-              Live assessment of academic integrity, grade consistency, and departmental engagement across all portals — Student, Teacher, and Dean.
-            </p>
-          </div>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-border">
+        <div>
+          <h1 className="text-2xl font-bold text-sidebar">Institutional Analytics</h1>
+          <p className="text-xs text-text-muted mt-1">Live assessment of academic integrity, grade consistency, and departmental engagement.</p>
         </div>
+        <button
+          onClick={() => { setLoading(true); fetchAllData(); }}
+          className="bg-sidebar hover:bg-sidebar-hover text-white font-bold px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Metrics
+        </button>
+      </div>
 
-        <div className="grid grid-cols-2 gap-3 md:gap-4">
-          <MetricCard title="Total Enrollment" value={metrics.students.toLocaleString()} icon={Users} trend={metrics.students > 0 ? 'Live' : '—'} isPositive={true} subtitle={`${metrics.totalUsers} total users`} />
-          <MetricCard title="GPA Median" value={`${avgGPA}%`} icon={Star} trend={allGradeValues.length > 0 ? `${allGradeValues.length} graded` : '—'} isPositive={parseFloat(avgGPA) >= 75} />
-          <MetricCard title="Attendance Rate" value={attendanceData.avgRate > 0 ? `${attendanceData.avgRate}%` : '—'} icon={Calendar} trend={attendanceData.lowCount > 0 ? `${attendanceData.lowCount} at-risk` : 'Healthy'} isPositive={attendanceData.lowCount === 0} subtitle={`${attendanceData.totalSessions} sessions logged`} />
-          <MetricCard title="Submission Rate" value={`${submissionRate}%`} icon={CheckSquare} trend={`${submissions.length} locked`} isPositive={parseFloat(submissionRate) >= 50} subtitle={`of ${submissionFunnel.total} possible terms`} />
-        </div>
+      {/* Metrics Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <MetricCard title="Total Enrollment" value={metrics.students.toLocaleString()} icon={Users} trend={metrics.students > 0 ? 'Live' : '—'} isPositive={true} subtitle={`${metrics.totalUsers} total users`} />
+        <MetricCard title="GPA Median" value={`${avgGPA}%`} icon={Star} trend={allGradeValues.length > 0 ? `${allGradeValues.length} graded` : '—'} isPositive={parseFloat(avgGPA) >= 75} />
+        <MetricCard title="Attendance Rate" value={attendanceData.avgRate > 0 ? `${attendanceData.avgRate}%` : '—'} icon={Calendar} trend={attendanceData.lowCount > 0 ? `${attendanceData.lowCount} at-risk` : 'Healthy'} isPositive={attendanceData.lowCount === 0} subtitle={`${attendanceData.totalSessions} sessions logged`} />
+        <MetricCard title="Submission Rate" value={`${submissionRate}%`} icon={CheckSquare} trend={`${submissions.length} locked`} isPositive={parseFloat(submissionRate) >= 50} subtitle={`of ${submissionFunnel.total} possible terms`} />
       </div>
 
       {/* Middle Row */}
@@ -316,41 +304,11 @@ const InstitutionalAnalytics = () => {
       </div>
 
       {/* Bottom Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
-          <div className="flex justify-between items-center mb-6">
-             <h3 className="text-lg font-medium text-sidebar">System-Wide User Breakdown</h3>
-          </div>
-          
-          <div className="space-y-4">
-            {[
-              { label: 'Students', count: metrics.students, color: '#eab308', pct: metrics.totalUsers > 0 ? ((metrics.students / metrics.totalUsers) * 100).toFixed(0) : 0 },
-              { label: 'Teachers', count: metrics.teachers, color: '#22c55e', pct: metrics.totalUsers > 0 ? ((metrics.teachers / metrics.totalUsers) * 100).toFixed(0) : 0 },
-              { label: 'Deans', count: metrics.deans, color: '#3b82f6', pct: metrics.totalUsers > 0 ? ((metrics.deans / metrics.totalUsers) * 100).toFixed(0) : 0 },
-              { label: 'Admins', count: metrics.admins, color: '#1a2233', pct: metrics.totalUsers > 0 ? ((metrics.admins / metrics.totalUsers) * 100).toFixed(0) : 0 },
-            ].map(role => (
-              <div key={role.label}>
-                <div className="flex justify-between text-xs font-bold mb-1.5">
-                  <span className="text-sidebar">{role.label}</span>
-                  <span style={{ color: role.color }}>{role.count} ({role.pct}%)</span>
-                </div>
-                <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${role.pct}%`, backgroundColor: role.color }}></div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-border flex justify-between items-center">
-            <span className="text-xs font-bold text-text-muted">Total Provisioned Users</span>
-            <span className="text-lg font-bold text-sidebar">{metrics.totalUsers}</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-border h-full flex flex-col">
           <h3 className="text-lg font-medium text-sidebar mb-6">Section & Class Overview</h3>
           {sections.filter(s => s.subject).length > 0 ? (
-            <div className="space-y-3 max-h-[260px] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+            <div className="space-y-3 flex-1 overflow-y-auto min-h-[200px]" style={{ scrollbarWidth: 'thin' }}>
               {sections.filter(s => s.subject).map(section => {
                 const termKey = `term_records_${section.id}`;
                 let finalized = 0;
@@ -377,48 +335,50 @@ const InstitutionalAnalytics = () => {
               })}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-40 text-sm text-gray-400 italic">
+            <div className="flex-1 flex items-center justify-center min-h-[200px] text-sm text-gray-400 italic">
               No sections with assigned subjects found.
             </div>
           )}
         </div>
-      </div>
 
-      {/* Interventions Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
-        <div className="p-6 flex justify-between items-center border-b border-border">
-          <div>
-            <h3 className="text-lg font-medium text-sidebar">Recommended Interventions</h3>
-            <p className="text-xs text-text-muted mt-1">Data-driven corrective actions based on current gradebook and attendance anomalies.</p>
+        {/* Interventions Table */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-border overflow-hidden h-full flex flex-col">
+          <div className="p-6 flex justify-between items-center border-b border-border">
+            <div>
+              <h3 className="text-lg font-medium text-sidebar">Recommended Interventions</h3>
+              <p className="text-xs text-text-muted mt-1">Data-driven corrective actions based on anomalies.</p>
+            </div>
+          </div>
+          <div className="flex-1 overflow-x-auto">
+            <table className="w-full text-left min-w-[500px]">
+              <thead className="bg-bg-light text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                <tr>
+                  <th className="px-6 py-4">TARGET CLASS</th>
+                  <th className="px-6 py-4">METRIC DEVIATION</th>
+                  <th className="px-6 py-4">RISK LEVEL</th>
+                  <th className="px-6 py-4">PROPOSED ACTION</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-sm">
+                {interventions.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-sidebar">{row.class}</div>
+                      <div className="text-[10px] text-text-muted">Instructor: {row.instructor}</div>
+                    </td>
+                    <td className="px-6 py-4 text-xs">{row.deviation}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider ${row.risk === 'CRITICAL' ? 'bg-red-100 text-red-700' : row.risk === 'WARNING' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                        {row.risk}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-text-muted text-xs max-w-[200px]">{row.action}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-        <div className="table-responsive"><table className="w-full text-left min-w-[700px]">
-          <thead className="bg-bg-light text-[10px] font-bold text-text-muted uppercase tracking-wider">
-            <tr>
-              <th className="px-6 py-4">TARGET CLASS</th>
-              <th className="px-6 py-4">METRIC DEVIATION</th>
-              <th className="px-6 py-4">RISK LEVEL</th>
-              <th className="px-6 py-4">PROPOSED ACTION</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border text-sm">
-            {interventions.map((row, idx) => (
-              <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="font-bold text-sidebar">{row.class}</div>
-                  <div className="text-[10px] text-text-muted">Instructor: {row.instructor}</div>
-                </td>
-                <td className="px-6 py-4 text-xs">{row.deviation}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider ${row.risk === 'CRITICAL' ? 'bg-red-100 text-red-700' : row.risk === 'WARNING' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                    {row.risk}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-text-muted text-xs max-w-[300px]">{row.action}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
       </div>
     </div>
   );

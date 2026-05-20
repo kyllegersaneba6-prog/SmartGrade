@@ -1,25 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, ClipboardList, FileBarChart, HelpCircle, LogOut, Settings, X, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, BookOpen, ClipboardList, FileBarChart, HelpCircle, X } from 'lucide-react';
 import clsx from 'clsx';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
-
-  const handleFeedbackClick = () => {
-    const feedbackList = JSON.parse(localStorage.getItem('smartgrade_feedback') || '[]');
-    feedbackList.push(new Date().toISOString());
-    localStorage.setItem('smartgrade_feedback', JSON.stringify(feedbackList));
-    window.dispatchEvent(new Event('feedback_added'));
-    alert('Feedback submitted!');
-  };
-
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
-  };
-
   const navItems = [
     { name: 'Dashboard', path: '/student', icon: LayoutDashboard, exact: true },
     { name: 'My Classes', path: '/student/classes', icon: BookOpen },
@@ -77,27 +61,6 @@ const Sidebar = ({ isOpen, onClose }) => {
           })}
         </nav>
 
-        <div className="p-6 space-y-4 mb-2">
-
-          <button 
-            onClick={handleFeedbackClick}
-            className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium w-full"
-          >
-            <MessageSquare size={18} />
-            Feedback
-          </button>
-          <button className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium">
-            <Settings size={18} />
-            Settings
-          </button>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors text-sm font-medium w-full"
-          >
-            <LogOut size={18} />
-            Sign Out
-          </button>
-        </div>
       </div>
     </>
   );

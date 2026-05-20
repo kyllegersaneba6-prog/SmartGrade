@@ -129,7 +129,8 @@ const StudentSections = () => {
         const teacher = teachers.find(t => t.id === s.teacherId);
         return {
           ...s,
-          teacherName: teacher ? teacher.full_name : 'Unassigned'
+          teacherName: teacher ? teacher.full_name : 'Unassigned',
+          subjectCode: s.subjectCode || Math.random().toString(36).substring(2, 8).toUpperCase()
         };
       });
 
@@ -172,7 +173,8 @@ const StudentSections = () => {
             name: s.name,
             teacherId: s.teacherId,
             subject: s.subject,
-            students: s.students
+            students: s.students,
+            subjectCode: s.subjectCode
           });
         });
       });
@@ -258,7 +260,8 @@ const StudentSections = () => {
               name: s.name,
               teacherId: s.teacherId,
               subject: s.subject,
-              students: s.students
+              students: s.students,
+              subjectCode: s.subjectCode
             });
           });
         });

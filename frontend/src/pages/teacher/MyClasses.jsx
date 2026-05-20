@@ -3,8 +3,9 @@ import { Users, Calendar, AlertOctagon, MoreVertical, Sparkles, X } from 'lucide
 import { PieChart, Pie, Cell, BarChart, Bar, ResponsiveContainer, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 
-const ClassCard = ({ id, level, title, section, performance, barData, students }) => {
+const ClassCard = ({ id, level, title, section, performance, barData, students, subjectCode }) => {
   const [showStudents, setShowStudents] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const navigate = useNavigate();
   
   const data = [
@@ -22,7 +23,17 @@ const ClassCard = ({ id, level, title, section, performance, barData, students }
             <h3 className="text-lg font-medium text-sidebar">{title}</h3>
             <p className="text-sm text-text-muted">{section} • {students.length} Students</p>
           </div>
-          <button className="text-gray-400 hover:text-sidebar"><MoreVertical size={20}/></button>
+          <div className="relative">
+            <button onClick={() => setShowMenu(!showMenu)} className="text-gray-400 hover:text-sidebar"><MoreVertical size={20}/></button>
+            {showMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-10 py-1">
+                <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
+                  <span className="block text-xs font-bold text-gray-400 uppercase mb-1">Subject Code</span>
+                  <span className="font-mono font-bold text-sidebar">{subjectCode || 'N/A'}</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-end justify-between mb-8 gap-4">
@@ -117,8 +128,8 @@ const ClassCard = ({ id, level, title, section, performance, barData, students }
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-bold text-gray-400 w-5">{idx + 1}.</span>
                         <div>
-                          <p className="text-sm font-bold text-gray-800">{student.full_name}</p>
-                          <p className="text-[10px] text-gray-500">{student.email}</p>
+                          <p className="text-sm font-bold text-gray-800">{student.full_name || student.name || student.username || 'Unknown Student'}</p>
+                          <p className="text-[10px] text-gray-500">{student.email || 'No Email'}</p>
                         </div>
                       </div>
                     </div>
@@ -168,7 +179,8 @@ const MyClasses = () => {
             {name: 'C', value: Math.floor(Math.random() * 30) + 5},
             {name: 'D', value: Math.floor(Math.random() * 20)}
           ],
-          students: section.students || []
+          students: section.students || [],
+          subjectCode: section.subjectCode
         }));
         
       if (mappedClasses.length > 0) {

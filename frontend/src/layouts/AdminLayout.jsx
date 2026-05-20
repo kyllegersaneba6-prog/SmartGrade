@@ -1,18 +1,12 @@
 import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import AdminSidebar from '../components/admin/AdminSidebar';
-import { Search, Bell, History, Zap, Download, User, Menu } from 'lucide-react';
+import { Search, Bell, Menu } from 'lucide-react';
+import ProfileMenu from '../components/common/ProfileMenu';
 
 const AdminLayout = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
-  };
 
 
   const getTitle = () => {
@@ -57,9 +51,7 @@ const AdminLayout = () => {
               <button className="hover:text-white transition-colors">
                 <Bell size={18} />
               </button>
-              <button className="hover:text-white transition-colors hidden sm:block">
-                <History size={18} />
-              </button>
+              <ProfileMenu />
             </div>
           </div>
         </header>

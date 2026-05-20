@@ -10,11 +10,13 @@ const DeanLayout = () => {
   const getTitle = () => {
     switch (location.pathname) {
       case '/dean': return 'Academic Year 2023/24 - Q3';
-      case '/dean/submissions': return 'Teacher Submissions Approval';
+      case '/dean/dashboard' : return 'Compliance Dashboard';
+      case '/dean/sections': return 'Student Sections';
+      case '/dean/submissions': return 'Teacher Submissions ';
       case '/dean/analytics': return 'Institutional Analytics';
       case '/dean/reports': return 'Report Generator';
       case '/dean/settings': return 'Template Settings';
-      default: return 'Reviewer Module';
+      default: return '';
     }
   };
 
