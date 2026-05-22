@@ -69,7 +69,9 @@ const ProfileMenu = () => {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Role:</span>
-              <span className="font-medium text-white capitalize">{userData?.system_role || userData?.role || 'N/A'}</span>
+              <span className="font-medium text-white capitalize">
+                {(userData?.system_role === 'sysadmin' || userData?.role === 'sysadmin') ? 'Super Admin' : (userData?.system_role || userData?.role || 'N/A')}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-500">Permission:</span>
@@ -100,9 +102,9 @@ const ProfileMenu = () => {
             </button>
             <button 
               onClick={handleFeedbackClick}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-sidebar-hover rounded transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#D1A638] hover:text-[#C2982B] hover:bg-sidebar-hover rounded transition-colors font-medium"
             >
-              <MessageSquare size={16} />
+              <MessageSquare size={16} className="text-[#D1A638]" />
               Feedback
             </button>
             <button 

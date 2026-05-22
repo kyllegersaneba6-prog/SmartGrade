@@ -9,7 +9,7 @@ const GlobalAnalytics = () => {
   const [staffUsers, setStaffUsers] = useState([]);
   const [activityLog, setActivityLog] = useState([]);
   const [activityFilter, setActivityFilter] = useState('All');
-  const [notification, setNotification] = useState({ title: '', content: '', urgency: 'Not Urgent', audience: 'All' });
+  const [notification, setNotification] = useState({ title: '', content: '', urgency: 'Not Urgent', audience: ['Admins', 'Deans', 'Teachers', 'Students'] });
   const [notifSuccess, setNotifSuccess] = useState(false);
 
   const handlePostNotification = (e) => {
@@ -19,7 +19,7 @@ const GlobalAnalytics = () => {
     // Simulate posting notification
     console.log('Posting Notification:', notification);
     setNotifSuccess(true);
-    setNotification({ title: '', content: '', urgency: 'Not Urgent', audience: 'All' });
+    setNotification({ title: '', content: '', urgency: 'Not Urgent', audience: ['Admins', 'Deans', 'Teachers', 'Students'] });
     
     setTimeout(() => {
       setNotifSuccess(false);
@@ -56,7 +56,10 @@ const GlobalAnalytics = () => {
   // Group users by department
   const deptMap = {};
   staffUsers.forEach(u => {
-    const dept = u.department || 'Unassigned';
+    let dept = u.department || 'Unassigned';
+    if (dept === 'CICT') {
+      dept = 'College of Information and Communication Technology (CICT)';
+    }
     if (!deptMap[dept]) deptMap[dept] = { students: 0, teachers: 0, admins: 0, deans: 0 };
     if (u.system_role === 'student') deptMap[dept].students++;
     else if (u.system_role === 'teacher') deptMap[dept].teachers++;
@@ -244,18 +247,28 @@ const GlobalAnalytics = () => {
 
           <form onSubmit={handlePostNotification} className="flex flex-col gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Audience</label>
-              <select
-                value={notification.audience}
-                onChange={(e) => setNotification({ ...notification, audience: e.target.value })}
-                className="w-full text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-white border-[#e5e0d5]"
-              >
-                <option value="All">All Users</option>
-                <option value="Teachers">Teachers Only</option>
-                <option value="Deans">Deans Only</option>
-                <option value="Admins">Admins Only</option>
-                <option value="Students">Students Only</option>
-              </select>
+              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Audience</label>
+              <div className="flex flex-col gap-2 p-3 border rounded-lg bg-[#faf9f6] border-[#e5e0d5]">
+                {['Admins', 'Deans', 'Teachers', 'Students'].map((role) => (
+                  <label key={role} className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={notification.audience.includes(role)}
+                      onChange={(e) => {
+                        let newAudience = [...notification.audience];
+                        if (e.target.checked) {
+                          newAudience.push(role);
+                        } else {
+                          newAudience = newAudience.filter(item => item !== role);
+                        }
+                        setNotification({ ...notification, audience: newAudience });
+                      }}
+                      className="rounded border-[#e5e0d5] text-[#f5a623] focus:ring-[#f5a623] w-4 h-4 cursor-pointer"
+                    />
+                    {role}
+                  </label>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -315,7 +328,7 @@ const GlobalAnalytics = () => {
               type="submit"
               className="w-full mt-2 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{ background: '#1a2233' }}
-              disabled={!notification.title || !notification.content}
+              disabled={!notification.title || !notification.content || notification.audience.length === 0}
             >
               <Send size={14} />
               POST NOTIFICATION

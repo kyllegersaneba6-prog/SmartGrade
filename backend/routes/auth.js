@@ -72,6 +72,7 @@ router.post('/login', async (req, res) => {
         role,
         full_name: user.full_name,
         department: user.department,
+        course: user.course,
         system_role: user.system_role,
         permissions_profile: user.permissions_profile
       }

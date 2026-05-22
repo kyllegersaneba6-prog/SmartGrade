@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-import { ChevronLeft, ChevronRight, UserPlus, Trash2, Calendar, ChevronDown, ChevronUp, Filter } from 'lucide-react';
+import { ChevronLeft, ChevronRight, UserPlus, Trash2, Calendar, ChevronDown, ChevronUp, Filter, Pencil, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import * as XLSX from 'xlsx';
+import CreateUser from './CreateUser';
 
 
 
@@ -26,6 +28,12 @@ const UserRoles = () => {
   const [sortBy, setSortBy] = useState('default');
   const [filterDept, setFilterDept] = useState(null);
   const [filterRole, setFilterRole] = useState(null);
+  const [filterCourse, setFilterCourse] = useState(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState(null);
+  const [editForm, setEditForm] = useState({ full_name: '', course: '', department: '', system_role: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const ACTIVITY_PER_PAGE = 10;
 
   const [feedbackList, setFeedbackList] = useState([]);
@@ -46,12 +54,80 @@ const UserRoles = () => {
     if (filterRole) {
       result = result.filter(u => u.role === filterRole);
     }
+    if (filterCourse) {
+      result = result.filter(u => u.course === filterCourse);
+    }
     if (sortBy === 'department') {
       result.sort((a, b) => (a.dept || '').localeCompare(b.dept || ''));
     } else if (sortBy === 'role') {
       result.sort((a, b) => (a.role || '').localeCompare(b.role || ''));
+    } else if (sortBy === 'course') {
+      result.sort((a, b) => (a.course || '').localeCompare(b.course || ''));
     }
     return result;
+  };
+
+  const exportToExcel = () => {
+    const exportData = sortedUsers.map(u => ({
+      'User ID': u.id,
+      'Name': u.name,
+      'Course': u.course,
+      'Department': u.dept,
+      'Role': u.role,
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Users');
+    XLSX.writeFile(wb, 'SmartGrade_Users.xlsx');
+  };
+
+  const openEditModal = (u) => {
+    setUserToEdit(u);
+    setEditForm({
+      full_name: u.name,
+      course: u.course || '',
+      department: u.dept || '',
+      system_role: u.systemRole || '',
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!userToEdit?.rawId) return;
+    setEditLoading(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/users/${userToEdit.rawId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setUsersList(prev => prev.map(u => {
+          if (u.rawId !== userToEdit.rawId) return u;
+          let roleName = updated.system_role.toUpperCase();
+          if (updated.system_role === 'dean') roleName = 'COLLEGE DEAN';
+          if (updated.system_role === 'sysadmin') roleName = 'SYSTEM ADMIN';
+          if (updated.system_role === 'registrar') roleName = 'REGISTRAR';
+          let color = '#f5a623';
+          if (updated.system_role === 'sysadmin') color = '#1a2233';
+          if (updated.system_role === 'registrar') color = '#9ca3af';
+          let customDots = [];
+          if (updated.permissions_profile === 'read_only') customDots = ['#22c55e'];
+          else if (updated.permissions_profile === 'create_update') customDots = ['#22c55e', '#f97316'];
+          else if (updated.permissions_profile === 'manage') customDots = ['#22c55e', '#f97316', '#ef4444'];
+          else customDots = ['#e5e0d5'];
+          return { ...u, name: updated.full_name, course: (updated.course === 'BSIT' || updated.course === 'Bachelor of Science in Information Technology (BSIT)') ? 'College of Information and Communication Technology (CICT)' : (updated.course || 'N/A'), dept: updated.department === 'CICT' ? 'College of Information and Communication Technology (CICT)' : (updated.department || 'N/A'), role: roleName, roleColor: color, customDots, systemRole: updated.system_role };
+        }));
+        fetchActivity();
+        setEditModalOpen(false);
+        setUserToEdit(null);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const sortedUsers = getProcessedUsers();
@@ -121,7 +197,7 @@ const UserRoles = () => {
           const dbUsers = data.map((u) => {
             let roleName = u.system_role.toUpperCase();
             if (u.system_role === 'dean') roleName = 'COLLEGE DEAN';
-            if (u.system_role === 'sysadmin') roleName = 'SYSTEM ADMIN';
+            if (u.system_role === 'sysadmin') roleName = 'SUPER ADMIN';
             if (u.system_role === 'registrar') roleName = 'REGISTRAR';
             
             let color = '#f5a623';
@@ -143,7 +219,8 @@ const UserRoles = () => {
               id: `USR-${u.id.substring(0,4).toUpperCase()}`,
               rawId: u.id,
               name: u.full_name,
-              dept: u.department || 'N/A',
+              dept: u.department === 'CICT' ? 'College of Information and Communication Technology (CICT)' : (u.department || 'N/A'),
+              course: (u.course === 'BSIT' || u.course === 'Bachelor of Science in Information Technology (BSIT)') ? 'College of Information and Communication Technology (CICT)' : (u.course || 'N/A'),
               role: roleName,
               roleColor: color,
               customDots: customDots,
@@ -192,17 +269,23 @@ const UserRoles = () => {
               <span className="text-xs text-gray-400">(Master Control)</span>
             </div>
             <div className="flex gap-2 relative items-center">
-              <Link
-                to="/admin/users/create"
-                className="w-8 h-8 rounded border flex items-center justify-center text-white shadow-sm shrink-0 transition-transform hover:scale-105"
-                style={{ background: '#1a2233', borderColor: '#1a2233' }}
+              <button
+                onClick={() => setCreateModalOpen(true)}
+                className="px-3 h-8 rounded border flex items-center justify-center gap-1.5 text-white text-xs font-bold shadow-sm shrink-0 transition-transform hover:scale-105"
+                style={{ background: '#f5a623', borderColor: '#f5a623' }}
               >
-                <UserPlus size={14} />
-              </Link>
-              <button className="p-1.5 rounded border text-gray-500 hover:bg-gray-50 transition-colors" style={{ borderColor: '#e5e0d5' }}>≡</button>
+                <UserPlus size={14} /> Add User
+              </button>
+              <button
+                onClick={exportToExcel}
+                className="px-3 h-8 rounded border flex items-center justify-center gap-1.5 text-white text-xs font-bold shadow-sm shrink-0 transition-all hover:scale-105 hover:opacity-90"
+                style={{ background: '#22c55e', borderColor: '#22c55e' }}
+              >
+                <Download size={14} /> Export to Excel
+              </button>
               <button 
                 onClick={() => { setFilterDropdownOpen(!filterDropdownOpen); setDropdownMode('main'); }}
-                className={`flex items-center gap-1.5 p-1.5 px-3 rounded border text-xs font-bold transition-colors ${filterDept || filterRole || sortBy !== 'default' ? 'bg-[#fbf8f1] text-[#f5a623] border-[#f5a623]' : 'text-gray-700 hover:bg-gray-50 border-[#e5e0d5]'}`}
+                className={`flex items-center gap-1.5 p-1.5 px-3 rounded border text-xs font-bold transition-colors ${filterDept || filterRole || filterCourse || sortBy !== 'default' ? 'bg-[#fbf8f1] text-[#f5a623] border-[#f5a623]' : 'text-gray-700 hover:bg-gray-50 border-[#e5e0d5]'}`}
               >
                 <Filter size={14} /> Filter
               </button>
@@ -212,6 +295,12 @@ const UserRoles = () => {
                   {dropdownMode === 'main' && (
                     <>
                       <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-[#e5e0d5]">Sort Options</div>
+                      <button
+                        onClick={() => setDropdownMode('course')}
+                        className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 flex justify-between items-center ${sortBy === 'course' || filterCourse ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-700 font-medium'}`}
+                      >
+                        Sort by Course <ChevronRight size={12}/>
+                      </button>
                       <button
                         onClick={() => setDropdownMode('department')}
                         className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 flex justify-between items-center ${sortBy === 'department' || filterDept ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-700 font-medium'}`}
@@ -225,11 +314,36 @@ const UserRoles = () => {
                         Sort by Role <ChevronRight size={12}/>
                       </button>
                       <button
-                        onClick={() => { setSortBy('default'); setFilterDept(null); setFilterRole(null); setFilterDropdownOpen(false); }}
-                        className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 border-t border-[#f0ede6] mt-1 ${sortBy === 'default' && !filterDept && !filterRole ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-500 font-medium'}`}
+                        onClick={() => { setSortBy('default'); setFilterDept(null); setFilterRole(null); setFilterCourse(null); setFilterDropdownOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-gray-50 border-t border-[#f0ede6] mt-1 ${sortBy === 'default' && !filterDept && !filterRole && !filterCourse ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-500 font-medium'}`}
                       >
                         Clear Filters & Sorting
                       </button>
+                    </>
+                  )}
+
+                  {dropdownMode === 'course' && (
+                    <>
+                      <div className="flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-[#e5e0d5]">
+                        <button onClick={() => setDropdownMode('main')} className="hover:text-gray-700"><ChevronLeft size={12}/></button> Select Course
+                      </div>
+                      <button
+                        onClick={() => { setSortBy('course'); setFilterCourse(null); setFilterDropdownOpen(false); }}
+                        className={`w-full text-left px-4 py-2 text-xs transition-colors hover:bg-gray-50 ${!filterCourse && sortBy === 'course' ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-700 font-medium'}`}
+                      >
+                        All (Sort Only)
+                      </button>
+                      <div className="max-h-48 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                        {[...new Set(usersList.map(u => u.course).filter(Boolean))].map(c => (
+                          <button
+                            key={c}
+                            onClick={() => { setFilterCourse(c); setSortBy('course'); setFilterDropdownOpen(false); }}
+                            className={`w-full text-left px-4 py-2 text-xs transition-colors hover:bg-gray-50 ${filterCourse === c ? 'text-[#f5a623] font-bold bg-[#fbf8f1]' : 'text-gray-600'}`}
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
                     </>
                   )}
 
@@ -290,7 +404,7 @@ const UserRoles = () => {
           <div className="table-responsive"><table className="w-full text-xs min-w-[700px]">
             <thead>
               <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
-                {['USER ID', 'NAME', 'DEPARTMENT', 'ROLE', 'PERMISSIONS'].map((h) => (
+                {['USER ID', 'NAME', 'COURSE', 'DEPARTMENT', 'ROLE', 'PERMISSIONS', 'ACTIONS'].map((h) => (
                   <th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -300,6 +414,7 @@ const UserRoles = () => {
                 <tr key={u.id} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
                   <td className="py-3 pr-3 text-gray-400">{u.id}</td>
                   <td className="py-3 pr-3 font-bold text-gray-900">{u.name}</td>
+                  <td className="py-3 pr-3 text-gray-500">{u.course}</td>
                   <td className="py-3 pr-3 text-gray-500">{u.dept}</td>
                   <td className="py-3 pr-3">
                     <div className="flex flex-wrap gap-1">
@@ -331,6 +446,17 @@ const UserRoles = () => {
                           <span key={i} className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
                         ))}
                       </div>
+                    </div>
+                  </td>
+                  <td className="py-3">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openEditModal(u)}
+                        className="text-blue-500 hover:text-blue-700 transition-colors p-1 rounded-md hover:bg-blue-50"
+                        title="Edit User"
+                      >
+                        <Pencil size={14} />
+                      </button>
                       <button 
                         onClick={() => {
                           setUserToDelete(u);
@@ -377,7 +503,7 @@ const UserRoles = () => {
         <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div>
-              <h2 className="text-sm font-bold text-gray-900">Current Active Users</h2>
+              <h2 className="text-sm font-bold text-gray-900">Registered Users</h2>
               <p className="text-[10px] text-gray-400 uppercase tracking-widest">Weekly Activity Overview</p>
             </div>
             <div className="flex items-center gap-2">
@@ -403,7 +529,7 @@ const UserRoles = () => {
                 return created.split('T')[0] === dayStr;
               }).length;
               const dateNum = dayDate.getDate();
-              return { day: `${label} ${dateNum}`, users: count };
+              return { day: `${dateNum}`, users: count };
             });
             return (
               <>
@@ -414,7 +540,7 @@ const UserRoles = () => {
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} allowDecimals={false} />
                     <Tooltip
                       contentStyle={{ background: '#1a2233', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11 }}
-                      formatter={(value) => [`${value} user${value !== 1 ? 's' : ''}`, 'Active']}
+                      formatter={(value) => [`${value} user${value !== 1 ? 's' : ''}`, 'Registered']}
                     />
                     <Bar dataKey="users" fill="#f5a623" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -457,7 +583,7 @@ const UserRoles = () => {
                 return fDate.startsWith(dayStr);
               }).length;
               const dateNum = dayDate.getDate();
-              return { day: `${label} ${dateNum}`, errors: dummyBase + actualErrors };
+              return { day: `${dateNum}`, errors: dummyBase + actualErrors };
             });
             return (
               <>
@@ -489,7 +615,7 @@ const UserRoles = () => {
           <div className="flex flex-col gap-2">
             {[
               { label: 'Total Onboarded', value: usersList.length },
-              { label: 'System Admins', value: usersList.filter(u => u.systemRole === 'sysadmin').length },
+              { label: 'Super Admins', value: usersList.filter(u => u.systemRole === 'sysadmin').length },
               { label: 'Registrar', value: usersList.filter(u => u.systemRole === 'registrar').length },
               { label: 'Dean', value: usersList.filter(u => u.systemRole === 'dean').length },
               { label: 'Teacher', value: usersList.filter(u => u.systemRole === 'teacher').length },
@@ -569,6 +695,106 @@ const UserRoles = () => {
         </div>
       </div>
     </div>
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Edit User</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Name</label>
+                <input
+                  type="text"
+                  value={editForm.full_name}
+                  onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Department</label>
+                <div className="relative">
+                  <select 
+                    value={editForm.department}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val !== 'College of Information and Communication Technology (CICT)') {
+                        setEditForm({ ...editForm, department: val, course: '' });
+                      } else {
+                        setEditForm({ ...editForm, department: val });
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm appearance-none"
+                  >
+                    <option value="" disabled>Select a department</option>
+                    <option value="College of Information and Communication Technology (CICT)">College of Information and Communication Technology (CICT)</option>
+                    <option value="College of Engineering (COE)">College of Engineering (COE)</option>
+                    <option value="College of Business Management and Accountancy (CBMA)">College of Business Management and Accountancy (CBMA)</option>
+                    <option value="College of Education, Arts and Sciences (CEAS)">College of Education, Arts and Sciences (CEAS)</option>
+                    <option value="College of Hospitality and Tourism Management (CHTM)">College of Hospitality and Tourism Management (CHTM)</option>
+                    <option value="College of Criminal Justice Education (CCJE)">College of Criminal Justice Education (CCJE)</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                    <ChevronDown size={14} />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Course</label>
+                <div className="relative">
+                  <select 
+                    value={editForm.course}
+                    onChange={(e) => setEditForm({ ...editForm, course: e.target.value })}
+                    disabled={editForm.department !== 'College of Information and Communication Technology (CICT)'}
+                    className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="" disabled>Select a course</option>
+                    {editForm.department === 'College of Information and Communication Technology (CICT)' && (
+                      <>
+                        <option value="Bachelor of Science in Information Technology (BSIT)">Bachelor of Science in Information Technology (BSIT)</option>
+                        <option value="Bachelor of Science in Computer Science (BSCS)">Bachelor of Science in Computer Science (BSCS)</option>
+                        <option value="Bachelor of Science in Information Systems (BSIS)">Bachelor of Science in Information Systems (BSIS)</option>
+                      </>
+                    )}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                    <ChevronDown size={14} />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Role</label>
+                <select
+                  value={editForm.system_role}
+                  onChange={(e) => setEditForm({ ...editForm, system_role: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm appearance-none"
+                >
+                  <option value="sysadmin">Super Admin</option>
+                  <option value="dean">College Dean</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="student">Student</option>
+                  <option value="registrar">Registrar</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end mt-6">
+              <button
+                onClick={() => { setEditModalOpen(false); setUserToEdit(null); }}
+                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                disabled={editLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSave}
+                disabled={editLoading}
+                className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50"
+                style={{ background: '#f5a623' }}
+              >
+                {editLoading ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {deleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
@@ -612,6 +838,16 @@ const UserRoles = () => {
             </div>
           </div>
         </div>
+      )}
+      {createModalOpen && (
+        <CreateUser 
+          onClose={() => setCreateModalOpen(false)} 
+          onSuccess={() => {
+            setCreateModalOpen(false);
+            fetchUsers();
+            fetchActivity();
+          }} 
+        />
       )}
     </div>
   );

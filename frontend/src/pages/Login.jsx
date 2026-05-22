@@ -88,9 +88,7 @@ const Login = () => {
         <div className="max-w-[420px] w-full bg-white rounded-[24px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] border border-[#F0EBE1] p-10 flex flex-col items-center relative">
           
           {/* Logo & Title */}
-          <div className="w-14 h-14 bg-[#D1A638] rounded-xl flex items-center justify-center mb-4 shadow-[0_4px_14px_0_rgba(209,166,56,0.3)]">
-            <GraduationCap className="w-8 h-8 text-[#3A2E12]" strokeWidth={2.5} />
-          </div>
+          <img src="/logo.png" className="w-24 h-24 object-contain mb-4" alt="SmartGrade Logo" />
           <h1 className="text-gold font-extrabold text-3xl tracking-wide mb-1">SmartGrade</h1>
          
 

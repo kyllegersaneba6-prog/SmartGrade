@@ -33,8 +33,11 @@ const Sidebar = ({ isOpen, onClose }) => {
         </button>
 
         <div className="p-6 pb-8">
-          <h1 className="text-gold font-bold text-xl leading-tight uppercase tracking-wider">SmartGrade</h1>
-          <p className="text-xs text-gray-400 tracking-wider font-semibold mt-1 uppercase">STUDENT PORTAL</p>
+          <div className="flex items-center gap-2.5 mb-2">
+            <img src="/logo.png" className="w-10 h-10 object-contain" alt="SmartGrade Logo" />
+            <h1 className="text-gold font-bold text-xl leading-tight uppercase tracking-wider">SmartGrade</h1>
+          </div>
+          <p className="text-xs text-gray-400 tracking-wider font-semibold uppercase">STUDENT PORTAL</p>
         </div>
 
         <nav className="flex-1 space-y-1">
