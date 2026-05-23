@@ -181,9 +181,9 @@ const SecurityAudit = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="w-full">
         {/* Audit Trail */}
-        <div className="col-span-2">
+        <div>
           <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -251,53 +251,6 @@ const SecurityAudit = () => {
                   style={{ borderColor: '#e5e0d5' }}>Next</button>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Right panel */}
-        <div className="flex flex-col gap-5">
-          <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
-            <div className="flex items-center gap-2 mb-4">
-              <span style={{ color: '#f5a623' }}>▽</span>
-              <h2 className="text-sm font-bold text-gray-900">Multi-Format Output</h2>
-            </div>
-            <div className="flex flex-col gap-2 mb-4">
-              {outputFormats.map(({ label, sub, pct, icon: Icon, color }) => (
-                <div key={label} className="flex items-center justify-between px-3 py-3 rounded-lg" style={{ background: color, color: '#fff' }}>
-                  <div className="flex items-center gap-2">
-                    <Icon size={14} />
-                    <div>
-                      <div className="text-xs font-bold">{label}</div>
-                      <div className="text-[10px] opacity-80">{sub}</div>
-                    </div>
-                  </div>
-                  <span className="text-sm font-bold">{pct}%</span>
-                </div>
-              ))}
-            </div>
-            <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white mb-2" style={{ background: '#f5a623' }}>
-              <Download size={14} /> Generate All Reports
-            </button>
-            <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border" style={{ borderColor: '#f5a623', color: '#f5a623' }}>
-              <Share2 size={14} /> Secure Transmit
-            </button>
-          </div>
-
-          <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
-            <h2 className="text-sm font-bold text-gray-900 mb-1">Security Overview</h2>
-            <p className="text-[11px] text-gray-400 mb-4">Real-time surveillance of global access points.</p>
-            <div className="rounded-lg h-24 flex items-center justify-center mb-4" style={{ background: '#f0ede6' }}>
-              <div className="text-center text-gray-400">
-                <div className="text-2xl mb-1">🛡</div>
-                <div className="text-xs">Security Dashboard Preview</div>
-              </div>
-            </div>
-            {[{ label: 'Active Threats', value: '0', color: '#22c55e' }, { label: 'Blocked IPs', value: '3', color: '#f97316' }, { label: 'Auth Failures (24h)', value: '8', color: '#ef4444' }].map(({ label, value, color }) => (
-              <div key={label} className="flex justify-between items-center text-xs py-1.5 border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
-                <span className="text-gray-500">{label}</span>
-                <span className="font-bold" style={{ color }}>{value}</span>
-              </div>
-            ))}
           </div>
         </div>
       </div>
