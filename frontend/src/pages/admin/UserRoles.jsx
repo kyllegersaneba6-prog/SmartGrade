@@ -625,7 +625,6 @@ const UserRoles = () => {
             {[
               { label: 'Total Onboarded', value: usersList.length },
               { label: 'Super Admins', value: usersList.filter(u => u.systemRole === 'sysadmin').length },
-              { label: 'Registrar', value: usersList.filter(u => u.systemRole === 'registrar').length },
               { label: 'Dean', value: usersList.filter(u => u.systemRole === 'dean').length },
               { label: 'Teacher', value: usersList.filter(u => u.systemRole === 'teacher').length },
               { label: 'Students', value: usersList.filter(u => u.systemRole === 'student').length },

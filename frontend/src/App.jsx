@@ -35,11 +35,38 @@ import Login from './pages/Login';
 
 
 // Protected Route Component
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, allowedRole }) => {
   const token = localStorage.getItem('token');
-  if (!token) {
+  const userStr = localStorage.getItem('user');
+
+  if (!token || !userStr) {
     return <Navigate to="/login" replace />;
   }
+
+  try {
+    const user = JSON.parse(userStr);
+    
+    // Check if roles match
+    if (allowedRole === 'sysadmin') {
+      if (user?.role !== 'sysadmin' && user?.role !== 'admin') {
+        if (user?.role === 'dean') return <Navigate to="/dean" replace />;
+        if (user?.role === 'teacher') return <Navigate to="/teacher" replace />;
+        if (user?.role === 'student') return <Navigate to="/student" replace />;
+        return <Navigate to="/login" replace />;
+      }
+    } else {
+      if (user?.role !== allowedRole) {
+        if (user?.role === 'dean') return <Navigate to="/dean" replace />;
+        if (user?.role === 'teacher') return <Navigate to="/teacher" replace />;
+        if (user?.role === 'student') return <Navigate to="/student" replace />;
+        if (user?.role === 'sysadmin' || user?.role === 'admin') return <Navigate to="/superadmin" replace />;
+        return <Navigate to="/login" replace />;
+      }
+    }
+  } catch (e) {
+    return <Navigate to="/login" replace />;
+  }
+
   return children;
 };
 
@@ -74,7 +101,14 @@ function App() {
 
         
         {/* Dean Routes */}
-        <Route path="/dean" element={<DeanLayout />}>
+        <Route 
+          path="/dean" 
+          element={
+            <ProtectedRoute allowedRole="dean">
+              <DeanLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<DeanDashboard />} />
           <Route path="dashboard" element={<DeanDashboard />} />
           <Route path="sections" element={<StudentSections />} />
@@ -85,7 +119,14 @@ function App() {
         </Route>
 
         {/* Teacher Routes */}
-        <Route path="/teacher" element={<TeacherLayout />}>
+        <Route 
+          path="/teacher" 
+          element={
+            <ProtectedRoute allowedRole="teacher">
+              <TeacherLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<TeacherDashboard />} />
           <Route path="dashboard" element={<TeacherDashboard />} />
           <Route path="classes" element={<MyClasses />} />
@@ -99,7 +140,7 @@ function App() {
         <Route 
           path="/superadmin" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRole="sysadmin">
               <AdminLayout />
             </ProtectedRoute>
           }
@@ -111,7 +152,14 @@ function App() {
         </Route>
 
         {/* Student Routes */}
-        <Route path="/student" element={<StudentLayout />}>
+        <Route 
+          path="/student" 
+          element={
+            <ProtectedRoute allowedRole="student">
+              <StudentLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<StudentDashboard />} />
           <Route path="classes" element={<StudentMyClasses />} />
           <Route path="classes/:classId" element={<StudentGradebook />} />

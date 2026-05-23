@@ -9,7 +9,7 @@ const CreateUser = ({ onClose, onSuccess }) => {
     department: '',
     system_role: '',
     permissions_profile: '',
-    password: '',
+    password: 'smartgrade123',
     course: ''
   });
   const [error, setError] = useState('');
