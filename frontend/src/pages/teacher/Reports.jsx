@@ -1,29 +1,5 @@
-import { Plus, Settings, ChevronRight, FileText, Download, Eye, RefreshCw, HelpCircle } from 'lucide-react';
+import { FileText, Download, Eye, RefreshCw, HelpCircle } from 'lucide-react';
 
-const ReportCard = ({ title, format, desc, date }) => (
-  <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col group cursor-pointer hover:border-gold transition-colors">
-    <div className="h-32 bg-sidebar relative overflow-hidden">
-      <div className="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+CjxjaXJjbGUgY3g9IjIiIGN5PSIyIiByPSIyIiBmaWxsPSIjZmZmIi8+Cjwvc3ZnPg==')] bg-repeat"></div>
-      <div className="absolute top-4 right-4 bg-white/10 p-2 rounded-full backdrop-blur-sm text-white hover:bg-white/20 transition-colors">
-         <Settings size={16} />
-      </div>
-    </div>
-    <div className="p-6 flex-1 flex flex-col">
-      <div className="flex justify-between items-start mb-3">
-        <h3 className="text-lg font-medium text-sidebar">{title}</h3>
-        <span className="text-[10px] font-bold text-text-muted bg-gray-100 px-2 py-1 rounded tracking-wider uppercase">{format}</span>
-      </div>
-      <p className="text-sm text-text-muted mb-6 line-clamp-3 leading-relaxed">{desc}</p>
-      
-      <div className="mt-auto flex justify-between items-end">
-        <span className="text-xs text-text-muted italic">Last generated {date} ago</span>
-        <button className="text-sm font-bold text-sidebar group-hover:text-gold flex items-center gap-1 transition-colors">
-          View Full Record <ChevronRight size={16} />
-        </button>
-      </div>
-    </div>
-  </div>
-);
 
 const Reports = () => {
   const history = [
@@ -34,38 +10,7 @@ const Reports = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header Area */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div className="flex bg-border p-1 rounded-xl">
-          <button className="px-6 py-2.5 text-sm font-bold bg-gold text-sidebar rounded-lg shadow-sm">Standard Templates</button>
-          <button className="px-6 py-2.5 text-sm font-bold text-text-muted hover:text-sidebar transition-colors">Custom Reports</button>
-        </div>
-        <button className="px-5 py-2.5 bg-gold hover:bg-gold-hover text-sidebar rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm">
-          <Plus size={18} /> Generate New Report
-        </button>
-      </div>
 
-      {/* Report Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        <ReportCard 
-          title="ECR Standard" 
-          format="PDF / XLS" 
-          desc="End of Cycle Review comprehensive data including student achievement and growth projections."
-          date="2 days"
-        />
-        <ReportCard 
-          title="School Report Card" 
-          format="PDF" 
-          desc="Official institutional performance summary for board review and public disclosure compliance."
-          date="5 days"
-        />
-        <ReportCard 
-          title="Class Funnel" 
-          format="INTERACTIVE" 
-          desc="Visual breakdown of class progress through curriculum segments with intervention flags."
-          date="Automated Daily" // overridden via generic param basically
-        />
-      </div>
 
       {/* History Table */}
       <div>

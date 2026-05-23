@@ -24,10 +24,10 @@ const Login = () => {
         } else if (user.role === 'student') {
           navigate('/student');
         } else {
-          navigate('/admin');
+          navigate('/superadmin');
         }
       } catch (e) {
-        navigate('/admin');
+        navigate('/superadmin');
       }
     }
   }, [navigate]);
@@ -64,7 +64,7 @@ const Login = () => {
       } else if (data.user.role === 'student') {
         navigate('/student');
       } else {
-        navigate('/admin');
+        navigate('/superadmin');
       }
     } catch (err) {
       setError(err.message);

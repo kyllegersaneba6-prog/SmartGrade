@@ -15,14 +15,13 @@ import TemplateSettings from './pages/dean/TemplateSettings';
 // Teacher Pages
 import TeacherDashboard from './pages/teacher/Dashboard';
 import MyClasses from './pages/teacher/MyClasses';
-import TeacherAnalytics from './pages/teacher/Analytics';
+
 import Gradebook from './pages/teacher/Gradebook';
 import Attendance from './pages/teacher/Attendance';
 import TeacherReports from './pages/teacher/Reports';
 
 // Admin Pages
 import GlobalAnalytics from './pages/admin/GlobalAnalytics';
-import SystemConfiguration from './pages/admin/SystemConfiguration';
 import SecurityAudit from './pages/admin/SecurityAudit';
 import UserRoles from './pages/admin/UserRoles';
 import CreateUser from './pages/admin/CreateUser';
@@ -61,9 +60,9 @@ function App() {
                     if (user?.role === 'dean') return '/dean';
                     if (user?.role === 'teacher') return '/teacher';
                     if (user?.role === 'student') return '/student';
-                    return '/admin';
+                    return '/superadmin';
                   } catch (e) {
-                    return '/admin';
+                    return '/superadmin';
                   }
                 })()
               } replace />
@@ -90,7 +89,7 @@ function App() {
           <Route index element={<TeacherDashboard />} />
           <Route path="dashboard" element={<TeacherDashboard />} />
           <Route path="classes" element={<MyClasses />} />
-          <Route path="analytics" element={<TeacherAnalytics />} />
+
           <Route path="gradebook" element={<Gradebook />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="reports" element={<TeacherReports />} />
@@ -98,7 +97,7 @@ function App() {
 
         {/* Admin Routes */}
         <Route 
-          path="/admin" 
+          path="/superadmin" 
           element={
             <ProtectedRoute>
               <AdminLayout />
@@ -106,7 +105,6 @@ function App() {
           }
         >
           <Route index element={<GlobalAnalytics />} />
-          <Route path="system-config" element={<SystemConfiguration />} />
           <Route path="security" element={<SecurityAudit />} />
           <Route path="users" element={<UserRoles />} />
           <Route path="users/create" element={<CreateUser />} />

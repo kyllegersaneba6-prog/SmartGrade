@@ -198,74 +198,7 @@ const CategoryPerformance = ({ categories }) => (
   </div>
 );
 
-/* ─── Submission Timeline Heatmap ─── */
-const SubmissionTimeline = () => {
-  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  const shades = [
-    '#fef9c3', '#fde68a', '#eab308', '#ca8a04', '#a16207',
-    '#fef9c3', '#eab308', '#ca8a04', '#fde68a', '#eab308',
-    '#fef9c3', '#eab308', '#a16207', '#fde68a', '#ca8a04',
-    '#e5e7eb', '#e5e7eb', '#fde68a', '#fef9c3', '#e5e7eb',
-    '#eab308', '#ca8a04', '#e5e7eb', '#fde68a', '#eab308',
-    '#e5e7eb', '#e5e7eb', '#e5e7eb', '#e5e7eb', '#e5e7eb',
-    '#e5e7eb', '#e5e7eb', '#e5e7eb', '#e5e7eb', '#e5e7eb',
-  ];
-  const rows = 5;
 
-  return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-border">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-gold font-semibold">Submission Timeline</h3>
-        <div className="flex items-center gap-2 text-[10px] font-semibold text-text-muted">
-          <span>Less</span>
-          <div className="w-3 h-3 rounded-sm bg-[#e5e7eb]"></div>
-          <div className="w-3 h-3 rounded-sm bg-[#fef9c3]"></div>
-          <div className="w-3 h-3 rounded-sm bg-[#eab308]"></div>
-          <div className="w-3 h-3 rounded-sm bg-[#a16207]"></div>
-          <span>More</span>
-        </div>
-      </div>
-
-      {/* Day labels */}
-      <div className="grid grid-cols-7 gap-2 mb-2 text-center">
-        {days.map((d, i) => (
-          <span key={i} className="text-xs font-semibold text-text-muted">{d}</span>
-        ))}
-      </div>
-
-      {/* Heatmap grid */}
-      {Array.from({ length: rows }).map((_, row) => (
-        <div key={row} className="grid grid-cols-7 gap-2 mb-2">
-          {days.map((_, col) => {
-            const idx = row * 7 + col;
-            return (
-              <div
-                key={col}
-                className="h-8 rounded-md transition-transform hover:scale-110"
-                style={{ backgroundColor: shades[idx] || '#e5e7eb' }}
-              ></div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-};
-
-/* ─── Promo Card ─── */
-const PromoCard = () => (
-  <div className="bg-sidebar rounded-2xl overflow-hidden relative h-48">
-    <div className="absolute inset-0 bg-gradient-to-t from-sidebar/95 via-sidebar/60 to-transparent z-10"></div>
-    <div className="absolute inset-0 bg-gold/10"></div>
-    <div className="absolute bottom-0 left-0 right-0 p-5 z-20">
-      <h4 className="text-white font-bold text-lg">Final Exam Prep</h4>
-      <p className="text-gold text-xs font-bold tracking-wider mt-1">3 WEEKS REMAINING</p>
-      <button className="mt-3 border-2 border-gold text-gold text-xs font-bold px-4 py-1.5 rounded-lg hover:bg-gold hover:text-sidebar transition-colors">
-        VIEW STUDY GUIDE
-      </button>
-    </div>
-  </div>
-);
 
 /* ─── Dashboard Page ─── */
 const Dashboard = () => {
@@ -505,22 +438,18 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 md:gap-6 items-start max-w-7xl mx-auto w-full">
-      {/* Left Column */}
-      <div className="flex-1 space-y-6 w-full">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          <GradeHealthRing score={overallGrade} classCount={myClasses.length} />
-          <PerformanceFlags flags={flags} onCompute={handleComputeAnalytics} />
-        </div>
-        <CategoryPerformance categories={categories} />
-        <SubmissionTimeline />
+    <div className="space-y-6 max-w-7xl mx-auto w-full">
+      {/* Top Row: Grade Health + Performance Flags */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <GradeHealthRing score={overallGrade} classCount={myClasses.length} />
+        <PerformanceFlags flags={flags} onCompute={handleComputeAnalytics} />
       </div>
 
-      {/* Right Column */}
-      <div className="w-full lg:w-[340px] space-y-6 shrink-0">
-        <CourseProgress classes={myClasses} />
-        <PromoCard />
-      </div>
+      {/* Course Progress - Full Width */}
+      <CourseProgress classes={myClasses} />
+
+      {/* Category Performance - Full Width */}
+      <CategoryPerformance categories={categories} />
     </div>
   );
 };

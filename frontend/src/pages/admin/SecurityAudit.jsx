@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Filter, RefreshCw, Download, Share2, FileText, Table2, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Filter, RefreshCw, Download, Share2, FileText, Table2, BookOpen, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 
 const outputFormats = [
   { label: 'RAW LOGS', sub: 'JSON/TXT Format', pct: 100, icon: FileText, color: '#b5a98a' },
@@ -90,10 +90,38 @@ const SecurityAudit = () => {
   const dataExports = logs.filter(l => l.action.toLowerCase().includes('export') || l.action.toLowerCase().includes('download')).length;
   
   const metrics = [
-    { label: 'CRITICAL ALERTS', value: criticalCount.toString().padStart(2, '0'), color: '#ef4444', bg: '#fee2e2', icon: '⚠' },
-    { label: 'SYSTEM ACCESSES', value: systemAccesses.toLocaleString(), color: '#1a2233', bg: '#f0ede6', icon: '↗' },
-    { label: 'DATA EXPORTS', value: dataExports.toString(), color: '#1a2233', bg: '#f0ede6', icon: '📋' },
-    { label: 'UPTIME HEALTH', value: '99.9%', color: '#22c55e', bg: '#dcfce7', icon: '☁' },
+    { 
+      label: 'CRITICAL ALERTS', 
+      value: criticalCount.toString().padStart(2, '0'), 
+      color: '#ef4444', 
+      bg: '#fee2e2', 
+      icon: '⚠',
+      tooltip: 'Tracks high-risk system activities, unauthorized actions, failed log-in attempts, and potential security threats requiring immediate administrator attention.'
+    },
+    { 
+      label: 'SYSTEM ACCESSES', 
+      value: systemAccesses.toLocaleString(), 
+      color: '#1a2233', 
+      bg: '#f0ede6', 
+      icon: '↗',
+      tooltip: 'Monitors total successful and unsuccessful authentication/login events across all user roles to identify usage trends and anomalies.'
+    },
+    { 
+      label: 'DATA EXPORTS', 
+      value: dataExports.toString(), 
+      color: '#1a2233', 
+      bg: '#f0ede6', 
+      icon: '📋',
+      tooltip: 'Logs every database extraction, spreadsheet download, and PDF report generation event to enforce data privacy compliance and prevent leaks.'
+    },
+    { 
+      label: 'UPTIME HEALTH', 
+      value: '99.9%', 
+      color: '#22c55e', 
+      bg: '#dcfce7', 
+      icon: '☁',
+      tooltip: 'Real-time operational status and availability percentage of the SmartGrade core servers and global grade calculation engines.'
+    },
   ];
 
   const ROWS_PER_PAGE = 10;
@@ -113,18 +141,42 @@ const SecurityAudit = () => {
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Security &amp; Audit Logs</h1>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#f5a623' }}>Security & Audit Logs</h1>
+          <p className="text-xs sm:text-sm mt-0.5 text-gray-500">
+            Real-time surveillance of system activity, access events, and security posture.
+          </p>
+        </div>
+        <button
+          onClick={fetchData}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-white transition-colors hover:opacity-90"
+          style={{ background: '#1a2233' }}
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Data
+        </button>
+      </div>
 
       {/* Top metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {metrics.map(({ label, value, color, bg, icon }) => (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {metrics.map(({ label, value, color, bg, icon, tooltip }) => (
           <div key={label} className="rounded-xl p-4 shadow-sm flex items-center justify-between" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
             <div>
-              <div className="text-[10px] text-gray-400 tracking-widest uppercase mb-1">{label}</div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[10px] text-gray-400 tracking-widest uppercase">{label}</span>
+                <div className="relative group flex items-center">
+                  <Info size={11} className="text-gray-300 hover:text-gray-500 transition-colors cursor-help shrink-0" />
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 p-3 bg-slate-900/95 backdrop-blur-sm text-gray-100 text-[10px] rounded-lg shadow-xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-50 text-center font-normal normal-case leading-relaxed border border-slate-800">
+                    {tooltip}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900/95"></div>
+                  </div>
+                </div>
+              </div>
               <div className="text-2xl font-bold" style={{ color }}>{value}</div>
             </div>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: bg }}>{icon}</div>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ background: bg }}>{icon}</div>
           </div>
         ))}
       </div>

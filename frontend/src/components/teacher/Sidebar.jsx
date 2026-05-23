@@ -1,11 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, BarChart2, BookOpen, FileText, Download, X } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, FileText, Download, X } from 'lucide-react';
 import clsx from 'clsx';
 
 const navItems = [
   { name: 'Dashboard', path: '/teacher/dashboard', icon: LayoutDashboard },
   { name: 'My Classes', path: '/teacher/classes', icon: Users },
-  { name: 'Analytics Central', path: '/teacher/analytics', icon: BarChart2 },
   { name: 'Gradebook', path: '/teacher/gradebook', icon: BookOpen },
   { name: 'Reports', path: '/teacher/reports', icon: FileText },
 ];

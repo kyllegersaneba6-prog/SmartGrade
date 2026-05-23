@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Calendar, AlertOctagon, MoreVertical, Sparkles, X } from 'lucide-react';
+import { Users, Calendar, AlertOctagon, MoreVertical, X } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, ResponsiveContainer, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 
@@ -259,20 +259,7 @@ const MyClasses = () => {
         ))}
       </div>
 
-      {/* Bulk Sync Footer */}
-      <div className="bg-sidebar rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-auto shadow-md">
-        <div className="flex items-center gap-4">
-          <Sparkles className="text-gold" size={24} />
-          <div>
-            <h4 className="text-white font-medium">Bulk Grade Sync</h4>
-            <p className="text-gray-400 text-sm">Synchronize all classes with the central registry</p>
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full sm:w-auto">
-          <button className="text-white bg-sidebar-hover hover:bg-sidebar-active px-6 py-2.5 rounded-lg font-medium transition-colors text-sm">Export All Reports</button>
-          <button className="bg-gold hover:bg-gold-hover text-sidebar font-bold px-6 py-2.5 rounded-lg transition-colors text-sm">Start Bulk Sync</button>
-        </div>
-      </div>
+
     </div>
   );
 };

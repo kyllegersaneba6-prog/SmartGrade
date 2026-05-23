@@ -5,6 +5,21 @@ import {
 import { ArrowRight, FileText, Cpu, Network, Shield, Users, GraduationCap, BookOpen, ShieldCheck, Filter, Clock, Activity, CheckCircle, Trash2, Bell, Send, AlertTriangle } from 'lucide-react';
 
 
+
+
+const MetricCard = ({ title, value, icon: Icon, color, subtitle }) => (
+  <div className="bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5] flex items-center justify-between hover:shadow-md transition-all duration-300">
+    <div className="space-y-1">
+      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{title}</span>
+      <div className="text-3xl font-extrabold text-[#1a2233]">{value}</div>
+      {subtitle && <span className="text-[11px] text-gray-500">{subtitle}</span>}
+    </div>
+    <div className="p-3.5 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${color}15`, color: color }}>
+      <Icon size={24} />
+    </div>
+  </div>
+);
+
 const GlobalAnalytics = () => {
   const [staffUsers, setStaffUsers] = useState([]);
   const [activityLog, setActivityLog] = useState([]);
@@ -70,29 +85,59 @@ const GlobalAnalytics = () => {
   const totals = { students: departments.reduce((s, d) => s + d.students, 0), teachers: departments.reduce((s, d) => s + d.teachers, 0), admins: departments.reduce((s, d) => s + d.admins, 0), deans: departments.reduce((s, d) => s + d.deans, 0) };
 
   return (
-  <div>
+  <div className="space-y-6 max-w-7xl mx-auto">
     {/* Header */}
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#f5a623' }}>Dashboard</h1>
-        <p className="text-xs sm:text-sm mt-0.5" style={{ color: '#6b7280' }}>
+        <p className="text-xs sm:text-sm mt-0.5 text-gray-500">
           Comprehensive Institutional performance oversight and trend forecasting.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <span
-          className="text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full border whitespace-nowrap"
-          style={{ borderColor: '#d1c9ba', color: '#6b7280' }}
+          className="text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full border border-[#d1c9ba] text-gray-500"
         >
           ACADEMIC YEAR 2026-2027
         </span>
         <span
-          className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white whitespace-nowrap"
-          style={{ background: '#f5a623' }}
+          className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white bg-[#f5a623]"
         >
           LIVE DATA
         </span>
       </div>
+    </div>
+
+    {/* Metric Cards Row */}
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+      <MetricCard 
+        title="Total Accounts" 
+        value={staffUsers.length} 
+        icon={Users} 
+        color="#f5a623" 
+        subtitle="Registered members"
+      />
+      <MetricCard 
+        title="Students Onboarded" 
+        value={totals.students} 
+        icon={GraduationCap} 
+        color="#3b82f6" 
+        subtitle="Active enrollees"
+      />
+      <MetricCard 
+        title="Faculty Members" 
+        value={totals.teachers + totals.deans} 
+        icon={BookOpen} 
+        color="#22c55e" 
+        subtitle="Teachers & Deans"
+      />
+      <MetricCard 
+        title="Audit logs" 
+        value={activityLog.length} 
+        icon={Activity} 
+        color="#a855f7" 
+        subtitle="Events logged"
+      />
     </div>
 
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

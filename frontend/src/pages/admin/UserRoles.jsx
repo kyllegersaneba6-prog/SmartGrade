@@ -254,12 +254,21 @@ const UserRoles = () => {
   }, []);
 
   return (
-  <div>
-    <div className="flex items-center justify-between mb-6">
-      <h1 className="text-2xl font-bold text-gray-900">User &amp; Role Management</h1>
+  <div className="space-y-6 max-w-7xl mx-auto">
+    {/* Header */}
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#f5a623' }}>User & Role Management</h1>
+        <p className="text-xs sm:text-sm mt-0.5 text-gray-500">
+          Provision, edit, and manage all system accounts and role assignments.
+        </p>
+      </div>
+      <span className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#1a2233' }}>
+        {usersList.length} REGISTERED
+      </span>
     </div>
 
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       {/* User Table and Charts */}
       <div className="col-span-2 flex flex-col gap-5">
         <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>

@@ -1,14 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Settings2, ShieldCheck, Users, X } from 'lucide-react';
+import { LayoutDashboard, ShieldCheck, Users, X } from 'lucide-react';
 import clsx from 'clsx';
 
 const AdminSidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const navItems = [
-    { name: 'Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
-    { name: 'System Configuration', path: '/admin/system-config', icon: Settings2 },
-    { name: 'Security & Audit', path: '/admin/security', icon: ShieldCheck },
-    { name: 'User & Roles', path: '/admin/users', icon: Users },
+    { name: 'Dashboard', path: '/superadmin', icon: LayoutDashboard, exact: true },
+    { name: 'Security & Audit', path: '/superadmin/security', icon: ShieldCheck },
+    { name: 'User & Roles', path: '/superadmin/users', icon: Users },
   ];
 
   return (

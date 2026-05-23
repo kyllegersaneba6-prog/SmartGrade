@@ -5,12 +5,12 @@ import clsx from 'clsx';
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const navItems = [
-    { name: 'Compliance Dashboard', path: '/dean/dashboard', icon: LayoutDashboard },
+    { name: 'Dashboard', path: '/dean/dashboard', icon: LayoutDashboard },
     { name: 'Student Sections', path: '/dean/sections', icon: Users },
-    { name: 'Teacher Submissions', path: '/dean/submissions', icon: CheckSquare },
-    { name: 'Institutional Analytics', path: '/dean/analytics', icon: BarChart2 },
-    { name: 'Report Generator', path: '/dean/reports', icon: FileText },
-    { name: 'Template Settings', path: '/dean/settings', icon: Settings2 },
+    { name: 'Submissions', path: '/dean/submissions', icon: CheckSquare },
+    { name: 'Analytics', path: '/dean/analytics', icon: BarChart2 },
+    { name: 'Reports', path: '/dean/reports', icon: FileText },
+    { name: 'Settings', path: '/dean/settings', icon: Settings2 },
   ];
 
   return (

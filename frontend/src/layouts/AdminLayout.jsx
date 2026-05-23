@@ -11,10 +11,10 @@ const AdminLayout = () => {
 
   const getTitle = () => {
     switch (location.pathname) {
-      case '/admin': return 'Dashboard';
-      case '/admin/system-config': return 'System Configuration';
-      case '/admin/security': return 'Security & Audit Logs';
-      case '/admin/users': return 'User & Role Management';
+      case '/superadmin': return 'Dashboard';
+      case '/superadmin/security': return 'Security & Audit Logs';
+      case '/superadmin/users': return 'User & Role Management';
+      case '/superadmin/users/create': return 'Create New User';
       default: return 'Super Admin Portal';
     }
   };
