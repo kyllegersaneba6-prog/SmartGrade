@@ -157,16 +157,17 @@ const MyClasses = () => {
   const [classes, setClasses] = useState([]);
 
   useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    const currentUser = userStr ? JSON.parse(userStr) : null;
+    const teacherId = currentUser ? currentUser.id : null;
+
     // Attempt to load dynamically created sections assigned by the Dean
     const savedSections = localStorage.getItem('student_sections');
     if (savedSections) {
       const parsedSections = JSON.parse(savedSections);
       
-      // We can filter by teacher ID if we have it, but for demo let's show all that have a subject
-      // In a real scenario: parsedSections.filter(s => s.teacherId === currentUser.id)
-      
       const mappedClasses = parsedSections
-        .filter(s => s.subject && s.subject.trim() !== '') // only show sections where a subject was assigned
+        .filter(s => s.subject && s.subject.trim() !== '' && (!teacherId || s.teacherId === teacherId)) // only show sections assigned to the current teacher
         .map(section => ({
           id: section.id,
           level: 'Assigned Class',
@@ -183,42 +184,11 @@ const MyClasses = () => {
           subjectCode: section.subjectCode
         }));
         
-      if (mappedClasses.length > 0) {
-        setClasses(mappedClasses);
-        return;
-      }
+      setClasses(mappedClasses);
     }
-
-    // Fallback static classes if no dynamic ones are found
-    setClasses([
-      {
-        level: 'Advanced Level',
-        title: 'AP Physics 101',
-        section: 'Section B • Room 402',
-        performance: 84,
-        barData: [{name:'A', value:30}, {name:'B', value:45}, {name:'C', value:15}, {name:'D', value:10}],
-        students: []
-      },
-      {
-        level: 'Intermediate',
-        title: 'Computer Science II',
-        section: 'Section A • Lab 210',
-        performance: 92,
-        barData: [{name:'A', value:50}, {name:'B', value:30}, {name:'C', value:15}, {name:'D', value:5}],
-        students: []
-      },
-      {
-        level: 'General ED',
-        title: 'Modern Literature',
-        section: 'Section D • Online Hub',
-        performance: 68,
-        barData: [{name:'A', value:15}, {name:'B', value:25}, {name:'C', value:40}, {name:'D', value:20}],
-        students: []
-      }
-    ]);
   }, []);
 
-  const totalStudents = classes.reduce((sum, cls) => sum + cls.students.length, 0) || 184;
+  const totalStudents = classes.length > 0 ? classes.reduce((sum, cls) => sum + cls.students.length, 0) : 0;
 
   return (
     <div className="space-y-8">

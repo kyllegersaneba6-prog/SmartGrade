@@ -17,6 +17,16 @@ const StudentSections = () => {
   const [targetSectionId, setTargetSectionId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Pagination state for sections
+  const [pagePerSection, setPagePerSection] = useState({});
+
+  const handlePageChange = (sectionId, delta) => {
+    setPagePerSection(prev => ({
+      ...prev,
+      [sectionId]: Math.max(1, (prev[sectionId] || 1) + delta)
+    }));
+  };
+  
   // Submit state
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -573,32 +583,60 @@ const StudentSections = () => {
                     </div>
                   </div>
                   
-                  <div className="p-4 flex-1 overflow-y-auto min-h-[150px] max-h-[250px] bg-gray-50/50" style={{ scrollbarWidth: 'thin' }}>
-                    {section.students.length === 0 ? (
-                      <div className="h-full flex items-center justify-center text-xs text-gray-400 italic">
-                        Empty section. Use Auto-sort or add manually.
-                      </div>
-                    ) : (
-                      <ul className="space-y-2">
-                        {section.students.map((student, idx) => (
-                          <li key={student.id} className="flex items-center justify-between p-2 rounded-lg bg-white border border-gray-100 shadow-sm hover:border-gray-200 group">
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs font-bold text-gray-400 w-4">{idx + 1}.</span>
-                              <div>
-                                <p className="text-sm font-semibold text-gray-700">{student.full_name}</p>
-                              </div>
+                  <div className="p-4 flex-1 overflow-y-auto min-h-[150px] max-h-[250px] bg-gray-50/50 flex flex-col" style={{ scrollbarWidth: 'thin' }}>
+                    {(() => {
+                      const currentPage = pagePerSection[section.id] || 1;
+                      const itemsPerPage = 5;
+                      const totalPages = Math.ceil(section.students.length / itemsPerPage);
+                      const currentStudents = section.students.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+                      return section.students.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-xs text-gray-400 italic">
+                          Empty section. Use Auto-sort or add manually.
+                        </div>
+                      ) : (
+                        <div className="flex flex-col h-full justify-between">
+                          <ul className="space-y-2">
+                            {currentStudents.map((student, idx) => (
+                              <li key={student.id} className="flex items-center justify-between p-2 rounded-lg bg-white border border-gray-100 shadow-sm hover:border-gray-200 group">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs font-bold text-gray-400 w-4">{(currentPage - 1) * itemsPerPage + idx + 1}.</span>
+                                  <div>
+                                    <p className="text-sm font-semibold text-gray-700">{student.full_name}</p>
+                                  </div>
+                                </div>
+                                <button 
+                                  onClick={() => handleRemoveStudentFromSection(section.id, student.id)}
+                                  className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                  title="Remove from section"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                          {totalPages > 1 && (
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
+                              <button 
+                                onClick={() => handlePageChange(section.id, -1)} 
+                                disabled={currentPage === 1}
+                                className="text-[10px] font-bold px-2 py-1 bg-white border border-gray-300 text-gray-600 rounded hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                              >
+                                Prev
+                              </button>
+                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Page {currentPage} of {totalPages}</span>
+                              <button 
+                                onClick={() => handlePageChange(section.id, 1)} 
+                                disabled={currentPage === totalPages}
+                                className="text-[10px] font-bold px-2 py-1 bg-white border border-gray-300 text-gray-600 rounded hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                              >
+                                Next
+                              </button>
                             </div>
-                            <button 
-                              onClick={() => handleRemoveStudentFromSection(section.id, student.id)}
-                              className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                              title="Remove from section"
-                            >
-                              <X size={14} />
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="p-3 border-t border-gray-100 bg-white">
