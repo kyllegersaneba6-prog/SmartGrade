@@ -6,6 +6,7 @@ import clsx from 'clsx';
 const AdminSidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const [userData, setUserData] = useState(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -22,9 +23,9 @@ const AdminSidebar = ({ isOpen, onClose }) => {
 
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
-    { name: 'Teacher Management', path: '/admin/teachers', icon: Users },
     { name: 'Manage Sections', path: '/admin/sections', icon: GraduationCap },
     { name: 'Manage Subjects', path: '/admin/subjects', icon: BookOpen },
+    { name: 'Teacher Management', path: '/admin/teachers', icon: Users },
     { name: 'Settings', path: '/admin/settings', icon: Settings },
   ];
 
@@ -91,12 +92,25 @@ const AdminSidebar = ({ isOpen, onClose }) => {
               <p className="text-sm font-semibold text-white truncate">{userData?.full_name || userData?.name || 'User'}</p>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gold/20 text-gold uppercase tracking-wider inline-block w-fit">{userData?.system_role || userData?.role || ''}</span>
             </div>
-            <button onClick={handleLogout} className="text-red-400 hover:text-red-300 shrink-0 self-center" title="Sign out">
+            <button onClick={() => setShowLogoutModal(true)} className="text-red-400 hover:text-red-300 shrink-0 self-center" title="Sign out">
               <LogOut size={18} />
             </button>
           </div>
         </div>
       </div>
+
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Sign Out</h3>
+            <p className="text-sm text-gray-500 mb-6">Are you sure you want to sign out?</p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setShowLogoutModal(false)} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+              <button onClick={handleLogout} className="px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md" style={{ background: '#ef4444' }}>Sign Out</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

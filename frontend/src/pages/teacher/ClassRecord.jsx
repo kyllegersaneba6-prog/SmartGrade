@@ -162,6 +162,7 @@ const ClassRecord = () => {
   // Add component
   const addComponent = async (isAttendance) => {
     if (!selectedAssignment) return;
+    if (isAttendance && hasAttendance) return;
     setAddCompOpen(false);
     try {
       const res = await api('http://localhost:5000/api/grading-components', {
@@ -326,11 +327,11 @@ const ClassRecord = () => {
   };
 
   const totalWeight = components.reduce((sum, c) => sum + parseFloat(c.weight || 0), 0);
+  const hasAttendance = components.some(c => c.is_attendance);
 
   // Dynamic column count for table
   let activityCount = 0;
   components.forEach(c => { if (c.activities) activityCount += c.activities.length; });
-  const hasAttendance = components.some(c => c.is_attendance);
   const colCount = 3 + (activityCount > 0 || hasAttendance ? components.length * 3 + activityCount : 0) + 1;
 
   // Color for each component
@@ -721,8 +722,13 @@ const ClassRecord = () => {
                     <button onClick={() => addComponent(false)} className="w-full text-left px-4 py-3 text-xs font-bold text-sidebar hover:bg-gray-50 border-b border-gray-100 transition-colors">
                       Regular Component
                     </button>
-                    <button onClick={() => addComponent(true)} className="w-full text-left px-4 py-3 text-xs font-bold text-sidebar hover:bg-gray-50 transition-colors">
-                      <span className="text-amber-600">Attendance</span>
+                    <button
+                      onClick={() => addComponent(true)}
+                      disabled={hasAttendance}
+                      className={`w-full text-left px-4 py-3 text-xs font-bold transition-colors ${hasAttendance ? 'text-gray-300 cursor-not-allowed' : 'text-sidebar hover:bg-gray-50'}`}
+                    >
+                      <span className={hasAttendance ? 'text-gray-300' : 'text-amber-600'}>Attendance</span>
+                      {hasAttendance && <span className="ml-1 text-[10px] text-gray-300">(already added)</span>}
                     </button>
                   </div>
                 )}
@@ -835,8 +841,13 @@ const ClassRecord = () => {
                       <button onClick={() => addComponent(false)} className="w-full text-left px-4 py-3 text-xs font-bold text-sidebar hover:bg-gray-50 border-b border-gray-100 transition-colors">
                         Regular Component
                       </button>
-                      <button onClick={() => addComponent(true)} className="w-full text-left px-4 py-3 text-xs font-bold text-sidebar hover:bg-gray-50 transition-colors">
-                        <span className="text-amber-600">Attendance</span>
+                      <button
+                        onClick={() => addComponent(true)}
+                        disabled={hasAttendance}
+                        className={`w-full text-left px-4 py-3 text-xs font-bold transition-colors ${hasAttendance ? 'text-gray-300 cursor-not-allowed' : 'text-sidebar hover:bg-gray-50'}`}
+                      >
+                        <span className={hasAttendance ? 'text-gray-300' : 'text-amber-600'}>Attendance</span>
+                        {hasAttendance && <span className="ml-1 text-[10px] text-gray-300">(already added)</span>}
                       </button>
                     </div>
                   )}
@@ -864,6 +875,12 @@ const ClassRecord = () => {
         <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-bold">
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
           <span>{error}</span>
+        </div>
+      )}
+
+      {currentAssignment && (
+        <div className="mb-2 px-1">
+          <span className="text-sm font-bold text-gray-700">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
         </div>
       )}
 

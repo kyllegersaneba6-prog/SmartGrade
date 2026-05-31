@@ -206,15 +206,15 @@ const ManageDepartments = () => {
           {departments.map((dept) => (
             <div key={dept.id} className="bg-white rounded-xl p-5 border border-[#e5e0d5] shadow-sm">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="p-2 rounded-lg" style={{ background: '#fef3c7' }}>
                     <Building2 size={20} className="text-yellow-600" />
                   </div>
-                  <div>
-                    <h3 className="text-base font-bold text-gray-900">{dept.name}</h3>
+                  <div className="min-w-0">
+                    <h3 className="text-base font-bold text-gray-900" style={{ whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{dept.name}</h3>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => openManageCourses(dept)}
                     className="px-3 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs font-semibold hover:bg-gray-50"
@@ -302,15 +302,15 @@ const ManageDepartments = () => {
       {manageCoursesDept && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 border border-gray-100 max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-yellow-50"><BookOpen size={20} className="text-yellow-600" /></div>
-                <div>
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start gap-2 flex-1 min-w-0">
+                <div className="p-2 rounded-lg bg-yellow-50 shrink-0"><BookOpen size={20} className="text-yellow-600" /></div>
+                <div className="min-w-0">
                   <h3 className="text-lg font-bold text-gray-900">Courses</h3>
-                  <p className="text-xs text-gray-400">{manageCoursesDept.name}</p>
+                  <p className="text-xs text-gray-400" style={{ whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{manageCoursesDept.name}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => { setAddCourseOpen(true); setError(''); }}
                   className="px-3 py-1.5 rounded-lg border flex items-center gap-1 text-xs font-bold text-white shadow-sm hover:scale-105"
