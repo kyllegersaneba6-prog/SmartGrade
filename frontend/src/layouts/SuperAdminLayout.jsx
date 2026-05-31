@@ -35,7 +35,7 @@ const SuperAdminLayout = () => {
             <button onClick={() => setSidebarOpen(true)} className="text-gray-300 hover:text-white lg:hidden shrink-0">
               <Menu size={22} />
             </button>
-            <h2 className="text-[10px] sm:text-sm font-bold text-gold tracking-widest uppercase hidden md:block whitespace-nowrap">Super Admin Console</h2>
+            <h2 className="text-[10px] sm:text-sm font-bold text-gold tracking-widest uppercase hidden md:block whitespace-nowrap">Super Admin Portal</h2>
             <span className="text-gray-600 hidden md:block">|</span>
             <h3 className="text-xs sm:text-sm text-gray-300 truncate font-medium">{getTitle()}</h3>
           </div>

@@ -56,7 +56,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             <img src="/logo.png" className="w-10 h-10 object-contain" alt="SmartGrade Logo" />
             <h1 className="text-gold font-bold text-xl leading-tight uppercase tracking-wider">SmartGrade</h1>
           </div>
-          <p className="text-xs text-gray-400 tracking-wider font-semibold uppercase">TEACHER PORTAL</p>
+          
         </div>
 
         <nav className="flex-1 space-y-1">
