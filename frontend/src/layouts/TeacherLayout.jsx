@@ -26,7 +26,7 @@ const TeacherLayoutInner = () => {
   return (
     <div className="min-h-screen bg-bg-light font-sans text-text-main">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="lg:pl-64 flex flex-col h-[100dvh] overflow-hidden">
+      <div className="lg:pl-64 flex flex-col h-[100dvh] overflow-hidden pt-16">
         <Header title={getTitle()} onMenuToggle={() => setSidebarOpen(true)} />
         {isArchiveMode && currentTerm && (
           <div className="bg-amber-600/90 text-white px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between text-xs font-semibold shadow-sm shrink-0">

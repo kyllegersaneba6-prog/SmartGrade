@@ -29,8 +29,8 @@ const SuperAdminLayout = () => {
   return (
     <div className="min-h-screen bg-bg-light font-sans text-text-main">
       <SuperAdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="lg:pl-64 flex flex-col h-[100dvh] overflow-hidden">
-        <header className="h-16 bg-sidebar flex items-center justify-between px-4 md:px-6 lg:px-8 text-white border-b border-sidebar-hover shadow-sm sticky top-0 z-40 shrink-0">
+      <div className="lg:pl-64 flex flex-col h-[100dvh] overflow-hidden pt-16">
+        <header className="h-16 bg-sidebar flex items-center justify-between px-4 md:px-6 lg:px-8 text-white border-b border-sidebar-hover shadow-sm fixed top-0 left-0 right-0 z-50 shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0 flex-1">
             <button onClick={() => setSidebarOpen(true)} className="text-gray-300 hover:text-white lg:hidden shrink-0">
               <Menu size={22} />

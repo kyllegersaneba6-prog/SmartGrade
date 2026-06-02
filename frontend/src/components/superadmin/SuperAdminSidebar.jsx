@@ -40,7 +40,7 @@ const SuperAdminSidebar = ({ isOpen, onClose }) => {
 
       <div
         className={clsx(
-          'w-64 bg-sidebar text-white flex flex-col h-dvh fixed top-0 left-0 shrink-0 z-50 sidebar-transition',
+          'w-64 bg-sidebar text-white flex flex-col h-dvh fixed top-0 left-0 shrink-0 z-40 sidebar-transition pt-16',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
