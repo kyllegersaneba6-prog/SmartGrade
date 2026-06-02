@@ -30,9 +30,12 @@ const AdminSubjects = () => {
   const [courses, setCourses] = useState([]);
   const [selectedCourseId, setSelectedCourseId] = useState('');
   const [addCourseId, setAddCourseId] = useState('');
+  const [addSemester, setAddSemester] = useState('');
+  const [semesterFilter, setSemesterFilter] = useState(currentTerm?.semester || '1st Semester');
 
-  const schoolYear = currentTerm?.school_year || '';
-  const semester = currentTerm?.semester || '';
+  useEffect(() => {
+    if (currentTerm?.semester) setSemesterFilter(currentTerm.semester);
+  }, [currentTerm]);
 
   useEffect(() => {
     const adminDept = JSON.parse(localStorage.getItem('user') || '{}')?.department;
@@ -55,24 +58,19 @@ const AdminSubjects = () => {
   }, []);
 
   const fetchSubjects = useCallback(async () => {
-    if (!schoolYear && !semester) {
-      setSubjects([]);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (schoolYear) params.set('school_year', schoolYear);
-      if (semester) params.set('semester', semester);
+      if (semesterFilter) params.set('semester', semesterFilter);
       if (selectedCourseId) params.set('course_id', selectedCourseId);
       const res = await api(`http://localhost:5000/api/subjects?${params.toString()}`);
       if (res.ok) setSubjects(await res.json());
+      else setSubjects([]);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, [schoolYear, semester, selectedCourseId]);
+  }, [semesterFilter, selectedCourseId]);
 
-  useEffect(() => { if (schoolYear) fetchSubjects(); }, [fetchSubjects, schoolYear]);
+  useEffect(() => { fetchSubjects(); }, [fetchSubjects]);
 
   useEffect(() => {
     const handler = async () => { await fetchSubjects(); window.dispatchEvent(new CustomEvent('app:reload-done')); };
@@ -98,7 +96,7 @@ const AdminSubjects = () => {
       try {
         const res = await api('http://localhost:5000/api/subjects', {
           method: 'POST',
-          body: JSON.stringify({ name: name.trim(), code: code.trim() || null, year_level: selectedYear, course_id: addCourseId })
+          body: JSON.stringify({ name: name.trim(), code: code.trim() || null, year_level: selectedYear, semester: addSemester || null, course_id: addCourseId })
         });
         if (res.ok) {
           added.push(await res.json());
@@ -138,37 +136,17 @@ const AdminSubjects = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {currentTerm && (
-        <div className={`flex items-center justify-between px-5 py-3 rounded-2xl shadow-sm border ${!isArchiveMode ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}`}>
-          <div className="flex items-center gap-3">
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${!isArchiveMode ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-500'}`}>
-              {!isArchiveMode ? 'Active Term' : 'Archived'}
-            </span>
-            <span className="text-sm font-semibold text-gray-800">{currentTerm.school_year} — {currentTerm.semester}</span>
-          </div>
-        </div>
-      )}
-
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#f5a623' }}>Manage Subjects</h1>
-              <p className="text-xs sm:text-sm mt-0.5 text-gray-500">Add and organize subjects per year level.</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {!isArchiveMode && currentTerm && (
-              <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">
-                {currentTerm.school_year} — {currentTerm.semester}
-              </span>
-            )}
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#f5a623' }}>Manage Subjects</h1>
+            <p className="text-xs sm:text-sm mt-0.5 text-gray-500">Add and organize subjects per year level.</p>
           </div>
         </div>
         <div className="flex items-center gap-3 mt-3">
           <div className="relative group inline-block">
             <button
-              onClick={() => { if (!isArchiveMode) { setSelectedYear('1st'); setAddCourseId(''); setShowAdd(true); setSubjectRows([{ code: '', name: '' }]); setError(''); } }}
+              onClick={() => { if (!isArchiveMode) { setSelectedYear('1st'); setAddCourseId(''); setAddSemester(''); setShowAdd(true); setSubjectRows([{ code: '', name: '' }]); setError(''); } }}
               disabled={isArchiveMode}
               className={`px-4 py-2 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
                 isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
@@ -183,13 +161,21 @@ const AdminSubjects = () => {
               </div>
             )}
           </div>
+          <select
+            value={semesterFilter}
+            onChange={(e) => setSemesterFilter(e.target.value)}
+            className="px-3 py-1.5 text-xs font-semibold border border-[#e5e0d5] rounded-lg bg-[#fbf8f1] focus:outline-none focus:ring-2 focus:ring-[#f5a623]"
+          >
+            <option value="1st Semester">1st Semester</option>
+            <option value="2nd Semester">2nd Semester</option>
+            <option value="Summer">Summer</option>
+          </select>
           {courses.length > 0 && (
             <select
               value={selectedCourseId}
               onChange={(e) => setSelectedCourseId(e.target.value)}
               className="px-3 py-1.5 text-xs font-semibold border border-[#e5e0d5] rounded-lg bg-[#fbf8f1] focus:outline-none focus:ring-2 focus:ring-[#f5a623]"
             >
-              <option value="">All courses</option>
               {courses.map(c => <option key={c.id} value={c.id}>{c.abbreviation} — {c.name}</option>)}
             </select>
           )}
@@ -204,7 +190,7 @@ const AdminSubjects = () => {
         ) : subjects.length === 0 ? (
           <div className="flex flex-col items-center py-16 text-gray-400">
             <BookOpen size={48} className="mb-3 opacity-30" />
-            <p className="text-sm font-medium">No subjects found for this term.</p>
+            <p className="text-sm font-medium">No subjects found.</p>
           </div>
         ) : (
           <table className="w-full text-xs table-fixed">
@@ -276,11 +262,19 @@ const AdminSubjects = () => {
                 {yearLevels.map((y) => <option key={y} value={y}>{yearLabels[y]}</option>)}
               </select>
             </div>
-            {currentTerm && (
-              <p className="text-xs text-gray-500 mb-3">
-                Will be tagged as: <strong className="text-gray-700">{currentTerm.school_year} — {currentTerm.semester}</strong>
-              </p>
-            )}
+            <div className="mb-4">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Semester</label>
+              <select
+                value={addSemester}
+                onChange={(e) => setAddSemester(e.target.value)}
+                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+              >
+                <option value="">All Semesters</option>
+                <option value="1st Semester">1st Semester</option>
+                <option value="2nd Semester">2nd Semester</option>
+                <option value="Summer">Summer</option>
+              </select>
+            </div>
             <div className="space-y-2 mb-4 max-h-64 overflow-y-auto p-0.5">
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Subject Code & Name</label>
               {subjectRows.map((row, i) => (

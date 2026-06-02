@@ -60,6 +60,10 @@ CREATE TABLE IF NOT EXISTS public.students (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   student_id TEXT NOT NULL,
   student_name TEXT NOT NULL,
+  first_name TEXT,
+  last_name TEXT,
+  mi TEXT,
+  gender TEXT,
   section_id UUID NOT NULL REFERENCES public.sections(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(section_id, student_id)
@@ -86,7 +90,7 @@ CREATE TABLE IF NOT EXISTS public.subjects (
   code TEXT,
   year_level TEXT NOT NULL CHECK (year_level IN ('1st', '2nd', '3rd', '4th')),
   school_year TEXT,
-  semester TEXT CHECK (semester IN ('1st Semester', '2nd Semester', 'Summer')),
+  semester TEXT CHECK (semester IN ('1st Semester', '2nd Semester', 'Summer') OR semester IS NULL),
   course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
   created_by UUID REFERENCES public.staff_users(id),
   created_at TIMESTAMPTZ DEFAULT now()
@@ -104,8 +108,19 @@ ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS semester TEXT CHECK (semest
 -- Add course_id column if upgrading existing schema
 ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL;
 
+-- Make semester nullable in subjects (allow "All Semesters") for cross-term persistence
+ALTER TABLE public.subjects DROP CONSTRAINT IF EXISTS subjects_semester_check;
+ALTER TABLE public.subjects ADD CONSTRAINT subjects_semester_check 
+  CHECK (semester IN ('1st Semester', '2nd Semester', 'Summer') OR semester IS NULL);
+
 -- Add semester column if upgrading existing schema
 ALTER TABLE public.sections ADD COLUMN IF NOT EXISTS semester TEXT DEFAULT '1st Semester' CHECK (semester IN ('1st Semester', '2nd Semester', 'Summer'));
+
+-- Add student detail columns if upgrading existing schema
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS first_name TEXT;
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS last_name TEXT;
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS mi TEXT;
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS gender TEXT;
 
 -- Add academic_terms table if upgrading existing schema (ignore if already exists)
 CREATE TABLE IF NOT EXISTS public.academic_terms (

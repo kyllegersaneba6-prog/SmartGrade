@@ -53,7 +53,11 @@
 |---|---|---|
 | id | UUID PK | |
 | student_id | TEXT | e.g. `26-01234` |
-| student_name | TEXT | |
+| student_name | TEXT | Computed as `Last, First M.` |
+| first_name | TEXT | |
+| last_name | TEXT | |
+| mi | TEXT | Middle initial (single character) |
+| gender | TEXT | `Male` or `Female` |
 | section_id | UUID FK | → sections(id) ON DELETE CASCADE |
 | created_at | TIMESTAMPTZ | UNIQUE(section_id, student_id) |
 
@@ -76,8 +80,8 @@
 | name | TEXT | |
 | code | TEXT | e.g. `COMP1001` |
 | year_level | TEXT | ENUM |
-| school_year | TEXT | |
-| semester | TEXT | ENUM |
+| school_year | TEXT | Deprecated — no longer used for filtering |
+| semester | TEXT | `1st Semester`, `2nd Semester`, `Summer`, or `NULL` (All Semesters) |
 | course_id | UUID FK | → courses(id) ON DELETE SET NULL |
 | created_by | UUID FK | → staff_users(id) |
 | created_at | TIMESTAMPTZ | |

@@ -24,3 +24,14 @@ students ──< component_scores (via student_id)
 teacher_assignments ──< attendance (via teacher_assignment_id)
 students ──< attendance (via student_id)
 ```
+
+## Key Table Changes
+
+### students
+- Added `first_name`, `last_name`, `mi`, `gender` columns for structured student details (2026-06-03)
+- `student_name` is now a computed field (`"Last, First M."`) for backward compatibility
+- Gender displayed in the student table UI
+
+### subjects
+- Removed `school_year` dependency (subjects persist across academic terms)
+- `semester` column now accepts NULL (representing "All Semesters") via relaxed CHECK constraint (2026-06-03)

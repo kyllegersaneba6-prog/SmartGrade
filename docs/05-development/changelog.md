@@ -1,5 +1,41 @@
 # Changelog
 
+## 2026-06-03
+
+### Login Page Redesign — Dark Mode 2-Column Layout
+- Complete visual overhaul: dark slate-900 background, gold accents, 2-column layout.
+- Left column (42%): Login form in a dark slate-800/80 card with backdrop blur, centered vertically.
+- Right column (58%, hidden below lg breakpoint): Gradient background (slate-800 → slate-900 → indigo-950) with abstract geometric decorations — gradient circles, grid dot overlay, diagonal SVG accent lines.
+- Hero content: branding logo, tagline, 4 feature items (Grade Computation, Attendance, Class Management, Performance Reports) with Lucide icons on gold-tinted backgrounds.
+- Copyright moved from separate footer bar to hero column bottom.
+- Abstract geometrics replace hero.png illustration (user preference).
+
+## 2026-06-03
+
+### Subjects Persist Across Terms
+- Removed `school_year` dependency from subjects — subjects are no longer filtered or tagged by school year.
+- Added semester selector when creating subjects: admin picks `1st Semester`, `2nd Semester`, `Summer`, or `All Semesters` (NULL).
+- Added semester filter dropdown in Manage Subjects page — "All Semesters" by default, can narrow by specific semester.
+- Backend `GET /api/subjects` no longer accepts `school_year` query param; `semester` is optional.
+- Backend `POST /api/subjects` accepts `semester` from request body instead of auto-tagging from active term.
+- AdminTeachers assignment modal now fetches all subjects (no `school_year` filter).
+- Archive mode no longer affects subject visibility.
+
+## 2026-06-03
+
+### Import Students from Excel
+- Added "Import" button (blue) next to "Add Student" in Manage Sections that accepts `.xlsx`/`.xls` files.
+- Parses Excel client-side using `xlsx` library; validates headers exactly match `Student ID, First Name, Last Name, MI, Gender`.
+- Shows preview of all rows before importing.
+- Backend `POST /api/sections/:sectionId/students/bulk` accepts a `students` array, skips duplicates, and returns `{ added, skipped }` summary.
+- Reports skipped students with reason (duplicate ID, missing fields).
+
+### Student Details — Structured Input Format
+- Added `first_name`, `last_name`, `mi`, and `gender` columns to the `students` table (see `backend/sql/alter_students_add_details.sql`).
+- Changed "Add Student" modal in AdminSections from a single `Student Name` field to individual fields: First Name, Last Name, M.I., Gender.
+- `student_name` is now auto-computed as `Last, First M.` on the backend for backward compatibility.
+- Updated backend `POST /api/sections/:sectionId/students` to accept `first_name`, `last_name`, `mi`, `gender` in addition to `student_id`.
+
 ## 2026-06-02
 
 ### Grade Point Conversion Updated to grade-point.md Spec

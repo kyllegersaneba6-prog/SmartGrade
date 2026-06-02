@@ -140,7 +140,33 @@ Three roles with scoped permissions:
 - Subjects can be created without a course (`course_id = null`) to make them available across all courses in the department.
 - The subject creation form includes an "All Courses (Department-wide)" option.
 - `GET /api/subjects` includes `course_id = null` subjects when filtering by a specific course.
+- Subjects **persist across school years** — no longer filtered or tagged by `school_year`.
+- When creating a subject, the admin chooses which semester it belongs to: `1st Semester`, `2nd Semester`, `Summer`, or `All Semesters` (NULL).
+- The Manage Subjects page includes a semester filter dropdown to narrow the subject list by semester.
 - In archive mode, the add and delete buttons are disabled — subject management is only available for the active term.
+- Archive mode no longer affects subject visibility — all subjects are always visible.
+
+## Student Details
+
+- Students are now created with structured fields: **Student ID**, **First Name**, **Last Name**, **M.I.**, **Gender**.
+- The student table displays a Gender column alongside Student ID and Student Name.
+- `student_name` is auto-computed on the backend as `"Last, First M."` for backward compatibility with teacher pages.
+- The "Add Student" modal has vertically stacked fields per student row, with a "+" button to add more rows and an "X" to remove rows.
+
+## Import Students from Excel
+
+- An **Import** button (blue) is located next to the "Add Student" button in Manage Sections.
+- Accepts `.xlsx` / `.xls` files. Parsing is done client-side using the `xlsx` library.
+- Headers must match exactly: `Student ID`, `First Name`, `Last Name`, `MI`, `Gender`.
+- If headers don't match, an error message shows the expected vs found headers.
+- Before importing, a preview modal shows two tables:
+  - **Students to Add** — rows with no duplicate ID in the section.
+  - **Skipped (Duplicate ID)** — rows whose Student ID already exists in the section.
+- On import, only valid non-duplicate rows are sent to `POST /api/sections/:sectionId/students/bulk`.
+- The backend returns `{ added, skipped }` — the result modal shows how many were added and lists each skipped student with a reason.
+- The backend checks that the term is active; closed-term sections cannot be modified.
+
+## Activity / Audit Logging
 
 ## Activity / Audit Logging
 

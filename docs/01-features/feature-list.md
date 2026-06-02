@@ -9,7 +9,7 @@
 | Admin user management | Done |
 | Teacher user management | Done |
 | Section management | Done |
-| Subject management | Done |
+| Subject management (persist across terms, semester-scoped) | Done |
 | Teacher assignment to sections/subjects | Done |
 | Academic term management (superadmin-only) | Done |
 | Attendance recording with dates/sessions/types | Done |
@@ -36,5 +36,7 @@
 | Grade-point scale with classification remarks (Excellent, Very Good, etc.) | Done |
 | Role-scoped activity feed (superadmin all, admin department-only) | Done |
 | One admin per department (enforced on create + update) | Done |
+| Student structured details (First Name, Last Name, MI, Gender) | Done |
+| Import students from Excel (bulk with duplicate detection) | Done |
 | Student portal / self-service | Planned |
 | Multi-institution / multi-department support | Planned |

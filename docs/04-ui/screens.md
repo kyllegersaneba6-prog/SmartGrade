@@ -2,7 +2,7 @@
 
 ## Login (`/login`)
 
-Username/password form with "Remember Me", forgot password link, show/hide password toggle. Role-based redirect after login.
+Dark mode 2-column layout. Left column: login form card (logo, username/password fields, "Remember Me", forgot password link, show/hide password toggle, Sign In button). Right column (hidden below 1024px): hero section with abstract geometric decorations (gradient circles, grid overlay, diagonal SVG lines), brand header, tagline, feature list with icons, and compact copyright footer. Role-based redirect after login.
 
 ## Superadmin Pages
 
@@ -22,8 +22,8 @@ Username/password form with "Remember Me", forgot password link, show/hide passw
 | `/admin` | AdminDashboard | Welcome banner, active term, stat cards, teacher overview, recent activity (role-scoped — admin sees department-only, own actions prefixed with "You...") — consumes `AdminContext` for `currentTerm` and `isArchiveMode` |
 | `/admin/teachers` | AdminTeachers | Teacher list with CRUD, assignment management (additive — never overwrites), "Assigned Course" column filtered to `currentTerm` only, View modal filters assignments to `currentTerm` with Active/Historical badges referencing `activeTerm`, pagination, Excel export — Assign button disabled in archive mode with tooltip; consumes `AdminContext` |
 | `/admin/teachers/create` | CreateAdminTeacher | Create teacher form |
-| `/admin/sections` | AdminSections | Year-level tabs, course filter, section/student CRUD, seed, archiving |
-| `/admin/subjects` | AdminSubjects | Year-level grid, course filter, add/delete subjects, view assignments — add/delete buttons disabled in archive mode; consumes `AdminContext` |
+| `/admin/sections` | AdminSections | Year-level tabs, course filter, section/student CRUD (structured: Student ID, First Name, Last Name, MI, Gender), Gender column in table, import students from Excel with duplicate detection/preview, seed, archiving |
+| `/admin/subjects` | AdminSubjects | Semester filter dropdown, course filter, semester selector in add modal, subjects persist across school years, add/delete subjects, view assignments — add/delete buttons disabled in archive mode; consumes `AdminContext` |
 | `/admin/settings` | AdminSettings | Active term display (read-only), no term management |
 
 ## Teacher Pages

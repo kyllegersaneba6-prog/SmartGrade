@@ -175,10 +175,20 @@ const AdminTeachers = () => {
     setAssignModalOpen(true);
     try {
       const termParams = currentTerm ? `?school_year=${currentTerm.school_year}&semester=${currentTerm.semester}` : '';
+      const adminDept = JSON.parse(localStorage.getItem('user') || '{}')?.department;
+      let deptId = '';
+      if (adminDept) {
+        const deptRes = await api('http://localhost:5000/api/departments');
+        if (deptRes.ok) {
+          const depts = await deptRes.json();
+          const match = depts.find(d => d.name === adminDept);
+          if (match) deptId = match.id;
+        }
+      }
       const [secRes, subRes, courseRes] = await Promise.all([
         api(`http://localhost:5000/api/sections${termParams}`),
-        api(`http://localhost:5000/api/subjects${termParams}`),
-        api('http://localhost:5000/api/courses'),
+        api(`http://localhost:5000/api/subjects${currentTerm ? `?semester=${currentTerm.semester}` : ''}`),
+        deptId ? api(`http://localhost:5000/api/courses?department_id=${deptId}`) : api('http://localhost:5000/api/courses'),
       ]);
       if (secRes.ok) setSectionsList(await secRes.json());
       if (subRes.ok) setSubjectsList(await subRes.json());
@@ -438,12 +448,17 @@ const AdminTeachers = () => {
                     <select
                       value={assignSection}
                       onChange={(e) => setAssignSection(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                      disabled={!assignCourse}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#fbf8f1]'}`}
                     >
                       <option value="">-- Select Section --</option>
                       {filteredSections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
-                    {filteredSections.length === 0 && <p className="text-[10px] text-gray-400 mt-1">No sections found for {yearLabels[assignYear]}{assignCourse ? ' and selected course' : ''}.</p>}
+                    {!assignCourse ? (
+                      <p className="text-[10px] text-gray-400 mt-1">Select a course first.</p>
+                    ) : filteredSections.length === 0 ? (
+                      <p className="text-[10px] text-gray-400 mt-1">No sections found for {yearLabels[assignYear]} and selected course.</p>
+                    ) : null}
                   </div>
 
                   <div>
@@ -451,12 +466,17 @@ const AdminTeachers = () => {
                     <select
                       value={assignSubject}
                       onChange={(e) => setAssignSubject(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                      disabled={!assignCourse}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#fbf8f1]'}`}
                     >
                       <option value="">-- Select Subject --</option>
                       {filteredSubjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
-                    {filteredSubjects.length === 0 && <p className="text-[10px] text-gray-400 mt-1">No subjects found for {yearLabels[assignYear]}{assignCourse ? ' and selected course' : ''}.</p>}
+                    {!assignCourse ? (
+                      <p className="text-[10px] text-gray-400 mt-1">Select a course first.</p>
+                    ) : filteredSubjects.length === 0 ? (
+                      <p className="text-[10px] text-gray-400 mt-1">No subjects found for {yearLabels[assignYear]} and selected course.</p>
+                    ) : null}
                   </div>
 
                   <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">

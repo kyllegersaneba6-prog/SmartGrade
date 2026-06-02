@@ -43,7 +43,8 @@ All routes are mounted under `http://localhost:5000`. Authentication via JWT Bea
 | POST | `/api/sections` | Admin | Create section |
 | DELETE | `/api/sections/:id` | Admin | Delete section |
 | GET | `/api/sections/:sectionId/students` | Token | List students in section |
-| POST | `/api/sections/:sectionId/students` | Admin | Add student(s) |
+| POST | `/api/sections/:sectionId/students` | Admin | Add student — `student_id`, `first_name`, `last_name`, `mi`, `gender` |
+| POST | `/api/sections/:sectionId/students/bulk` | Admin | Bulk add students — `{ students: [...] }` with same fields per student |
 | DELETE | `/api/sections/students/:studentId` | Admin | Delete student |
 | POST | `/api/sections/seed` | Admin | Seed sample students |
 
@@ -51,8 +52,8 @@ All routes are mounted under `http://localhost:5000`. Authentication via JWT Bea
 
 | Method | Route | Auth | Description |
 |---|---|---|---|
-| GET | `/api/subjects` | Token | List subjects |
-| POST | `/api/subjects` | Admin | Create subject |
+| GET | `/api/subjects` | Token | List subjects (filters: `year`, `semester`, `course_id`) |
+| POST | `/api/subjects` | Admin | Create subject — `name`, `code`, `year_level`, `semester` (optional), `course_id` |
 | DELETE | `/api/subjects/:id` | Admin | Delete subject |
 
 ## Teacher Assignments

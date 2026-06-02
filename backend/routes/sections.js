@@ -148,10 +148,11 @@ router.get('/:sectionId/students', async (req, res) => {
 
 // POST /api/sections/:sectionId/students — add a student
 router.post('/:sectionId/students', authorizeRole('admin'), async (req, res) => {
-  const { student_id, student_name } = req.body;
-  if (!student_id || !student_name) {
-    return res.status(400).json({ message: 'Student ID and name are required' });
+  const { student_id, first_name, last_name, mi, gender } = req.body;
+  if (!student_id || !first_name || !last_name) {
+    return res.status(400).json({ message: 'Student ID, first name, and last name are required' });
   }
+  const student_name = [last_name, `${first_name}${mi ? ' ' + mi + '.' : ''}`].join(', ');
   try {
     const { data: section } = await supabase
       .from('sections')
@@ -179,11 +180,102 @@ router.post('/:sectionId/students', authorizeRole('admin'), async (req, res) => 
     }
     const { data, error } = await supabase
       .from('students')
-      .insert([{ student_id, student_name, section_id: req.params.sectionId }])
+      .insert([{ student_id, student_name, first_name, last_name, mi, gender, section_id: req.params.sectionId }])
       .select()
       .single();
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// DELETE /api/sections/students/:id — delete a single student
+router.delete('/students/:id', authorizeRole('admin'), async (req, res) => {
+  try {
+    const { data: student } = await supabase
+      .from('students')
+      .select('id, section_id')
+      .eq('id', req.params.id)
+      .single();
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+    const { data: section } = await supabase
+      .from('sections')
+      .select('school_year, semester')
+      .eq('id', student.section_id)
+      .single();
+    if (section) {
+      const { data: activeTerm } = await supabase
+        .from('academic_terms')
+        .select('*')
+        .eq('is_active', true)
+        .maybeSingle();
+      if (!activeTerm || activeTerm.school_year !== section.school_year || activeTerm.semester !== section.semester) {
+        return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
+      }
+    }
+    const { error } = await supabase.from('students').delete().eq('id', req.params.id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ message: 'Student removed' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/sections/:sectionId/students/bulk — bulk add students (import)
+router.post('/:sectionId/students/bulk', authorizeRole('admin'), async (req, res) => {
+  const { students } = req.body;
+  if (!Array.isArray(students) || students.length === 0) {
+    return res.status(400).json({ message: 'Students array is required' });
+  }
+  try {
+    const { data: section } = await supabase
+      .from('sections')
+      .select('school_year, semester')
+      .eq('id', req.params.sectionId)
+      .single();
+    if (!section) return res.status(404).json({ message: 'Section not found' });
+    const { data: activeTerm } = await supabase
+      .from('academic_terms')
+      .select('*')
+      .eq('is_active', true)
+      .maybeSingle();
+    if (!activeTerm || activeTerm.school_year !== section.school_year || activeTerm.semester !== section.semester) {
+      return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
+    }
+    const { data: existingStudents } = await supabase
+      .from('students')
+      .select('student_id')
+      .eq('section_id', req.params.sectionId);
+    const existingIds = new Set((existingStudents || []).map((s) => s.student_id));
+    const added = [];
+    const skipped = [];
+    for (let i = 0; i < students.length; i++) {
+      const { student_id, first_name, last_name, mi, gender } = students[i];
+      if (!student_id || !first_name || !last_name) {
+        skipped.push({ student_id, reason: 'Missing required fields (Student ID, First Name, Last Name)' });
+        continue;
+      }
+      if (existingIds.has(student_id)) {
+        skipped.push({ student_id, reason: 'Duplicate ID' });
+        continue;
+      }
+      const student_name = [last_name, `${first_name}${mi ? ' ' + mi + '.' : ''}`].join(', ');
+      const { data, error } = await supabase
+        .from('students')
+        .insert([{ student_id, student_name, first_name, last_name, mi: mi || null, gender: gender || null, section_id: req.params.sectionId }])
+        .select()
+        .single();
+      if (error) {
+        skipped.push({ student_id, reason: error.message });
+      } else {
+        added.push(data);
+        existingIds.add(student_id);
+      }
+    }
+    res.json({ added, skipped });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

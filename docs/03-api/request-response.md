@@ -44,6 +44,38 @@ Body: { "records": [{ "teacher_assignment_id": "uuid", "student_id": "uuid", "da
 Response: { "message": "Attendance saved", "count": 1 }
 ```
 
+## Add Student to Section
+
+```
+POST /api/sections/:sectionId/students
+Headers: Authorization: Bearer <token>
+Body: { "student_id": "2023-0001", "first_name": "Juan", "last_name": "Dela Cruz", "mi": "M", "gender": "Male" }
+Response: { "id": "uuid", "student_id": "2023-0001", "first_name": "Juan", ... }
+```
+
+`student_name` is auto-computed as `"Dela Cruz, Juan M."`.
+
+## Bulk Import Students (from Excel)
+
+```
+POST /api/sections/:sectionId/students/bulk
+Headers: Authorization: Bearer <token>
+Body: { "students": [{ "student_id": "2023-0001", "first_name": "Juan", "last_name": "Dela Cruz", "mi": "M", "gender": "Male" }, ...] }
+Response: { "added": 10, "skipped": [{ "student_id": "2023-0005", "reason": "Student ID already exists in section" }] }
+```
+
+Duplicates are identified by checking existing `student_id` values in the section. Only non-duplicate rows are inserted; skipped rows are returned with a reason.
+
+## Delete Student
+
+```
+DELETE /api/sections/students/:id
+Headers: Authorization: Bearer <token>
+Response: { "message": "Student deleted successfully" }
+```
+
+Also deletes associated `component_scores` and `attendance` records.
+
 ## List All Academic Terms (for archive browsing)
 
 ```

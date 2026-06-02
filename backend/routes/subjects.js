@@ -14,12 +14,11 @@ const yearLevels = ['1st', '2nd', '3rd', '4th'];
 // GET /api/subjects — list all subjects, optionally filtered
 router.get('/', async (req, res) => {
   try {
-    const { year, school_year, semester, course_id } = req.query;
+    const { year, semester, course_id } = req.query;
     const { role, id } = req.user;
     let query = supabase.from('subjects').select('*').order('name', { ascending: true });
     if (role === 'admin') query = query.eq('created_by', id);
     if (year) query = query.eq('year_level', year);
-    if (school_year) query = query.eq('school_year', school_year);
     if (semester) query = query.eq('semester', semester);
     if (course_id) query = query.or(`course_id.eq.${course_id},course_id.is.null`);
     const { data, error } = await query;
@@ -31,9 +30,9 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/subjects — create a subject (auto-tagged with active term)
+// POST /api/subjects — create a subject
 router.post('/', authorizeRole('admin'), async (req, res) => {
-  const { name, code, year_level, course_id: rawCourseId } = req.body;
+  const { name, code, year_level, semester, course_id: rawCourseId } = req.body;
   const course_id = rawCourseId || null;
   if (!name || !year_level) {
     return res.status(400).json({ message: 'Name and year level are required' });
@@ -42,16 +41,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
     return res.status(400).json({ message: 'Invalid year level' });
   }
   try {
-    const { data: active } = await supabase
-      .from('academic_terms')
-      .select('school_year, semester')
-      .eq('is_active', true)
-      .maybeSingle();
-
-    const school_year = active?.school_year || null;
-    const semester = active?.semester || null;
-
-    let dupQuery = supabase.from('subjects').select('id').eq('name', name).eq('school_year', school_year);
+    let dupQuery = supabase.from('subjects').select('id').eq('name', name);
     if (course_id) {
       dupQuery = dupQuery.eq('course_id', course_id);
     } else {
@@ -59,12 +49,12 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
     }
     const { data: existing } = await dupQuery.maybeSingle();
     if (existing) {
-      return res.status(400).json({ message: 'A subject with this name already exists in this course for this school year.' });
+      return res.status(400).json({ message: 'A subject with this name already exists in this course.' });
     }
 
     const { data, error } = await supabase
       .from('subjects')
-      .insert([{ name, code: code || null, year_level, school_year, semester, course_id, created_by: req.user.id }])
+      .insert([{ name, code: code || null, year_level, semester: semester || null, course_id, created_by: req.user.id }])
       .select()
       .single();
     if (error) return res.status(500).json({ error: error.message });

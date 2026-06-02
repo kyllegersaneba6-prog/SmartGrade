@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Trash2, X, UserPlus, BookOpen, Loader } from 'lucide-react';
+import { Plus, Trash2, X, UserPlus, BookOpen, Loader, Upload } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
+import * as XLSX from 'xlsx';
 
 const formatStudentId = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 9);
@@ -30,7 +31,7 @@ const AdminSections = () => {
   const [sectionError, setSectionError] = useState('');
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [studentError, setStudentError] = useState('');
-  const [studentRows, setStudentRows] = useState([{ id: '', name: '' }]);
+  const [studentRows, setStudentRows] = useState([{ id: '', first_name: '', last_name: '', mi: '', gender: '' }]);
   const [addingStudents, setAddingStudents] = useState(false);
   const [error, setError] = useState('');
   const [courses, setCourses] = useState([]);
@@ -43,6 +44,14 @@ const AdminSections = () => {
   const [studentToDelete, setStudentToDelete] = useState(null);
   const [confirmStudentText, setConfirmStudentText] = useState('');
   const [deletingStudent, setDeletingStudent] = useState(false);
+  const fileInputRef = useRef(null);
+  const [showImport, setShowImport] = useState(false);
+  const [importRows, setImportRows] = useState([]);
+  const [importSkipped, setImportSkipped] = useState([]);
+  const [importHeaderError, setImportHeaderError] = useState('');
+  const [importError, setImportError] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
 
   const schoolYear = currentTerm?.school_year || '';
   const semester = currentTerm?.semester || '';
@@ -156,9 +165,105 @@ const AdminSections = () => {
     }
   };
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportHeaderError('');
+    setImportError('');
+    setImportResult(null);
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const data = new Uint8Array(evt.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        if (json.length === 0) {
+          setImportHeaderError('The file is empty.');
+          setShowImport(true);
+          return;
+        }
+        const headers = Object.keys(json[0]);
+        const expected = ['Student ID', 'First Name', 'Last Name', 'MI', 'Gender'];
+        const normalizedHeaders = headers.map((h) => h.trim());
+        const match = expected.every((h) => normalizedHeaders.includes(h));
+        if (!match) {
+          setImportHeaderError(`Invalid headers. Expected: ${expected.join(', ')}. Found: ${headers.join(', ')}`);
+          setShowImport(true);
+          return;
+        }
+        const allRows = json.map((row, i) => ({
+          rowNum: i + 2,
+          student_id: String(row['Student ID']).trim(),
+          first_name: String(row['First Name']).trim(),
+          last_name: String(row['Last Name']).trim(),
+          mi: String(row['MI']).trim().toUpperCase().slice(0, 1),
+          gender: String(row['Gender']).trim(),
+        }));
+        let existingIds = new Set();
+        if (selectedSection) {
+          try {
+            const res = await api(`http://localhost:5000/api/sections/${selectedSection.id}/students`);
+            if (res.ok) {
+              const existing = await res.json();
+              existingIds = new Set(existing.map((s) => s.student_id));
+            }
+          } catch {}
+        }
+        const newRows = [];
+        const skippedRows = [];
+        for (const row of allRows) {
+          if (existingIds.has(row.student_id)) {
+            skippedRows.push(row);
+          } else {
+            newRows.push(row);
+          }
+        }
+        setImportRows(newRows);
+        setImportSkipped(skippedRows);
+        setShowImport(true);
+      } catch (err) {
+        setImportHeaderError('Failed to read the file. Make sure it is a valid Excel file.');
+        setShowImport(true);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = '';
+  };
+
+  const doImport = async () => {
+    if (importing || !selectedSection) return;
+    setImporting(true);
+    setImportError('');
+    setImportResult(null);
+    try {
+      const payload = importRows.map(({ student_id, first_name, last_name, mi, gender }) => ({
+        student_id, first_name, last_name, mi, gender
+      }));
+      const res = await api(`http://localhost:5000/api/sections/${selectedSection.id}/students/bulk`, {
+        method: 'POST',
+        body: JSON.stringify({ students: payload })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setImportResult(data);
+        if (data.added?.length > 0) {
+          setStudents((prev) => [...prev, ...data.added].sort((a, b) => a.student_name.localeCompare(b.student_name)));
+        }
+      } else {
+        const data = await res.json();
+        setImportError(data.message || 'Import failed');
+      }
+    } catch {
+      setImportError('Network error');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const addStudents = async () => {
     if (addingStudents || !selectedSection) return;
-    const rows = studentRows.filter((r) => r.id.trim() && r.name.trim());
+    const rows = studentRows.filter((r) => r.id.trim() && r.first_name.trim() && r.last_name.trim());
     if (rows.length === 0) return;
     for (const { id } of rows) {
       if (!/^\d{2}-\d{4}-\d{3}$/.test(id.trim())) {
@@ -170,25 +275,25 @@ const AdminSections = () => {
     setStudentError('');
     const errors = [];
     const added = [];
-    for (const { id, name } of rows) {
+    for (const { id, first_name, last_name, mi, gender } of rows) {
       try {
         const res = await api(`http://localhost:5000/api/sections/${selectedSection.id}/students`, {
           method: 'POST',
-          body: JSON.stringify({ student_id: id.trim(), student_name: name.trim() })
+          body: JSON.stringify({ student_id: id.trim(), first_name: first_name.trim(), last_name: last_name.trim(), mi: mi.trim(), gender: gender.trim() })
         });
         if (res.ok) {
           added.push(await res.json());
         } else {
           const data = await res.json();
-          errors.push(data.message || data.error || `Failed to add "${name}"`);
+          errors.push(data.message || data.error || `Failed to add "${first_name} ${last_name}"`);
         }
       } catch {
-        errors.push(`Network error adding "${name}"`);
+        errors.push(`Network error adding "${first_name} ${last_name}"`);
       }
     }
     if (added.length > 0) {
       setStudents((prev) => [...prev, ...added].sort((a, b) => a.student_name.localeCompare(b.student_name)));
-      setStudentRows([{ id: '', name: '' }]);
+      setStudentRows([{ id: '', first_name: '', last_name: '', mi: '', gender: '' }]);
       setShowAddStudent(false);
     }
     if (errors.length > 0) setStudentError(errors.join('\n'));
@@ -326,22 +431,48 @@ const AdminSections = () => {
                 <h2 className="text-sm font-bold text-gray-700">
                   Students — <span style={{ color: '#f5a623' }}>{selectedSection.name}</span>
                 </h2>
-                <div className="relative group">
-                  <button
-                    onClick={() => { if (!isArchiveMode) { setShowAddStudent(true); setStudentError(''); } }}
-                    disabled={isArchiveMode}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
-                      isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-                    }`}
-                    style={{ background: '#22c55e' }}
-                  >
-                    <UserPlus size={14} /> Add Student
-                  </button>
-                  {isArchiveMode && (
-                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                      Cannot modify while viewing archives
-                    </div>
-                  )}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                <div className="flex items-center gap-2">
+                  <div className="relative group">
+                    <button
+                      onClick={() => { if (!isArchiveMode) { setShowAddStudent(true); setStudentError(''); } }}
+                      disabled={isArchiveMode}
+                      className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
+                        isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                      }`}
+                      style={{ background: '#22c55e' }}
+                    >
+                      <UserPlus size={14} /> Add Student
+                    </button>
+                    {isArchiveMode && (
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        Cannot modify while viewing archives
+                      </div>
+                    )}
+                  </div>
+                  <div className="relative group">
+                    <button
+                      onClick={() => { if (!isArchiveMode) { fileInputRef.current?.click(); } }}
+                      disabled={isArchiveMode}
+                      className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
+                        isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                      }`}
+                      style={{ background: '#3b82f6' }}
+                    >
+                      <Upload size={14} /> Import
+                    </button>
+                    {isArchiveMode && (
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        Cannot modify while viewing archives
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -357,6 +488,7 @@ const AdminSections = () => {
                         <th className="text-left pb-2 pr-3 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">#</th>
                         <th className="text-left pb-2 pr-3 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Student ID</th>
                         <th className="text-left pb-2 pr-3 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Student Name</th>
+                        <th className="text-left pb-2 pr-3 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Gender</th>
                         <th className="text-left pb-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Action</th>
                       </tr>
                     </thead>
@@ -366,6 +498,7 @@ const AdminSections = () => {
                           <td className="py-2.5 pr-3 text-gray-400">{i + 1}</td>
                           <td className="py-2.5 pr-3 font-mono text-gray-700">{s.student_id}</td>
                           <td className="py-2.5 pr-3 text-gray-700">{s.student_name}</td>
+                          <td className="py-2.5 pr-3 text-gray-700">{s.gender || '—'}</td>
                           <td className="py-2.5">
                             <div className="relative group inline-block">
                               <button
@@ -436,17 +569,25 @@ const AdminSections = () => {
 
       {showAddStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Add Students</h3>
-              <button onClick={() => { setShowAddStudent(false); setStudentRows([{ id: '', name: '' }]); setStudentError(''); }} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setShowAddStudent(false); setStudentRows([{ id: '', first_name: '', last_name: '', mi: '', gender: '' }]); setStudentError(''); }} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
-            <div className="space-y-3 mb-4 max-h-64 overflow-y-auto p-0.5">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Student ID & Name</label>
+            <div className="space-y-3 mb-4 p-0.5">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Student Details</label>
               {studentRows.map((row, i) => (
-                <div key={i} className="flex items-center gap-2">
+                <div key={i} className="flex flex-col gap-2 p-3 rounded-lg border border-gray-200 relative">
+                  {studentRows.length > 1 && (
+                    <button
+                      onClick={() => setStudentRows(studentRows.filter((_, j) => j !== i))}
+                      className="absolute top-1 right-1 text-gray-300 hover:text-red-500 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
                   <input
                     type="text"
                     value={row.id}
@@ -455,50 +596,209 @@ const AdminSections = () => {
                       next[i] = { ...next[i], id: formatStudentId(e.target.value) };
                       setStudentRows(next);
                     }}
-                    placeholder="00-0000-000"
+                    placeholder="Student ID (00-0000-000)"
                     maxLength={11}
-                    className="w-32 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm font-mono"
+                    className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm font-mono"
                     autoFocus={i === 0}
                   />
                   <input
                     type="text"
-                    value={row.name}
+                    value={row.first_name}
                     onChange={(e) => {
                       const next = [...studentRows];
-                      next[i] = { ...next[i], name: e.target.value };
+                      next[i] = { ...next[i], first_name: e.target.value };
                       setStudentRows(next);
                     }}
-                    placeholder="Student Name"
-                    className="flex-1 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (i === studentRows.length - 1) setStudentRows([...studentRows, { id: '', name: '' }]); } }}
+                    placeholder="First Name"
+                    className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
                   />
-                  {studentRows.length > 1 && (
-                    <button
-                      onClick={() => setStudentRows(studentRows.filter((_, j) => j !== i))}
-                      className="text-gray-300 hover:text-red-500 transition-colors"
+                  <input
+                    type="text"
+                    value={row.last_name}
+                    onChange={(e) => {
+                      const next = [...studentRows];
+                      next[i] = { ...next[i], last_name: e.target.value };
+                      setStudentRows(next);
+                    }}
+                    placeholder="Last Name"
+                    className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={row.mi}
+                      onChange={(e) => {
+                        const next = [...studentRows];
+                        next[i] = { ...next[i], mi: e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 1) };
+                        setStudentRows(next);
+                      }}
+                      placeholder="M.I."
+                      maxLength={1}
+                      className="w-20 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm text-center"
+                    />
+                    <select
+                      value={row.gender}
+                      onChange={(e) => {
+                        const next = [...studentRows];
+                        next[i] = { ...next[i], gender: e.target.value };
+                        setStudentRows(next);
+                      }}
+                      className="flex-1 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
                     >
-                      <X size={16} />
-                    </button>
-                  )}
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
                 </div>
               ))}
             </div>
             {studentError && <p className="text-xs font-semibold text-red-500 mb-3 whitespace-pre-line">{studentError}</p>}
+            <hr className="border-t border-gray-200 my-2" />
             <div className="flex items-center justify-between">
               <button
-                onClick={() => setStudentRows([...studentRows, { id: '', name: '' }])}
+                onClick={() => setStudentRows([...studentRows, { id: '', first_name: '', last_name: '', mi: '', gender: '' }])}
                 className="px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm hover:scale-105 transition-transform"
                 style={{ background: '#f5a623' }}
               >
                 Add More Students
               </button>
               <div className="flex gap-3">
-                <button onClick={() => { setShowAddStudent(false); setStudentRows([{ id: '', name: '' }]); setStudentError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                <button onClick={() => { setShowAddStudent(false); setStudentRows([{ id: '', first_name: '', last_name: '', mi: '', gender: '' }]); setStudentError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
                 <button onClick={addStudents} disabled={addingStudents} className="flex items-center gap-1 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#22c55e' }}>
                   <UserPlus size={14} /> {addingStudents ? 'Adding...' : 'Add'}
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showImport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 border border-gray-100 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Import Students</h3>
+              <button onClick={() => { setShowImport(false); setImportRows([]); setImportHeaderError(''); setImportError(''); setImportResult(null); }} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            {importHeaderError ? (
+              <div className="text-center py-8">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-100 mb-4">
+                  <X size={28} className="text-red-500" />
+                </div>
+                <p className="text-sm font-semibold text-red-600 mb-1">Header Mismatch</p>
+                <p className="text-xs text-gray-500">{importHeaderError}</p>
+                <button onClick={() => { setShowImport(false); setImportRows([]); setImportSkipped([]); setImportHeaderError(''); }} className="mt-6 px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Close</button>
+              </div>
+            ) : importResult ? (
+              <div className="text-center py-6">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 mb-4">
+                  <Upload size={28} className="text-green-600" />
+                </div>
+                <p className="text-base font-bold text-gray-900 mb-1">Import Complete</p>
+                <p className="text-sm text-green-600 font-semibold">{importResult.added?.length || 0} student(s) added.</p>
+                {importResult.skipped?.length > 0 && (
+                  <div className="mt-3 text-left max-h-32 overflow-y-auto">
+                    <p className="text-xs font-bold text-amber-600 mb-1">{importResult.skipped.length} student(s) skipped:</p>
+                    {importResult.skipped.map((s, i) => (
+                      <p key={i} className="text-xs text-gray-500">Row {importRows.findIndex((r) => r.student_id === s.student_id) + 2}: {s.student_id} — {s.reason}</p>
+                    ))}
+                  </div>
+                )}
+                <button onClick={() => { setShowImport(false); setImportRows([]); setImportSkipped([]); setImportResult(null); }} className="mt-6 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#22c55e' }}>Done</button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs text-gray-500">
+                    <span className="font-semibold text-green-600">{importRows.length}</span> will be added
+                    {importSkipped.length > 0 && (
+                      <span className="ml-2"><span className="font-semibold text-amber-600">{importSkipped.length}</span> will be skipped (duplicate ID)</span>
+                    )}
+                  </p>
+                </div>
+                {importError && <p className="text-xs font-semibold text-red-500 mb-3">{importError}</p>}
+                <div className="flex-1 overflow-y-auto space-y-4">
+                  {importRows.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold text-green-700 mb-1 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Students to Add
+                      </p>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b bg-gray-50" style={{ borderColor: '#f0ede6' }}>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">#</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Student ID</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">First Name</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Last Name</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">MI</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Gender</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {importRows.map((row, i) => (
+                              <tr key={i} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
+                                <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
+                                <td className="px-3 py-1.5 font-mono text-gray-700">{row.student_id}</td>
+                                <td className="px-3 py-1.5 text-gray-700">{row.first_name}</td>
+                                <td className="px-3 py-1.5 text-gray-700">{row.last_name}</td>
+                                <td className="px-3 py-1.5 text-gray-700">{row.mi}</td>
+                                <td className="px-3 py-1.5 text-gray-700">{row.gender}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                  {importSkipped.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold text-amber-700 mb-1 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Skipped (Duplicate ID)
+                      </p>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b bg-gray-50" style={{ borderColor: '#f0ede6' }}>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">#</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Student ID</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">First Name</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Last Name</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">MI</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Gender</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {importSkipped.map((row, i) => (
+                              <tr key={i} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
+                                <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
+                                <td className="px-3 py-1.5 font-mono text-gray-700">{row.student_id}</td>
+                                <td className="px-3 py-1.5 text-gray-700">{row.first_name}</td>
+                                <td className="px-3 py-1.5 text-gray-700">{row.last_name}</td>
+                                <td className="px-3 py-1.5 text-gray-700">{row.mi}</td>
+                                <td className="px-3 py-1.5 text-gray-700">{row.gender}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-100">
+                  <button onClick={() => { setShowImport(false); setImportRows([]); setImportSkipped([]); setImportHeaderError(''); setImportError(''); setImportResult(null); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                  {importRows.length > 0 && (
+                    <button onClick={doImport} disabled={importing} className="flex items-center gap-1 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#3b82f6' }}>
+                      <Upload size={14} /> {importing ? 'Importing...' : 'Import'}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

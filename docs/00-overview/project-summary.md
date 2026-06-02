@@ -26,8 +26,11 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 - Three roles: Superadmin, Admin, Teacher
 - Role-based dashboards and navigation
 - Department, course, section, subject, and user management
+- Student management with structured details (First Name, Last Name, MI, Gender)
+- Import students from Excel with duplicate ID detection and preview
 - Teacher assignment to sections/subjects
 - Superadmin-only academic term management (create/end terms, no auto-detection)
+- Subjects persist across school years with semester-scoping (1st/2nd Semester, Summer, All)
 - Attendance recording with date columns, AM/PM sessions, 0/1/2 scoring
 - Class record with weighted grading components, activities, score entry, auto-computed equivalents and final grades
 - Grade summary across 4 terms (PRELIMS, MIDTERMS, PRE-FINALS, FINALS)
