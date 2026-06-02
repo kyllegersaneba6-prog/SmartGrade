@@ -2,6 +2,16 @@
 
 ## 2026-06-03
 
+### Removed Reload Button from All Headers
+- Removed the `RotateCw` reload button from `SuperAdminLayout.jsx`, `AdminLayout.jsx`, and `teacher/Header.jsx`.
+- Removed associated `handleReload` logic and `refreshing` state from all three files.
+
+### Main Content Background Changed to Pearl
+- Changed `--color-bg-light` in `index.css` from `#fbf9f4` to `#F0EAD6` (pearl).
+- All page backgrounds using `bg-bg-light` now render as pearl.
+
+## 2026-06-03
+
 ### Dark Theme Extended to Sidebar & Header
 - Updated CSS custom properties in `index.css`: sidebar bg from `#2f3640` to `#0f172a` (slate-900), hover to `#1e293b` (slate-800), active to `#020617` (slate-950).
 - Applies to all three sidebars (Teacher, Admin, SuperAdmin) and all headers via existing `bg-sidebar` / `bg-sidebar-hover` / `border-sidebar-hover` classes.

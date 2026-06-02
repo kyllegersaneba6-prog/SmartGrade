@@ -2,20 +2,12 @@ import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AdminProvider, useAdmin } from '../contexts/AdminContext';
 import AdminSidebar from '../components/admin/AdminSidebar';
-import { Menu, RotateCw, X, Archive } from 'lucide-react';
+import { Menu, X, Archive } from 'lucide-react';
 
 const AdminLayoutInner = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const { activeTerm, currentTerm, isArchiveMode, setViewTerm } = useAdmin();
-
-  const handleReload = () => {
-    setRefreshing(true);
-    window.dispatchEvent(new CustomEvent('app:reload'));
-    const done = () => { setRefreshing(false); window.removeEventListener('app:reload-done', done); };
-    window.addEventListener('app:reload-done', done);
-  };
 
   const getTitle = () => {
     switch (location.pathname) {
@@ -51,12 +43,6 @@ const AdminLayoutInner = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-3 md:gap-6">
-            <button onClick={handleReload} disabled={refreshing} className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-full bg-white/10 text-gold border border-gold/30 hover:bg-white/20 transition-colors">
-              <RotateCw size={12} className={refreshing ? 'animate-spin' : ''} />
-              {refreshing ? '...' : 'Reload'}
-            </button>
-          </div>
         </header>
 
         {isArchiveMode && currentTerm && (

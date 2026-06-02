@@ -1,16 +1,6 @@
-import { useState } from 'react';
-import { Menu, RotateCw } from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 const Header = ({ title, onMenuToggle, schoolYear, semester }) => {
-  const [refreshing, setRefreshing] = useState(false);
-
-  const handleReload = () => {
-    setRefreshing(true);
-    window.dispatchEvent(new CustomEvent('app:reload'));
-    const done = () => { setRefreshing(false); window.removeEventListener('app:reload-done', done); };
-    window.addEventListener('app:reload-done', done);
-  };
-
   return (
     <header className="h-16 bg-sidebar flex items-center justify-between px-4 md:px-6 lg:px-8 text-white border-b border-sidebar-hover shadow-sm fixed top-0 left-0 right-0 z-50 shrink-0">
       <div className="flex items-center gap-3 lg:gap-4 min-w-0">
@@ -28,13 +18,6 @@ const Header = ({ title, onMenuToggle, schoolYear, semester }) => {
         )}
         <span className="text-xs font-bold px-3 py-1 rounded-full bg-gold/20 text-gold whitespace-nowrap">{JSON.parse(localStorage.getItem('user') || '{}')?.department}</span>
       </div>
-      
-        <div className="flex items-center gap-3 md:gap-6">
-          <button onClick={handleReload} disabled={refreshing} className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-full bg-white/10 text-gold border border-gold/30 hover:bg-white/20 transition-colors">
-            <RotateCw size={12} className={refreshing ? 'animate-spin' : ''} />
-            {refreshing ? '...' : 'Reload'}
-          </button>
-        </div>
     </header>
   );
 };

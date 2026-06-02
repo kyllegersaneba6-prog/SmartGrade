@@ -43,6 +43,6 @@
 - Success: `green-500` / `green-600`
 - Danger: `red-500` / `red-600`
 - Warning: `yellow-500`
-- Background: `gray-50`
+- Background: pearl (`#F0EAD6`, token `--color-bg-light`)
 - Cards: `white`
 - Text: `gray-900` / `gray-600`

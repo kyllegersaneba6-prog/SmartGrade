@@ -1,20 +1,11 @@
 import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import SuperAdminSidebar from '../components/superadmin/SuperAdminSidebar';
-import { Menu, RotateCw } from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 const SuperAdminLayout = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const handleReload = () => {
-    setRefreshing(true);
-    window.dispatchEvent(new CustomEvent('app:reload'));
-    const done = () => { setRefreshing(false); window.removeEventListener('app:reload-done', done); };
-    window.addEventListener('app:reload-done', done);
-  };
-
   const getTitle = () => {
     switch (location.pathname) {
       case '/superadmin': return 'Dashboard';
@@ -40,12 +31,6 @@ const SuperAdminLayout = () => {
             <h3 className="text-xs sm:text-sm text-gray-300 truncate font-medium">{getTitle()}</h3>
           </div>
 
-          <div className="flex items-center gap-3 md:gap-6">
-            <button onClick={handleReload} disabled={refreshing} className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-full bg-white/10 text-gold border border-gold/30 hover:bg-white/20 transition-colors">
-              <RotateCw size={12} className={refreshing ? 'animate-spin' : ''} />
-              {refreshing ? '...' : 'Reload'}
-            </button>
-          </div>
         </header>
 
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
