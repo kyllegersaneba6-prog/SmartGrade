@@ -2,6 +2,12 @@
 
 ## 2026-06-03
 
+### Dark Theme Extended to Sidebar & Header
+- Updated CSS custom properties in `index.css`: sidebar bg from `#2f3640` to `#0f172a` (slate-900), hover to `#1e293b` (slate-800), active to `#020617` (slate-950).
+- Applies to all three sidebars (Teacher, Admin, SuperAdmin) and all headers via existing `bg-sidebar` / `bg-sidebar-hover` / `border-sidebar-hover` classes.
+
+## 2026-06-03
+
 ### Login Page Redesign — Dark Mode 2-Column Layout
 - Complete visual overhaul: dark slate-900 background, gold accents, 2-column layout.
 - Left column (42%): Login form in a dark slate-800/80 card with backdrop blur, centered vertically.
