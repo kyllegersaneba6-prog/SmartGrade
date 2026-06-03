@@ -57,6 +57,17 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
     if (!activeTerm || activeTerm.school_year !== school_year || activeTerm.semester !== semester) {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
+    const { data: existing } = await supabase
+      .from('teacher_assignments')
+      .select('id, teacher:teacher_id(full_name)')
+      .eq('section_id', section_id)
+      .eq('subject_id', subject_id)
+      .eq('school_year', school_year)
+      .eq('semester', semester)
+      .maybeSingle();
+    if (existing) {
+      return res.status(400).json({ message: `This section and subject is already assigned to ${existing.teacher.full_name}.` });
+    }
     const { data, error } = await supabase
       .from('teacher_assignments')
       .insert([{ teacher_id, section_id, subject_id, school_year, semester, created_by: req.user.id }])

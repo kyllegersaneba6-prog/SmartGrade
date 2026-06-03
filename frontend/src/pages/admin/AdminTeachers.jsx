@@ -228,7 +228,7 @@ const AdminTeachers = () => {
   const paginated = teachers.slice((page - 1) * USERS_PER_PAGE, page * USERS_PER_PAGE);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto pt-4 md:pt-6 lg:pt-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#f5a623' }}>Teacher Management</h1>

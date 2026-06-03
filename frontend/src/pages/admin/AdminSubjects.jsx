@@ -13,25 +13,24 @@ const AdminSubjects = () => {
 
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
-  const [selectedYear, setSelectedYear] = useState('1st');
-  const [subjectRows, setSubjectRows] = useState([{ code: '', name: '' }]);
   const [error, setError] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [selectedYear, setSelectedYear] = useState('');
+  const [addCourseId, setAddCourseId] = useState('');
+  const [addSemester, setAddSemester] = useState('');
+  const [courses, setCourses] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [semesterFilter, setSemesterFilter] = useState(currentTerm?.semester || '1st Semester');
+  const [adding, setAdding] = useState(false);
+  const [subjectRows, setSubjectRows] = useState([{ code: '', name: '' }]);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [subjectAssignments, setSubjectAssignments] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [subjectToDelete, setSubjectToDelete] = useState(null);
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [subjectAssignments, setSubjectAssignments] = useState([]);
-  const [assignLoading, setAssignLoading] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState(null);
-
-  const [courses, setCourses] = useState([]);
-  const [selectedCourseId, setSelectedCourseId] = useState('');
-  const [addCourseId, setAddCourseId] = useState('');
-  const [addSemester, setAddSemester] = useState('');
-  const [semesterFilter, setSemesterFilter] = useState(currentTerm?.semester || '1st Semester');
 
   useEffect(() => {
     if (currentTerm?.semester) setSemesterFilter(currentTerm.semester);
@@ -96,7 +95,7 @@ const AdminSubjects = () => {
       try {
         const res = await api('http://localhost:5000/api/subjects', {
           method: 'POST',
-          body: JSON.stringify({ name: name.trim(), code: code.trim() || null, year_level: selectedYear, semester: addSemester || null, course_id: addCourseId })
+          body: JSON.stringify({ name: name.trim(), code: code.trim() || null, year_level: selectedYear, semester: addSemester, course_id: addCourseId })
         });
         if (res.ok) {
           added.push(await res.json());
@@ -135,7 +134,7 @@ const AdminSubjects = () => {
   const maxRows = Math.max(...grouped.map((g) => g.subjects.length), 0);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto pt-4 md:pt-6 lg:pt-8">
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -176,6 +175,7 @@ const AdminSubjects = () => {
               onChange={(e) => setSelectedCourseId(e.target.value)}
               className="px-3 py-1.5 text-xs font-semibold border border-[#e5e0d5] rounded-lg bg-[#fbf8f1] focus:outline-none focus:ring-2 focus:ring-[#f5a623]"
             >
+              <option value="">All Courses</option>
               {courses.map(c => <option key={c.id} value={c.id}>{c.abbreviation} — {c.name}</option>)}
             </select>
           )}
@@ -195,9 +195,9 @@ const AdminSubjects = () => {
         ) : (
           <table className="w-full text-xs table-fixed">
             <thead>
-              <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
+              <tr className="border-b" style={{ borderColor: '#c0b8a8' }}>
                 {yearLevels.map((y) => (
-                  <th key={y} className="text-left pb-3 pt-3 px-4 font-bold text-gray-600 text-sm border-r last:border-r-0" style={{ borderColor: '#f0ede6' }}>
+                  <th key={y} className="text-left pb-3 pt-3 px-4 font-bold text-gray-600 text-sm border-r last:border-r-0" style={{ borderColor: '#c0b8a8' }}>
                     {yearLabels[y]}
                   </th>
                 ))}
@@ -205,9 +205,9 @@ const AdminSubjects = () => {
             </thead>
             <tbody>
               {Array.from({ length: Math.max(maxRows, 1) }).map((_, rowIdx) => (
-                <tr key={rowIdx} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
+                <tr key={rowIdx} className="border-b last:border-0" style={{ borderColor: '#c0b8a8' }}>
                   {grouped.map((g) => (
-                    <td key={g.year} className="px-4 py-2 border-r last:border-r-0 align-top" style={{ borderColor: '#f0ede6' }}>
+                    <td key={g.year} className="px-4 py-2 border-r last:border-r-0 align-top" style={{ borderColor: '#c0b8a8' }}>
                       {g.subjects[rowIdx] ? (
                           <div className="flex items-center justify-between group px-2 py-1.5 rounded-lg hover:bg-gray-50 -mx-2 cursor-pointer" onClick={() => openAssignModal(g.subjects[rowIdx])}>
                             <div className="flex items-center gap-1.5 min-w-0">
@@ -248,6 +248,7 @@ const AdminSubjects = () => {
                 onChange={(e) => setAddCourseId(e.target.value)}
                 className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
               >
+                <option value="" disabled>-- Select Course --</option>
                 <option value="">All Courses (Department-wide)</option>
                 {courses.map(c => <option key={c.id} value={c.id}>{c.abbreviation} — {c.name}</option>)}
               </select>
@@ -259,6 +260,7 @@ const AdminSubjects = () => {
                 onChange={(e) => setSelectedYear(e.target.value)}
                 className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
               >
+                <option value="" disabled>-- Select Year Level --</option>
                 {yearLevels.map((y) => <option key={y} value={y}>{yearLabels[y]}</option>)}
               </select>
             </div>
@@ -269,6 +271,7 @@ const AdminSubjects = () => {
                 onChange={(e) => setAddSemester(e.target.value)}
                 className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
               >
+                <option value="" disabled>-- Select Semester --</option>
                 <option value="1st Semester">1st Semester</option>
                 <option value="2nd Semester">2nd Semester</option>
                 <option value="Summer">Summer</option>
@@ -327,7 +330,7 @@ const AdminSubjects = () => {
               </button>
               <div className="flex gap-3">
                 <button onClick={() => { setShowAdd(false); setSubjectRows([{ code: '', name: '' }]); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-                <button onClick={addSubjects} disabled={adding} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#f5a623' }}>{adding ? 'Adding...' : 'Add'}</button>
+                <button onClick={addSubjects} disabled={adding || !selectedYear || !addSemester} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#f5a623' }}>{adding ? 'Adding...' : 'Add'}</button>
               </div>
             </div>
           </div>

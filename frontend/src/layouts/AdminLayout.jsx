@@ -23,7 +23,7 @@ const AdminLayoutInner = () => {
   return (
     <div className="min-h-screen bg-bg-light font-sans text-text-main">
       <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="lg:pl-64 flex flex-col min-h-screen pt-16">
+      <div className="lg:pl-64 flex flex-col h-screen pt-16">
         <header className="h-16 bg-sidebar flex items-center justify-between px-4 md:px-6 lg:px-8 text-white border-b border-sidebar-hover shadow-sm fixed top-0 left-0 right-0 z-50 shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0 flex-1">
             <button onClick={() => setSidebarOpen(true)} className="text-gray-300 hover:text-white lg:hidden shrink-0">
@@ -60,7 +60,7 @@ const AdminLayoutInner = () => {
           </div>
         )}
 
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+        <main className="flex-1 overflow-auto px-4 md:px-6 lg:px-8 pb-4 md:pb-6 lg:pb-8">
           <Outlet />
         </main>
       </div>

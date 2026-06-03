@@ -2,6 +2,34 @@
 
 ## 2026-06-03
 
+### Fixed: Add Subjects modal — missing state declarations and dropdown options
+- Added missing `courses` and `selectedCourseId` state declarations in `AdminSubjects.jsx` (were used but never declared).
+- Added "All Courses" option to the course filter select.
+
+### Fixed: Add Subjects dropdowns — added placeholder options and validation
+- Added `disabled` placeholder options (`-- Select Course --`, `-- Select Year Level --`, `-- Select Semester --`) to all three dropdowns in the Add Subjects modal.
+- Changed default states to empty strings so user must actively choose.
+- Disabled Add button when year or semester aren't selected.
+
+### Fixed: Semester is now required when creating subjects
+- **Frontend** (`AdminSubjects.jsx:33`): Changed `addSemester` default from `''` to `'1st Semester'` and removed the `|| null` fallback in the POST body.
+- **Backend** (`subjects.js:43-45`): Added validation requiring semester to be one of `1st Semester`, `2nd Semester`, or `Summer` — rejects null/empty.
+- **Backend** (`subjects.js:22`): Changed GET filter from `or(semester.eq.X,semester.is.null)` to `eq('semester', semester)` so null-semester subjects no longer appear in filtered views.
+
+### Fixed: Sticky behavior in Manage Sections page
+- Changed inner wrapper from `min-h-screen` to `h-screen` in `AdminLayout.jsx:26` so flex container has a fixed height.
+- Added `overflow-auto` back to `<main>` in `AdminLayout.jsx:63` — makes it the scroll container so `position: sticky` works within it.
+- Changed `<main>` from `p-4 md:p-6 lg:p-8` to `overflow-auto px-4 md:px-6 lg:px-8 pb-4 md:pb-6 lg:pb-8` (no top padding) so sticky headers sit flush against the fixed header.
+- Added `pt-4 md:pt-6 lg:pt-8` to page wrappers in AdminDashboard, AdminTeachers, AdminSubjects, UserRoles, SecurityAudit, GlobalAnalytics to restore top spacing.
+- Added `sticky top-0 z-10` to the Manage Sections header card in `AdminSections.jsx:318`.
+- Changed sections panel to `position: sticky; top: 100px; align-self: start` in `AdminSections.jsx:361` so it sticks below the header card.
+
+### Added: Duplicate section+subject validation in teacher assignment
+- **Backend** (`backend/routes/assignments.js:60-70`): Added pre-insert check that prevents assigning any teacher to a section+subject combination that already has a teacher assigned (regardless of which teacher). Returns a clear error message showing the existing teacher's name.
+- The frontend already displays backend error messages in the assign modal via `assignError`, so no frontend changes were needed for the error display.
+
+## 2026-06-03
+
 ### Removed Uptime Health card from Security & Audit
 - Removed the hardcoded "UPTIME HEALTH" (99.9%) metric card from `SecurityAudit.jsx`.
 - Changed grid from `lg:grid-cols-4` to `lg:grid-cols-3` for the remaining 3 metrics.

@@ -70,7 +70,7 @@ const AdminDashboard = () => {
   const recentActivity = activityLog.slice(0, 10);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto pt-4 md:pt-6 lg:pt-8">
       <div className="bg-gradient-to-r from-sidebar to-sidebar-hover p-8 rounded-3xl text-white shadow-md relative overflow-hidden">
         <Users size={160} className="absolute -right-8 -bottom-8 opacity-10 text-white" />
         <div className="relative z-10 space-y-4">

@@ -315,7 +315,7 @@ const AdminSections = () => {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5] sticky top-0 z-10">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#f5a623' }}>Manage Sections</h1>
@@ -358,7 +358,7 @@ const AdminSections = () => {
       {error && <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-4 py-2 rounded-lg">{error}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 bg-white rounded-xl p-5 shadow-sm border border-[#e5e0d5]">
+        <div className="lg:col-span-1 bg-white rounded-xl p-5 shadow-sm border border-[#e5e0d5]" style={{ position: 'sticky', top: '100px', alignSelf: 'start' }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
               <BookOpen size={16} style={{ color: '#f5a623' }} /> Sections

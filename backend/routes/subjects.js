@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
     let query = supabase.from('subjects').select('*').order('name', { ascending: true });
     if (role === 'admin') query = query.eq('created_by', id);
     if (year) query = query.eq('year_level', year);
-    if (semester) query = query.or(`semester.eq.${semester},semester.is.null`);
+    if (semester) query = query.eq('semester', semester);
     if (course_id) query = query.or(`course_id.eq.${course_id},course_id.is.null`);
     const { data, error } = await query;
     if (error) return res.status(500).json({ error: error.message });
@@ -40,6 +40,9 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
   if (!yearLevels.includes(year_level)) {
     return res.status(400).json({ message: 'Invalid year level' });
   }
+  if (!['1st Semester', '2nd Semester', 'Summer'].includes(semester)) {
+    return res.status(400).json({ message: 'Semester is required (1st Semester, 2nd Semester, or Summer)' });
+  }
   try {
     let dupQuery = supabase.from('subjects').select('id').eq('name', name);
     if (course_id) {
@@ -54,7 +57,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
 
     const { data, error } = await supabase
       .from('subjects')
-      .insert([{ name, code: code || null, year_level, semester: semester || null, course_id, created_by: req.user.id }])
+      .insert([{ name, code: code || null, year_level, semester, course_id, created_by: req.user.id }])
       .select()
       .single();
     if (error) return res.status(500).json({ error: error.message });

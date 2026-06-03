@@ -61,7 +61,7 @@ All routes are mounted under `http://localhost:5000`. Authentication via JWT Bea
 | Method | Route | Auth | Description |
 |---|---|---|---|
 | GET | `/api/assignments` | Token | List assignments |
-| POST | `/api/assignments` | Admin | Create assignment |
+| POST | `/api/assignments` | Admin | Create assignment (rejects if section+subject combo already assigned) |
 | DELETE | `/api/assignments/:id` | Admin | Delete assignment |
 
 ## Academic Terms

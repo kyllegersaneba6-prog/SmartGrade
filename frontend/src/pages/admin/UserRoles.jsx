@@ -260,7 +260,7 @@ const UserRoles = () => {
   }, []);
 
   return (
-  <div className="space-y-6 max-w-7xl mx-auto">
+  <div className="space-y-6 max-w-7xl mx-auto pt-4 md:pt-6 lg:pt-8">
     {/* Header */}
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
       <div>
