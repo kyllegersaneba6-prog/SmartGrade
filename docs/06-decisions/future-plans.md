@@ -13,3 +13,4 @@
 - Subjects persist across terms (available in next term depending on semester)
 - Replace all gray text with more readable/accessible colors for better visuality
 - Activity log recorder on teacher's side — log grade additions, deletions, and all CRUD data operations
+- Export all data (full backup/archive of grades, attendance, components, and scores for a term or assignment)
