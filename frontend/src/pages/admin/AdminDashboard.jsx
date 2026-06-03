@@ -120,7 +120,7 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
+        <div className="rounded-xl p-5 shadow-sm self-start" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
           <h2 className="text-base font-bold mb-4" style={{ color: '#f5a623' }}>Teacher Overview</h2>
           {teachers.length === 0 ? (
             <p className="text-sm text-gray-400 italic py-6 text-center">No teachers registered yet.</p>

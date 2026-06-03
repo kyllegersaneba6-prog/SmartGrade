@@ -7,30 +7,32 @@ import api from '../../utils/api';
 
 const LS_PREFIX = 'pending_attendance_';
 
-const loadPending = (assignmentId) => {
+const lsKey = (assignmentId, term) => `${LS_PREFIX}${assignmentId}_${term}`;
+
+const loadPending = (assignmentId, term) => {
   try {
-    return JSON.parse(localStorage.getItem(LS_PREFIX + assignmentId) || '{}');
+    return JSON.parse(localStorage.getItem(lsKey(assignmentId, term)) || '{}');
   } catch { return {}; }
 };
 
-const savePending = (assignmentId, map) => {
+const savePending = (assignmentId, term, map) => {
   if (Object.keys(map).length === 0) {
-    localStorage.removeItem(LS_PREFIX + assignmentId);
+    localStorage.removeItem(lsKey(assignmentId, term));
   } else {
-    localStorage.setItem(LS_PREFIX + assignmentId, JSON.stringify(map));
+    localStorage.setItem(lsKey(assignmentId, term), JSON.stringify(map));
   }
 };
 
-const persistKey = (assignmentId, key, data) => {
-  const pending = loadPending(assignmentId);
+const persistKey = (assignmentId, term, key, data) => {
+  const pending = loadPending(assignmentId, term);
   pending[key] = data;
-  savePending(assignmentId, pending);
+  savePending(assignmentId, term, pending);
 };
 
-const clearPendingKey = (assignmentId, key) => {
-  const pending = loadPending(assignmentId);
+const clearPendingKey = (assignmentId, term, key) => {
+  const pending = loadPending(assignmentId, term);
   delete pending[key];
-  savePending(assignmentId, pending);
+  savePending(assignmentId, term, pending);
 };
 
 const COMPONENT_COLORS = [
@@ -148,7 +150,7 @@ const Attendance = () => {
   // Flush pending saves from localStorage after data is loaded
   useEffect(() => {
     if (isReadOnly || !selectedAssignment || students.length === 0 || columns.length === 0) return;
-    const pending = loadPending(selectedAssignment);
+    const pending = loadPending(selectedAssignment, selectedTerm);
     const keys = Object.keys(pending);
     if (keys.length === 0) return;
     setSyncing(true);
@@ -164,17 +166,44 @@ const Attendance = () => {
             method: 'POST',
             body: JSON.stringify({ teacher_assignment_id: selectedAssignment, date, records, session, type, term: selectedTerm }),
           });
-          if (res.ok) clearPendingKey(selectedAssignment, key);
+          if (res.ok) clearPendingKey(selectedAssignment, selectedTerm, key);
         } catch (err) { console.error('Failed to flush pending:', err); }
       }
       setSyncing(false);
     })();
-  }, [selectedAssignment, students]);
+  }, [selectedAssignment, students, selectedTerm]);
+
+  // Periodic retry of pending saves every 30s
+  useEffect(() => {
+    if (isReadOnly || !selectedAssignment || students.length === 0) return;
+    const interval = setInterval(async () => {
+      const pending = loadPending(selectedAssignment, selectedTerm);
+      const keys = Object.keys(pending);
+      if (keys.length === 0) return;
+      setSyncing(true);
+      for (const key of keys) {
+        const { date, session, type } = parseKey(key);
+        const records = students.map((s) => ({
+          student_id: s.id,
+          score: pending[key]?.[s.id] ?? 0,
+        }));
+        try {
+          const res = await api('http://localhost:5000/api/attendance/bulk', {
+            method: 'POST',
+            body: JSON.stringify({ teacher_assignment_id: selectedAssignment, date, records, session, type, term: selectedTerm }),
+          });
+          if (res.ok) clearPendingKey(selectedAssignment, selectedTerm, key);
+        } catch (err) { console.error('Periodic flush failed:', err); }
+      }
+      setSyncing(false);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [selectedAssignment, selectedTerm, students, isReadOnly]);
 
   // Warn on reload if pending saves exist
   useEffect(() => {
     const handler = (e) => {
-      const pending = loadPending(assignmentRef.current);
+      const pending = loadPending(assignmentRef.current, termRef.current);
       if (Object.keys(pending).length > 0) {
         e.preventDefault();
         e.returnValue = '';
@@ -239,7 +268,7 @@ const Attendance = () => {
     const clamped = value === '' ? 0 : Math.max(0, Math.min(2, parseInt(value, 10) || 0));
     setAttendanceMap((prev) => {
       const next = { ...prev, [key]: { ...(prev[key] || {}), [studentId]: clamped } };
-      persistKey(assignmentRef.current, key, next[key]);
+      persistKey(assignmentRef.current, selectedTerm, key, next[key]);
       scheduleAutoSave(next, selectedTerm);
       return next;
     });
@@ -253,6 +282,7 @@ const Attendance = () => {
       const assignId = assignmentRef.current;
       const currentTerm = term || termRef.current;
       for (const key of cols) {
+        if (!map[key]) continue;
         const { date, session, type } = parseKey(key);
         const records = studs.map((s) => ({
           student_id: s.id,
@@ -262,7 +292,7 @@ const Attendance = () => {
           method: 'POST',
           body: JSON.stringify({ teacher_assignment_id: assignId, date, records, session, type, term: currentTerm }),
         });
-        if (res.ok) clearPendingKey(assignId, key);
+        if (res.ok) clearPendingKey(assignId, currentTerm, key);
       }
     }, 800);
   };

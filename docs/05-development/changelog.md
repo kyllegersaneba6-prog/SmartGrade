@@ -6,6 +6,13 @@
 - Added missing `courses` and `selectedCourseId` state declarations in `AdminSubjects.jsx` (were used but never declared).
 - Added "All Courses" option to the course filter select.
 
+### Fixed: Attendance pending-save data corruption and flush bugs
+- **Term key**: localStorage keys now encode the term (`pending_attendance_<id>_<term>`) so PRELIMS data can't be flushed to MIDTERMS.
+- **Flush deps**: Added `selectedTerm` to the flush `useEffect` dependency array so it actually re-runs on term changes.
+- **Auto-save zeroing**: `scheduleAutoSave` now skips columns not present in the map (`if (!map[key]) continue`) instead of defaulting to `score: 0`.
+- **Periodic retry**: Added a 30s `setInterval` that re-flushes any remaining pending items in case the initial flush or auto-save failed.
+- **beforeunload**: Updated to use the term-aware localStorage key.
+
 ### Fixed: Add Subjects dropdowns — added placeholder options and validation
 - Added `disabled` placeholder options (`-- Select Course --`, `-- Select Year Level --`, `-- Select Semester --`) to all three dropdowns in the Add Subjects modal.
 - Changed default states to empty strings so user must actively choose.
