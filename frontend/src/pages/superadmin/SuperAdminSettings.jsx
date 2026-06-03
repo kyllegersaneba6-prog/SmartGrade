@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Settings, X, Loader, Plus } from 'lucide-react';
-
-const getToken = () => localStorage.getItem('token');
-const api = (url, options = {}) => fetch(url, { ...options, headers: { ...options.headers, 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
+import api from '../../utils/api';
 
 const SuperAdminSettings = () => {
   const [activeTerm, setActiveTerm] = useState(null);

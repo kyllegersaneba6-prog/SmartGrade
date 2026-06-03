@@ -4,11 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/teacher/FloatingAssignmentSelector';
+import api from '../../utils/api';
 
 const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
-
-const getToken = () => localStorage.getItem('token');
-const api = (url, options = {}) => fetch(url, { ...options, headers: { ...options.headers, 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
 
 const avg = (arr) => arr.length === 0 ? 0 : arr.reduce((s, v) => s + v, 0) / arr.length;
 

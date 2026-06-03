@@ -3,6 +3,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import { ArrowRight, FileText, Cpu, Network, Shield, Users, GraduationCap, BookOpen, ShieldCheck, Filter, Clock, Activity, CheckCircle, Trash2, Bell, Send, AlertTriangle } from 'lucide-react';
+import api from '../../utils/api';
 
 const MetricCard = ({ title, value, icon: Icon, color, subtitle }) => (
   <div className="bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5] flex items-center justify-between hover:shadow-md transition-all duration-300">
@@ -24,8 +25,7 @@ const GlobalAnalytics = () => {
   const [notification, setNotification] = useState({ title: '', content: '', urgency: 'Not Urgent', audience: ['Admins', 'Teachers'] });
   const [notifSuccess, setNotifSuccess] = useState(false);
 
-  const getToken = () => localStorage.getItem('token');
-  const api = (url) => fetch(url, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+
 
   const loadData = useCallback(async () => {
     try {

@@ -3,6 +3,7 @@ import { CalendarCheck, Loader, Plus, X, Trash2, ArrowLeft, Cloud } from 'lucide
 import { useNavigate } from 'react-router-dom';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/teacher/FloatingAssignmentSelector';
+import api from '../../utils/api';
 
 const LS_PREFIX = 'pending_attendance_';
 
@@ -42,9 +43,6 @@ const COMPONENT_COLORS = [
 ];
 
 const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
-
-const getToken = () => localStorage.getItem('token');
-const api = (url, options = {}) => fetch(url, { ...options, headers: { ...options.headers, 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
 
 const todayStr = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 

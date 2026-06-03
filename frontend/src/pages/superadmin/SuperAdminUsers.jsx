@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Download, Eye, EyeOff } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import CreateSuperAdminUser from './CreateSuperAdminUser';
+import api from '../../utils/api';
 
 const USERS_PER_PAGE = 10;
 
@@ -19,9 +20,6 @@ const SuperAdminUsers = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [departments, setDepartments] = useState([]);
-
-  const getToken = () => localStorage.getItem('token');
-  const api = (url, options = {}) => fetch(url, { ...options, headers: { ...options.headers, 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
 
   const fetchUsers = async () => {
     try {

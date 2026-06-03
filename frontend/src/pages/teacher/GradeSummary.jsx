@@ -4,13 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/teacher/FloatingAssignmentSelector';
+import api from '../../utils/api';
 
 const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
 const TERM_PCTS = { PRELIMS: '20%', MIDTERMS: '20%', 'PRE-FINALS': '20%', FINALS: '40%' };
 const TERM_WEIGHTS = { PRELIMS: 0.20, MIDTERMS: 0.20, 'PRE-FINALS': 0.20, FINALS: 0.40 };
-
-const getToken = () => localStorage.getItem('token');
-const api = (url, options = {}) => fetch(url, { ...options, headers: { ...options.headers, 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
 
 const GRADE_RANGES = [
   { min: 98, gp: 1.00, desc: 'Excellent' },

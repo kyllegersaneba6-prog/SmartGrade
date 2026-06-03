@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit3, X, Building2, BookOpen } from 'lucide-react';
+import api from '../../utils/api';
 
 const ManageDepartments = () => {
   const [departments, setDepartments] = useState([]);
@@ -40,9 +41,6 @@ const ManageDepartments = () => {
 
   const errorColor = '#ef4444';
   const [error, setError] = useState('');
-
-  const getToken = () => localStorage.getItem('token');
-  const api = (url, options = {}) => fetch(url, { ...options, headers: { ...options.headers, 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
 
   const fetchDepartments = async () => {
     try {

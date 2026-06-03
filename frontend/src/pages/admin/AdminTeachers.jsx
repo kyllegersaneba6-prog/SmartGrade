@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Download, UserChec
 import * as XLSX from 'xlsx';
 import CreateAdminTeacher from './CreateAdminTeacher';
 import { useAdmin } from '../../contexts/AdminContext';
+import api from '../../utils/api';
 
 const USERS_PER_PAGE = 10;
 
@@ -73,8 +74,7 @@ const AdminTeachers = () => {
   const yearLevels = ['1st', '2nd', '3rd', '4th'];
   const yearLabels = { '1st': '1st Year', '2nd': '2nd Year', '3rd': '3rd Year', '4th': '4th Year' };
 
-  const getToken = () => localStorage.getItem('token');
-  const api = (url, options = {}) => fetch(url, { ...options, headers: { ...options.headers, 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
+
 
   const fetchTeachers = async () => {
     try {

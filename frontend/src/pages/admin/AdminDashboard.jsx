@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Users, BookOpen, Activity, Clock, GraduationCap } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
+import api from '../../utils/api';
 
 const AdminDashboard = () => {
   const { currentTerm, isArchiveMode } = useAdmin();
@@ -8,9 +9,6 @@ const AdminDashboard = () => {
   const [activityLog, setActivityLog] = useState([]);
   const [coursesCount, setCoursesCount] = useState(0);
   const [subjectCounts, setSubjectCounts] = useState({});
-
-  const getToken = () => localStorage.getItem('token');
-  const api = (url) => fetch(url, { headers: { 'Authorization': `Bearer ${getToken()}` } });
 
   const loadData = useCallback(async () => {
     try {

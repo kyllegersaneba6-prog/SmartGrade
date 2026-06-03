@@ -1,9 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api from '../utils/api';
 
 const ADMIN_VIEW_TERM_KEY = 'admin_view_term';
-
-const getToken = () => localStorage.getItem('token');
-const api = (url) => fetch(url, { headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
 
 const AdminContext = createContext(null);
 

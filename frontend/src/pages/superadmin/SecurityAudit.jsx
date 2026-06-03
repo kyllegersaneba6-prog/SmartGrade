@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Filter, RefreshCw, Download, Share2, FileText, Table2, BookOpen, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import api from '../../utils/api';
 
 const outputFormats = [
   { label: 'RAW LOGS', sub: 'JSON/TXT Format', pct: 100, icon: FileText, color: '#b5a98a' },
@@ -13,8 +14,7 @@ const SecurityAudit = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const getToken = () => localStorage.getItem('token');
-  const api = (url) => fetch(url, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+
 
   const fetchData = async () => {
     setLoading(true);

@@ -1,10 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api from '../utils/api';
 
 const LS_KEY = 'teacher_selected_assignment';
 const VIEW_TERM_KEY = 'teacher_view_term';
-
-const getToken = () => localStorage.getItem('token');
-const api = (url) => fetch(url, { headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
 
 const TeacherContext = createContext(null);
 

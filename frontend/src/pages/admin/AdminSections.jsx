@@ -13,8 +13,7 @@ const formatStudentId = (value) => {
 
 const yearLevels = ['1st', '2nd', '3rd', '4th'];
 
-const getToken = () => localStorage.getItem('token');
-const api = (url, options = {}) => fetch(url, { ...options, headers: { ...options.headers, 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
+import api from '../../utils/api';
 
 const AdminSections = () => {
   const [searchParams, setSearchParams] = useSearchParams();

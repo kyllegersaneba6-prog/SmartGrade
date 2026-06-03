@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
+import api from '../../utils/api';
 
 const genNumericId = () => String(Math.floor(1000 + Math.random() * 9000));
 
@@ -14,9 +15,6 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
   const [password, setPassword] = useState('smartgrade123');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const getToken = () => localStorage.getItem('token');
-  const api = (url, options = {}) => fetch(url, { ...options, headers: { ...options.headers, 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
 
   useEffect(() => {
     const fetchDepts = async () => {

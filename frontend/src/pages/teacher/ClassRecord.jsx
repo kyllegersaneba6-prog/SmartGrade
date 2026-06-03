@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/teacher/FloatingAssignmentSelector';
+import api from '../../utils/api';
 
 const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
 
@@ -15,9 +16,6 @@ const COMPONENT_COLORS = [
   { bg: '#84cc16', border: '#65a30d', light: '#f7fee7', headerBg: '#84cc16', headerBorder: '#65a30d' },
   { bg: '#ec4899', border: '#db2777', light: '#fdf2f8', headerBg: '#ec4899', headerBorder: '#db2777' },
 ];
-
-const getToken = () => localStorage.getItem('token');
-const api = (url, options = {}) => fetch(url, { ...options, headers: { ...options.headers, 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
 
 const ClassRecord = () => {
   const navigate = useNavigate();

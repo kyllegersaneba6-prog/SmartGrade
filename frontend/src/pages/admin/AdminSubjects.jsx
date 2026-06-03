@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, X, BookOpen, GraduationCap, Loader } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
-
-const getToken = () => localStorage.getItem('token');
-const api = (url, options = {}) => fetch(url, { ...options, headers: { ...options.headers, 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
+import api from '../../utils/api';
 
 const yearLevels = ['1st', '2nd', '3rd', '4th'];
 const yearLabels = { '1st': '1st Year', '2nd': '2nd Year', '3rd': '3rd Year', '4th': '4th Year' };
