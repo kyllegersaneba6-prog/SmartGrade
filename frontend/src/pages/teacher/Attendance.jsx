@@ -609,7 +609,7 @@ const Attendance = () => {
                             </td>
                           );
                         })}
-                        <td className={`px-2 py-2 text-center font-extrabold text-sm border-b border-gray-200 bg-white text-green-900`}>
+                        <td className={`px-2 py-2 text-center font-extrabold text-sm border-b border-gray-200 ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'} text-green-900`}>
                           {studentTotal.toFixed(0)}
                         </td>
                       </tr>
