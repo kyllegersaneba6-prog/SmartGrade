@@ -11,6 +11,7 @@
 
 - All layouts use a fixed sidebar + header + scrollable main content area
 - Sidebar is collapsible via a hamburger toggle on mobile
+- Sidebar nav links use `whitespace-nowrap` to prevent text wrapping on long item names
 - Content area uses `flex-1 overflow-y-auto p-6`
 - Header shows page title, active term badge, and a reload button
 

@@ -2,6 +2,17 @@
 
 ## 2026-06-03
 
+### Fixed: Sidebar nav item text wrapping on long names
+- Added `whitespace-nowrap` to nav link className in `SuperAdminSidebar.jsx`, `AdminSidebar.jsx`, and `teacher/Sidebar.jsx` to prevent "Departments & Courses" and other long names from line-breaking.
+
+## 2026-06-03
+
+### Fixed: Superadmin counted as admin in Department User Overview
+- `GlobalAnalytics.jsx:71`: removed `superadmin` from the admin counting condition so the superadmin user is no longer tallied as a department admin.
+- Previously, if a department had 1 assigned admin and the superadmin also belonged to that department (default seed data), the overview showed 2 admins instead of 1.
+
+## 2026-06-03
+
 ### Removed Reload Button from All Headers
 - Removed the `RotateCw` reload button from `SuperAdminLayout.jsx`, `AdminLayout.jsx`, and `teacher/Header.jsx`.
 - Removed associated `handleReload` logic and `refreshing` state from all three files.
@@ -27,6 +38,10 @@
 - Abstract geometrics replace hero.png illustration (user preference).
 
 ## 2026-06-03
+
+### Fixed: Department-wide subjects hidden in teacher assignment dropdown
+- **Frontend** (`AdminTeachers.jsx:199-200`): Client-side filter now includes subjects/sections with `course_id = null` (department-wide) when a specific course is selected.
+- **Backend** (`subjects.js:22`): Semester filter now uses `.or()` to include subjects with `semester = null` ("All Semesters") alongside the selected semester.
 
 ### Subjects Persist Across Terms
 - Removed `school_year` dependency from subjects — subjects are no longer filtered or tagged by school year.

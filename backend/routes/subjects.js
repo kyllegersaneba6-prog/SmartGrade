@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
     let query = supabase.from('subjects').select('*').order('name', { ascending: true });
     if (role === 'admin') query = query.eq('created_by', id);
     if (year) query = query.eq('year_level', year);
-    if (semester) query = query.eq('semester', semester);
+    if (semester) query = query.or(`semester.eq.${semester},semester.is.null`);
     if (course_id) query = query.or(`course_id.eq.${course_id},course_id.is.null`);
     const { data, error } = await query;
     if (error) return res.status(500).json({ error: error.message });

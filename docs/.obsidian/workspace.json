@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "formula.md",
+                "file": "02-database/tables-and-fields.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "formula"
+              "title": "tables-and-fields"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "formula.md",
+                "file": "03-api/api-routes.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for formula"
+              "title": "Backlinks for api-routes"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "formula.md",
+                "file": "03-api/api-routes.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from formula"
+              "title": "Outgoing links from api-routes"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "formula.md",
+                "file": "03-api/api-routes.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of formula"
+              "title": "Outline of api-routes"
             }
           }
         ]
@@ -185,21 +185,22 @@
   },
   "active": "7ebd46484508350f",
   "lastOpenFiles": [
-    "00-overview/setup-guide.md",
-    "formula.md",
-    "00-overview/project-summary.md",
-    "06-decisions/future-plans.md",
-    "06-decisions/decisions.md",
-    "05-development/bug-fixes.md",
-    "05-development/changelog.md",
+    "03-api/api-routes.md",
     "04-ui/screens.md",
-    "04-ui/design-system.md",
     "04-ui/navigation.md",
-    "02-database/tables-and-fields.md",
-    "02-database/database-schema.md",
+    "04-ui/design-system.md",
     "01-features/feature-list.md",
     "01-features/feature-details.md",
-    "03-api/api-routes.md",
+    "00-overview/setup-guide.md",
+    "00-overview/project-summary.md",
+    "05-development/changelog.md",
+    "05-development/bug-fixes.md",
+    "06-decisions/future-plans.md",
+    "06-decisions/decisions.md",
+    "02-database/tables-and-fields.md",
+    "02-database/database-schema.md",
+    "formula.md",
+    "2026-06-02.md",
     "03-api/request-response.md",
     "05-development/notes.md",
     "05-development/coding-rules.md"

@@ -196,8 +196,8 @@ const AdminTeachers = () => {
     } catch (err) { console.error(err); }
   };
 
-  const filteredSections = sectionsList.filter((s) => s.year_level === assignYear && (!assignCourse || s.course_id === assignCourse));
-  const filteredSubjects = subjectsList.filter((s) => s.year_level === assignYear && (!assignCourse || s.course_id === assignCourse));
+  const filteredSections = sectionsList.filter((s) => s.year_level === assignYear && (!assignCourse || s.course_id === assignCourse || !s.course_id));
+  const filteredSubjects = subjectsList.filter((s) => s.year_level === assignYear && (!assignCourse || s.course_id === assignCourse || !s.course_id));
 
   const handleAssign = async () => {
     if (!assignSection || !assignSubject || !teacherToAssign || !currentTerm) return;

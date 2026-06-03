@@ -70,7 +70,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 to={item.path}
                 onClick={onClose}
                 className={clsx(
-                  'flex items-center gap-3 px-6 py-3 transition-colors',
+                  'flex items-center gap-3 px-6 py-3 transition-colors whitespace-nowrap',
                   isActive
                     ? 'bg-sidebar-active text-gold font-medium border-l-4 border-gold'
                     : 'text-gray-300 hover:bg-sidebar-hover hover:text-white border-l-4 border-transparent'

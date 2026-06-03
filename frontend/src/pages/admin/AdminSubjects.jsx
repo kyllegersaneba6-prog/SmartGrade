@@ -269,7 +269,6 @@ const AdminSubjects = () => {
                 onChange={(e) => setAddSemester(e.target.value)}
                 className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
               >
-                <option value="">All Semesters</option>
                 <option value="1st Semester">1st Semester</option>
                 <option value="2nd Semester">2nd Semester</option>
                 <option value="Summer">Summer</option>
@@ -384,6 +383,11 @@ const AdminSubjects = () => {
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Subject</h3>
             <p className="text-sm text-gray-500 mb-4">Are you sure you want to delete <strong>{subjectToDelete?.name}</strong>?</p>
+            {!subjectToDelete?.course_id && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-3 py-2 rounded-lg mb-4">
+                This subject is assigned to ALL courses. Deleting it will remove it from every course.
+              </div>
+            )}
             <div className="mb-4"><label className="block text-xs font-bold text-gray-700 mb-1">Type <strong>Confirm</strong> to delete</label>
               <input type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
             </div>

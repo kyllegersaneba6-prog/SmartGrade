@@ -68,7 +68,7 @@ const GlobalAnalytics = () => {
     let dept = u.department || 'Unassigned';
     if (!deptMap[dept]) deptMap[dept] = { admins: 0, teachers: 0 };
     if (u.system_role === 'teacher') deptMap[dept].teachers++;
-    else if (u.system_role === 'admin' || u.system_role === 'superadmin') deptMap[dept].admins++;
+    else if (u.system_role === 'admin') deptMap[dept].admins++;
   });
   const departments = Object.entries(deptMap).map(([name, counts]) => ({ name, ...counts, total: counts.teachers + counts.admins }));
   const totals = { teachers: departments.reduce((s, d) => s + d.teachers, 0), admins: departments.reduce((s, d) => s + d.admins, 0) };
