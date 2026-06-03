@@ -5,8 +5,10 @@ import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/teacher/FloatingAssignmentSelector';
 import api from '../../utils/api';
-
-const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
+import {
+  TERMS, getComponentTotal, getComponentMaxTotal,
+  getComponentEquiv, getComponentWeighted, getFinalGrade
+} from '../../utils/gradeCalculations';
 
 const avg = (arr) => arr.length === 0 ? 0 : arr.reduce((s, v) => s + v, 0) / arr.length;
 
@@ -36,7 +38,7 @@ const BehavioralAnalytics = () => {
       } catch (err) { console.error(err); }
     };
     fetchStudents();
-  }, [selectedAssignment]);
+  }, [currentAssignment]);
 
   const fetchGradeData = async () => {
     if (!selectedAssignment) return;
@@ -69,41 +71,6 @@ const BehavioralAnalytics = () => {
   useEffect(() => { fetchGradeData(); }, [selectedAssignment, selectedTerm]);
 
   // --- Computation helpers ---
-  const getComponentTotal = (studentId, comp) => {
-    if (comp.is_attendance) {
-      return attendanceScores.scores[studentId] ?? 0;
-    }
-    const activities = comp.activities || [];
-    let sum = 0;
-    activities.forEach(a => {
-      const val = parseFloat(scores[a.id]?.[studentId]);
-      if (!isNaN(val)) sum += val;
-    });
-    return sum;
-  };
-
-  const getComponentMaxTotal = (comp) => {
-    if (comp.is_attendance) {
-      return attendanceScores.max_total;
-    }
-    const activities = comp.activities || [];
-    let sum = 0;
-    activities.forEach(a => sum += parseFloat(a.max_score || 0));
-    return sum;
-  };
-
-  const getComponentEquiv = (studentId, comp) => {
-    const total = getComponentTotal(studentId, comp);
-    const maxTotal = getComponentMaxTotal(comp);
-    if (maxTotal === 0) return 0;
-    return (total / maxTotal) * 50 + 50;
-  };
-
-  const getComponentWeighted = (studentId, comp) => {
-    const equiv = getComponentEquiv(studentId, comp);
-    return (equiv * comp.weight) / 100;
-  };
-
   const getComponentPerformance = (studentId, comp) => {
     if (comp.is_attendance) {
       if (attendanceScores.max_total === 0) return 0;
@@ -171,16 +138,6 @@ const BehavioralAnalytics = () => {
     return 'stable';
   };
 
-  const getFinalGrade = (studentId) => {
-    let sum = 0;
-    components.forEach(c => {
-      if (c.is_attendance || c.activities?.length > 0) {
-        sum += getComponentWeighted(studentId, c);
-      }
-    });
-    return sum;
-  };
-
   const getOverallSubRate = (studentId) => {
     const validComps = components.filter(c => c.is_attendance || c.activities?.length > 0);
     if (validComps.length === 0) return 0;
@@ -226,20 +183,20 @@ const BehavioralAnalytics = () => {
           name: c.name,
           weight: c.weight,
           is_attendance: c.is_attendance,
-          equiv: getComponentEquiv(s.id, c),
-          weighted: getComponentWeighted(s.id, c),
+          equiv: getComponentEquiv(s.id, c, scores, attendanceScores),
+          weighted: getComponentWeighted(s.id, c, scores, attendanceScores),
           submissionRate: getComponentSubmissionRate(s.id, c),
           performance: getComponentPerformance(s.id, c),
           trend: getComponentTrend(s.id, c),
           activities: scoredActivities,
-          maxTotal: getComponentMaxTotal(c),
-          total: getComponentTotal(s.id, c),
+          maxTotal: getComponentMaxTotal(c, attendanceScores),
+          total: getComponentTotal(s.id, c, scores, attendanceScores),
         };
       });
       result[s.id] = {
         student: s,
         components: componentData,
-        finalGrade: getFinalGrade(s.id),
+        finalGrade: getFinalGrade(s.id, components, scores, attendanceScores),
         overallSubRate: getOverallSubRate(s.id),
         attendanceRate: getAttendanceRate(s.id),
         overallPerformance: getOverallPerformance(s.id),

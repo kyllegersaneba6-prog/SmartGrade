@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Download, ArrowLeft, FileSpreadsheet, Percent, HelpCircle, Plus, Trash2, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
@@ -35,6 +35,8 @@ const ClassRecord = () => {
   const [addCompOpen, setAddCompOpen] = useState(false);
   const [copyingPrelims, setCopyingPrelims] = useState(false);
   const [error, setError] = useState('');
+  const [clampWarnings, setClampWarnings] = useState({});
+  const inputRefs = useRef({});
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -54,7 +56,7 @@ const ClassRecord = () => {
       } catch (err) { console.error(err); }
     };
     fetchStudents();
-  }, [selectedAssignment]);
+  }, [currentAssignment]);
 
   // Fetch components + scores when assignment or term changes
   const fetchGradeData = useCallback(async () => {
@@ -124,14 +126,23 @@ const ClassRecord = () => {
     if (isReadOnly) return;
     const raw = value === '' ? null : parseFloat(value);
     let numVal = raw;
+    let maxScore = null;
     if (numVal !== null) {
       for (const comp of components) {
         const act = (comp.activities || []).find(a => a.id === activityId);
         if (act && act.max_score) {
+          maxScore = act.max_score;
           numVal = Math.min(raw, act.max_score);
           break;
         }
       }
+    }
+    if (raw !== numVal && maxScore !== null) {
+      const key = `${activityId}-${studentId}`;
+      setClampWarnings(prev => ({ ...prev, [key]: maxScore }));
+      setTimeout(() => {
+        setClampWarnings(prev => { const c = { ...prev }; delete c[key]; return c; });
+      }, 3000);
     }
     const updated = { ...scores };
     if (!updated[activityId]) updated[activityId] = {};
@@ -309,6 +320,47 @@ const ClassRecord = () => {
 
   const totalWeight = components.reduce((sum, c) => sum + parseFloat(c.weight || 0), 0);
   const hasAttendance = components.some(c => c.is_attendance);
+
+  const visibleActivityIds = useMemo(() => {
+    const ids = [];
+    components.forEach(comp => {
+      if (!comp.is_attendance && comp.activities) {
+        comp.activities.forEach(act => ids.push(act.id));
+      }
+    });
+    return ids;
+  }, [components]);
+
+  const handleKeyDown = useCallback((e, studentId, colId, studentIndex, filteredStudents, editableIds) => {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      const dir = e.shiftKey ? -1 : 1;
+      const totalCols = editableIds.length;
+      const currentColIdx = editableIds.indexOf(colId);
+      if (currentColIdx === -1) return;
+      let ns = studentIndex;
+      let nc = currentColIdx + dir;
+      if (nc < 0) { nc = totalCols - 1; ns--; }
+      else if (nc >= totalCols) { nc = 0; ns++; }
+      if (ns < 0 || ns >= filteredStudents.length) return;
+      const el = inputRefs.current[`${filteredStudents[ns].id}:${editableIds[nc]}`];
+      if (el) { el.focus(); el.select(); }
+      return;
+    }
+    if (!e.key.startsWith('Arrow')) return;
+    e.preventDefault();
+    const totalCols = editableIds.length;
+    const currentColIdx = editableIds.indexOf(colId);
+    if (currentColIdx === -1) return;
+    let ns = studentIndex;
+    let nc = currentColIdx;
+    if (e.key === 'ArrowLeft') nc = Math.max(0, currentColIdx - 1);
+    else if (e.key === 'ArrowRight') nc = Math.min(totalCols - 1, currentColIdx + 1);
+    else if (e.key === 'ArrowUp') ns = Math.max(0, studentIndex - 1);
+    else if (e.key === 'ArrowDown') ns = Math.min(filteredStudents.length - 1, studentIndex + 1);
+    const el = inputRefs.current[`${filteredStudents[ns].id}:${editableIds[nc]}`];
+    if (el) { el.focus(); el.select(); }
+  }, []);
 
   // Dynamic column count for table
   let activityCount = 0;
@@ -722,10 +774,16 @@ const ClassRecord = () => {
                                 const raw = parseFloat(e.target.value) || 0;
                                 const others = prev.reduce((s, c) => c.id === comp.id ? s : s + parseFloat(c.weight || 0), 0);
                                 const clamped = Math.min(raw, Math.max(0, 100 - others));
+                                if (raw !== clamped) {
+                                  setClampWarnings(cw => ({ ...cw, [`weight-${comp.id}`]: 100 - others }));
+                                  setTimeout(() => {
+                                    setClampWarnings(cw => { const c = { ...cw }; delete c[`weight-${comp.id}`]; return c; });
+                                  }, 3000);
+                                }
                                 return prev.map(c => c.id === comp.id ? { ...c, weight: clamped } : c);
                               })}
                               onBlur={() => updateComponent(comp.id, { weight: comp.weight })}
-                              className="w-12 text-center text-xs font-extrabold text-sidebar bg-transparent focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                              className={`w-12 text-center text-xs font-extrabold text-sidebar bg-transparent focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed ${clampWarnings[`weight-${comp.id}`] ? 'text-amber-600' : ''}`}
                               min="0" max="100"
                               disabled={isReadOnly}
                             />
@@ -1025,11 +1083,18 @@ const ClassRecord = () => {
                             const inputVal = val !== null && val !== undefined ? val : '';
                             return (
                               <td key={act.id} className={`p-0.5 border-r border-b border-gray-200 ${isSelected ? 'bg-green-200' : 'bg-[#f3f4f6]'}`}>
-                                <input type="number" step="any" placeholder="0" value={inputVal === '' ? '' : inputVal}
-                                  disabled={totalWeight !== 100 || isReadOnly}
-                                  onChange={(e) => handleScoreChange(act.id, student.id, e.target.value)}
-                                  className="w-full text-center text-xs font-medium text-sidebar p-1 border border-transparent rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-40 disabled:cursor-not-allowed"
-                                  max={maxVal} />
+                                <div className="relative">
+                                  <input type="number" step="any" placeholder="0" value={inputVal === '' ? '' : inputVal}
+                                    ref={el => { if (el) inputRefs.current[`${student.id}:${act.id}`] = el; }}
+                                    disabled={totalWeight !== 100 || isReadOnly}
+                                    onChange={(e) => handleScoreChange(act.id, student.id, e.target.value)}
+                                    onKeyDown={(e) => handleKeyDown(e, student.id, act.id, index, filtered, visibleActivityIds)}
+                                    className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-40 disabled:cursor-not-allowed ${clampWarnings[`${act.id}-${student.id}`] ? 'border-amber-400 bg-amber-50' : 'border-transparent'}`}
+                                    max={maxVal} />
+                                  {clampWarnings[`${act.id}-${student.id}`] && (
+                                    <div className="absolute -top-1 right-0 w-2 h-2 bg-amber-400 rounded-full" title={`Value clamped to max ${clampWarnings[`${act.id}-${student.id}`]}`} />
+                                  )}
+                                </div>
                               </td>
                             );
                           }).concat(

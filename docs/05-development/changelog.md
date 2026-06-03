@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-06-04
+
+### Removed: Sticky header attempts on ClassRecord — fully reverted to original table
+- After multiple iterations (thead sticky → per-tr sticky → per-cell sticky → black borders), ClassRecord.jsx is fully restored to its original HEAD state. No overflow, sticky, or table-layout changes remain.
+- All sticky-header related entries below are superseded by this revert.
+
+### Added: Arrow key + Enter/Tab navigation in Attendance and Class Record tables
+- **Attendance.jsx**: Arrow keys (Left/Right/Up/Down) and Enter/Tab/Shift+Tab now move focus between editable score cells. Uses `inputRefs` map and `handleKeyDown` callback. Search-filtered order is respected. Focused cell content auto-selects.
+- **ClassRecord.jsx**: Same navigation for activity score inputs. Skips attendance columns (no per-activity inputs), TOTAL/EQUIV/W_TOTAL columns, and student info columns. Only navigates when `totalWeight === 100` and not read-only.
+- Both: Stops at boundaries (first/last cell). Disabled inputs are skipped. Tab wraps to next row at column end.
+
+### Fixed: Grade calculation functions extracted to shared utility (maintenance bug)
+- Extracted `TERMS`, `TERM_PCTS`, `TERM_WEIGHTS`, `GRADE_RANGES`, `gradeToPoint`, `getComponentTotal`, `getComponentMaxTotal`, `getComponentEquiv`, `getComponentWeighted`, and `getFinalGrade` from `GradeSummary.jsx` into `frontend/src/utils/gradeCalculations.js`.
+- Imported shared functions in `GradeSummary.jsx`, `ClassRecord.jsx`, and `BehavioralAnalytics.jsx`.
+- Removed 5 duplicated function definitions from `ClassRecord.jsx` (lines 265-308) and `BehavioralAnalytics.jsx` (lines 72-105, 174-182).
+- Any change to the transmutation formula or weight logic now needs only one edit instead of three copies.
+
+### Fixed: Effect dependency uses `selectedAssignment` instead of `currentAssignment` (stale students bug)
+- Changed `[selectedAssignment]` → `[currentAssignment]` in the student-fetching `useEffect` of `GradeSummary.jsx:94`, `ClassRecord.jsx:57`, and `BehavioralAnalytics.jsx:39`.
+- Previously, on page refresh, `selectedAssignment` restores from localStorage immediately but `currentAssignment` starts as `null`. When assignments loaded, the effect didn't re-run because the dep (`selectedAssignment`) didn't change — students were never fetched.
+
+### Fixed: Score input silently clamps without user feedback
+- **ClassRecord.jsx**: Added `clampWarnings` state tracking. `handleScoreChange` now detects when `raw !== clamped` value and stores a 3-second warning. Score input cells show an amber border + small dot indicator when clamped. Weight inputs turn amber text when clamped.
+- **Attendance.jsx**: Same pattern — `handleScoreChange` detects clamping to [0,2] range, shows amber border + dot indicator for 3 seconds.
+- Both files: warnings auto-clear via `setTimeout` after 3 seconds. No toast library was needed.
+
 ## 2026-06-03
 
 ### Fixed: Add Subjects modal — missing state declarations and dropdown options

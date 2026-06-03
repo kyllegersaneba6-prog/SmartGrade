@@ -383,14 +383,14 @@ Step 7 — Grade Point:
 
 ## Implementation Reference
 
-All computation functions live in `frontend/src/pages/teacher/GradeSummary.jsx`,
-and are duplicated in `ClassRecord.jsx` and `BehavioralAnalytics.jsx`.
+All computation functions live in `frontend/src/utils/gradeCalculations.js`
+and are imported by `GradeSummary.jsx`, `ClassRecord.jsx`, and `BehavioralAnalytics.jsx`.
 
 | Function | Input | Output | Formula |
 |----------|-------|--------|---------|
-| `getComponentTotal()` | studentId, component, scores map | number | Sum of scores for all activities in component |
-| `getComponentMaxTotal()` | component, attendance scores | number | Sum of max_scores for all activities |
-| `getComponentEquiv()` | studentId, component, scores | number | `(total / maxTotal) * 50 + 50` |
-| `getComponentWeighted()` | studentId, component, scores | number | `(equiv * weight) / 100` |
-| `getFinalGrade()` | studentId, components, scores | number | Sum of all component weighted values |
+| `getComponentTotal()` | studentId, component, scores, attScores | number | Sum of scores for all activities in component |
+| `getComponentMaxTotal()` | component, attScores | number | Sum of max_scores for all activities |
+| `getComponentEquiv()` | studentId, component, scores, attScores | number | `(total / maxTotal) * 50 + 50` |
+| `getComponentWeighted()` | studentId, component, scores, attScores | number | `(equiv * weight) / 100` |
+| `getFinalGrade()` | studentId, components, scores, attScores | number | Sum of all component weighted values |
 | `gradeToPoint()` | numeric grade | `{ gp, desc }` | Lookup in `GRADE_RANGES` array |

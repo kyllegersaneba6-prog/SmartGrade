@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CalendarCheck, Loader, Plus, X, Trash2, ArrowLeft, Cloud } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTeacher } from '../../contexts/TeacherContext';
@@ -80,6 +80,7 @@ const Attendance = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
+  const [clampWarnings, setClampWarnings] = useState({});
   const [syncing, setSyncing] = useState(false);
   const datePickerRef = useRef(null);
   const saveTimerRef = useRef(null);
@@ -87,6 +88,38 @@ const Attendance = () => {
   const studentsRef = useRef(students);
   const assignmentRef = useRef(selectedAssignment);
   const termRef = useRef(selectedTerm);
+  const inputRefs = useRef({});
+
+  const handleKeyDown = useCallback((e, studentId, colId, studentIndex, filteredStudents, editableIds) => {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      const dir = e.shiftKey ? -1 : 1;
+      const totalCols = editableIds.length;
+      const currentColIdx = editableIds.indexOf(colId);
+      if (currentColIdx === -1) return;
+      let ns = studentIndex;
+      let nc = currentColIdx + dir;
+      if (nc < 0) { nc = totalCols - 1; ns--; }
+      else if (nc >= totalCols) { nc = 0; ns++; }
+      if (ns < 0 || ns >= filteredStudents.length) return;
+      const el = inputRefs.current[`${filteredStudents[ns].id}:${editableIds[nc]}`];
+      if (el) { el.focus(); el.select(); }
+      return;
+    }
+    if (!e.key.startsWith('Arrow')) return;
+    e.preventDefault();
+    const totalCols = editableIds.length;
+    const currentColIdx = editableIds.indexOf(colId);
+    if (currentColIdx === -1) return;
+    let ns = studentIndex;
+    let nc = currentColIdx;
+    if (e.key === 'ArrowLeft') nc = Math.max(0, currentColIdx - 1);
+    else if (e.key === 'ArrowRight') nc = Math.min(totalCols - 1, currentColIdx + 1);
+    else if (e.key === 'ArrowUp') ns = Math.max(0, studentIndex - 1);
+    else if (e.key === 'ArrowDown') ns = Math.min(filteredStudents.length - 1, studentIndex + 1);
+    const el = inputRefs.current[`${filteredStudents[ns].id}:${editableIds[nc]}`];
+    if (el) { el.focus(); el.select(); }
+  }, []);
 
   useEffect(() => { columnsRef.current = columns; }, [columns]);
   useEffect(() => { studentsRef.current = students; }, [students]);
@@ -265,7 +298,15 @@ const Attendance = () => {
   };
 
   const handleScoreChange = (key, studentId, value) => {
-    const clamped = value === '' ? 0 : Math.max(0, Math.min(2, parseInt(value, 10) || 0));
+    const raw = value === '' ? null : parseInt(value, 10);
+    const clamped = value === '' ? 0 : Math.max(0, Math.min(2, raw || 0));
+    if (raw !== null && raw !== clamped) {
+      const ck = `${key}-${studentId}`;
+      setClampWarnings(prev => ({ ...prev, [ck]: true }));
+      setTimeout(() => {
+        setClampWarnings(prev => { const c = { ...prev }; delete c[ck]; return c; });
+      }, 3000);
+    }
     setAttendanceMap((prev) => {
       const next = { ...prev, [key]: { ...(prev[key] || {}), [studentId]: clamped } };
       persistKey(assignmentRef.current, selectedTerm, key, next[key]);
@@ -539,23 +580,32 @@ const Attendance = () => {
                         <td className={`px-2 py-1 sticky border-r-2 border-b border-border z-20 min-w-[180px] text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '160px' }} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
                         {columns.map((key) => {
                           const isSelected = selectedRow === student.id;
+                          const clampKey = `${key}-${student.id}`;
+                          const isClamped = clampWarnings[clampKey];
                           return (
                             <td key={key} className={`p-0.5 border-r border-b border-gray-200 ${isSelected ? 'bg-green-200' : 'bg-white'}`}>
-                              <input type="text" inputMode="numeric"
-                                value={attendanceMap[key]?.[student.id] ?? 0}
-                                onFocus={(e) => e.target.select()}
-                                onClick={(e) => e.target.select()}
-                                onChange={(e) => {
-                                  if (isReadOnly) return;
-                                  const raw = e.target.value;
-                                  if (raw === '') { handleScoreChange(key, student.id, 0); return; }
-                                  if (/^[0-2]$/.test(raw)) {
-                                    handleScoreChange(key, student.id, parseInt(raw, 10));
-                                  }
-                                }}
-                                className="w-full text-center text-xs font-medium text-sidebar p-1 border border-transparent rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                                disabled={isReadOnly}
-                              />
+                              <div className="relative">
+                                <input type="text" inputMode="numeric"
+                                  ref={el => { if (el) inputRefs.current[`${student.id}:${key}`] = el; }}
+                                  value={attendanceMap[key]?.[student.id] ?? 0}
+                                  onFocus={(e) => e.target.select()}
+                                  onClick={(e) => e.target.select()}
+                                  onChange={(e) => {
+                                    if (isReadOnly) return;
+                                    const raw = e.target.value;
+                                    if (raw === '') { handleScoreChange(key, student.id, 0); return; }
+                                    if (/^[0-2]$/.test(raw)) {
+                                      handleScoreChange(key, student.id, parseInt(raw, 10));
+                                    }
+                                  }}
+                                  onKeyDown={(e) => handleKeyDown(e, student.id, key, index, filtered, columns)}
+                                  className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${isClamped ? 'border-amber-400 bg-amber-50' : 'border-transparent'}`}
+                                  disabled={isReadOnly}
+                                />
+                                {isClamped && (
+                                  <div className="absolute -top-1 right-0 w-2 h-2 bg-amber-400 rounded-full" title="Value clamped to 0–2 range" />
+                                )}
+                              </div>
                             </td>
                           );
                         })}
