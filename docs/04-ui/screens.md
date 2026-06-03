@@ -9,7 +9,7 @@ Dark mode 2-column layout. Left column: login form card (logo, username/password
 | Route | Screen | Description |
 |---|---|---|
 | `/superadmin` | GlobalAnalytics | Metric cards (accounts, faculty, admins, logs), department overview table, system activity feed, broadcast notification form |
-| `/superadmin/security` | SecurityAudit | Security audit logs table |
+| `/superadmin/security` | SecurityAudit | Metric cards (critical alerts, system accesses, data exports), paginated audit log table |
 | `/superadmin/users` | SuperAdminUsers | Admin list with CRUD, pagination, Excel export |
 | `/superadmin/users/create` | CreateSuperAdminUser | Create new admin form |
 | `/superadmin/departments` | ManageDepartments | Department CRUD + nested course CRUD |

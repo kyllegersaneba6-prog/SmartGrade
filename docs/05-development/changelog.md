@@ -2,6 +2,10 @@
 
 ## 2026-06-03
 
+### Removed Uptime Health card from Security & Audit
+- Removed the hardcoded "UPTIME HEALTH" (99.9%) metric card from `SecurityAudit.jsx`.
+- Changed grid from `lg:grid-cols-4` to `lg:grid-cols-3` for the remaining 3 metrics.
+
 ### Changed Grade Summary to 20/20/20/40 weighted average
 - Changed final grade computation from simple arithmetic mean to weighted average (PRELIMS 20%, MIDTERMS 20%, PRE-FINALS 20%, FINALS 40%).
 - Added `TERM_WEIGHTS` constant in `GradeSummary.jsx`.

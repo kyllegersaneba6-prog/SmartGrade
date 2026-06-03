@@ -74,7 +74,6 @@ const SecurityAudit = () => {
     { label: 'CRITICAL ALERTS', value: criticalCount.toString().padStart(2, '0'), color: '#ef4444', bg: '#fee2e2', icon: '⚠', tooltip: 'High-risk system activities requiring immediate administrator attention.' },
     { label: 'SYSTEM ACCESSES', value: systemAccesses.toLocaleString(), color: '#1a2233', bg: '#f0ede6', icon: '↗', tooltip: 'Total authentication events across all user roles.' },
     { label: 'DATA EXPORTS', value: dataExports.toString(), color: '#1a2233', bg: '#f0ede6', icon: '📋', tooltip: 'Every database extraction and report generation event.' },
-    { label: 'UPTIME HEALTH', value: '99.9%', color: '#22c55e', bg: '#dcfce7', icon: '☁', tooltip: 'Real-time operational status of SmartGrade core servers.' },
   ];
 
   const ROWS_PER_PAGE = 10;
@@ -98,7 +97,7 @@ const SecurityAudit = () => {
         <button onClick={fetchData} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-white transition-colors hover:opacity-90" style={{ background: '#1a2233' }}><RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Data</button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {metrics.map(({ label, value, color, bg, icon, tooltip }) => (
           <div key={label} className="rounded-xl p-4 shadow-sm flex items-center justify-between" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
             <div>
