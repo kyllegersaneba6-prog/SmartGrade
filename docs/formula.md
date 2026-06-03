@@ -113,25 +113,33 @@ Final Term Grade = 38.33 + 27.60 + 19.33 + 9.75 = 95.01
 
 ## Step 6: Overall Final Grade (Grade Summary Page)
 
-The Grade Summary aggregates all 4 terms. The overall grade is the arithmetic mean of all available term grades.
+The Grade Summary aggregates all 4 terms with the following weights:
+
+| Term       | Weight |
+| ---------- | ------ |
+| PRELIMS    | 20%    |
+| MIDTERMS   | 20%    |
+| PRE-FINALS | 20%    |
+| FINALS     | 40%    |
 
 ```
-Overall Final Grade = Σ(Term Grade) / Number of Terms with data
+Overall Final Grade = Σ(Term Grade × Term Weight) / Σ(Term Weight)
 ```
 
-**Example:**
+If some terms have no data, the weights of available terms are renormalized (divided by their sum).
 
-| Term       | Grade |
-| ---------- | ----- |
-| PRELIMS    | 95.01 |
-| MIDTERMS   | 88.50 |
-| PRE-FINALS | 91.25 |
-| FINALS     | 93.00 |
+**Example (all 4 terms present):**
+
+| Term       | Grade | Weight | Weighted |
+| ---------- | ----- | ------ | -------- |
+| PRELIMS    | 95.01 | 20%    | 19.002   |
+| MIDTERMS   | 88.50 | 20%    | 17.700   |
+| PRE-FINALS | 91.25 | 20%    | 18.250   |
+| FINALS     | 93.00 | 40%    | 37.200   |
 
 ```
-Overall Final Grade = (95.01 + 88.50 + 91.25 + 93.00) / 4
-                    = 367.76 / 4
-                    = 91.94
+Overall Final Grade = (19.002 + 17.700 + 18.250 + 37.200) / 1.00
+                    = 92.15
 ```
 
 ---
@@ -365,7 +373,7 @@ Step 5 — Term Grade:
   PRELIMS Grade = 38.33 + 27.60 + 19.33 + 9.75 = 95.01
 
 Step 6 — Overall (after all 4 terms):
-  Overall = (PRELIMS + MIDTERMS + PRE-FINALS + FINALS) / 4
+  Overall = PRELIMS×0.20 + MIDTERMS×0.20 + PRE-FINALS×0.20 + FINALS×0.40
 
 Step 7 — Grade Point:
   95.01 → 1.25 — "Very Good"

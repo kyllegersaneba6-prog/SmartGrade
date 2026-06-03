@@ -6,6 +6,8 @@ import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/teacher/FloatingAssignmentSelector';
 
 const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
+const TERM_PCTS = { PRELIMS: '20%', MIDTERMS: '20%', 'PRE-FINALS': '20%', FINALS: '40%' };
+const TERM_WEIGHTS = { PRELIMS: 0.20, MIDTERMS: 0.20, 'PRE-FINALS': 0.20, FINALS: 0.40 };
 
 const getToken = () => localStorage.getItem('token');
 const api = (url, options = {}) => fetch(url, { ...options, headers: { ...options.headers, 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } });
@@ -146,7 +148,15 @@ const GradeSummary = () => {
         termGrades.push(grade);
       });
       if (termGrades.length > 0) {
-        const avg = termGrades.reduce((s, v) => s + v, 0) / termGrades.length;
+        let weightedSum = 0, totalWeight = 0;
+        TERMS.forEach(term => {
+          const g = row[term]?.grade;
+          if (g !== null) {
+            weightedSum += g * TERM_WEIGHTS[term];
+            totalWeight += TERM_WEIGHTS[term];
+          }
+        });
+        const avg = totalWeight > 0 ? weightedSum / totalWeight : 0;
         row.finalGrade = avg;
         const fpt = gradeToPoint(avg);
         row.finalGp = fpt.gp;
@@ -206,7 +216,7 @@ const GradeSummary = () => {
     // STUDENT INFORMATION spans cols 0-2
     mainHdrRow[0] = 'STUDENT INFORMATION';
     TERMS.forEach((t, i) => {
-      mainHdrRow[3 + i * 2] = t;
+      mainHdrRow[3 + i * 2] = `${t} ${TERM_PCTS[t]}`;
     });
     mainHdrRow[3 + TERMS.length * 2] = 'FINAL GRADE';
 
@@ -405,7 +415,7 @@ const GradeSummary = () => {
                     <th key={term} colSpan={2} className="border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0"
                       style={{ backgroundColor: '#3b82f6', borderColor: '#2563eb' }}
                     >
-                      {term}
+                      {term} {TERM_PCTS[term]}
                     </th>
                   ))}
                   <th className="bg-[#529344] border-b-2 border-[#3d7031] p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0" colSpan={3}>FINAL GRADE</th>

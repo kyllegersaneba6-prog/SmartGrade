@@ -2,6 +2,12 @@
 
 ## 2026-06-03
 
+### Changed Grade Summary to 20/20/20/40 weighted average
+- Changed final grade computation from simple arithmetic mean to weighted average (PRELIMS 20%, MIDTERMS 20%, PRE-FINALS 20%, FINALS 40%).
+- Added `TERM_WEIGHTS` constant in `GradeSummary.jsx`.
+- Added percentage labels to term headers and Excel export.
+- Updated `formula.md` Step 6 and full example to reflect weighted computation.
+
 ### Fixed: Sidebar nav item text wrapping on long names
 - Added `whitespace-nowrap` to nav link className in `SuperAdminSidebar.jsx`, `AdminSidebar.jsx`, and `teacher/Sidebar.jsx` to prevent "Departments & Courses" and other long names from line-breaking.
 
