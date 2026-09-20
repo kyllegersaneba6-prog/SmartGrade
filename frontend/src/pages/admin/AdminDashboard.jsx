@@ -164,7 +164,7 @@ const AdminDashboard = () => {
                 const mins = Math.floor(diff / 60000);
                 const timeAgo = mins < 1 ? 'Just now' : mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`;
                 return (
-                  <div key={log.id} className="flex gap-3 p-3 rounded-lg">
+                  <div key={log.id} className="flex gap-3 p-3 rounded-lg border border-blue-500">
                     <div className="flex-1 min-w-0">
                       <span className="font-semibold text-gray-800 text-xs">{log.action}</span>
                       <p className="text-[10px] text-gray-500 truncate">{isOwn ? `You ${log.details.charAt(0).toLowerCase() + log.details.slice(1)}` : log.details}</p>

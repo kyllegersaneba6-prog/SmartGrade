@@ -122,18 +122,18 @@ const SuperAdminSettings = () => {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Settings size={20} style={{ color: '#0F4A96' }} />
-            <h1 className="text-xl font-bold" style={{ color: '#0F4A96' }}>Settings</h1>
+            
+            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#0F4A96' }}>Settings</h1>
           </div>
         </div>
-        <p className="text-xs text-gray-500 mt-1">Manage academic terms and system settings</p>
+        <p className="text-xs text-gray-500 mt-1"></p>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#e5e0d5]">
-        <h2 className="text-sm font-bold text-gray-700 mb-4">Academic Term Management</h2>
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50">
+        <h2 className="text-sm font-bold text-gray-900 mb-4">Academic Term Management</h2>
 
         {noActiveTerm ? (
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
@@ -149,12 +149,12 @@ const SuperAdminSettings = () => {
           </div>
         ) : (
           activeTerm && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
+            <div className="bg-amber-400 border border-amber-400 rounded-xl p-5 mb-6">
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Active Term</span>
                   <p className="text-lg font-extrabold text-gray-900 mt-2">{activeTerm.school_year} — {activeTerm.semester}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Sections and assignments can only be added to this term.</p>
+                  <p className="text-xs text-gray-900 mt-0.5">Sections and assignments can only be added to this term.</p>
                 </div>
                 <button
                   onClick={() => { setEndSemesterOpen(true); setEndSemesterError(''); }}
@@ -169,11 +169,11 @@ const SuperAdminSettings = () => {
 
         {allTerms.length > 0 && (
           <div>
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Term History</h3>
+            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">Term History</h3>
             <div className="space-y-2">
               {allTerms.map(t => (
                 <div key={t.id} className={`flex items-center justify-between px-4 py-3 rounded-lg border ${
-                  t.is_active ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'
+                  t.is_active ? 'bg-amber-400 border-amber-400' : 'bg-gray-50 border-gray-200'
                 }`}>
                   <div className="flex items-center gap-3">
                     {t.is_active && <span className="w-2 h-2 rounded-full bg-amber-500" />}
@@ -211,7 +211,7 @@ const SuperAdminSettings = () => {
               <select
                 value={`${nextSchoolYear}|${nextSemester}`}
                 onChange={(e) => { const [sy, sem] = e.target.value.split('|'); setNextSchoolYear(sy); setNextSemester(sem); }}
-                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#0F4A96]"
+                className="w-full px-3 py-2 border border-gray-50 rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#0F4A96]"
               >
                 {(() => {
                   if (!activeTerm) return null;
@@ -261,7 +261,7 @@ const SuperAdminSettings = () => {
                 value={newSchoolYear}
                 onChange={(e) => setNewSchoolYear(e.target.value)}
                 placeholder="e.g. 2025-2026"
-                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#0F4A96]"
+                className="w-full px-3 py-2 border border-gray-50 rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#0F4A96]"
               />
             </div>
             <div className="mb-4">
@@ -269,7 +269,7 @@ const SuperAdminSettings = () => {
               <select
                 value={newSemester}
                 onChange={(e) => setNewSemester(e.target.value)}
-                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#0F4A96]"
+                className="w-full px-3 py-2 border border-gray-50 rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#0F4A96]"
               >
                 <option value="1st Semester">1st Semester</option>
                 <option value="2nd Semester">2nd Semester</option>

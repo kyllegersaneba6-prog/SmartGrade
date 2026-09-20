@@ -185,11 +185,10 @@ const ManageDepartments = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#0F4A96' }}>Departments & Courses</h1>
-          <p className="text-xs sm:text-sm mt-0.5 text-gray-500">Manage academic departments and their course offerings.</p>
-        </div>
+                  </div>
         <button onClick={() => { setAddDeptOpen(true); setError(''); }} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0F4A96', borderColor: '#0F4A96' }}><Plus size={14} /> Add Department</button>
       </div>
 
@@ -202,11 +201,11 @@ const ManageDepartments = () => {
       ) : (
         <div className="grid gap-4">
           {departments.map((dept) => (
-            <div key={dept.id} className="bg-white rounded-xl p-5 border border-[#e5e0d5] shadow-sm">
+            <div key={dept.id} className="bg-white rounded-xl p-5 border border-gray-50 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="p-2 rounded-lg" style={{ background: '#fef3c7' }}>
-                    <Building2 size={20} className="text-yellow-600" />
+                  <div className="p-2 rounded-lg" style={{ background: '#808080' }}>
+                    <Building2 size={20} className="text-blue-900" />
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-base font-bold text-gray-900" style={{ whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{dept.name}</h3>
@@ -215,21 +214,21 @@ const ManageDepartments = () => {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => openManageCourses(dept)}
-                    className="px-3 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs font-semibold hover:bg-gray-50"
-                    style={{ borderColor: '#e5e0d5' }}
+                    className="px-3 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs font-semibold hover:bg-gray-200"
+                    style={{ borderColor: ' #F9FAFB' }}
                   >
                     <BookOpen size={14} /> Courses
                   </button>
                   <button
                     onClick={() => { setEditDept(dept); setEditDeptName(dept.name); setEditDeptOpen(true); setError(''); }}
-                    className="p-1.5 rounded-md text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                    className="p-1.5 rounded-md text-blue-700 hover:text-blue-900 hover:bg-blue-50"
                     title="Edit department"
                   >
                     <Edit3 size={14} />
                   </button>
                   <button
                     onClick={() => { setDeleteDept(dept); setDeleteDeptOpen(true); setError(''); }}
-                    className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50"
+                    className="p-1.5 rounded-md text-red-700 hover:text-red-900 hover:bg-red-50"
                     title="Delete department"
                   >
                     <Trash2 size={14} />
@@ -302,7 +301,7 @@ const ManageDepartments = () => {
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 border border-gray-100 max-h-[80vh] flex flex-col">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-start gap-2 flex-1 min-w-0">
-                <div className="p-2 rounded-lg bg-yellow-50 shrink-0"><BookOpen size={20} className="text-yellow-600" /></div>
+                <div className="p-2 rounded-lg bg-blue-50 shrink-0"><BookOpen size={20} className="text-blue-900" /></div>
                 <div className="min-w-0">
                   <h3 className="text-lg font-bold text-gray-900">Courses</h3>
                   <p className="text-xs text-gray-400" style={{ whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{manageCoursesDept.name}</p>

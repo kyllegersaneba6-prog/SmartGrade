@@ -76,7 +76,7 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-      <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-50 max-h-[90vh] overflow-y-auto">
         <div className="mb-6 text-center">
           <h1 className="text-xl font-bold text-gray-900 mb-1">Create New Admin</h1>
           <p className="text-[10px] text-gray-500 uppercase tracking-wider">Provision a new admin account</p>
@@ -85,35 +85,35 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">First Name</label>
-              <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm" />
+              <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">First Name</label>
+              <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Last Name</label>
-              <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm" />
+              <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Last Name</label>
+              <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm" />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Department</label>
-            <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm">
+            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Department</label>
+            <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} className="w-full px-3 py-2 border border-gray-50 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm">
               <option value="" disabled>Select a department</option>
               {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Username (auto-generated)</label>
-            <input type="text" value={username} readOnly placeholder="Last name will auto-generate" className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
+            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Username (auto-generated)</label>
+            <input type="text" value={username} readOnly placeholder="Last name will auto-generate" className="w-full px-3 py-2 bg-gray-100 border border-gray-50 rounded-lg text-sm text-blackcursor-not-allowed font-mono" />
             {lastName.trim() && (
               <p className="text-[10px] text-gray-400 mt-1">Format: lastname.####@smartgrade (numeric only)</p>
             )}
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Password</label>
+            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Password</label>
             <div className="relative">
-              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm pr-10" />
+              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm pr-10" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
             </div>
           </div>

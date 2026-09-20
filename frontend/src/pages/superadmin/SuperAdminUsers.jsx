@@ -121,20 +121,19 @@ const SuperAdminUsers = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#F9FAFB]">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#0F4A96' }}>Admin Management</h1>
-          <p className="text-xs sm:text-sm mt-0.5 text-gray-500">Provision, edit, and manage all admin accounts.</p>
-        </div>
-        <span className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#8b5cf6' }}>{usersList.length} ADMINS</span>
+                  </div>
+        <span className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#000000' }}>{usersList.length} ADMINS</span>
       </div>
 
-      <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
+      <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid ##F9FAFB' }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold" style={{ color: '#000000' }}>Admin Accounts</h2>
           <div className="flex gap-2">
             <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0F4A96', borderColor: '#0F4A96' }}><UserPlus size={14} /> Add Admin</button>
-            <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#22c55e', borderColor: '#22c55e' }}><Download size={14} /> Export</button>
+            <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#FFCA28', borderColor: '#FFCA28' }}><Download size={14} /> Export</button>
           </div>
         </div>
 
@@ -162,10 +161,10 @@ const SuperAdminUsers = () => {
         </table></div>
 
         <div className="flex items-center justify-between mt-4 pt-3 border-t text-xs" style={{ borderColor: '#f0ede6' }}>
-          <span className="text-gray-700">Showing {Math.min((userPage - 1) * USERS_PER_PAGE + 1, usersList.length)}–{Math.min(userPage * USERS_PER_PAGE, usersList.length)} of {usersList.length}</span>
+          <span className="text-gray-900">Showing {Math.min((userPage - 1) * USERS_PER_PAGE + 1, usersList.length)}–{Math.min(userPage * USERS_PER_PAGE, usersList.length)} of {usersList.length}</span>
           <div className="flex items-center gap-2">
             <button onClick={() => setUserPage(p => Math.max(1, p - 1))} disabled={userPage === 1} className="p-1.5 rounded border text-gray-400 hover:text-sidebar hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed" style={{ borderColor: '#e5e0d5' }}><ChevronLeft size={14} /></button>
-            <span className="text-gray-500 font-medium">Page {userPage} of {totalUserPages}</span>
+            <span className="text-gray-900 font-medium">Page {userPage} of {totalUserPages}</span>
             <button onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))} disabled={userPage === totalUserPages} className="p-1.5 rounded border text-gray-400 hover:text-sidebar hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed" style={{ borderColor: '#e5e0d5' }}><ChevronRight size={14} /></button>
           </div>
         </div>
