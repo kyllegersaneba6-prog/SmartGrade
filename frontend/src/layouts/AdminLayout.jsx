@@ -23,18 +23,14 @@ const AdminLayoutInner = () => {
   return (
     <div className="min-h-screen bg-bg-light font-sans text-text-main">
       <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="lg:pl-[276px] flex flex-col h-[100dvh] overflow-hidden pt-16">
-        <header className="h-16 flex items-center justify-between px-4 md:px-6 lg:px-8 text-white border-b border-sidebar-hover shadow-sm fixed top-0 left-0 right-0 z-50 shrink-0" style={{ backgroundColor: '#0f4a82' }}>
+      <div className="lg:pl-[274px] flex flex-col h-[100dvh] overflow-hidden">
+        <header className="h-16 flex items-center justify-between px-4 md:px-6 lg:px-8 text-white border-b border-sidebar-hover shadow-sm shrink-0" style={{ backgroundColor: '#142a3f' }}>
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0 flex-1">
             <button onClick={() => setSidebarOpen(true)} className="text-gray-300 hover:text-white lg:hidden shrink-0">
               <Menu size={22} />
             </button>
-            <div className="flex flex-row items-center gap-2 hidden md:flex">
-              <img src="/src/assets/logo.png" className="w-8 h-8 object-contain" alt="SmartGrade Logo" />
-              <span className="text-gold font-bold text-xl tracking-wide">SmartGrade</span>
-            </div>
-            <span className="text-white/50 hidden md:block">|</span>
             <h3 className="text-xs sm:text-sm text-white truncate font-medium">{getTitle()}</h3>
+            <span className="text-[10px] bg-gold/20 text-gold border border-gold/30 px-3 py-1 rounded-full font-bold uppercase tracking-wider">ADMIN PORTAL</span>
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-gold/20 text-gold whitespace-nowrap">{JSON.parse(localStorage.getItem('user') || '{}')?.department}</span>
             {currentTerm && (
               <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap border ${
@@ -43,9 +39,11 @@ const AdminLayoutInner = () => {
                 {isArchiveMode && <Archive size={10} className="inline mr-1" />}
                 {currentTerm.school_year} — {currentTerm.semester}
               </span>
+    
             )}
+            
           </div>
-
+          
         </header>
 
         {isArchiveMode && currentTerm && (
@@ -78,3 +76,5 @@ const AdminLayout = () => (
 );
 
 export default AdminLayout;
+
+

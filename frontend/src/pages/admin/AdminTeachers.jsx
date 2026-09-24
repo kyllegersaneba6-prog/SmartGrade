@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Download, UserCheck, BookOpen, GraduationCap, Calendar, CheckCircle, Eye, X, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Upload, UserCheck, BookOpen, GraduationCap, Calendar, CheckCircle, Eye, X, Lock } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import CreateAdminTeacher from './CreateAdminTeacher';
 import { useAdmin } from '../../contexts/AdminContext';
@@ -228,51 +228,51 @@ const AdminTeachers = () => {
   const paginated = teachers.slice((page - 1) * USERS_PER_PAGE, page * USERS_PER_PAGE);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pt-4 md:pt-6 lg:pt-8">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#f5a623' }}>Teacher Management</h1>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Teacher Management</h1>
           <p className="text-xs sm:text-sm mt-0.5 text-gray-500">Provision, edit, and manage all teacher accounts.</p>
         </div>
-        <span className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#6b7280' }}>{teachers.length} TEACHERS</span>
+        <span className="text-[10px] sm:text-sm font-bold px-3 py-1 rounded-full text-white" style={{ background: '#000000' }}>{teachers.length} TEACHERS</span>
       </div>
 
-      <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid #e5e0d5' }}>
+      <div className="rounded-xl p-5 shadow-sm border border-gray-50" style={{ background: '#fff' }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold" style={{ color: '#f5a623' }}>Teacher Accounts</h2>
+          <h2 className="text-base font-bold" style={{ color: '#000000' }}>Teacher Accounts</h2>
           <div className="flex gap-2">
-            <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#f5a623', borderColor: '#f5a623' }}><UserPlus size={14} /> Add Teacher</button>
-            <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#22c55e', borderColor: '#22c55e' }}><Download size={14} /> Export</button>
+            <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#000000', borderColor: '#000000' }}><UserPlus size={14} /> Add Teacher</button>
+            <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-black text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#ffbd38', borderColor: '#ffbd38' }}><Upload size={14} /> Export</button>
           </div>
         </div>
 
         <div className="table-responsive"><table className="w-full text-xs min-w-[600px]">
           <thead>
             <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
-              {['NAME', 'USERNAME', 'ASSIGNED COURSE', 'ACTIONS'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">{h}</th>))}
+              {['NAME', 'USERNAME', 'ASSIGNED COURSE', 'ACTIONS'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">{h}</th>))}
             </tr>
           </thead>
           <tbody>
             {paginated.map((u) => (
               <tr key={u.rawId} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
                 <td className="py-3 pr-3 font-bold text-gray-900">{u.name}</td>
-                <td className="py-3 pr-3 text-gray-500 text-[11px]">{u.username}</td>
+                <td className="py-3 pr-3 text-gray-900 text-[12px]">{u.username}</td>
                 <td className="py-3 pr-3">
                   {teacherCourses[u.rawId]?.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {teacherCourses[u.rawId].map((c, i) => (
-                        <span key={i} className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600">{c}</span>
+                        <span key={i} className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-900 ">{c}</span>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-[10px] text-gray-300">—</span>
+                    <span className="text-[10px] text-gray-500">—</span>
                   )}
                 </td>
                 <td className="py-3">
                   <div className="flex items-center gap-1">
-                    <button onClick={() => openViewModal(u)} className="text-blue-600 hover:text-blue-800 transition-colors p-1 rounded-md hover:bg-blue-50 flex items-center gap-1 text-[11px] font-semibold" title="View Assigned"><Eye size={14} /> View</button>
+                    <button onClick={() => openViewModal(u)} className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded-md hover:bg-white flex items-center gap-1 text-[11px] font-semibold" title="View Assigned"><Eye size={14} /> View</button>
                     <div className="relative group inline-block">
-                      <button onClick={() => openAssignModal(u)} disabled={isArchiveMode} className={`text-emerald-600 transition-colors p-1 rounded-md flex items-center gap-1 text-[11px] font-semibold ${isArchiveMode ? 'opacity-40 cursor-not-allowed' : 'hover:text-emerald-800 hover:bg-emerald-50'}`} title={isArchiveMode ? 'Cannot assign while viewing archives' : 'Assign'}><UserCheck size={14} /> Assign</button>
+                      <button onClick={() => openAssignModal(u)} disabled={isArchiveMode} className={`text-black transition-colors p-1 rounded-md flex items-center gap-1 text-[11px] font-semibold ${isArchiveMode ? 'opacity-40 cursor-not-allowed' : 'hover:text-blackhover:bg-gray-300'}`} title={isArchiveMode ? 'Cannot assign while viewing archives' : 'Assign'}><UserCheck size={14} /> Assign</button>
                       {isArchiveMode && <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">Cannot modify while viewing archives</div>}
                     </div>
                     <button onClick={() => openEditModal(u)} className="text-blue-500 hover:text-blue-700 transition-colors p-1 rounded-md hover:bg-blue-50" title="Edit"><Pencil size={14} /></button>
@@ -285,11 +285,11 @@ const AdminTeachers = () => {
         </table></div>
 
         <div className="flex items-center justify-between mt-4 pt-3 border-t text-xs" style={{ borderColor: '#f0ede6' }}>
-          <span className="text-gray-400">Showing {Math.min((page - 1) * USERS_PER_PAGE + 1, teachers.length)}–{Math.min(page * USERS_PER_PAGE, teachers.length)} of {teachers.length}</span>
+          <span className="text-gray-900">Showing {Math.min((page - 1) * USERS_PER_PAGE + 1, teachers.length)}–{Math.min(page * USERS_PER_PAGE, teachers.length)} of {teachers.length}</span>
           <div className="flex items-center gap-2">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded border text-gray-400 hover:text-sidebar hover:border-gray-400 disabled:opacity-40" style={{ borderColor: '#e5e0d5' }}><ChevronLeft size={14} /></button>
-            <span className="text-gray-500 font-medium">Page {page} of {totalPages}</span>
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded border text-gray-400 hover:text-sidebar hover:border-gray-400 disabled:opacity-40" style={{ borderColor: '#e5e0d5' }}><ChevronRight size={14} /></button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded border text-gray-500 hover:text-sidebar hover:border-gray-900 disabled:opacity-40" style={{ borderColor: '#e5e0d5' }}><ChevronLeft size={14} /></button>
+            <span className="text-gray-900 font-medium">Page {page} of {totalPages}</span>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded border text-gray-500 hover:text-sidebar hover:border-gray-900 disabled:opacity-40" style={{ borderColor: '#e5e0d5' }}><ChevronRight size={14} /></button>
           </div>
         </div>
       </div>
@@ -380,11 +380,11 @@ const AdminTeachers = () => {
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Teacher</h3>
             <div className="space-y-4">
-              <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Name</label><input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm" /></div>
+              <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Name</label><input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000000] bg-gray-100 text-sm" /></div>
             </div>
             <div className="flex gap-3 justify-end mt-6">
               <button onClick={() => { setEditModalOpen(false); setTeacherToEdit(null); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={editLoading}>Cancel</button>
-              <button onClick={handleEditSave} disabled={editLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#f5a623' }}>{editLoading ? 'Saving...' : 'Save Changes'}</button>
+              <button onClick={handleEditSave} disabled={editLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#000000' }}>{editLoading ? 'Saving...' : 'Save Changes'}</button>
             </div>
           </div>
         </div>
@@ -394,10 +394,10 @@ const AdminTeachers = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-5">
-              <div className="p-2 rounded-lg bg-emerald-50"><UserCheck size={22} className="text-emerald-600" /></div>
+              <div className="p-2 rounded-lg bg-gray-100"><UserCheck size={22} className="text-black" /></div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Assign Teacher</h3>
-                <p className="text-xs text-gray-400">Assign <strong className="text-gray-700">{teacherToAssign?.name}</strong> to a class</p>
+                <p className="text-xs text-gray-900">Assign <strong className="text-gray-700">{teacherToAssign?.name}</strong> to a class</p>
               </div>
             </div>
 
@@ -410,7 +410,7 @@ const AdminTeachers = () => {
               </div>
             ) : (
               <>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-5 space-y-1">
+                <div className="bg-amber-50 border border-amber-400 rounded-lg px-4 py-3 mb-5 space-y-1">
                   <p className="text-xs text-amber-700 font-medium">
                     Select the year level, section, and subject to assign this teacher.
                   </p>
@@ -421,22 +421,22 @@ const AdminTeachers = () => {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5"><Calendar size={14} /> Year Level</label>
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider mb-1.5"><Calendar size={14} /> Year Level</label>
                     <select
                       value={assignYear}
                       onChange={(e) => { setAssignYear(e.target.value); setAssignSection(''); }}
-                      className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                      className="w-full px-3 py-2 border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000000] bg-gray-100  text-sm"
                     >
                       {yearLevels.map((y) => <option key={y} value={y}>{yearLabels[y]}</option>)}
                     </select>
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5"><BookOpen size={14} /> Course</label>
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider mb-1.5"><BookOpen size={14} /> Course</label>
                     <select
                       value={assignCourse}
                       onChange={(e) => { setAssignCourse(e.target.value); setAssignSection(''); setAssignSubject(''); }}
-                      className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                      className="w-full px-3 py-2 border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000000] bg-gray-100  text-sm"
                     >
                       <option value="">-- Select Course --</option>
                       {coursesList.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.abbreviation})</option>)}
@@ -444,44 +444,44 @@ const AdminTeachers = () => {
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5"><GraduationCap size={14} /> Section</label>
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider mb-1.5"><GraduationCap size={14} /> Section</label>
                     <select
                       value={assignSection}
                       onChange={(e) => setAssignSection(e.target.value)}
                       disabled={!assignCourse}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#fbf8f1]'}`}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000000] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100'}`}
                     >
                       <option value="">-- Select Section --</option>
                       {filteredSections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                     {!assignCourse ? (
-                      <p className="text-[10px] text-gray-400 mt-1">Select a course first.</p>
+                      <p className="text-[10px] text-gray-900 mt-1">Select a course first.</p>
                     ) : filteredSections.length === 0 ? (
-                      <p className="text-[10px] text-gray-400 mt-1">No sections found for {yearLabels[assignYear]} and selected course.</p>
+                      <p className="text-[10px] text-gray-900 mt-1">No sections found for {yearLabels[assignYear]} and selected course.</p>
                     ) : null}
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5"><BookOpen size={14} /> Subject</label>
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider mb-1.5"><BookOpen size={14} /> Subject</label>
                     <select
                       value={assignSubject}
                       onChange={(e) => setAssignSubject(e.target.value)}
                       disabled={!assignCourse}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#fbf8f1]'}`}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000000] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100'}`}
                     >
                       <option value="">-- Select Subject --</option>
                       {filteredSubjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                     {!assignCourse ? (
-                      <p className="text-[10px] text-gray-400 mt-1">Select a course first.</p>
+                      <p className="text-[10px] text-gray-900 mt-1">Select a course first.</p>
                     ) : filteredSubjects.length === 0 ? (
-                      <p className="text-[10px] text-gray-400 mt-1">No subjects found for {yearLabels[assignYear]} and selected course.</p>
+                      <p className="text-[10px] text-gray-900 mt-1">No subjects found for {yearLabels[assignYear]} and selected course.</p>
                     ) : null}
                   </div>
 
                   <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
-                    <p className="text-xs text-gray-500">
-                      <span className="font-semibold text-gray-700">Summary:</span>{' '}
+                  <p className="text-xs text-gray-900">
+                    <span className="font-semibold text-gray-700">Summary:</span>{' '}
                       {teacherToAssign?.name} will be assigned to{' '}
                       <strong className="text-gray-700">{sectionsList.find((s) => s.id === assignSection)?.name || '___'}</strong>
                       {' '}—{' '}
@@ -498,7 +498,7 @@ const AdminTeachers = () => {
                     onClick={handleAssign}
                     disabled={!assignSection || !assignSubject || assignLoading}
                     className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50"
-                    style={{ background: '#22c55e' }}
+                    style={{ background: '#000000' }}
                   >
                     {assignLoading ? 'Assigning...' : <><UserCheck size={16} /> Assign</>}
                   </button>
@@ -550,3 +550,5 @@ const AdminTeachers = () => {
 };
 
 export default AdminTeachers;
+
+

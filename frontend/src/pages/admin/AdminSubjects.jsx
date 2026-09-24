@@ -132,15 +132,13 @@ const AdminSubjects = () => {
   const maxRows = Math.max(...grouped.map((g) => g.subjects.length), 0);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pt-4 md:pt-6 lg:pt-8">
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#f5a623' }}>Manage Subjects</h1>
-            <p className="text-xs sm:text-sm mt-0.5 text-gray-500">Add and organize subjects per year level.</p>
-          </div>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Manage Subjects</h1>
+          <p className="text-xs sm:text-sm mt-0.5 text-gray-500">Add and organize subjects per year level.</p>
         </div>
-        <div className="flex items-center gap-3 mt-3">
+        <div className="flex items-center gap-3">
           <div className="relative group inline-block">
             <button
               onClick={() => { if (!isArchiveMode) { setSelectedYear('1st'); setAddCourseId(''); setAddSemester(''); setShowAdd(true); setSubjectRows([{ code: '', name: '' }]); setError(''); } }}
@@ -148,7 +146,7 @@ const AdminSubjects = () => {
               className={`px-4 py-2 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
                 isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
               }`}
-              style={{ background: '#f5a623' }}
+              style={{ background: '#000000' }}
             >
               Add Subject
             </button>
@@ -158,11 +156,11 @@ const AdminSubjects = () => {
               </div>
             )}
           </div>
-          <select
-            value={semesterFilter}
-            onChange={(e) => setSemesterFilter(e.target.value)}
-            className="px-3 py-1.5 text-xs font-semibold border border-[#e5e0d5] rounded-lg bg-[#fbf8f1] focus:outline-none focus:ring-2 focus:ring-[#f5a623]"
-          >
+            <select
+              value={semesterFilter}
+              onChange={(e) => setSemesterFilter(e.target.value)}
+              className="px-3 py-1.5 text-xs font-semibold border border-black rounded-lg bg-gray-300 focus:outline-none focus:ring-2 focus:ring-[#000000]"
+            >
             <option value="1st Semester">1st Semester</option>
             <option value="2nd Semester">2nd Semester</option>
             <option value="Summer">Summer</option>
@@ -171,7 +169,7 @@ const AdminSubjects = () => {
             <select
               value={selectedCourseId}
               onChange={(e) => setSelectedCourseId(e.target.value)}
-              className="px-3 py-1.5 text-xs font-semibold border border-[#e5e0d5] rounded-lg bg-[#fbf8f1] focus:outline-none focus:ring-2 focus:ring-[#f5a623]"
+              className="px-3 py-1.5 text-sm font-semibold border border-black rounded-lg bg-gray-300 focus:outline-none focus:ring-2 focus:ring-[#000000]"
             >
               <option value="">All Courses</option>
               {courses.map(c => <option key={c.id} value={c.id}>{c.abbreviation} — {c.name}</option>)}
@@ -182,7 +180,7 @@ const AdminSubjects = () => {
 
       {error && <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-4 py-2 rounded-lg whitespace-pre-line">{error}</div>}
 
-      <div className="bg-white rounded-xl shadow-sm border border-[#e5e0d5] overflow-x-auto">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-50 overflow-x-auto">
         {loading ? (
           <div className="flex justify-center py-12"><Loader size={20} className="animate-spin text-gray-400" /></div>
         ) : subjects.length === 0 ? (
@@ -193,9 +191,9 @@ const AdminSubjects = () => {
         ) : (
           <table className="w-full text-xs table-fixed">
             <thead>
-              <tr className="border-b" style={{ borderColor: '#c0b8a8' }}>
+              <tr className="border-b" style={{ borderColor: '#000000' }}>
                 {yearLevels.map((y) => (
-                  <th key={y} className="text-left pb-3 pt-3 px-4 font-bold text-gray-600 text-sm border-r last:border-r-0" style={{ borderColor: '#c0b8a8' }}>
+                  <th key={y} className="text-left pb-3 pt-3 px-4 font-bold text-black text-sm border-r last:border-r-0" style={{ borderColor: '#000000' }}>
                     {yearLabels[y]}
                   </th>
                 ))}
@@ -203,14 +201,14 @@ const AdminSubjects = () => {
             </thead>
             <tbody>
               {Array.from({ length: Math.max(maxRows, 1) }).map((_, rowIdx) => (
-                <tr key={rowIdx} className="border-b last:border-0" style={{ borderColor: '#c0b8a8' }}>
+                <tr key={rowIdx} className="border-b last:border-0" style={{ borderColor: '#000000' }}>
                   {grouped.map((g) => (
-                    <td key={g.year} className="px-4 py-2 border-r last:border-r-0 align-top" style={{ borderColor: '#c0b8a8' }}>
+                    <td key={g.year} className="px-4 py-2 border-r last:border-r-0 align-top" style={{ borderColor: '#000000' }}>
                       {g.subjects[rowIdx] ? (
                           <div className="flex items-center justify-between group px-2 py-1.5 rounded-lg hover:bg-gray-50 -mx-2 cursor-pointer" onClick={() => openAssignModal(g.subjects[rowIdx])}>
                             <div className="flex items-center gap-1.5 min-w-0">
-                            {g.subjects[rowIdx].code && <span className="text-gray-400 font-mono text-[11px] leading-tight mt-0.5 shrink-0 w-[68px] text-center">{g.subjects[rowIdx].code}</span>}
-                            <span className="text-gray-700 font-medium text-[13px] leading-tight break-words min-w-0">{g.subjects[rowIdx].name}</span>
+                            {g.subjects[rowIdx].code && <span className="text-gray-900 font-mono text-[11px] leading-tight mt-0.5 shrink-0 w-[68px] text-center">{g.subjects[rowIdx].code}</span>}
+                            <span className="text-gray-900 font-medium text-[13px] leading-tight break-words min-w-0">{g.subjects[rowIdx].name}</span>
                             {!g.subjects[rowIdx].course_id && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 ml-1.5 shrink-0">All Courses</span>}
                           </div>
                           {!isArchiveMode && (
@@ -244,7 +242,7 @@ const AdminSubjects = () => {
               <select
                 value={addCourseId}
                 onChange={(e) => setAddCourseId(e.target.value)}
-                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
               >
                 <option value="" disabled>-- Select Course --</option>
                 <option value="">All Courses (Department-wide)</option>
@@ -256,7 +254,7 @@ const AdminSubjects = () => {
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
-                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
               >
                 <option value="" disabled>-- Select Year Level --</option>
                 {yearLevels.map((y) => <option key={y} value={y}>{yearLabels[y]}</option>)}
@@ -267,7 +265,7 @@ const AdminSubjects = () => {
               <select
                 value={addSemester}
                 onChange={(e) => setAddSemester(e.target.value)}
-                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
               >
                 <option value="" disabled>-- Select Semester --</option>
                 <option value="1st Semester">1st Semester</option>
@@ -291,7 +289,7 @@ const AdminSubjects = () => {
                       setSubjectRows(next);
                     }}
                     placeholder="e.g. MATH1001"
-                    className="w-28 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm font-mono"
+                    className="w-28 px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm font-mono"
                     maxLength={8}
                     autoFocus={i === 0}
                   />
@@ -304,7 +302,7 @@ const AdminSubjects = () => {
                       setSubjectRows(next);
                     }}
                     placeholder="e.g. Mathematics 1"
-                    className="flex-1 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                    className="flex-1 px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (i === subjectRows.length - 1) setSubjectRows([...subjectRows, { code: '', name: '' }]); } }}
                   />
                   {subjectRows.length > 1 && (
@@ -328,7 +326,7 @@ const AdminSubjects = () => {
               </button>
               <div className="flex gap-3">
                 <button onClick={() => { setShowAdd(false); setSubjectRows([{ code: '', name: '' }]); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-                <button onClick={addSubjects} disabled={adding || !selectedYear || !addSemester} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#f5a623' }}>{adding ? 'Adding...' : 'Add'}</button>
+                <button onClick={addSubjects} disabled={adding || !selectedYear || !addSemester} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#000000' }}>{adding ? 'Adding...' : 'Add'}</button>
               </div>
             </div>
           </div>
@@ -404,3 +402,5 @@ const AdminSubjects = () => {
 };
 
 export default AdminSubjects;
+
+

@@ -88,7 +88,7 @@ const BulkStudentImport = () => {
     <div className="min-h-screen bg-[#fbf6eb] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="max-w-4xl mx-auto p-6 md:p-10">
         <div className="bg-white rounded-2xl shadow-lg border border-[#e5e0d5] overflow-hidden">
-          <div className="bg-[#0f4a82] px-6 py-5 flex items-center justify-between">
+          <div className="bg-[#142a3f] px-6 py-5 flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight">Bulk Student Import</h1>
               <p className="text-xs text-white/70 mt-1">Add multiple students to a section at once</p>
@@ -123,7 +123,7 @@ const BulkStudentImport = () => {
 
             <div className="overflow-x-auto rounded-xl border border-[#e5e0d5]">
               <table className="w-full text-xs">
-                <thead className="bg-[#0f4a82] text-white">
+                <thead className="bg-[#142a3f] text-white">
                   <tr>
                     <th className="text-left px-3 py-2.5 font-semibold">#</th>
                     <th className="text-left px-3 py-2.5 font-semibold">Student ID</th>
@@ -166,3 +166,5 @@ const BulkStudentImport = () => {
 };
 
 export default BulkStudentImport;
+
+

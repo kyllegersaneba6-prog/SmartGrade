@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Download, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Upload, Eye, EyeOff } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import CreateSuperAdminUser from './CreateSuperAdminUser';
 import api from '../../utils/api';
@@ -123,7 +123,7 @@ const SuperAdminUsers = () => {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#F9FAFB]">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#0F4A96' }}>Admin Management</h1>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Admin Management</h1>
                   </div>
         <span className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#000000' }}>{usersList.length} ADMINS</span>
       </div>
@@ -132,8 +132,8 @@ const SuperAdminUsers = () => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold" style={{ color: '#000000' }}>Admin Accounts</h2>
           <div className="flex gap-2">
-            <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0F4A96', borderColor: '#0F4A96' }}><UserPlus size={14} /> Add Admin</button>
-            <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#FFCA28', borderColor: '#FFCA28' }}><Download size={14} /> Export</button>
+            <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#142a3f', borderColor: '#142a3f' }}><UserPlus size={14} /> Add Admin</button>
+            <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-black text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#ffbd38', borderColor: '#ffbd38' }}><Upload size={14} /> Export</button>
           </div>
         </div>
 
@@ -175,13 +175,13 @@ const SuperAdminUsers = () => {
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Admin</h3>
             <div className="space-y-4">
-              <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Name</label><input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm" /></div>
+              <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Name</label><input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" /></div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Username</label>
                 <input type="text" value={editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed" />
               </div>
               <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Department</label>
-                <select value={editForm.department_id} onChange={(e) => { const dept = departments.find(d => d.id === e.target.value); setEditForm({ ...editForm, department_id: e.target.value, department: dept ? dept.name : '' }); }} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm">
+                <select value={editForm.department_id} onChange={(e) => { const dept = departments.find(d => d.id === e.target.value); setEditForm({ ...editForm, department_id: e.target.value, department: dept ? dept.name : '' }); }} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm">
                   <option value="">Select department</option>
                   {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
@@ -189,14 +189,14 @@ const SuperAdminUsers = () => {
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">New Password (leave blank to keep current)</label>
                 <div className="relative">
-                  <input type={showEditPassword ? "text" : "password"} value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep current" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm pr-10" />
+                  <input type={showEditPassword ? "text" : "password"} value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep current" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm pr-10" />
                   <button type="button" onClick={() => setShowEditPassword(!showEditPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
                 </div>
               </div>
             </div>
             <div className="flex gap-3 justify-end mt-6">
               <button onClick={() => { setEditModalOpen(false); setUserToEdit(null); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={editLoading}>Cancel</button>
-              <button onClick={handleEditSave} disabled={editLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#0F4A96' }}>{editLoading ? 'Saving...' : 'Save Changes'}</button>
+              <button onClick={handleEditSave} disabled={editLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#142a3f' }}>{editLoading ? 'Saving...' : 'Save Changes'}</button>
             </div>
           </div>
         </div>
@@ -224,3 +224,5 @@ const SuperAdminUsers = () => {
 };
 
 export default SuperAdminUsers;
+
+

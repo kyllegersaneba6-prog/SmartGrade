@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Trash2, X, UserPlus, BookOpen, Loader, Upload } from 'lucide-react';
+import { Plus, Trash2, X, UserPlus, Layers, Loader, Upload } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import Pagination from '../../components/common/Pagination';
 import * as XLSX from 'xlsx';
@@ -314,38 +314,23 @@ const AdminSections = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {currentTerm && (
-        <div className={`flex items-center justify-between px-5 py-3 rounded-2xl shadow-sm border ${!isArchiveMode ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}`}>
-          <div className="flex items-center gap-3">
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${!isArchiveMode ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-500'}`}>
-              {!isArchiveMode ? 'Active Term' : 'Archived'}
-            </span>
-            <span className="text-sm font-semibold text-gray-800">{currentTerm.school_year} — {currentTerm.semester}</span>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#e5e0d5]">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#f5a623' }}>Manage Sections</h1>
-            <p className="text-xs sm:text-sm mt-0.5 text-gray-500">{yearLabels[year] || year}</p>
+            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Manage Sections</h1>
+            <p className="text-xs sm:text-sm mt-0.5 text-gray-900">{yearLabels[year] || year}</p>
           </div>
           {courses.length > 0 && (
             <select
               value={selectedCourseId}
               onChange={(e) => setSelectedCourseId(e.target.value)}
-              className="px-3 py-1.5 text-xs font-semibold border border-[#e5e0d5] rounded-lg bg-[#fbf8f1] focus:outline-none focus:ring-2 focus:ring-[#f5a623]"
+              className="px-3 py-1.5 text-sm font-semibold border border-black rounded-lg bg-gray-300 focus:outline-none focus:ring-2 focus:ring-[#000000]"
             >
               <option value="">All courses</option>
               {courses.map(c => <option key={c.id} value={c.id}>{c.abbreviation} — {c.name}</option>)}
             </select>
           )}
-          {!isArchiveMode && currentTerm && (
-            <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">
-              {currentTerm.school_year} — {currentTerm.semester}
-            </span>
-          )}
+          
         </div>
         <div className="flex items-center gap-2">
           {yearLevels.map((y) => (
@@ -355,9 +340,9 @@ const AdminSections = () => {
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
                 year === y
                   ? 'text-white shadow-sm'
-                  : 'text-gray-500 bg-gray-100 hover:bg-gray-200'
+                  : 'text-gray-900 bg-gray-300 hover:bg-gray-200'
               }`}
-              style={year === y ? { background: '#f5a623' } : {}}
+              style={year === y ? { background: '#000000' } : {}}
             >
               {y} Year
             </button>
@@ -368,10 +353,10 @@ const AdminSections = () => {
       {error && <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-4 py-2 rounded-lg">{error}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className="lg:col-span-1 bg-white rounded-xl p-5 shadow-sm border border-[#e5e0d5]">
+        <div className="lg:col-span-1 bg-white rounded-xl p-5 shadow-sm border border-gray-50">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-              <BookOpen size={16} style={{ color: '#f5a623' }} /> Sections
+            <h2 className="text-sm font-bold text-black flex items-center gap-2">
+              <Layers size={16} style={{ color: '#000000' }} /> Sections
             </h2>
             <div className="relative group">
               <button
@@ -380,7 +365,7 @@ const AdminSections = () => {
                 className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
                   isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
                 }`}
-                style={{ background: '#f5a623' }}
+                style={{ background: '#000000' }}
               >
                 <Plus size={14} /> Add
               </button>
@@ -403,8 +388,8 @@ const AdminSections = () => {
                   key={section.id}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm ${
                     selectedSection?.id === section.id
-                      ? 'bg-amber-50 text-amber-700 font-semibold'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-gray-500 text-black font-bold'
+                      : 'text-black bg-gray-100 hover:bg-gray-300 font-bold'
                   }`}
                   onClick={() => setSelectedSection(section)}
                 >
@@ -413,7 +398,7 @@ const AdminSections = () => {
                     <button
                       onClick={(e) => { e.stopPropagation(); if (!isArchiveMode) { setSectionToDelete(section); setConfirmSectionText(''); setDeleteSectionOpen(true); } }}
                       disabled={isArchiveMode}
-                      className={`transition-colors ${isArchiveMode ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-red-500'}`}
+                      className={`transition-colors ${isArchiveMode ? 'text-gray-300 cursor-not-allowed' : 'text-gray-900 hover:text-red-900'}`}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -429,17 +414,17 @@ const AdminSections = () => {
           )}
         </div>
 
-        <div className="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-[#e5e0d5]">
+        <div className="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-gray-50">
           {!selectedSection ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-              <BookOpen size={48} className="mb-3 opacity-30" />
+              <Layers size={48} className="mb-3 opacity-30" />
               <p className="text-sm font-medium">Select a section to view its students</p>
             </div>
           ) : (
             <>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-bold text-gray-700">
-                  Students — <span style={{ color: '#f5a623' }}>{selectedSection.name}</span>
+                <h2 className="text-sm font-bold text-gray-900">
+                  Students — <span style={{ color: '#000000' }}>{selectedSection.name}</span>
                 </h2>
                 <input
                   type="file"
@@ -465,7 +450,7 @@ const AdminSections = () => {
                       className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
                         isArchiveMode || !selectedSection ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
                       }`}
-                      style={{ background: '#22c55e' }}
+                      style={{ background: '#000000' }}
                     >
                       <UserPlus size={14} /> Add Multiple
                     </button>
@@ -482,7 +467,7 @@ const AdminSections = () => {
                       className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
                         isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
                       }`}
-                      style={{ background: '#22c55e' }}
+                      style={{ background: '#000000' }}
                     >
                       <UserPlus size={14} /> Add Student
                     </button>
@@ -496,10 +481,10 @@ const AdminSections = () => {
                     <button
                       onClick={() => { if (!isArchiveMode) { fileInputRef.current?.click(); } }}
                       disabled={isArchiveMode}
-                      className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
+                      className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-black rounded-lg shadow-sm transition-transform ${
                         isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
                       }`}
-                      style={{ background: '#3b82f6' }}
+                      style={{ background: '#ffbd38' }}
                     >
                       <Upload size={14} /> Import
                     </button>
@@ -522,11 +507,11 @@ const AdminSections = () => {
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
-                          <th className="text-left pb-2 pr-3 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">#</th>
-                          <th className="text-left pb-2 pr-3 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Student ID</th>
-                          <th className="text-left pb-2 pr-3 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Student Name</th>
-                          <th className="text-left pb-2 pr-3 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Gender</th>
-                          <th className="text-left pb-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Action</th>
+                          <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">#</th>
+                          <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Student ID</th>
+                          <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Student Name</th>
+                          <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Gender</th>
+                          <th className="text-left pb-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -589,7 +574,7 @@ const AdminSections = () => {
                   value={newSectionLetter}
                   onChange={(e) => setNewSectionLetter(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2))}
                   placeholder="e.g. A"
-                  className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm mb-2"
+                  className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm mb-2"
                   autoFocus
                   maxLength={2}
                   onKeyDown={(e) => e.key === 'Enter' && addSection()}
@@ -643,7 +628,7 @@ const AdminSections = () => {
                     }}
                     placeholder="Student ID (00-0000-000)"
                     maxLength={11}
-                    className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm font-mono"
+                    className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm font-mono"
                     autoFocus={i === 0}
                   />
                   <input
@@ -655,7 +640,7 @@ const AdminSections = () => {
                       setStudentRows(next);
                     }}
                     placeholder="First Name"
-                    className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                    className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
                   />
                   <input
                     type="text"
@@ -666,7 +651,7 @@ const AdminSections = () => {
                       setStudentRows(next);
                     }}
                     placeholder="Last Name"
-                    className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                    className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
                   />
                   <div className="flex items-center gap-2">
                     <input
@@ -679,7 +664,7 @@ const AdminSections = () => {
                       }}
                       placeholder="M.I."
                       maxLength={1}
-                      className="w-20 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm text-center"
+                      className="w-20 px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm text-center"
                     />
                     <select
                       value={row.gender}
@@ -688,7 +673,7 @@ const AdminSections = () => {
                         next[i] = { ...next[i], gender: e.target.value };
                         setStudentRows(next);
                       }}
-                      className="flex-1 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                      className="flex-1 px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
                     >
                       <option value="">Select Gender</option>
                       <option value="Male">Male</option>
@@ -803,18 +788,18 @@ const AdminSections = () => {
                   {importSkipped.length > 0 && (
                     <div>
                       <p className="text-xs font-bold text-amber-700 mb-1 flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Skipped (Duplicate ID)
+                        <span className="w-2 h-2 rounded-full bg-amber-900 inline-block" /> Skipped (Duplicate ID)
                       </p>
                       <div className="border border-gray-200 rounded-lg overflow-hidden">
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="border-b bg-gray-50" style={{ borderColor: '#f0ede6' }}>
-                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">#</th>
-                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Student ID</th>
-                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">First Name</th>
-                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Last Name</th>
-                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">MI</th>
-                              <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Gender</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">#</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Student ID</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">First Name</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Last Name</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">MI</th>
+                              <th className="text-left px-3 py-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Gender</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -884,3 +869,5 @@ const AdminSections = () => {
 };
 
 export default AdminSections;
+
+

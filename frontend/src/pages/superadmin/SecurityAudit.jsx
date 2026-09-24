@@ -42,7 +42,7 @@ const SecurityAudit = () => {
     switch (user.system_role) {
       case 'superadmin': return { role: 'system', color: '#ef4444', name: user.full_name };
       case 'admin': return { role: 'admin', color: '#0F4A82', name: user.full_name };
-      case 'teacher': return { role: 'teacher', color: '#FFCA28', name: user.full_name };
+      case 'teacher': return { role: 'teacher', color: '#ffbd38', name: user.full_name };
       default: return { role: 'system', color: '#3b82f6', name: user.full_name };
     }
   };
@@ -72,7 +72,7 @@ const SecurityAudit = () => {
 
   const metrics = [
     { label: 'CRITICAL ALERTS', value: criticalCount.toString().padStart(2, '0'), color: '#FF0000', bg: '#e12727', icon: '⚠', tooltip: 'High-risk system activities requiring immediate administrator attention.' },
-    { label: 'SYSTEM ACCESSES', value: systemAccesses.toLocaleString(), color: '#000000', bg: '#FFCA28', icon: '↗', tooltip: 'Total authentication events across all user roles.' },
+    { label: 'SYSTEM ACCESSES', value: systemAccesses.toLocaleString(), color: '#000000', bg: '#ffbd38', icon: '↗', tooltip: 'Total authentication events across all user roles.' },
   ];
 
   const ROWS_PER_PAGE = 10;
@@ -90,7 +90,7 @@ const SecurityAudit = () => {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#0f4a82' }}>Security & Audit Logs</h1>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Security & Audit</h1>
         </div>
       </div>
 
@@ -158,3 +158,5 @@ const SecurityAudit = () => {
 };
 
 export default SecurityAudit;
+
+

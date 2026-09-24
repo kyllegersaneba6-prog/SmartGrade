@@ -40,10 +40,10 @@ const AdminSidebar = ({ isOpen, onClose }) => {
 
       <div
         className={clsx(
-          'w-68 text-white flex flex-col fixed top-[66px] left-0.5 right-0.5 bottom-0.5 shrink-0 z-40 sidebar-transition rounded',
+          'w-68 text-white flex flex-col fixed top-0 left-0 bottom-0 shrink-0 z-40 sidebar-transition',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
-        style={{ backgroundColor: '#0f4a82' }}
+        style={{ backgroundColor: '#142a3f' }}
       >
         <button
           onClick={onClose}
@@ -52,8 +52,9 @@ const AdminSidebar = ({ isOpen, onClose }) => {
           <X size={20} />
         </button>
 
-        <div className="p-6 pb-8">
-          <h1 className="font-bold text-md leading-tight uppercase tracking-wider">Admin Portal</h1>
+        <div className="flex flex-row items-center gap-2 p-6">
+            <img src="/src/assets/logo.png" className="w-8 h-8 object-contain" alt="SmartGrade Logo" />
+            <span className="text-gold font-bold text-xl tracking-wide">SmartGrade</span>
         </div>
 
         <nav className="flex-1 space-y-1">
@@ -113,3 +114,5 @@ const AdminSidebar = ({ isOpen, onClose }) => {
 };
 
 export default AdminSidebar;
+
+

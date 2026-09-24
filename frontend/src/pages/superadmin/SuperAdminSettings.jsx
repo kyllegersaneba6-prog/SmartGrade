@@ -126,10 +126,10 @@ const SuperAdminSettings = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             
-            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#0F4A96' }}>Settings</h1>
+            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Settings</h1>
           </div>
         </div>
-        <p className="text-xs text-gray-500 mt-1"></p>
+        <p className="text-xs text-gray-500 mt-1">View academic terms and browse archived semesters</p>
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50">
@@ -142,7 +142,7 @@ const SuperAdminSettings = () => {
             <button
               onClick={() => { setCreateTermOpen(true); setCreateTermError(''); }}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm transition-colors"
-              style={{ background: '#0F4A96' }}
+              style={{ background: '#142a3f' }}
             >
               <Plus size={16} /> Create Term
             </button>
@@ -211,7 +211,7 @@ const SuperAdminSettings = () => {
               <select
                 value={`${nextSchoolYear}|${nextSemester}`}
                 onChange={(e) => { const [sy, sem] = e.target.value.split('|'); setNextSchoolYear(sy); setNextSemester(sem); }}
-                className="w-full px-3 py-2 border border-gray-50 rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#0F4A96]"
+                className="w-full px-3 py-2 border border-gray-50 rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#142a3f]"
               >
                 {(() => {
                   if (!activeTerm) return null;
@@ -261,7 +261,7 @@ const SuperAdminSettings = () => {
                 value={newSchoolYear}
                 onChange={(e) => setNewSchoolYear(e.target.value)}
                 placeholder="e.g. 2025-2026"
-                className="w-full px-3 py-2 border border-gray-50 rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#0F4A96]"
+                className="w-full px-3 py-2 border border-gray-50 rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#142a3f]"
               />
             </div>
             <div className="mb-4">
@@ -269,7 +269,7 @@ const SuperAdminSettings = () => {
               <select
                 value={newSemester}
                 onChange={(e) => setNewSemester(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-50 rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#0F4A96]"
+                className="w-full px-3 py-2 border border-gray-50 rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#142a3f]"
               >
                 <option value="1st Semester">1st Semester</option>
                 <option value="2nd Semester">2nd Semester</option>
@@ -279,7 +279,7 @@ const SuperAdminSettings = () => {
             {createTermError && <p className="text-xs font-semibold text-red-500 mb-3">{createTermError}</p>}
             <div className="flex gap-3 justify-end">
               <button onClick={() => { setCreateTermOpen(false); setNewSchoolYear(''); setNewSemester('1st Semester'); setCreateTermError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={creatingTerm}>Cancel</button>
-              <button onClick={createTerm} disabled={!newSchoolYear.trim() || creatingTerm} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${newSchoolYear.trim() && !creatingTerm ? 'shadow-sm' : 'opacity-50 cursor-not-allowed'}`} style={{ background: newSchoolYear.trim() && !creatingTerm ? '#0F4A96' : '#d1d5db' }}>{creatingTerm ? 'Creating...' : 'Create Term'}</button>
+              <button onClick={createTerm} disabled={!newSchoolYear.trim() || creatingTerm} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${newSchoolYear.trim() && !creatingTerm ? 'shadow-sm' : 'opacity-50 cursor-not-allowed'}`} style={{ background: newSchoolYear.trim() && !creatingTerm ? '#142a3f' : '#d1d5db' }}>{creatingTerm ? 'Creating...' : 'Create Term'}</button>
             </div>
           </div>
         </div>
@@ -289,3 +289,5 @@ const SuperAdminSettings = () => {
 };
 
 export default SuperAdminSettings;
+
+

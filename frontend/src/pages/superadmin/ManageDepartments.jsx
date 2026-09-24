@@ -180,16 +180,16 @@ const ManageDepartments = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-16"><div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-[#0F4A96] rounded-full" /></div>;
+    return <div className="flex justify-center py-16"><div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-[#142a3f] rounded-full" /></div>;
   }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#0F4A96' }}>Departments & Courses</h1>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Departments & Courses</h1>
                   </div>
-        <button onClick={() => { setAddDeptOpen(true); setError(''); }} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0F4A96', borderColor: '#0F4A96' }}><Plus size={14} /> Add Department</button>
+        <button onClick={() => { setAddDeptOpen(true); setError(''); }} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#142a3f', borderColor: '#142a3f' }}><Plus size={14} /> Add Department</button>
       </div>
 
       {departments.length === 0 ? (
@@ -248,13 +248,13 @@ const ManageDepartments = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Department Name</label>
-                <input type="text" value={deptName} onChange={(e) => setDeptName(e.target.value)} placeholder="e.g. College of Engineering (COE)" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm" />
+                <input type="text" value={deptName} onChange={(e) => setDeptName(e.target.value)} placeholder="e.g. College of Engineering (COE)" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" />
               </div>
               {error && <p className="text-sm font-semibold" style={{ color: errorColor }}>{error}</p>}
             </div>
             <div className="flex gap-3 justify-end mt-6">
               <button onClick={() => { setAddDeptOpen(false); setDeptName(''); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-              <button onClick={handleAddDept} disabled={!deptName.trim() || addDeptLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#0F4A96' }}>{addDeptLoading ? 'Adding...' : 'Add Department'}</button>
+              <button onClick={handleAddDept} disabled={!deptName.trim() || addDeptLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#142a3f' }}>{addDeptLoading ? 'Adding...' : 'Add Department'}</button>
             </div>
           </div>
         </div>
@@ -268,13 +268,13 @@ const ManageDepartments = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Department Name</label>
-                <input type="text" value={editDeptName} onChange={(e) => setEditDeptName(e.target.value)} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm" />
+                <input type="text" value={editDeptName} onChange={(e) => setEditDeptName(e.target.value)} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" />
               </div>
               {error && <p className="text-sm font-semibold" style={{ color: errorColor }}>{error}</p>}
             </div>
             <div className="flex gap-3 justify-end mt-6">
               <button onClick={() => { setEditDeptOpen(false); setEditDept(null); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-              <button onClick={handleEditDept} disabled={!editDeptName.trim() || editDeptLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#0F4A96' }}>{editDeptLoading ? 'Saving...' : 'Save'}</button>
+              <button onClick={handleEditDept} disabled={!editDeptName.trim() || editDeptLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#142a3f' }}>{editDeptLoading ? 'Saving...' : 'Save'}</button>
             </div>
           </div>
         </div>
@@ -311,7 +311,7 @@ const ManageDepartments = () => {
                 <button
                   onClick={() => { setAddCourseOpen(true); setError(''); }}
                   className="px-3 py-1.5 rounded-lg border flex items-center gap-1 text-xs font-bold text-white shadow-sm hover:scale-105"
-                  style={{ background: '#0F4A96', borderColor: '#0F4A96' }}
+                  style={{ background: '#142a3f', borderColor: '#142a3f' }}
                 >
                   <Plus size={12} /> Add Course
                 </button>
@@ -321,7 +321,7 @@ const ManageDepartments = () => {
 
             <div className="flex-1 overflow-y-auto">
               {courseLoading ? (
-                <div className="flex justify-center py-12"><div className="animate-spin w-5 h-5 border-2 border-gray-300 border-t-[#0F4A96] rounded-full" /></div>
+                <div className="flex justify-center py-12"><div className="animate-spin w-5 h-5 border-2 border-gray-300 border-t-[#142a3f] rounded-full" /></div>
               ) : deptCourses.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
@@ -373,17 +373,17 @@ const ManageDepartments = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Course Name</label>
-                <input type="text" value={courseName} onChange={(e) => setCourseName(e.target.value)} placeholder="e.g. Bachelor of Science in Information Technology" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm" />
+                <input type="text" value={courseName} onChange={(e) => setCourseName(e.target.value)} placeholder="e.g. Bachelor of Science in Information Technology" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Abbreviation</label>
-                <input type="text" value={courseAbbreviation} onChange={(e) => setCourseAbbreviation(e.target.value)} placeholder="e.g. BSIT" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm uppercase" />
+                <input type="text" value={courseAbbreviation} onChange={(e) => setCourseAbbreviation(e.target.value)} placeholder="e.g. BSIT" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm uppercase" />
               </div>
               {error && <p className="text-sm font-semibold" style={{ color: errorColor }}>{error}</p>}
             </div>
             <div className="flex gap-3 justify-end mt-6">
               <button onClick={() => { setAddCourseOpen(false); setCourseName(''); setCourseAbbreviation(''); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-              <button onClick={handleAddCourse} disabled={!courseName.trim() || !courseAbbreviation.trim() || addCourseLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#0F4A96' }}>{addCourseLoading ? 'Adding...' : 'Add Course'}</button>
+              <button onClick={handleAddCourse} disabled={!courseName.trim() || !courseAbbreviation.trim() || addCourseLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#142a3f' }}>{addCourseLoading ? 'Adding...' : 'Add Course'}</button>
             </div>
           </div>
         </div>
@@ -397,17 +397,17 @@ const ManageDepartments = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Course Name</label>
-                <input type="text" value={editCourseName} onChange={(e) => setEditCourseName(e.target.value)} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm" />
+                <input type="text" value={editCourseName} onChange={(e) => setEditCourseName(e.target.value)} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Abbreviation</label>
-                <input type="text" value={editCourseAbbreviation} onChange={(e) => setEditCourseAbbreviation(e.target.value)} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F4A96] bg-[#fbf8f1] text-sm uppercase" />
+                <input type="text" value={editCourseAbbreviation} onChange={(e) => setEditCourseAbbreviation(e.target.value)} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm uppercase" />
               </div>
               {error && <p className="text-sm font-semibold" style={{ color: errorColor }}>{error}</p>}
             </div>
             <div className="flex gap-3 justify-end mt-6">
               <button onClick={() => { setEditCourseOpen(false); setEditCourse(null); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-              <button onClick={handleEditCourse} disabled={!editCourseName.trim() || editCourseLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#0F4A96' }}>{editCourseLoading ? 'Saving...' : 'Save'}</button>
+              <button onClick={handleEditCourse} disabled={!editCourseName.trim() || editCourseLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#142a3f' }}>{editCourseLoading ? 'Saving...' : 'Save'}</button>
             </div>
           </div>
         </div>
@@ -432,3 +432,5 @@ const ManageDepartments = () => {
 };
 
 export default ManageDepartments;
+
+
