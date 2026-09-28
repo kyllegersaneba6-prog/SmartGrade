@@ -76,15 +76,14 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pt-0">
-      <div className="bg-[#142a3f] from-sidebar to-sidebar-hover p-8 rounded-3xl text-white shadow-md relative overflow-hidden">
+      <div className="p-8 rounded-3xl text-white shadow-md relative" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <Users size={160} className="absolute -right-8 -bottom-8 opacity-10 text-white" />
         <div className="relative z-10 space-y-4">
           
           <h2 className="text-3xl font-extrabold tracking-tight mt-2">Welcome, {JSON.parse(localStorage.getItem('user') || '{}')?.full_name || 'Admin'}</h2>
-          {(JSON.parse(localStorage.getItem('user') || '{}')?.department) && (
-            <p className="text-xs text-gold font-semibold mt-1">{JSON.parse(localStorage.getItem('user') || '{}').department}</p>
-          )}
-          
+          <p className="text-amber-400 text-sm max-w-xl leading-relaxed mt-1">
+            Manage departments, Teachers, and monitor activity logs.
+          </p>       
         </div>
       </div>
 
@@ -215,5 +214,6 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
 
 

@@ -3,7 +3,7 @@ import { Download, ArrowLeft, FileSpreadsheet, Percent, HelpCircle, Plus, Trash2
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
-import AssignmentSelector from '../../components/teacher/FloatingAssignmentSelector';
+import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
 
@@ -38,6 +38,7 @@ const ClassRecord = () => {
   const [copyingPrelims, setCopyingPrelims] = useState(false);
   const [error, setError] = useState('');
   const [clampWarnings, setClampWarnings] = useState({});
+  const [deleteModal, setDeleteModal] = useState(null);
   const inputRefs = useRef({});
 
   useEffect(() => {
@@ -155,7 +156,7 @@ const ClassRecord = () => {
 
   // Add component
   const addComponent = async (isAttendance) => {
-    if (!selectedAssignment) return;
+    if (!selectedAssignment || totalWeight === 100) return;
     if (isAttendance && hasAttendance) return;
     setAddCompOpen(false);
     try {
@@ -164,7 +165,7 @@ const ClassRecord = () => {
         body: JSON.stringify({
           teacher_assignment_id: selectedAssignment,
           term: selectedTerm,
-          name: isAttendance ? 'Attendance' : 'New Component',
+          name: isAttendance ? 'Attendance' : 'Assessment',
           weight: 0,
           is_attendance: isAttendance || false
         })
@@ -172,6 +173,7 @@ const ClassRecord = () => {
       if (res.ok) {
         const comp = await res.json();
         comp.activities = [];
+        if (!isAttendance) comp.name = '';
         setComponents(prev => [...prev, comp]);
       }
     } catch (err) { console.error(err); }
@@ -236,12 +238,14 @@ const ClassRecord = () => {
     try {
       const res = await api('http://localhost:5000/api/component-activities', {
         method: 'POST',
-        body: JSON.stringify({ component_id: componentId, name: 'New', max_score: 100 })
+        body: JSON.stringify({ component_id: componentId, name: 'Activity', max_score: 100 })
       });
       if (res.ok) {
         const act = await res.json();
+        // Immediately set name and max_score to empty/0 to force placeholder behavior in UI
+        const cleanAct = { ...act, name: '', max_score: 0 };
         setComponents(prev => prev.map(c =>
-          c.id === componentId ? { ...c, activities: [...(c.activities || []), act] } : c
+          c.id === componentId ? { ...c, activities: [...(c.activities || []), cleanAct] } : c
         ));
       }
     } catch (err) { console.error(err); }
@@ -272,6 +276,13 @@ const ClassRecord = () => {
         });
       }
     } catch (err) { console.error(err); }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteModal) return;
+    if (deleteModal.type === 'component') deleteComponent(deleteModal.id);
+    else deleteActivity(deleteModal.componentId, deleteModal.id);
+    setDeleteModal(null);
   };
 
   // Compute component totals
@@ -641,13 +652,13 @@ const ClassRecord = () => {
   return (
     <div className="space-y-6">
       <AssignmentSelector />
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-100 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
             <ArrowLeft size={20} />
           </button>
           <div>
-            <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1 font-sans">
+            <div className="text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1 font-sans">
               SmartGrade — Class Record
             </div>
             <span className="text-sm font-bold text-gray-700">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
@@ -672,33 +683,33 @@ const ClassRecord = () => {
             {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
           </div>
 
-          <button onClick={handleExportExcel} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
+          <button onClick={handleExportExcel} className="px-4 py-2 bg-black text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
             <Download size={16} /> Export Excel
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-r from-sidebar to-sidebar-hover p-6 rounded-2xl text-white shadow-sm flex flex-col justify-between min-h-[140px] relative overflow-hidden xl:col-span-1">
+        <div className="p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between min-h-[140px] relative overflow-hidden xl:col-span-1 text-white" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
           <FileSpreadsheet size={120} className="absolute -right-4 -bottom-4 opacity-10 text-white" />
           <div>
-            <span className="text-[10px] bg-gold/20 text-gold border border-gold/30 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+            <span className="text-[10px] bg-white/20 text-amber-400  px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
               Class Record
             </span>
-            <h2 className="text-xl font-bold mt-2 leading-snug">{currentAssignment?.subjects?.code ? <span className="text-gray-300 font-mono text-sm mr-2">{currentAssignment.subjects.code}</span> : null}{currentAssignment?.subjects?.name}</h2>
+            <h2 className="text-xl font-bold mt-2 leading-snug text-white">{currentAssignment?.subjects?.code ? <span className="text-gray-300 font-mono text-sm mr-2">{currentAssignment.subjects.code}</span> : null}{currentAssignment?.subjects?.name}</h2>
             <p className="text-xs text-gray-300 mt-1">{currentAssignment?.sections?.name} — {currentAssignment?.sections?.year_level}</p>
             <p className="text-[10px] text-gray-400 mt-1">{currentAssignment?.school_year} {currentAssignment?.semester}</p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-border xl:col-span-3">
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 xl:col-span-3">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-amber-50"><Percent size={14} className="text-gold" /></div>
+              <div className="p-1.5 rounded-lg bg-gray-300"><Percent size={16} className="text-black" /></div>
               <h4 className="text-xs font-bold text-sidebar uppercase tracking-wider">Grading Components</h4>
             </div>
             <div className="group relative">
-              <HelpCircle size={14} className="text-gold/40 hover:text-gold cursor-pointer transition-colors" />
+              <HelpCircle size={14} className="text-gray-700 hover:text-black cursor-pointer transition-colors" />
               <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-52 bg-sidebar text-white text-[10px] p-2.5 rounded-lg shadow-xl z-20 leading-relaxed">
                 Define your grading components and their percentage weights. Add sub-activities under each component. Total weight must equal 100%.
               </div>
@@ -723,7 +734,7 @@ const ClassRecord = () => {
                 </div>
               )}
               <div className="relative inline-block">
-                <button onClick={() => setAddCompOpen(true)} disabled={isReadOnly} className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white rounded-lg shadow-sm hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: '#0f172a' }}>
+                <button onClick={() => setAddCompOpen(true)} disabled={isReadOnly || totalWeight === 100} className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-black border border-black rounded-lg shadow-sm hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   <Plus size={14} /> Add Component
                 </button>
                 {addCompOpen && !isReadOnly && (
@@ -749,8 +760,8 @@ const ClassRecord = () => {
                 {components.map((comp, idx) => {
                   const color = getColor(idx);
                   return (
-                    <div key={comp.id} className="flex-1 min-w-[220px] max-w-[320px] rounded-xl border shadow-sm overflow-hidden hover:shadow-md transition-shadow" style={{ borderColor: color.border, backgroundColor: color.light }}>
-                      <div className="px-4 py-2.5 flex items-center justify-between" style={{ backgroundColor: color.light, borderBottom: `1px solid ${color.border}` }}>
+                    <div key={comp.id} className="flex-1 min-w-[220px] max-w-[320px] rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow bg-gray-200">
+                      <div className="px-4 py-2.5 flex items-center justify-between border-b border-gray-900" style={{ backgroundColor: '#d1d5db' }}>
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           <input
                             type="text"
@@ -758,7 +769,7 @@ const ClassRecord = () => {
                             onChange={(e) => setComponents(prev => prev.map(c => c.id === comp.id ? { ...c, name: e.target.value } : c))}
                             onBlur={() => updateComponent(comp.id, { name: comp.name })}
                             className="text-sm font-extrabold text-sidebar bg-transparent border-b border-transparent hover:border-sidebar/20 focus:border-gold focus:outline-none px-1 py-0.5 flex-1 min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                            placeholder="Component name"
+                            placeholder="Assessment"
                             disabled={isReadOnly}
                           />
                           {comp.is_attendance && (
@@ -768,82 +779,84 @@ const ClassRecord = () => {
                           )}
                         </div>
                         <div className="flex items-center gap-2 ml-2">
-                          <div className="flex items-center bg-white rounded-lg border px-2 py-1" style={{ borderColor: color.border }}>
-                            <input
-                              type="number"
-                              value={comp.weight}
-                              onChange={(e) => setComponents(prev => {
-                                const raw = parseFloat(e.target.value) || 0;
-                                const others = prev.reduce((s, c) => c.id === comp.id ? s : s + parseFloat(c.weight || 0), 0);
-                                const clamped = Math.min(raw, Math.max(0, 100 - others));
-                                if (raw !== clamped) {
-                                  setClampWarnings(cw => ({ ...cw, [`weight-${comp.id}`]: 100 - others }));
-                                  setTimeout(() => {
-                                    setClampWarnings(cw => { const c = { ...cw }; delete c[`weight-${comp.id}`]; return c; });
-                                  }, 3000);
-                                }
-                                return prev.map(c => c.id === comp.id ? { ...c, weight: clamped } : c);
-                              })}
-                              onBlur={() => updateComponent(comp.id, { weight: comp.weight })}
-                              className={`w-12 text-center text-xs font-extrabold text-sidebar bg-transparent focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed ${clampWarnings[`weight-${comp.id}`] ? 'text-amber-600' : ''}`}
-                              min="0" max="100"
-                              disabled={isReadOnly}
-                            />
+                          <div className="flex items-center bg-white rounded-lg border border-gray-200 px-2 py-1">
+                              <input
+                                type="number"
+                                value={comp.weight === 0 ? '' : comp.weight}
+                                onChange={(e) => setComponents(prev => {
+                                  const raw = parseFloat(e.target.value) || 0;
+                                  const others = prev.reduce((s, c) => c.id === comp.id ? s : s + parseFloat(c.weight || 0), 0);
+                                  const clamped = Math.min(raw, Math.max(0, 100 - others));
+                                  if (raw !== clamped) {
+                                    setClampWarnings(cw => ({ ...cw, [`weight-${comp.id}`]: 100 - others }));
+                                    setTimeout(() => {
+                                      setClampWarnings(cw => { const c = { ...cw }; delete c[`weight-${comp.id}`]; return c; });
+                                    }, 3000);
+                                  }
+                                  return prev.map(c => c.id === comp.id ? { ...c, weight: clamped } : c);
+                                })}
+                                onBlur={() => updateComponent(comp.id, { weight: comp.weight })}
+                                className={`w-12 text-center text-xs font-extrabold text-sidebar bg-transparent focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed ${clampWarnings[`weight-${comp.id}`] ? 'text-amber-600' : ''}`}
+                                min="0" max="100"
+                                placeholder="0"
+                                disabled={isReadOnly}
+                              />
                             <span className="text-[10px] font-bold" style={{ color: color.bg }}>%</span>
                           </div>
                           {!isReadOnly && (
-                            <button onClick={() => deleteComponent(comp.id)} className="text-sidebar/20 hover:text-red-500 transition-colors p-1">
-                              <Trash2 size={13} />
+                            <button onClick={() => setDeleteModal({ type: 'component', id: comp.id })} className="text-gray-900 hover:text-red-500 transition-colors p-1">
+                              <Trash2 size={14} />
                             </button>
                           )}
                         </div>
                       </div>
                       <div className="p-3 space-y-1.5">
                         {(comp.activities || []).map((act) => (
-                          <div key={act.id} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 border bg-white" style={{ borderColor: color.border + '50' }}>
-                            <input
-                              type="text"
-                              value={act.name}
-                              onChange={(e) => setComponents(prev => prev.map(c =>
-                                c.id === comp.id ? { ...c, activities: c.activities.map(a => a.id === act.id ? { ...a, name: e.target.value } : a) } : c
-                              ))}
-                              onBlur={() => updateActivity(act.id, { name: act.name })}
-                              className="text-[11px] font-bold text-sidebar bg-transparent border-b border-transparent hover:border-sidebar/20 focus:border-gold focus:outline-none px-1 py-0.5 flex-1 min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                              placeholder="Activity"
-                              disabled={isReadOnly}
-                            />
-                            <div className="flex items-center gap-1 bg-white rounded border px-1.5 py-0.5" style={{ borderColor: color.bg + '60' }}>
+                          <div key={act.id} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 border border-gray-200 bg-white">
                               <input
-                                type="number"
-                                value={act.max_score}
+                                type="text"
+                                value={act.name}
                                 onChange={(e) => setComponents(prev => prev.map(c =>
-                                  c.id === comp.id ? { ...c, activities: c.activities.map(a => a.id === act.id ? { ...a, max_score: parseFloat(e.target.value) || 0 } : a) } : c
+                                  c.id === comp.id ? { ...c, activities: c.activities.map(a => a.id === act.id ? { ...a, name: e.target.value } : a) } : c
                                 ))}
-                                onBlur={() => updateActivity(act.id, { max_score: act.max_score })}
-                                className="w-12 text-center text-[10px] font-extrabold text-sidebar bg-transparent focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                min="0"
+                                onBlur={() => updateActivity(act.id, { name: act.name })}
+                                className="text-[11px] font-bold text-sidebar bg-white border border-gray-500 focus:border-black focus:outline-none px-1 py-0.5 flex-1 min-w-0"
+                                placeholder="Activity"
                                 disabled={isReadOnly}
                               />
+                            <div className="flex items-center gap-1 bg-white rounded border border-gray-200 px-1.5 py-0.5">
+                                <input
+                                  type="number"
+                                  value={act.max_score === 0 ? '' : act.max_score}
+                                  onChange={(e) => setComponents(prev => prev.map(c =>
+                                    c.id === comp.id ? { ...c, activities: c.activities.map(a => a.id === act.id ? { ...a, max_score: parseFloat(e.target.value) || 0 } : a) } : c
+                                  ))}
+                                  onBlur={() => updateActivity(act.id, { max_score: act.max_score })}
+                                  className="w-12 text-center text-[10px] font-extrabold text-sidebar bg-transparent focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                  min="0"
+                                  placeholder="0"
+                                  disabled={isReadOnly}
+                                />
                               <span className="text-[9px] font-bold" style={{ color: color.bg }}>max</span>
                             </div>
                             {!isReadOnly && (
-                              <button onClick={() => deleteActivity(comp.id, act.id)} className="text-sidebar/20 hover:text-red-500 transition-colors shrink-0 p-0.5">
+                              <button onClick={() => setDeleteModal({ type: 'activity', id: act.id, componentId: comp.id })} className="text-gray-900 hover:text-red-500 transition-colors shrink-0 p-0.5">
                                 <Trash2 size={11} />
                               </button>
                             )}
                           </div>
                         ))}
                         {!comp.is_attendance && !isReadOnly && (
-                          <button
-                            onClick={() => addActivity(comp.id)}
-                            className="w-full text-[10px] font-bold text-white flex items-center justify-center gap-1 py-1.5 rounded-lg border border-transparent hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{ backgroundColor: '#0f172a' }}
-                          >
-                            <Plus size={12} /> Add Activity
-                          </button>
+                            <button
+                              onClick={() => addActivity(comp.id)}
+                              className="w-full text-[10px] font-bold text-white flex items-center justify-center gap-1 py-1.5 rounded-lg border border-transparent hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              style={{ backgroundColor: '#000000' }}
+                            >
+                              <Plus size={12} /> Add
+                            </button>
                         )}
                         {comp.is_attendance && (
-                          <div className="text-[10px] text-gray-500 italic text-center py-1.5">
+                          <div className="text-[10px] text-gray-900 italic text-center py-1.5">
                             Scores auto-computed from attendance records
                           </div>
                         )}
@@ -855,11 +868,11 @@ const ClassRecord = () => {
                 <div className="flex-[0_0_160px] min-w-[160px] relative">
                   <button
                     onClick={() => setAddCompOpen(true)}
-                    disabled={isReadOnly}
-                    className="w-full h-full min-h-[120px] flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-sidebar/20 hover:border-gold hover:bg-amber-50/30 transition-all text-sidebar/40 hover:text-gold disabled:opacity-30 disabled:cursor-not-allowed"
+                    disabled={isReadOnly || totalWeight === 100}
+                    className="w-full h-full min-h-[120px] flex flex-col items-center justify-center gap-2 rounded-xl border border-black border-dashed bg-black transition-all text-white disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <Plus size={24} />
-                    <span className="text-xs font-extrabold">Add Component</span>
+                    <span className="text-xs font-bold">Add Component</span>
                   </button>
                   {addCompOpen && (
                     <div className="absolute top-0 left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[180px] overflow-hidden add-comp-popup">
@@ -947,7 +960,7 @@ const ClassRecord = () => {
             <table className="min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
-                  <th colSpan={3} className="bg-sidebar border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[352px] sticky left-0 z-20">
+                  <th colSpan={3} className="bg-black border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[352px] sticky left-0 z-20">
                     <div className="flex justify-between items-center">
                       <span>STUDENT INFORMATION</span>
                       <span className="text-[10px] text-gray-300">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
@@ -959,15 +972,14 @@ const ClassRecord = () => {
                     const cols = comp.is_attendance ? 3 : actCount + 3;
                     if (cols === 0) return null;
                     return (
-                      <th key={comp.id} colSpan={cols} className="border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0"
-                        style={{ backgroundColor: color.headerBg, borderColor: color.headerBorder }}
+                      <th key={comp.id} colSpan={cols} className="bg-black border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0"
                       >
                         {comp.name} ({comp.weight}%)
                         {comp.is_attendance && <span className="ml-2 text-[10px] font-normal opacity-70">[ATTENDANCE]</span>}
                       </th>
                     );
                   })}
-                  <th className="bg-gold border-b-2 border-gold-hover p-3 text-white text-center font-bold text-base uppercase tracking-wider min-w-[120px] relative z-0">
+                  <th className="bg-gold border-b-2 border-gold-hover p-3 text-black text-center font-bold text-base uppercase tracking-wider min-w-[120px] relative z-0">
                     {selectedTerm === 'PRELIMS' ? 'PRE' : selectedTerm === 'MIDTERMS' ? 'MID' : selectedTerm === 'PRE-FINALS' ? 'P-F' : 'FIN'} GRADE
                   </th>
                 </tr>
@@ -993,7 +1005,7 @@ const ClassRecord = () => {
                       <th key={`${comp.id}-wt`} className="px-3 py-2.5 border-r-4 border-yellow-300 bg-yellow-100 text-yellow-900 font-extrabold w-20 relative z-0" style={{ borderRightColor: color.border }}>W_TOTAL</th>
                     );
                   })}
-                  <th className="px-3 py-2.5 bg-gold text-white font-extrabold text-sm w-28 relative z-0">FINAL</th>
+                  <th className="px-3 py-2.5 bg-gold text-black font-extrabold text-sm w-28 relative z-0">FINAL</th>
                 </tr>
 
                 <tr className="bg-white border-b border-border text-center font-bold text-sidebar select-none">
@@ -1032,7 +1044,7 @@ const ClassRecord = () => {
                       <td key={`${comp.id}-wt`} className="px-2 py-2 border-r-4 border-b border-yellow-200 bg-yellow-50 font-extrabold text-yellow-900 text-center text-xs relative z-0" style={{ borderRightColor: color.border }}>{comp.weight.toFixed(2)}</td>
                     );
                   })}
-                  <td className="px-2 py-2 bg-gold font-extrabold text-white text-center text-sm relative z-0 border-b border-gray-200">100.00</td>
+                  <td className="px-2 py-2 bg-gold font-extrabold text-black text-center text-sm relative z-0 border-b border-gray-200">100.00</td>
                 </tr>
               </thead>
               <tbody>
@@ -1127,10 +1139,23 @@ const ClassRecord = () => {
           />
         )}
       </div>
+      {deleteModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Delete</h3>
+            <p className="text-sm text-gray-900 mb-6">Are you sure you want to delete this {deleteModal.type}? This action cannot be undone.</p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setDeleteModal(null)} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+              <button onClick={handleConfirmDelete} className="px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md" style={{ background: '#ef4444' }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default ClassRecord;
+
 
 

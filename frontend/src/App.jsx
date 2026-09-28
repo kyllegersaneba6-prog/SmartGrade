@@ -3,7 +3,7 @@ import SuperAdminLayout from './layouts/SuperAdminLayout';
 import TeacherLayout from './layouts/TeacherLayout';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-import TeacherDashboard from './pages/teacher/Dashboard';
+import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import ClassRecord from './pages/teacher/ClassRecord';
 import Attendance from './pages/teacher/Attendance';
 import BehavioralAnalytics from './pages/teacher/BehavioralAnalytics';

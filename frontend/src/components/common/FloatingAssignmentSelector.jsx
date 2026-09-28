@@ -38,7 +38,7 @@ const FloatingAssignmentSelector = () => {
           isArchiveMode ? 'bg-amber-50 border-amber-300' : 'bg-white border-border'
         }`}
       >
-        {isArchiveMode ? <Archive size={16} className="text-amber-600 shrink-0" /> : <BookOpen size={16} className="text-gold shrink-0" />}
+        {isArchiveMode ? <Archive size={16} className="text-amber-600 shrink-0" /> : <BookOpen size={16} className="text-amber-400 shrink-0" />}
         <span className="truncate max-w-[160px] sm:max-w-[220px]">
           {currentAssignment ? `${currentAssignment.subjects?.code} — ${currentAssignment.sections?.name}` : 'Select Subject'}
         </span>
@@ -82,7 +82,7 @@ const FloatingAssignmentSelector = () => {
                         isItemActive ? 'bg-amber-50' : ''
                       }`}
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isItemActive ? 'bg-gold text-white' : 'bg-gray-100 text-gray-400'}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isItemActive ? 'bg-amber-400 text-white' : 'bg-gray-100 text-gray-400'}`}>
                         {isItemActive ? <Check size={16} /> : <BookOpen size={16} />}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -113,4 +113,3 @@ const FloatingAssignmentSelector = () => {
 };
 
 export default FloatingAssignmentSelector;
-

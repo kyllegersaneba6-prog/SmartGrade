@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CalendarCheck, Loader, Plus, X, Trash2, ArrowLeft, Cloud } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTeacher } from '../../contexts/TeacherContext';
-import AssignmentSelector from '../../components/teacher/FloatingAssignmentSelector';
+import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
 
@@ -350,12 +350,12 @@ const Attendance = () => {
   };
 
   if (ctxLoading || loading) {
-    return <div className="flex justify-center py-20"><Loader size={24} className="animate-spin text-gray-400" /></div>;
+    return <div className="flex justify-center py-20"><Loader size={24} className="animate-spin text-gray-900" /></div>;
   }
 
   if (!currentAssignment) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+      <div className="flex flex-col items-center justify-center py-20 text-gray-900">
         <CalendarCheck size={48} className="mb-3 opacity-30" />
         <p className="text-sm font-medium">No class assignments yet.</p>
         <p className="text-xs mt-1">Ask an admin to assign you to a class.</p>
@@ -366,67 +366,67 @@ const Attendance = () => {
   return (
     <div className="space-y-6">
       <AssignmentSelector />
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-100 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
+          <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-200 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
             <ArrowLeft size={20} />
           </button>
           <div>
-            <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1 font-sans">
+            <div className="text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1 font-sans">
               SmartGrade — Attendance
             </div>
-            <span className="text-sm font-bold text-gray-700">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
+            <span className="text-sm font-bold text-gray-900">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
           <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
             {TERMS.map((t) => (
-              <button
-                key={t}
-                onClick={() => { if (t !== selectedTerm) { setSelectedTerm(t); setColumns([]); setAttendanceMap({}); } }}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                  selectedTerm === t
-                    ? 'bg-sidebar text-white shadow-sm'
-                    : 'text-text-muted hover:text-sidebar'
-                }`}
-              >
+                <button
+                  key={t}
+                  onClick={() => { if (t !== selectedTerm) { setSelectedTerm(t); setColumns([]); setAttendanceMap({}); } }}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                    selectedTerm === t
+                      ? 'bg-black text-white shadow-sm'
+                      : 'text-text-muted hover:text-black'
+                  }`}
+                >
                 {t}
               </button>
             ))}
             {loading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
           </div>
           <div className="relative" ref={datePickerRef}>
-            <button onClick={() => { setAddDateOpen(!addDateOpen); setNewDate(todayStr()); setNewSession('AM'); setNewType('Lecture'); setError(''); }} disabled={isReadOnly} className="flex items-center gap-1.5 px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-bold hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+            <button onClick={() => { setAddDateOpen(!addDateOpen); setNewDate(todayStr()); setNewSession('AM'); setNewType('Lecture'); setError(''); }} disabled={isReadOnly} className="flex items-center gap-1.5 px-4 py-2 bg-black text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
               <Plus size={16} /> Add Date
             </button>
             {addDateOpen && (
               <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-gray-200 p-4 z-50 min-w-[240px]">
-                <label className="text-[11px] font-bold text-gray-700 uppercase tracking-wider block mb-1.5">Select Date</label>
+                <label className="text-[11px] font-bold text-gray-900 uppercase tracking-wider block mb-1.5">Select Date</label>
                 <input
                   type="date"
                   value={newDate}
                   onChange={(e) => setNewDate(e.target.value)}
-                  className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gold/40 mb-3"
+                  className="w-full text-sm px-3 py-2 rounded-lg border border-gray-500 focus:outline-none focus:ring-2 focus:ring-black 0 mb-3"
                 />
                 {error && <div className="text-xs text-red-500 font-semibold mb-2">{error}</div>}
                 <div className="flex gap-2 mb-3">
                   <div className="flex-1">
                     <label className="text-[10px] font-bold text-gray-700 uppercase tracking-wider block mb-1">Session</label>
-                    <select value={newSession} onChange={(e) => setNewSession(e.target.value)} className="w-full text-xs font-semibold px-2 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-gold/40">
+                    <select value={newSession} onChange={(e) => setNewSession(e.target.value)} className="w-full text-xs font-semibold px-2 py-2 rounded-lg border border-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-black">
                       <option value="AM">AM</option>
                       <option value="PM">PM</option>
                     </select>
                   </div>
                   <div className="flex-1">
                     <label className="text-[10px] font-bold text-gray-700 uppercase tracking-wider block mb-1">Type</label>
-                    <select value={newType} onChange={(e) => setNewType(e.target.value)} className="w-full text-xs font-semibold px-2 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-gold/40">
+                    <select value={newType} onChange={(e) => setNewType(e.target.value)} className="w-full text-xs font-semibold px-2 py-2 rounded-lg border border-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-black">
                       <option value="Lecture">Lecture</option>
                       <option value="Laboratory">Laboratory</option>
                     </select>
                   </div>
                 </div>
-                <button onClick={addDate} className="w-full text-xs font-bold px-3 py-2 rounded-lg text-white" style={{ background: '#f5a623' }}>
+                <button onClick={addDate} className="w-full text-xs font-bold px-3 py-2 rounded-lg text-black" style={{ background: '#f5a623' }}>
                   Add to Table
                 </button>
               </div>
@@ -441,11 +441,11 @@ const Attendance = () => {
           <span>This term is closed. Viewing only.</span>
         </div>
       )}
-      <div className="flex items-center gap-4 text-xs font-semibold px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-800">
+      <div className="flex items-center gap-4 text-sm font-bold px-4 py-2 border border-gray-50 rounded-xl text-amber-900">
         <span>Attendance Key:</span>
-        <span className="px-2 py-0.5 rounded bg-green-100 text-green-700 border border-green-200">2 = Present</span>
-        <span className="px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 border border-yellow-200">1 = Late</span>
-        <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">0 = Absent</span>
+        <span className="px-2 py-0.5 rounded bg-green-100 text-green-900 border border-green-200">2 = Present</span>
+        <span className="px-2 py-0.5 rounded bg-yellow-100 text-yellow-900 border border-yellow-200">1 = Late</span>
+        <span className="px-2 py-0.5 rounded bg-red-100 text-red-900 border border-red-200">0 = Absent</span>
         {syncing && (
           <span className="ml-auto flex items-center gap-1.5 text-blue-700 bg-blue-100 border border-blue-200 px-3 py-0.5 rounded">
             <Cloud size={13} className="animate-pulse" />
@@ -455,14 +455,14 @@ const Attendance = () => {
       </div>
 
       <div className="mb-2 px-1 flex items-center justify-between">
-        <span className="text-sm font-bold text-gray-700">{currentAssignment?.subjects?.name} — {currentAssignment?.sections?.name}</span>
+        <span className="text-sm font-bold text-gray-900">{currentAssignment?.subjects?.name} — {currentAssignment?.sections?.name}</span>
         <div className="relative">
           <input
             type="text"
             placeholder="Search by name or ID..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold bg-white"
+            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           {searchQuery && (
@@ -475,7 +475,7 @@ const Attendance = () => {
 
       <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
         {columns.length === 0 ? (
-          <div className="py-12 text-center text-gray-400">
+          <div className="py-12 text-center text-gray-900">
             <CalendarCheck size={36} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm font-medium">No attendance dates yet.</p>
             <p className="text-xs mt-1">Click "Add Date" to start recording attendance.</p>
@@ -485,38 +485,38 @@ const Attendance = () => {
             <table className="text-xs select-none" style={{ width: 'fit-content', minWidth: 'max-content', borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
-                  <th colSpan={3} className="bg-sidebar border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[352px] sticky left-0 z-20">
+                  <th colSpan={3} className="bg-black border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[352px] sticky left-0 z-20">
                     <div className="flex justify-between items-center">
                       <span>STUDENT INFORMATION</span>
-                      <span className="text-[10px] text-gray-300">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
+                      <span className="text-[12px] text-gray-300">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
                     </div>
                   </th>
                   {columns.map((key, idx) => {
                     const color = getColor(idx);
                     const { session, type } = parseKey(key);
                     return (
-                      <th key={key} className="border-b-2 border-r-2 border-gray-200 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative group z-0 bg-sidebar">
+                      <th key={key} className="border-b-2 border-r-2 border-gray-200 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative group z-0 bg-black">
                         <div className="flex items-center justify-center gap-2">
                           <div className="text-center leading-tight">
                             <div className="text-sm font-bold">{formatDate(key)}</div>
                             <div className="flex items-center justify-center gap-1 mt-0.5">
-                              <span style={{ backgroundColor: session === 'AM' ? '#f97316' : '#6366f1', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px' }}>{session}</span>
-                              <span style={{ backgroundColor: type === 'Laboratory' ? '#f97316' : '#16a34a', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px' }}>{type === 'Laboratory' ? 'LAB' : 'LEC'}</span>
+                              <span style={{ backgroundColor: session === 'AM' ? '#059e00' : '#ff0000', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px' }}>{session}</span>
+                              <span style={{ backgroundColor: type === 'Laboratory' ? '#0029b0' : '#f97316', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px' }}>{type === 'Laboratory' ? 'LAB' : 'LEC'}</span>
                             </div>
                           </div>
                           {!isReadOnly && (
-                            <button
-                              onClick={() => { setConfirmRemoveKey(key); setConfirmText(''); }}
-                              className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity"
-                            >
-                              <X size={13} />
-                            </button>
+                              <button
+                                onClick={() => { setConfirmRemoveKey(key); setConfirmText(''); }}
+                                className="text-red-400 hover:text-red-600 transition-opacity"
+                              >
+                                <X size={13} />
+                              </button>
                           )}
                         </div>
                       </th>
                     );
                   })}
-                  <th className="bg-gold border-b-2 border-gold-hover p-3 text-white text-center font-bold text-base uppercase tracking-wider min-w-[100px] relative z-0">
+                  <th className="bg-amber-400 border-b-2 border-gold-hover p-3 text-black text-center font-bold text-base uppercase tracking-wider min-w-[100px] relative z-0">
                     TOTAL
                   </th>
                 </tr>
@@ -578,8 +578,8 @@ const Attendance = () => {
                     const studentTotal = getStudentTotal(student.id);
                     return (
                       <tr key={student.id} className={`transition-colors ${selectedRow === student.id ? 'bg-green-200' : 'hover:bg-green-50/10'}`}>
-                        <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-gray-400 text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 15 + index + 1}</td>
-                        <td className={`px-2 py-1 sticky border-r border-b border-gray-200 z-20 w-28 text-xs font-mono font-semibold text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '48px' }} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
+                        <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-black text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 15 + index + 1}</td>
+                        <td className={`px-2 py-1 sticky border-r border-b border-gray-200 z-20 w-28 text-xs font-mono font-semibold text-black cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '48px' }} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
                         <td className={`px-2 py-1 sticky border-r-2 border-b border-border z-20 min-w-[180px] text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '160px' }} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
                         {columns.map((key) => {
                           const isSelected = selectedRow === student.id;
@@ -641,19 +641,19 @@ const Attendance = () => {
             <p className="text-sm text-gray-700 mb-1">
               This will delete all attendance records for <strong>{confirmRemoveKey}</strong>.
             </p>
-            <p className="text-xs text-gray-600 mb-4">Type <strong>CONFIRM</strong> to proceed.</p>
+            <p className="text-xs text-gray-600 mb-4">Type <strong>Confirm</strong> to proceed.</p>
             <input
               type="text"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="Type CONFIRM"
+              placeholder="Type Confirm"
               className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-400/40 mb-4 text-gray-900 font-semibold"
             />
             <div className="flex gap-2 justify-end">
               <button onClick={() => { setConfirmRemoveKey(null); setConfirmText(''); }} className="text-xs font-bold px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
-              <button onClick={removeColumn} disabled={confirmText !== 'CONFIRM' || removing} className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg text-white transition-colors disabled:opacity-50" style={{ background: '#ef4444' }}>
+              <button onClick={removeColumn} disabled={confirmText !== 'Confirm' || removing} className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg text-white transition-colors disabled:opacity-50" style={{ background: '#ef4444' }}>
                 {removing ? <Loader size={13} className="animate-spin" /> : <Trash2 size={13} />}
                 {removing ? 'Deleting...' : 'Delete'}
               </button>
@@ -666,5 +666,6 @@ const Attendance = () => {
 };
 
 export default Attendance;
+
 
 

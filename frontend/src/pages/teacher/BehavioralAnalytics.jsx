@@ -3,7 +3,7 @@ import { BarChart3, Loader, ArrowLeft, Download, TrendingUp, TrendingDown, Minus
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
-import AssignmentSelector from '../../components/teacher/FloatingAssignmentSelector';
+import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
 import {
@@ -789,5 +789,6 @@ const BehavioralAnalytics = () => {
 };
 
 export default BehavioralAnalytics;
+
 
 

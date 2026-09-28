@@ -232,7 +232,7 @@ const AdminTeachers = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Teacher Management</h1>
-          <p className="text-xs sm:text-sm mt-0.5 text-gray-500">Provision, edit, and manage all teacher accounts.</p>
+          <p className="text-xs sm:text-sm mt-0.5 text-gray-900">Provision, edit, and manage all teacher accounts.</p>
         </div>
         <span className="text-[10px] sm:text-sm font-bold px-3 py-1 rounded-full text-white" style={{ background: '#000000' }}>{teachers.length} TEACHERS</span>
       </div>
