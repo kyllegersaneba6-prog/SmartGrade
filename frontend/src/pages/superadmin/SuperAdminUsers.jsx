@@ -132,7 +132,7 @@ const SuperAdminUsers = () => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold" style={{ color: '#000000' }}>Admin Accounts</h2>
           <div className="flex gap-2">
-            <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#142a3f', borderColor: '#142a3f' }}><UserPlus size={14} /> Add Admin</button>
+            <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#000000', borderColor: '#142a3f' }}><UserPlus size={14} /> Add Admin</button>
             <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-black text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#ffbd38', borderColor: '#ffbd38' }}><Upload size={14} /> Export</button>
           </div>
         </div>

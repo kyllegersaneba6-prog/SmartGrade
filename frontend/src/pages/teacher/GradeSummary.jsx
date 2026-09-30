@@ -293,7 +293,7 @@ const GradeSummary = () => {
     <div className="space-y-6">
       <AssignmentSelector />
       {/* Header */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-100 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
             <ArrowLeft size={20} />
@@ -302,12 +302,12 @@ const GradeSummary = () => {
             <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1 font-sans">
               SmartGrade — Grade Summary
             </div>
-            <span className="text-sm font-bold text-gray-700">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
+            <span className="text-sm font-bold text-gray-900">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
           </div>
         </div>
         {dataLoading && <Loader size={18} className="animate-spin text-sidebar/40" />}
         {hasAnyData && !dataLoading && (
-          <button onClick={handleExportExcel} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
+          <button onClick={handleExportExcel} className="px-4 py-2 bg-black text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
             <Download size={16} /> Export Excel
           </button>
         )}
@@ -321,7 +321,7 @@ const GradeSummary = () => {
             placeholder="Search by name or ID..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold bg-white"
+            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           {searchQuery && (
@@ -358,7 +358,7 @@ const GradeSummary = () => {
                       {term} {TERM_PCTS[term]}
                     </th>
                   ))}
-                  <th className="bg-gold border-b-2 border-gold-hover p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0" colSpan={3}>SEMESTRAL GRADE</th>
+                  <th className="bg-gold border-b-2 border-gold-hover p-3 text-black text-center font-bold text-sm uppercase tracking-wider relative z-0" colSpan={3}>SEMESTRAL GRADE</th>
                 </tr>
                 <tr className="bg-gray-50 border-b border-border text-center font-semibold text-sidebar">
                   <th className="px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20 w-10" style={{ left: 0 }}>#</th>
@@ -443,14 +443,14 @@ const GradeSummary = () => {
       </div>
 
       {/* Grade Point Legend */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-border">
-        <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Grade Point Scale</div>
-        <table className="w-full text-xs text-gray-600 border-collapse">
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-50">
+        <div className="text-[12px] font-bold text-gray-900 uppercase tracking-wider mb-2">Grade Point Scale</div>
+        <table className="w-full text-xs text-gray-900 border-collapse">
           <thead>
             <tr className="border-b border-gray-300">
-              <th className="text-left py-1 pr-4 font-semibold text-gray-500">Grade</th>
-              <th className="text-left py-1 pr-4 font-semibold text-gray-500">Equivalent</th>
-              <th className="text-left py-1 font-semibold text-gray-500">Description</th>
+              <th className="text-left py-1 pr-4 font-semibold text-gray-900">Grade</th>
+              <th className="text-left py-1 pr-4 font-semibold text-gray-900">Equivalent</th>
+              <th className="text-left py-1 font-semibold text-gray-900">Description</th>
             </tr>
           </thead>
           <tbody>

@@ -24,6 +24,7 @@ const gradingComponentsRoutes = require('./routes/gradingComponents');
 const componentActivitiesRoutes = require('./routes/componentActivities');
 const componentScoresRoutes = require('./routes/componentScores');
 const attendanceRoutes = require('./routes/attendance');
+const aiRoutes = require('./routes/ai');
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -39,6 +40,7 @@ app.use('/api/grading-components', gradingComponentsRoutes);
 app.use('/api/component-activities', componentActivitiesRoutes);
 app.use('/api/component-scores', componentScoresRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/ai', aiRoutes);
 
 // One-time setup: create activity_log table if it doesn't exist
 const { createClient } = require('@supabase/supabase-js');

@@ -661,7 +661,7 @@ const ClassRecord = () => {
             <div className="text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1 font-sans">
               SmartGrade — Class Record
             </div>
-            <span className="text-sm font-bold text-gray-700">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
+            <span className="text-sm font-bold text-gray-900">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
           </div>
         </div>
 
@@ -932,7 +932,7 @@ const ClassRecord = () => {
               placeholder="Search by name or ID..."
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-              className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold bg-white"
+              className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             {searchQuery && (
@@ -963,7 +963,7 @@ const ClassRecord = () => {
                   <th colSpan={3} className="bg-black border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[352px] sticky left-0 z-20">
                     <div className="flex justify-between items-center">
                       <span>STUDENT INFORMATION</span>
-                      <span className="text-[10px] text-gray-300">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
+                      <span className="text-[10px] text-gray-900">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
                     </div>
                   </th>
                   {components.map((comp, idx) => {
@@ -1010,8 +1010,8 @@ const ClassRecord = () => {
 
                 <tr className="bg-white border-b border-border text-center font-bold text-sidebar select-none">
                   <td className="px-1 py-2 text-center sticky bg-white border-r border-border z-20 w-12" style={{ left: 0 }}></td>
-                  <td className="px-3 py-2 text-left sticky bg-white border-r border-border z-20 text-[10px] text-text-muted w-28" style={{ left: '48px' }}>MAX SCORE</td>
-                  <td className="px-4 py-2 text-left sticky bg-white border-r-2 border-border z-20 text-[10px] text-text-muted font-normal italic min-w-[180px]" style={{ left: '160px' }}>Maximum target scores</td>
+                  <td className="px-3 py-2 text-left sticky bg-white border-r border-border z-20 text-[10px] text-gray-900 w-28" style={{ left: '48px' }}>MAX SCORE</td>
+                  <td className="px-4 py-2 text-left sticky bg-white border-r-2 border-border z-20 text-[10px] text-gray-900 font-normal italic min-w-[180px]" style={{ left: '160px' }}>Maximum target scores</td>
                   {components.map((comp, idx) => {
                     const color = getColor(idx);
                     const maxTotal = getComponentMaxTotal(comp);
@@ -1075,8 +1075,8 @@ const ClassRecord = () => {
 
                     return (
                       <tr key={student.id} className={`transition-colors ${selectedRow === student.id ? 'bg-green-200' : 'hover:bg-green-50/10'}`}>
-                        <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-gray-400 text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 15 + index + 1}</td>
-                        <td className={`px-2 py-1 sticky border-r border-b border-gray-200 z-20 w-28 text-xs font-mono font-semibold text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '48px' }} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
+                        <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-gray-900 text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 15 + index + 1}</td>
+                        <td className={`px-2 py-1 sticky border-r border-b border-gray-200 z-20 w-28 text-xs font-mono font-semibold text-gray-900 cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '48px' }} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
                         <td className={`px-2 py-1 sticky border-r-2 border-b border-border z-20 min-w-[180px] text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '160px' }} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
                         {components.map((comp, idx) => {
                           const componentTotal = getComponentTotal(student.id, comp);

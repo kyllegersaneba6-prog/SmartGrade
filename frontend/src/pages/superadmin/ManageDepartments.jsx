@@ -189,7 +189,7 @@ const ManageDepartments = () => {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Departments & Courses</h1>
                   </div>
-        <button onClick={() => { setAddDeptOpen(true); setError(''); }} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#142a3f', borderColor: '#142a3f' }}><Plus size={14} /> Add Department</button>
+        <button onClick={() => { setAddDeptOpen(true); setError(''); }} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#000000', borderColor: '#142a3f' }}><Plus size={14} /> Add Department</button>
       </div>
 
       {departments.length === 0 ? (

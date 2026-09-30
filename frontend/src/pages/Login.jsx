@@ -6,10 +6,10 @@ import {
 } from 'lucide-react';
 
 const features = [
-  { icon: <BarChart3 className="w-5 h-5 text-gold" />, title: 'Grade Computation & Analytics', desc: 'Automated weighted grading with real-time analytics' },
-  { icon: <ClipboardCheck className="w-5 h-5 text-gold" />, title: 'Attendance Tracking', desc: 'Track student attendance with AM/PM session support' },
-  { icon: <Users className="w-5 h-5 text-gold" />, title: 'Class & Teacher Management', desc: 'Manage sections, subjects, and teacher assignments' },
-  { icon: <TrendingUp className="w-5 h-5 text-gold" />, title: 'Performance Reports', desc: 'Generate grade summaries with grade-point conversion' },
+  { icon: <BarChart3 className="w-5 h-5 text-amber-400" />, title: 'Grade Computation & Analytics', desc: 'Automated weighted grading with real-time analytics' },
+  { icon: <ClipboardCheck className="w-5 h-5 text-amber-400" />, title: 'Attendance Tracking', desc: 'Track student attendance with AM/PM session support' },
+  { icon: <Users className="w-5 h-5 text-amber-400" />, title: 'Class & Teacher Management', desc: 'Manage sections, subjects, and teacher assignments' },
+  { icon: <TrendingUp className="w-5 h-5 text-amber-400" />, title: 'Performance Reports', desc: 'Generate grade summaries with grade-point conversion' },
 ];
 
 const Login = () => {
@@ -80,8 +80,8 @@ const Login = () => {
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <img src="/src/assets/logo.png" className="w-20 h-20 object-contain mb-4" alt="SmartGrade Logo" />
-            <h1 className="text-gold font-extrabold text-2xl tracking-wide">SmartGrade</h1>
-            <p className="text-slate-400 text-sm mt-1">Academic Management Platform</p>
+            <h1 className="text-amber-400 font-extrabold text-2xl tracking-wide">SmartGrade</h1>
+            <p className="text-slate-300 text-sm mt-1">Academic Management Platform</p>
           </div>
 
           {error && (
@@ -98,7 +98,7 @@ const Login = () => {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <User className="w-5 h-5 text-slate-500" />
+                  <User className="w-5 h-5 text-white" />
                 </div>
                 <input
                   type="text"
@@ -117,7 +117,7 @@ const Login = () => {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <Lock className="w-5 h-5 text-slate-500" />
+                  <Lock className="w-5 h-5 text-white" />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -137,21 +137,7 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-1 pb-2">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-gold focus:ring-gold/50 cursor-pointer"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm font-medium text-slate-400 cursor-pointer">
-                  Remember me
-                </label>
-              </div>
-              <a href="#" className="text-xs font-semibold text-gold hover:text-gold-hover transition-colors">
-                Forgot Password?
-              </a>
-            </div>
+            
 
             <button
               type="submit"

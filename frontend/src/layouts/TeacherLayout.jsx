@@ -25,7 +25,7 @@ const TeacherLayoutInner = () => {
   return (
     <div className="min-h-screen bg-bg-light font-sans text-text-main">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="lg:pl-[274px] flex flex-col h-[100dvh] overflow-hidden">
+      <div className="lg:pl-[272px] flex flex-col h-[100dvh] overflow-hidden">
         <header className="h-16 flex items-center justify-between px-4 md:px-6 lg:px-8 text-white border-b border-sidebar-hover shadow-sm shrink-0" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
           <div className="flex items-center gap-3 lg:gap-4 min-w-0">
             <button onClick={() => setSidebarOpen(true)} className="text-gray-300 hover:text-white lg:hidden shrink-0">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart3, Loader, ArrowLeft, Download, TrendingUp, TrendingDown, Minus, X } from 'lucide-react';
+import { BarChart3, Loader, ArrowLeft, Download, TrendingUp, TrendingDown, Minus, X, Sparkles, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
@@ -30,6 +30,9 @@ const BehavioralAnalytics = () => {
   const [highlightedRowId, setHighlightedRowId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiReport, setAiReport] = useState(null);
+  const [aiError, setAiError] = useState(null);
 
   useEffect(() => {
     if (!currentAssignment) return;
@@ -452,9 +455,9 @@ const BehavioralAnalytics = () => {
 
   // --- Trend icon ---
   const TrendIcon = ({ trend }) => {
-    if (trend === 'improving') return <TrendingUp size={12} className="text-green-600" />;
-    if (trend === 'declining') return <TrendingDown size={12} className="text-red-500" />;
-    return <Minus size={12} className="text-gray-400" />;
+    if (trend === 'improving') return <TrendingUp size={14} className="text-green-600" strokeWidth={2.5} />;
+    if (trend === 'declining') return <TrendingDown size={14} className="text-red-500" strokeWidth={2.5} />;
+    return <Minus size={14} className="text-gray-500" strokeWidth={2.5} />;
   };
 
   // --- Performance bar ---
@@ -471,6 +474,61 @@ const BehavioralAnalytics = () => {
 
   // --- Detail Modal ---
   const detailStudent = selectedStudent ? studentAnalytics[selectedStudent] : null;
+
+  // Reset AI panel when switching students/terms
+  useEffect(() => {
+    setAiReport(null);
+    setAiError(null);
+    setAiLoading(false);
+  }, [selectedStudent, selectedTerm]);
+
+  const handleSummarizeWithAI = async () => {
+    if (!detailStudent || aiLoading) return;
+    setAiLoading(true);
+    setAiError(null);
+    setAiReport(null);
+    try {
+      const categories = Object.values(detailStudent.components || {}).map((cd) => ({
+        name: cd.name,
+        weight: cd.weight,
+        equivalent: Number(cd.equiv?.toFixed?.(2) ?? cd.equiv),
+        performance: Number(cd.performance?.toFixed?.(1) ?? cd.performance),
+        submissionRate: cd.submissionRate,
+        trend: cd.trend,
+        total: cd.total,
+        maxTotal: cd.maxTotal,
+        records: (cd.activities || []).map((a) => ({
+          name: a.activity?.name,
+          score: a.score,
+          max: a.activity?.max_score,
+          percentage: a.pct != null ? Number((a.pct * 100).toFixed(1)) : null,
+        })),
+      }));
+      const payload = {
+        student: detailStudent.student,
+        performance: {
+          final_grade: detailStudent.finalGrade,
+          attendance_rate: detailStudent.attendanceRate,
+          overall_performance: detailStudent.overallPerformance,
+          subject_rate: detailStudent.overallSubRate,
+        },
+        categories,
+        meta: { assignment_id: selectedAssignment, term: selectedTerm },
+      };
+      const res = await api('http://localhost:5000/api/ai/summarize-student', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || 'AI request failed');
+      setAiReport(data?.report || data);
+    } catch (err) {
+      console.error(err);
+      setAiError('Unable to generate the AI summary right now. Please try again.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   if (ctxLoading) {
     return <div className="flex justify-center py-20"><Loader size={24} className="animate-spin text-gray-400" /></div>;
@@ -492,16 +550,16 @@ const BehavioralAnalytics = () => {
     <div className="space-y-6">
       <AssignmentSelector />
       {/* Header */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-100 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
             <ArrowLeft size={20} />
           </button>
           <div>
-            <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1 font-sans">
+            <div className="text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1 font-sans">
               SmartGrade — Behavioral Analytics
             </div>
-            <span className="text-sm font-bold text-gray-700">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
+            <span className="text-sm font-bold text-gray-900">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
           </div>
         </div>
 
@@ -521,7 +579,7 @@ const BehavioralAnalytics = () => {
             {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
           </div>
           {hasComponents && (
-            <button onClick={handleExportExcel} className="px-4 py-2 bg-sidebar text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
+            <button onClick={handleExportExcel} className="px-4 py-2 bg-black text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
               <Download size={16} /> Export Excel
             </button>
           )}
@@ -531,26 +589,26 @@ const BehavioralAnalytics = () => {
       {/* Summary KPI Cards */}
       {hasComponents && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-border">
-            <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Avg Final Grade</div>
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+            <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Final Grade</div>
             <div className={`text-2xl font-extrabold ${summary.avgGrade >= 75 ? 'text-green-700' : 'text-red-600'}`}>
               {summary.avgGrade.toFixed(2)}
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-border">
-            <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Avg Submission Rate</div>
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+            <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Submission Rate</div>
             <div className={`text-2xl font-extrabold ${summary.avgSubRate >= 0.9 ? 'text-green-700' : summary.avgSubRate >= 0.75 ? 'text-amber-600' : 'text-red-600'}`}>
               {(summary.avgSubRate * 100).toFixed(1)}%
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-border">
-            <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Avg Attendance Rate</div>
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+            <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Attendance Rate</div>
             <div className={`text-2xl font-extrabold ${summary.avgAttendanceRate >= 0.9 ? 'text-green-700' : summary.avgAttendanceRate >= 0.75 ? 'text-amber-600' : 'text-red-600'}`}>
               {(summary.avgAttendanceRate * 100).toFixed(1)}%
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-border">
-            <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Overall Performance</div>
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+            <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Overall Performance</div>
             <div className={`text-2xl font-extrabold ${summary.avgPerformance >= 75 ? 'text-green-700' : summary.avgPerformance >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
               {summary.avgPerformance.toFixed(1)}%
             </div>
@@ -566,7 +624,7 @@ const BehavioralAnalytics = () => {
             placeholder="Search by name or ID..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold bg-white"
+            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           {searchQuery && (
@@ -699,28 +757,62 @@ const BehavioralAnalytics = () => {
       {detailStudent && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setSelectedStudent(null)}>
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-3xl mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
+            <div className="sticky top-0 bg-white z-10 pb-3 flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-gray-800">{detailStudent.student.student_name}</h3>
                 <p className="text-xs text-gray-400">{detailStudent.student.student_id}</p>
               </div>
-              <button onClick={() => setSelectedStudent(null)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1.5 rounded-lg text-sm font-extrabold ${detailStudent.finalGrade < 75 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-800'}`}>
+                  Final {detailStudent.finalGrade.toFixed(2)}
+                </span>
+                <button onClick={() => setSelectedStudent(null)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+              <div className="grid grid-cols-4 gap-4 text-center">
+                <div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">Final Grade</div>
+                  <div className={`text-lg font-extrabold ${detailStudent.finalGrade < 75 ? 'text-red-600' : 'text-green-700'}`}>{detailStudent.finalGrade.toFixed(2)}</div>
+                  <div className="text-[10px] text-gray-400">weighted grade</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">Performance</div>
+                  <div className={`text-lg font-extrabold ${detailStudent.overallPerformance >= 75 ? 'text-green-700' : detailStudent.overallPerformance >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                    {detailStudent.overallPerformance.toFixed(1)}%
+                  </div>
+                  <div className="text-[10px] text-gray-400">points earned</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">Attendance</div>
+                  <div className="text-lg font-extrabold text-cyan-700">{(detailStudent.attendanceRate * 100).toFixed(1)}%</div>
+                  <div className="text-[10px] text-gray-400">sessions attended</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">Submitted</div>
+                  <div className="text-lg font-extrabold text-purple-700">{(detailStudent.overallSubRate * 100).toFixed(1)}%</div>
+                  <div className="text-[10px] text-gray-400">work turned in</div>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-4">
               {components.map((comp) => {
                 if (!comp.is_attendance && !comp.activities?.length) return null;
                 const cd = detailStudent.components[comp.id];
+                const statusBorder = cd.equiv >= 75 ? 'border-l-4 border-l-green-500' : cd.equiv >= 50 ? 'border-l-4 border-l-amber-500' : 'border-l-4 border-l-red-500';
                 return (
-                  <div key={comp.id} className="border border-gray-200 rounded-xl p-4">
+                  <div key={comp.id} className={`border border-gray-200 rounded-xl p-4 ${statusBorder}`}>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-extrabold text-sidebar">{comp.name}</span>
                         <span className="text-[10px] text-gray-400">({comp.weight}%)</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs font-bold">
+                        <span className="text-yellow-700">W_TOTAL: {cd.weighted.toFixed(2)}</span>
                         <span className={`${cd.equiv < 75 ? 'text-red-600' : 'text-green-700'}`}>EQUIV: {cd.equiv.toFixed(2)}</span>
                         <span className="text-blue-600">Performance: {cd.performance.toFixed(1)}%</span>
                         <span className="text-gray-500">Sub: {(cd.submissionRate * 100).toFixed(0)}%</span>
@@ -728,8 +820,24 @@ const BehavioralAnalytics = () => {
                     </div>
 
                     {cd.is_attendance ? (
-                      <div className="text-xs text-gray-500">
-                        Total: {cd.total} / {cd.maxTotal} ({((cd.total / (cd.maxTotal || 1)) * 100).toFixed(1)}%)
+                      <div className="flex items-center gap-3 text-xs">
+                        <span className="w-32 font-semibold text-gray-700 truncate">Sessions</span>
+                        <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${cd.maxTotal ? Math.min((cd.total / cd.maxTotal) * 100, 100) : 0}%`,
+                              backgroundColor: cd.performance >= 75 ? '#16a34a' : cd.performance >= 50 ? '#f59e0b' : '#ef4444',
+                            }}
+                          />
+                        </div>
+                        <span className="w-24 text-right font-mono text-gray-600">{cd.total} / {cd.maxTotal}</span>
+                        <span
+                          className="w-12 text-right font-bold"
+                          style={{ color: cd.performance >= 75 ? '#16a34a' : cd.performance >= 50 ? '#f59e0b' : '#ef4444' }}
+                        >
+                          {cd.performance.toFixed(0)}%
+                        </span>
                       </div>
                     ) : (
                       <div className="space-y-1">
@@ -747,9 +855,15 @@ const BehavioralAnalytics = () => {
                           );
                         })}
                         {cd.activities.length >= 2 && (
-                          <div className="flex items-center gap-3 text-xs text-gray-400 mt-2 pt-2 border-t border-gray-100">
-                            <TrendIcon trend={cd.trend} />
-                            <span>Trend: {cd.trend}</span>
+                          <div className={`flex items-center gap-2 text-xs font-bold mt-2 pt-2 border-t border-gray-100 ${
+                            cd.trend === 'improving' ? 'text-green-700' : cd.trend === 'declining' ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                            <span className={`p-1 rounded-full ${
+                              cd.trend === 'improving' ? 'bg-green-100' : cd.trend === 'declining' ? 'bg-red-100' : 'bg-gray-100'
+                            }`}>
+                              <TrendIcon trend={cd.trend} />
+                            </span>
+                            <span className="uppercase tracking-wide">Trend: {cd.trend}</span>
                           </div>
                         )}
                       </div>
@@ -758,27 +872,80 @@ const BehavioralAnalytics = () => {
                 );
               })}
 
-              <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                <div className="grid grid-cols-4 gap-4 text-center">
-                  <div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase">Final Grade</div>
-                    <div className={`text-lg font-extrabold ${detailStudent.finalGrade < 75 ? 'text-red-600' : 'text-green-700'}`}>{detailStudent.finalGrade.toFixed(2)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase">Sub. Rate</div>
-                    <div className="text-lg font-extrabold text-purple-700">{(detailStudent.overallSubRate * 100).toFixed(1)}%</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase">Att. Rate</div>
-                    <div className="text-lg font-extrabold text-cyan-700">{(detailStudent.attendanceRate * 100).toFixed(1)}%</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase">Performance</div>
-                    <div className={`text-lg font-extrabold ${detailStudent.overallPerformance >= 75 ? 'text-green-700' : detailStudent.overallPerformance >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
-                      {detailStudent.overallPerformance.toFixed(1)}%
-                    </div>
-                  </div>
+              {/* AI Summary */}
+              <div className="border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="text-sm font-extrabold text-gray-800">AI Student Summary</div>
+                  <button
+                    onClick={handleSummarizeWithAI}
+                    disabled={aiLoading}
+                    className="px-4 py-2 bg-black text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {aiLoading ? <Loader size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {aiLoading ? 'Analyzing student performance...' : 'Summarize Student Behaviour with AI'}
+                  </button>
                 </div>
+
+                {aiError && (
+                  <div className="mt-3 flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
+                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                    <span>{aiError}</span>
+                  </div>
+                )}
+
+                {aiReport && (
+                  <div className="mt-3 space-y-3 text-xs">
+                    {aiReport.summary && (
+                      <div>
+                        <div className="font-bold text-gray-700 uppercase text-[10px] mb-1">Overall</div>
+                        <p className="text-gray-600 leading-relaxed">{aiReport.summary}</p>
+                      </div>
+                    )}
+                    {Array.isArray(aiReport.strengths) && aiReport.strengths.length > 0 && (
+                      <div>
+                        <div className="font-bold text-gray-700 uppercase text-[10px] mb-1">Strengths</div>
+                        <ul className="space-y-1">
+                          {aiReport.strengths.map((s, i) => (
+                            <li key={i} className="text-green-700">✓ {s}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {Array.isArray(aiReport.areas_of_attention) && aiReport.areas_of_attention.length > 0 && (
+                      <div>
+                        <div className="font-bold text-gray-700 uppercase text-[10px] mb-1">Areas to Monitor</div>
+                        <ul className="space-y-1">
+                          {aiReport.areas_of_attention.map((a, i) => (
+                            <li key={i} className="text-gray-600">
+                              <span className="font-bold text-amber-700">⚠ {a.area}</span>
+                              {a.priority && <span className="ml-1 text-[10px] text-gray-400">({a.priority})</span>}
+                              <span className="block text-gray-500">{a.observation}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {Array.isArray(aiReport.suggested_actions) && aiReport.suggested_actions.length > 0 && (
+                      <div>
+                        <div className="font-bold text-gray-700 uppercase text-[10px] mb-1">Suggested Actions</div>
+                        <ol className="list-decimal ml-4 space-y-1 text-gray-600">
+                          {aiReport.suggested_actions.map((s, i) => <li key={i}>{s}</li>)}
+                        </ol>
+                      </div>
+                    )}
+                    {Array.isArray(aiReport.follow_up) && aiReport.follow_up.length > 0 && (
+                      <div>
+                        <div className="font-bold text-gray-700 uppercase text-[10px] mb-1">Follow-up</div>
+                        <ul className="list-disc ml-4 space-y-1 text-gray-600">
+                          {aiReport.follow_up.map((s, i) => <li key={i}>{s}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-gray-400 pt-2 border-t border-gray-100">
+                      AI-generated analysis based on the student's available academic records.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
