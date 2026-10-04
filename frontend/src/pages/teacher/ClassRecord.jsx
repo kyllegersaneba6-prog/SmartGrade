@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
+import { SkeletonHeaderCard, SkeletonList, SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
 
@@ -636,7 +637,13 @@ const ClassRecord = () => {
   };
 
   if (ctxLoading) {
-    return <div className="flex justify-center py-20"><Loader size={24} className="animate-spin text-gray-400" /></div>;
+    return (
+      <div className="space-y-6" aria-busy="true">
+        <AssignmentSelector />
+        <SkeletonHeaderCard />
+        <SkeletonList rows={3} />
+      </div>
+    );
   }
 
   if (!currentAssignment) {
@@ -683,7 +690,7 @@ const ClassRecord = () => {
             {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
           </div>
 
-          <button onClick={handleExportExcel} className="px-4 py-2 bg-black text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
+          <button onClick={handleExportExcel} className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
             <Download size={16} /> Export Excel
           </button>
         </div>
@@ -705,11 +712,11 @@ const ClassRecord = () => {
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 xl:col-span-3">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-gray-300"><Percent size={16} className="text-black" /></div>
+              <div className="p-1.5 rounded-lg bg-gray-300"><Percent size={16} className="text-[#0c1925]" /></div>
               <h4 className="text-xs font-bold text-sidebar uppercase tracking-wider">Grading Components</h4>
             </div>
             <div className="group relative">
-              <HelpCircle size={14} className="text-gray-700 hover:text-black cursor-pointer transition-colors" />
+              <HelpCircle size={14} className="text-gray-700 hover:text-[#0c1925] cursor-pointer transition-colors" />
               <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-52 bg-sidebar text-white text-[10px] p-2.5 rounded-lg shadow-xl z-20 leading-relaxed">
                 Define your grading components and their percentage weights. Add sub-activities under each component. Total weight must equal 100%.
               </div>
@@ -717,7 +724,9 @@ const ClassRecord = () => {
           </div>
 
           {dataLoading && components.length === 0 ? (
-            <div className="flex justify-center py-8"><Loader size={16} className="animate-spin text-sidebar/30" /></div>
+            <div className="space-y-2 py-4" role="status" aria-label="Loading grading components">
+              <SkeletonList rows={3} />
+            </div>
           ) : components.length === 0 ? (
             <div className="text-center py-8 text-sidebar/40">
               <Percent size={36} className="mx-auto mb-3 opacity-20 text-sidebar" />
@@ -734,7 +743,7 @@ const ClassRecord = () => {
                 </div>
               )}
               <div className="relative inline-block">
-                <button onClick={() => setAddCompOpen(true)} disabled={isReadOnly || totalWeight === 100} className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-black border border-black rounded-lg shadow-sm hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <button onClick={() => setAddCompOpen(true)} disabled={isReadOnly || totalWeight === 100} className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#0c1925] border border-[#0c1925] rounded-lg shadow-sm hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   <Plus size={14} /> Add Component
                 </button>
                 {addCompOpen && !isReadOnly && (
@@ -820,7 +829,7 @@ const ClassRecord = () => {
                                   c.id === comp.id ? { ...c, activities: c.activities.map(a => a.id === act.id ? { ...a, name: e.target.value } : a) } : c
                                 ))}
                                 onBlur={() => updateActivity(act.id, { name: act.name })}
-                                className="text-[11px] font-bold text-sidebar bg-white border border-gray-500 focus:border-black focus:outline-none px-1 py-0.5 flex-1 min-w-0"
+                                className="text-[11px] font-bold text-sidebar bg-white border border-gray-500 focus:border-[#0c1925] focus:outline-none px-1 py-0.5 flex-1 min-w-0"
                                 placeholder="Activity"
                                 disabled={isReadOnly}
                               />
@@ -850,7 +859,7 @@ const ClassRecord = () => {
                             <button
                               onClick={() => addActivity(comp.id)}
                               className="w-full text-[10px] font-bold text-white flex items-center justify-center gap-1 py-1.5 rounded-lg border border-transparent hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                              style={{ backgroundColor: '#000000' }}
+                              style={{ backgroundColor: '#0c1925' }}
                             >
                               <Plus size={12} /> Add
                             </button>
@@ -869,7 +878,7 @@ const ClassRecord = () => {
                   <button
                     onClick={() => setAddCompOpen(true)}
                     disabled={isReadOnly || totalWeight === 100}
-                    className="w-full h-full min-h-[120px] flex flex-col items-center justify-center gap-2 rounded-xl border border-black border-dashed bg-black transition-all text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="w-full h-full min-h-[120px] flex flex-col items-center justify-center gap-2 rounded-xl border border-[#0c1925] border-dashed bg-[#0c1925] transition-all text-white disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <Plus size={24} />
                     <span className="text-xs font-bold">Add Component</span>
@@ -932,7 +941,7 @@ const ClassRecord = () => {
               placeholder="Search by name or ID..."
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-              className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
+              className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             {searchQuery && (
@@ -945,13 +954,21 @@ const ClassRecord = () => {
       )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
+        {components.length > 0 && totalWeight === 100 && (
+          <div className="flex items-center gap-2 px-5 py-2.5 bg-green-50 border-b border-green-200 text-green-700 text-xs font-bold">
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+            <span>Component weights total 100%. Grade computation is balanced — you can now enter scores.</span>
+          </div>
+        )}
         {components.length > 0 && totalWeight !== 100 && (
           <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 border-b border-red-200 text-red-700 text-xs font-bold">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
             <span>Component weights must total 100% before you can enter scores. Current: {totalWeight}%</span>
           </div>
         )}
-        {components.length === 0 ? (
+        {dataLoading && components.length === 0 ? (
+          <div aria-busy="true"><SkeletonTable cols={6} rows={8} /></div>
+        ) : components.length === 0 ? (
           <div className="py-12 text-center text-gray-400">
             <p className="text-sm font-medium">Set up grading components to view the class record table.</p>
           </div>
@@ -960,10 +977,10 @@ const ClassRecord = () => {
             <table className="min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
-                  <th colSpan={3} className="bg-black border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[352px] sticky left-0 z-20">
+                  <th colSpan={3} className="bg-[#0c1925] border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[352px] sticky left-0 z-20" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
                     <div className="flex justify-between items-center">
                       <span>STUDENT INFORMATION</span>
-                      <span className="text-[10px] text-gray-900">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
+                      <span className="text-[10px] text-white">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
                     </div>
                   </th>
                   {components.map((comp, idx) => {
@@ -972,14 +989,13 @@ const ClassRecord = () => {
                     const cols = comp.is_attendance ? 3 : actCount + 3;
                     if (cols === 0) return null;
                     return (
-                      <th key={comp.id} colSpan={cols} className="bg-black border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0"
-                      >
+                      <th key={comp.id} colSpan={cols} className="bg-[#0c1925] border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
                         {comp.name} ({comp.weight}%)
                         {comp.is_attendance && <span className="ml-2 text-[10px] font-normal opacity-70">[ATTENDANCE]</span>}
                       </th>
                     );
                   })}
-                  <th className="bg-gold border-b-2 border-gold-hover p-3 text-black text-center font-bold text-base uppercase tracking-wider min-w-[120px] relative z-0">
+                  <th className="bg-gold border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-base uppercase tracking-wider min-w-[120px] relative z-0">
                     {selectedTerm === 'PRELIMS' ? 'PRE' : selectedTerm === 'MIDTERMS' ? 'MID' : selectedTerm === 'PRE-FINALS' ? 'P-F' : 'FIN'} GRADE
                   </th>
                 </tr>
@@ -994,7 +1010,7 @@ const ClassRecord = () => {
                       return [
                         <th key={`${comp.id}-total`} className="px-3 py-2.5 border-r border-gray-200 bg-gray-150 text-sidebar font-bold w-16 relative z-0">TOTAL</th>,
                         <th key={`${comp.id}-equiv`} className="px-3 py-2.5 border-r-2 border-gray-300 bg-gray-150 text-sidebar font-bold w-16 relative z-0">EQUIV</th>,
-                        <th key={`${comp.id}-wt`} className="px-3 py-2.5 border-r-4 border-yellow-300 bg-yellow-100 text-yellow-900 font-extrabold w-20 relative z-0" style={{ borderRightColor: color.border }}>W_TOTAL</th>
+                        <th key={`${comp.id}-wt`} className="px-3 py-2.5 border-r-4 border-gray-300 bg-gray-150 text-sidebar font-extrabold w-20 relative z-0" style={{ borderRightColor: color.border }}>W_TOTAL</th>
                       ];
                     }
                     return (comp.activities || []).map((act) => (
@@ -1002,10 +1018,10 @@ const ClassRecord = () => {
                     )).concat(
                       <th key={`${comp.id}-total`} className="px-3 py-2.5 border-r border-gray-200 bg-gray-150 text-sidebar font-bold w-16 relative z-0">TOTAL</th>,
                       <th key={`${comp.id}-equiv`} className="px-3 py-2.5 border-r-2 border-gray-300 bg-gray-150 text-sidebar font-bold w-16 relative z-0">EQUIV</th>,
-                      <th key={`${comp.id}-wt`} className="px-3 py-2.5 border-r-4 border-yellow-300 bg-yellow-100 text-yellow-900 font-extrabold w-20 relative z-0" style={{ borderRightColor: color.border }}>W_TOTAL</th>
+                      <th key={`${comp.id}-wt`} className="px-3 py-2.5 border-r-4 border-gray-300 bg-gray-150 text-sidebar font-extrabold w-20 relative z-0" style={{ borderRightColor: color.border }}>W_TOTAL</th>
                     );
                   })}
-                  <th className="px-3 py-2.5 bg-gold text-black font-extrabold text-sm w-28 relative z-0">FINAL</th>
+                  <th className="px-3 py-2.5 bg-gray-150 text-sidebar font-extrabold text-sm w-28 relative z-0">FINAL</th>
                 </tr>
 
                 <tr className="bg-white border-b border-border text-center font-bold text-sidebar select-none">
@@ -1019,7 +1035,7 @@ const ClassRecord = () => {
                       return [
                         <td key={`${comp.id}-total`} className="px-2 py-2 border-r border-b border-gray-200 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{maxTotal}</td>,
                         <td key={`${comp.id}-equiv`} className="px-2 py-2 border-r-2 border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">100.00</td>,
-                        <td key={`${comp.id}-wt`} className="px-2 py-2 border-r-4 border-b border-yellow-200 bg-yellow-50 font-extrabold text-yellow-900 text-center text-xs relative z-0" style={{ borderRightColor: color.border }}>{comp.weight.toFixed(2)}</td>
+                        <td key={`${comp.id}-wt`} className="px-2 py-2 border-r-4 border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0" style={{ borderRightColor: color.border }}>{comp.weight.toFixed(2)}</td>
                       ];
                     }
                     return (comp.activities || []).map((act) => (
@@ -1041,10 +1057,10 @@ const ClassRecord = () => {
                     )).concat(
                       <td key={`${comp.id}-total`} className="px-2 py-2 border-r border-b border-gray-200 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{maxTotal}</td>,
                       <td key={`${comp.id}-equiv`} className="px-2 py-2 border-r-2 border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">100.00</td>,
-                      <td key={`${comp.id}-wt`} className="px-2 py-2 border-r-4 border-b border-yellow-200 bg-yellow-50 font-extrabold text-yellow-900 text-center text-xs relative z-0" style={{ borderRightColor: color.border }}>{comp.weight.toFixed(2)}</td>
+                      <td key={`${comp.id}-wt`} className="px-2 py-2 border-r-4 border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0" style={{ borderRightColor: color.border }}>{comp.weight.toFixed(2)}</td>
                     );
                   })}
-                  <td className="px-2 py-2 bg-gold font-extrabold text-black text-center text-sm relative z-0 border-b border-gray-200">100.00</td>
+                  <td className="px-2 py-2 bg-gray-100 font-extrabold text-sidebar text-center text-sm relative z-0 border-b border-gray-200">100.00</td>
                 </tr>
               </thead>
               <tbody>
@@ -1055,7 +1071,7 @@ const ClassRecord = () => {
                           s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())
                         )
                       : students;
-                    const paginatedStudents = filtered.slice((page - 1) * 15, page * 15);
+                    const paginatedStudents = filtered.slice((page - 1) * 10, page * 10);
                     return students.length === 0 ? (
                     <tr>
                       <td colSpan={colCount} className="px-6 py-10 text-center text-gray-500 italic">
@@ -1075,7 +1091,7 @@ const ClassRecord = () => {
 
                     return (
                       <tr key={student.id} className={`transition-colors ${selectedRow === student.id ? 'bg-green-200' : 'hover:bg-green-50/10'}`}>
-                        <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-gray-900 text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 15 + index + 1}</td>
+                        <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-gray-900 text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 10 + index + 1}</td>
                         <td className={`px-2 py-1 sticky border-r border-b border-gray-200 z-20 w-28 text-xs font-mono font-semibold text-gray-900 cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '48px' }} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
                         <td className={`px-2 py-1 sticky border-r-2 border-b border-border z-20 min-w-[180px] text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '160px' }} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
                         {components.map((comp, idx) => {
@@ -1089,7 +1105,7 @@ const ClassRecord = () => {
                             return [
                               <td key={`${comp.id}-total-${student.id}`} className={`px-2 py-2 border-r border-b border-gray-200 text-center font-bold text-xs ${isSelected ? 'bg-green-200 text-sidebar' : 'bg-white text-sidebar'}`}>{componentTotal}</td>,
                               <td key={`${comp.id}-equiv-${student.id}`} className={`px-2 py-2 border-r-2 border-b border-gray-300 text-center font-bold text-xs ${isSelected ? 'bg-green-200' : 'bg-white'} ${isFail ? 'text-red-600 font-extrabold' : 'text-sidebar'}`}>{componentEquiv.toFixed(2)}</td>,
-                              <td key={`${comp.id}-wt-${student.id}`} className={`px-2 py-2 border-r-4 border-b border-yellow-200 text-center font-bold text-yellow-800 text-xs ${isSelected ? 'bg-green-200' : 'bg-yellow-50/30'}`}>{componentWeighted.toFixed(2)}</td>
+                              <td key={`${comp.id}-wt-${student.id}`} className={`px-2 py-2 border-r-4 border-b border-gray-200 text-center font-bold text-sidebar text-xs ${isSelected ? 'bg-green-200' : 'bg-white'}`}>{componentWeighted.toFixed(2)}</td>
                             ];
                           }
                           return (comp.activities || []).map((act) => {
@@ -1115,10 +1131,10 @@ const ClassRecord = () => {
                           }).concat(
                             <td key={`${comp.id}-total-${student.id}`} className={`px-2 py-2 border-r border-b border-gray-200 text-center font-bold text-xs ${isSelected ? 'bg-green-200 text-sidebar' : 'bg-white text-sidebar'}`}>{componentTotal}</td>,
                             <td key={`${comp.id}-equiv-${student.id}`} className={`px-2 py-2 border-r-2 border-b border-gray-300 text-center font-bold text-xs ${isSelected ? 'bg-green-200' : 'bg-white'} ${isFail ? 'text-red-600 font-extrabold' : 'text-sidebar'}`}>{componentEquiv.toFixed(2)}</td>,
-                            <td key={`${comp.id}-wt-${student.id}`} className={`px-2 py-2 border-r-4 border-b border-yellow-200 text-center font-bold text-yellow-800 text-xs ${isSelected ? 'bg-green-200' : 'bg-yellow-50/30'}`}>{componentWeighted.toFixed(2)}</td>
+                            <td key={`${comp.id}-wt-${student.id}`} className={`px-2 py-2 border-r-4 border-b border-gray-200 text-center font-bold text-sidebar text-xs ${isSelected ? 'bg-green-200' : 'bg-white'}`}>{componentWeighted.toFixed(2)}</td>
                           );
                         })}
-                        <td className={`px-2 py-2 text-center font-extrabold text-sm border-b border-gray-200 ${isFinalFail ? 'bg-red-100 text-red-700' : (selectedRow === student.id ? 'bg-green-100 text-green-800' : 'bg-green-50 text-green-700')}`}>
+                        <td className={`px-2 py-2 text-center font-extrabold text-sm border-b border-gray-200 bg-white ${isFinalFail ? 'text-red-700' : 'text-green-700'}`}>
                           {finalGrade.toFixed(2)}
                         </td>
                       </tr>
@@ -1132,16 +1148,16 @@ const ClassRecord = () => {
         {components.length > 0 && (
           <Pagination
             currentPage={page}
-            totalPages={Math.ceil((searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length) / 15)}
+            totalPages={Math.ceil((searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length) / 10)}
             onPageChange={setPage}
             totalItems={searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length}
-            rowsPerPage={15}
+            rowsPerPage={10}
           />
         )}
       </div>
       {deleteModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Delete</h3>
             <p className="text-sm text-gray-900 mb-6">Are you sure you want to delete this {deleteModal.type}? This action cannot be undone.</p>
             <div className="flex gap-3 justify-end">

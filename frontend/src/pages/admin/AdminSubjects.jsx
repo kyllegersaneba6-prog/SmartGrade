@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, X, BookOpen, GraduationCap, Loader } from 'lucide-react';
+import { Plus, Trash2, X, BookOpen, GraduationCap } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
+import { SkeletonList, SkeletonTable } from '../../components/common/Skeleton';
 
 const yearLevels = ['1st', '2nd', '3rd', '4th'];
 const yearLabels = { '1st': '1st Year', '2nd': '2nd Year', '3rd': '3rd Year', '4th': '4th Year' };
@@ -133,10 +134,10 @@ const AdminSubjects = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Manage Subjects</h1>
-          <p className="text-xs sm:text-sm mt-0.5 text-gray-500">Add and organize subjects per year level.</p>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Manage Subjects</h1>
+          <p className="text-xs sm:text-sm mt-0.5 text-amber-400">Add and organize subjects per year level.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative group inline-block">
@@ -146,7 +147,7 @@ const AdminSubjects = () => {
               className={`px-4 py-2 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
                 isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
               }`}
-              style={{ background: '#000000' }}
+              style={{ background: '#0c1925' }}
             >
               Add Subject
             </button>
@@ -159,7 +160,7 @@ const AdminSubjects = () => {
             <select
               value={semesterFilter}
               onChange={(e) => setSemesterFilter(e.target.value)}
-              className="px-3 py-1.5 text-xs font-semibold border border-black rounded-lg bg-gray-300 focus:outline-none focus:ring-2 focus:ring-[#000000]"
+              className="px-3 py-1.5 text-xs font-semibold border border-[#0c1925] rounded-lg bg-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0c1925]"
             >
             <option value="1st Semester">1st Semester</option>
             <option value="2nd Semester">2nd Semester</option>
@@ -169,7 +170,7 @@ const AdminSubjects = () => {
             <select
               value={selectedCourseId}
               onChange={(e) => setSelectedCourseId(e.target.value)}
-              className="px-3 py-1.5 text-sm font-semibold border border-black rounded-lg bg-gray-300 focus:outline-none focus:ring-2 focus:ring-[#000000]"
+              className="px-3 py-1.5 text-sm font-semibold border border-[#0c1925] rounded-lg bg-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0c1925]"
             >
               <option value="">All Courses</option>
               {courses.map(c => <option key={c.id} value={c.id}>{c.abbreviation} — {c.name}</option>)}
@@ -182,7 +183,7 @@ const AdminSubjects = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-50 overflow-x-auto">
         {loading ? (
-          <div className="flex justify-center py-12"><Loader size={20} className="animate-spin text-gray-400" /></div>
+          <div aria-busy="true"><SkeletonTable cols={4} rows={6} /></div>
         ) : subjects.length === 0 ? (
           <div className="flex flex-col items-center py-16 text-gray-400">
             <BookOpen size={48} className="mb-3 opacity-30" />
@@ -191,9 +192,9 @@ const AdminSubjects = () => {
         ) : (
           <table className="w-full text-xs table-fixed">
             <thead>
-              <tr className="border-b" style={{ borderColor: '#000000' }}>
+              <tr className="border-b" style={{ borderColor: '#0c1925' }}>
                 {yearLevels.map((y) => (
-                  <th key={y} className="text-left pb-3 pt-3 px-4 font-bold text-black text-sm border-r last:border-r-0" style={{ borderColor: '#000000' }}>
+                  <th key={y} className="text-left pb-3 pt-3 px-4 font-bold text-[#0c1925] text-sm border-r last:border-r-0" style={{ borderColor: '#0c1925' }}>
                     {yearLabels[y]}
                   </th>
                 ))}
@@ -201,9 +202,9 @@ const AdminSubjects = () => {
             </thead>
             <tbody>
               {Array.from({ length: Math.max(maxRows, 1) }).map((_, rowIdx) => (
-                <tr key={rowIdx} className="border-b last:border-0" style={{ borderColor: '#000000' }}>
+                <tr key={rowIdx} className="border-b last:border-0" style={{ borderColor: '#0c1925' }}>
                   {grouped.map((g) => (
-                    <td key={g.year} className="px-4 py-2 border-r last:border-r-0 align-top" style={{ borderColor: '#000000' }}>
+                    <td key={g.year} className="px-4 py-2 border-r last:border-r-0 align-top" style={{ borderColor: '#0c1925' }}>
                       {g.subjects[rowIdx] ? (
                           <div className="flex items-center justify-between group px-2 py-1.5 rounded-lg hover:bg-gray-50 -mx-2 cursor-pointer" onClick={() => openAssignModal(g.subjects[rowIdx])}>
                             <div className="flex items-center gap-1.5 min-w-0">
@@ -214,9 +215,9 @@ const AdminSubjects = () => {
                           {!isArchiveMode && (
                             <button
                               onClick={(e) => { e.stopPropagation(); setSubjectToDelete(g.subjects[rowIdx]); setConfirmText(''); setDeleteModalOpen(true); }}
-                              className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                              className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={16} />
                             </button>
                           )}
                         </div>
@@ -231,7 +232,7 @@ const AdminSubjects = () => {
       </div>
 
       {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0c1925]/20">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Add Subjects</h3>
@@ -326,7 +327,7 @@ const AdminSubjects = () => {
               </button>
               <div className="flex gap-3">
                 <button onClick={() => { setShowAdd(false); setSubjectRows([{ code: '', name: '' }]); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-                <button onClick={addSubjects} disabled={adding || !selectedYear || !addSemester} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#000000' }}>{adding ? 'Adding...' : 'Add'}</button>
+                <button onClick={addSubjects} disabled={adding || !selectedYear || !addSemester} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#0c1925' }}>{adding ? 'Adding...' : 'Add'}</button>
               </div>
             </div>
           </div>
@@ -334,11 +335,11 @@ const AdminSubjects = () => {
       )}
 
       {assignModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0c1925]/20">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 border border-gray-100 max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-blue-50"><GraduationCap size={20} className="text-blue-600" /></div>
+                <div className="p-2 rounded-lg bg-green-50"><GraduationCap size={20} className="text-green-600" /></div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Assigned Teachers</h3>
                   <p className="text-xs text-gray-400">{selectedSubject?.code && <span className="font-mono mr-1">{selectedSubject.code}</span>}{selectedSubject?.name}</p>
@@ -348,7 +349,7 @@ const AdminSubjects = () => {
             </div>
             <div className="flex-1 overflow-y-auto">
               {assignLoading ? (
-                <div className="flex justify-center py-12"><Loader size={20} className="animate-spin text-gray-400" /></div>
+                <div aria-busy="true"><SkeletonList rows={3} avatar /></div>
               ) : subjectAssignments.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
@@ -378,10 +379,10 @@ const AdminSubjects = () => {
       )}
 
       {deleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0c1925]/20">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Subject</h3>
-            <p className="text-sm text-gray-500 mb-4">Are you sure you want to delete <strong>{subjectToDelete?.name}</strong>?</p>
+            <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{subjectToDelete?.name}</strong>?</p>
             {!subjectToDelete?.course_id && (
               <div className="bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-3 py-2 rounded-lg mb-4">
                 This subject is assigned to ALL courses. Deleting it will remove it from every course.

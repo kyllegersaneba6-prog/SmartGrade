@@ -121,19 +121,20 @@ const SuperAdminUsers = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#F9FAFB]">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#F9FAFB]" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Admin Management</h1>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Admin Management</h1>
+          <p className="text-xs sm:text-sm text-amber-400 mt-1">Create, edit, and manage administrator accounts across all departments.</p>
                   </div>
-        <span className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#000000' }}>{usersList.length} ADMINS</span>
+        <span className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#0c1925' }}>{usersList.length} ADMINS</span>
       </div>
 
       <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid ##F9FAFB' }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold" style={{ color: '#000000' }}>Admin Accounts</h2>
+          <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Admin Accounts</h2>
           <div className="flex gap-2">
-            <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#000000', borderColor: '#142a3f' }}><UserPlus size={14} /> Add Admin</button>
-            <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-black text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#ffbd38', borderColor: '#ffbd38' }}><Upload size={14} /> Export</button>
+            <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0c1925', borderColor: '#142a3f' }}><UserPlus size={14} /> Add Admin</button>
+            <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-[#0c1925] text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#fbbf24', borderColor: '#fbbf24' }}><Upload size={14} /> Export</button>
           </div>
         </div>
 
@@ -171,8 +172,8 @@ const SuperAdminUsers = () => {
       </div>
 
       {editModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Admin</h3>
             <div className="space-y-4">
               <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Name</label><input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" /></div>
@@ -203,8 +204,8 @@ const SuperAdminUsers = () => {
       )}
 
       {deleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Admin</h3>
             <p className="text-sm text-gray-500 mb-4">Are you sure you want to delete <strong>{userToDelete?.name}</strong>? This action cannot be undone.</p>
             <div className="mb-4"><label className="block text-xs font-bold text-gray-700 mb-1">Type <strong>Confirm</strong> to delete</label>

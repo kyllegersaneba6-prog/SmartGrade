@@ -59,8 +59,8 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-      <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+      <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
         <div className="mb-6 text-center">
           <h1 className="text-xl font-bold text-gray-900 mb-1">Create New Teacher</h1>
           <p className="text-[10px] text-gray-500 uppercase tracking-wider">Provision a new teacher account</p>

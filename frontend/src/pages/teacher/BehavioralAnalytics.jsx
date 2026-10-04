@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
 import Pagination from '../../components/common/Pagination';
+import { SkeletonHeaderCard, SkeletonMetricCards, SkeletonTable } from '../../components/common/Skeleton';
 import api from '../../utils/api';
 import {
   TERMS, getComponentTotal, getComponentMaxTotal,
@@ -531,7 +532,14 @@ const BehavioralAnalytics = () => {
   };
 
   if (ctxLoading) {
-    return <div className="flex justify-center py-20"><Loader size={24} className="animate-spin text-gray-400" /></div>;
+    return (
+      <div className="space-y-6" aria-busy="true">
+        <AssignmentSelector />
+        <SkeletonHeaderCard />
+        <SkeletonMetricCards count={4} />
+        <SkeletonTable cols={7} rows={8} />
+      </div>
+    );
   }
 
   if (!currentAssignment) {
@@ -579,7 +587,7 @@ const BehavioralAnalytics = () => {
             {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
           </div>
           {hasComponents && (
-            <button onClick={handleExportExcel} className="px-4 py-2 bg-black text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
+            <button onClick={handleExportExcel} className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
               <Download size={16} /> Export Excel
             </button>
           )}
@@ -624,7 +632,7 @@ const BehavioralAnalytics = () => {
             placeholder="Search by name or ID..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
+            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           {searchQuery && (
@@ -637,7 +645,9 @@ const BehavioralAnalytics = () => {
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
-        {!hasComponents ? (
+        {dataLoading && !hasComponents ? (
+          <div aria-busy="true"><SkeletonTable cols={7} rows={8} /></div>
+        ) : !hasComponents ? (
           <div className="py-12 text-center text-gray-400">
             <BarChart3 size={36} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm font-medium">No grading components for this term.</p>
@@ -656,9 +666,7 @@ const BehavioralAnalytics = () => {
                   </th>
                   {components.map((comp) => (
                     (comp.is_attendance || comp.activities?.length > 0) && (
-                      <th key={comp.id} colSpan={3} className="border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0"
-                        style={{ backgroundColor: '#0f172a', borderColor: '#0f172a' }}
-                      >
+                      <th key={comp.id} colSpan={3} className="border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
                         {comp.name} ({comp.weight}%)
                       </th>
                     )
@@ -755,8 +763,8 @@ const BehavioralAnalytics = () => {
 
       {/* Detail Modal */}
       {detailStudent && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setSelectedStudent(null)}>
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-3xl mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center" onClick={() => setSelectedStudent(null)}>
+          <div className="bg-white rounded-2xl modal-surface p-6 w-full max-w-3xl mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white z-10 pb-3 flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-gray-800">{detailStudent.student.student_name}</h3>
@@ -879,7 +887,7 @@ const BehavioralAnalytics = () => {
                   <button
                     onClick={handleSummarizeWithAI}
                     disabled={aiLoading}
-                    className="px-4 py-2 bg-black text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {aiLoading ? <Loader size={14} className="animate-spin" /> : <Sparkles size={14} />}
                     {aiLoading ? 'Analyzing student performance...' : 'Summarize Student Behaviour with AI'}

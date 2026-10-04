@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit3, X, Building2, BookOpen } from 'lucide-react';
 import api from '../../utils/api';
+import { SkeletonList } from '../../components/common/Skeleton';
+
+const COLLEGE_OPTIONS = [
+  'College of Information and Communication Technology (CICT)',
+  'College of Education (COE)',
+  'College of Education, Arts and Sciences (CEAS)',
+  'College of Criminal Justice Education (CCJE)',
+  'College of Business Management and Accountancy (CBMA)',
+  'College of Hospitality and Tourism Management (CHTM)',
+];
 
 const ManageDepartments = () => {
   const [departments, setDepartments] = useState([]);
@@ -65,6 +75,10 @@ const ManageDepartments = () => {
 
   const handleAddDept = async () => {
     if (!deptName.trim()) return;
+    if (departments.some((d) => d.name.trim().toLowerCase() === deptName.trim().toLowerCase())) {
+      setError('This department has already been added.');
+      return;
+    }
     setAddDeptLoading(true);
     setError('');
     try {
@@ -180,16 +194,17 @@ const ManageDepartments = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-16"><div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-[#142a3f] rounded-full" /></div>;
+    return <div className="space-y-6 max-w-7xl mx-auto" aria-busy="true"><SkeletonList rows={4} /></div>;
   }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Departments & Courses</h1>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Departments & Courses</h1>
+          <p className="text-xs sm:text-sm text-amber-400 mt-1">Organize academic departments and manage the courses under each one.</p>
                   </div>
-        <button onClick={() => { setAddDeptOpen(true); setError(''); }} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#000000', borderColor: '#142a3f' }}><Plus size={14} /> Add Department</button>
+        <button onClick={() => { setAddDeptOpen(true); setError(''); }} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0c1925', borderColor: '#142a3f' }}><Plus size={14} /> Add Department</button>
       </div>
 
       {departments.length === 0 ? (
@@ -204,8 +219,8 @@ const ManageDepartments = () => {
             <div key={dept.id} className="bg-white rounded-xl p-5 border border-gray-50 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="p-2 rounded-lg" style={{ background: '#808080' }}>
-                    <Building2 size={20} className="text-blue-900" />
+                  <div className="p-2 rounded-lg" style={{ background: '#ffffff' }}>
+                    <Building2 size={20} className="text-[#0c1925]" />
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-base font-bold text-gray-900" style={{ whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{dept.name}</h3>
@@ -242,19 +257,41 @@ const ManageDepartments = () => {
 
       {/* Add Department Modal */}
       {addDeptOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Add Department</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Department Name</label>
-                <input type="text" value={deptName} onChange={(e) => setDeptName(e.target.value)} placeholder="e.g. College of Engineering (COE)" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" />
+                <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Department Name</label>
+                <select
+                  value={deptName}
+                  onChange={(e) => { setDeptName(e.target.value); setError(''); }}
+                  className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm text-gray-800"
+                >
+                  <option value="">-- Select a department --</option>
+                  {COLLEGE_OPTIONS.map((name) => {
+                    const alreadyAdded = departments.some((d) => d.name.trim().toLowerCase() === name.toLowerCase());
+                    return (
+                      <option key={name} value={name} disabled={alreadyAdded}>
+                        {name}{alreadyAdded ? ' (already added)' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
+              {deptName && departments.some((d) => d.name.trim().toLowerCase() === deptName.trim().toLowerCase()) && (
+                <p className="text-sm font-semibold" style={{ color: errorColor }}>This department has already been added.</p>
+              )}
               {error && <p className="text-sm font-semibold" style={{ color: errorColor }}>{error}</p>}
             </div>
             <div className="flex gap-3 justify-end mt-6">
               <button onClick={() => { setAddDeptOpen(false); setDeptName(''); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-              <button onClick={handleAddDept} disabled={!deptName.trim() || addDeptLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#142a3f' }}>{addDeptLoading ? 'Adding...' : 'Add Department'}</button>
+              <button
+                onClick={handleAddDept}
+                disabled={!deptName.trim() || addDeptLoading || departments.some((d) => d.name.trim().toLowerCase() === deptName.trim().toLowerCase())}
+                className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50"
+                style={{ background: '#0c1925' }}
+              >{addDeptLoading ? 'Adding...' : 'Confirm'}</button>
             </div>
           </div>
         </div>
@@ -262,8 +299,8 @@ const ManageDepartments = () => {
 
       {/* Edit Department Modal */}
       {editDeptOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Department</h3>
             <div className="space-y-4">
               <div>
@@ -282,8 +319,8 @@ const ManageDepartments = () => {
 
       {/* Delete Department Modal */}
       {deleteDeptOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Department</h3>
             <p className="text-sm text-gray-500 mb-4">Are you sure you want to delete <strong>{deleteDept?.name}</strong>? This cannot be undone.</p>
             {error && <p className="text-sm font-semibold mb-3" style={{ color: errorColor }}>{error}</p>}
@@ -297,8 +334,8 @@ const ManageDepartments = () => {
 
       {/* Manage Courses Modal */}
       {manageCoursesDept && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 border border-gray-100 max-h-[80vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-lg w-full mx-4 border border-gray-100 max-h-[80vh] flex flex-col">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-start gap-2 flex-1 min-w-0">
                 <div className="p-2 rounded-lg bg-blue-50 shrink-0"><BookOpen size={20} className="text-blue-900" /></div>
@@ -321,7 +358,7 @@ const ManageDepartments = () => {
 
             <div className="flex-1 overflow-y-auto">
               {courseLoading ? (
-                <div className="flex justify-center py-12"><div className="animate-spin w-5 h-5 border-2 border-gray-300 border-t-[#142a3f] rounded-full" /></div>
+                <div aria-busy="true"><SkeletonList rows={3} /></div>
               ) : deptCourses.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
@@ -366,8 +403,8 @@ const ManageDepartments = () => {
 
       {/* Add Course Modal */}
       {addCourseOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Add Course</h3>
             <p className="text-xs text-gray-400 mb-4">For: <strong>{manageCoursesDept?.name}</strong></p>
             <div className="space-y-4">
@@ -391,8 +428,8 @@ const ManageDepartments = () => {
 
       {/* Edit Course Modal */}
       {editCourseOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Course</h3>
             <div className="space-y-4">
               <div>
@@ -415,8 +452,8 @@ const ManageDepartments = () => {
 
       {/* Delete Course Modal */}
       {deleteCourseOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Course</h3>
             <p className="text-sm text-gray-500 mb-4">Are you sure you want to delete <strong>{deleteCourse?.name}</strong>? This cannot be undone.</p>
             {error && <p className="text-sm font-semibold mb-3" style={{ color: errorColor }}>{error}</p>}

@@ -4,7 +4,7 @@
   --color-sidebar: #0f172a;
   --color-sidebar-hover: #1e293b;
   --color-sidebar-active: #020617;
-  --color-gold: #ffbd38;
+  --color-gold: #fbbf24;
   --color-gold-hover: #d9cf00;
   --color-gold-light: #ffff99;
   --color-bg-light: #ffffff;
@@ -42,5 +42,46 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+  /* Facebook-style skeleton shimmer: soft light sweep over gray blocks. */
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+    background-image: linear-gradient(
+      100deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.65) 50%,
+      transparent 80%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.8s linear infinite;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer,
+  .skeleton-shimmer::before,
+  .skeleton-shimmer::after {
+    animation: none;
+  }
+}
+
+/* Industry Standard: Elegant Minimalist modal styling (surface only). */
+.modal-backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.modal-surface {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 

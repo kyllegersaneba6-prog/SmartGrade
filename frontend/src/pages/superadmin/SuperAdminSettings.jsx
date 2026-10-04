@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Settings, X, Loader, Plus } from 'lucide-react';
+import { Settings, X, Plus } from 'lucide-react';
 import api from '../../utils/api';
+import { SkeletonSettingsCard } from '../../components/common/Skeleton';
 
 const SuperAdminSettings = () => {
   const [activeTerm, setActiveTerm] = useState(null);
@@ -114,22 +115,22 @@ const SuperAdminSettings = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <Loader size={24} className="animate-spin text-gray-400" />
+      <div className="space-y-6 max-w-3xl mx-auto" aria-busy="true">
+        <SkeletonSettingsCard />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             
-            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Settings</h1>
+            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Settings</h1>
           </div>
         </div>
-        <p className="text-xs text-gray-500 mt-1">View academic terms and browse archived semesters</p>
+        <p className="text-sm text-amber-400 mt-1">View academic terms and browse archived semesters</p>
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50">
@@ -194,8 +195,8 @@ const SuperAdminSettings = () => {
       </div>
 
       {endSemesterOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">End Semester</h3>
               <button onClick={() => { setEndSemesterOpen(false); setConfirmEndText(''); setEndSemesterError(''); }} className="text-gray-400 hover:text-gray-600">
@@ -243,8 +244,8 @@ const SuperAdminSettings = () => {
       )}
 
       {createTermOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Create Term</h3>
               <button onClick={() => { setCreateTermOpen(false); setNewSchoolYear(''); setNewSemester('1st Semester'); setCreateTermError(''); }} className="text-gray-400 hover:text-gray-600">

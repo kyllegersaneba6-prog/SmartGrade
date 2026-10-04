@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
 import Pagination from '../../components/common/Pagination';
+import { SkeletonHeaderCard, SkeletonTable } from '../../components/common/Skeleton';
 import api from '../../utils/api';
 
 const LS_PREFIX = 'pending_attendance_';
@@ -350,7 +351,13 @@ const Attendance = () => {
   };
 
   if (ctxLoading || loading) {
-    return <div className="flex justify-center py-20"><Loader size={24} className="animate-spin text-gray-900" /></div>;
+    return (
+      <div className="space-y-6" aria-busy="true">
+        <AssignmentSelector />
+        <SkeletonHeaderCard />
+        <SkeletonTable cols={6} rows={8} />
+      </div>
+    );
   }
 
   if (!currentAssignment) {
@@ -366,7 +373,7 @@ const Attendance = () => {
   return (
     <div className="space-y-6">
       <AssignmentSelector />
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-200 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
             <ArrowLeft size={20} />
@@ -387,8 +394,8 @@ const Attendance = () => {
                   onClick={() => { if (t !== selectedTerm) { setSelectedTerm(t); setColumns([]); setAttendanceMap({}); } }}
                   className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
                     selectedTerm === t
-                      ? 'bg-black text-white shadow-sm'
-                      : 'text-text-muted hover:text-black'
+                      ? 'bg-[#0c1925] text-white shadow-sm'
+                      : 'text-text-muted hover:text-[#0c1925]'
                   }`}
                 >
                 {t}
@@ -397,7 +404,7 @@ const Attendance = () => {
             {loading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
           </div>
           <div className="relative" ref={datePickerRef}>
-            <button onClick={() => { setAddDateOpen(!addDateOpen); setNewDate(todayStr()); setNewSession('AM'); setNewType('Lecture'); setError(''); }} disabled={isReadOnly} className="flex items-center gap-1.5 px-4 py-2 bg-black text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+            <button onClick={() => { setAddDateOpen(!addDateOpen); setNewDate(todayStr()); setNewSession('AM'); setNewType('Lecture'); setError(''); }} disabled={isReadOnly} className="flex items-center gap-1.5 px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
               <Plus size={16} /> Add Date
             </button>
             {addDateOpen && (
@@ -407,26 +414,26 @@ const Attendance = () => {
                   type="date"
                   value={newDate}
                   onChange={(e) => setNewDate(e.target.value)}
-                  className="w-full text-sm px-3 py-2 rounded-lg border border-gray-500 focus:outline-none focus:ring-2 focus:ring-black 0 mb-3"
+                  className="w-full text-sm px-3 py-2 rounded-lg border border-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0c1925] 0 mb-3"
                 />
                 {error && <div className="text-xs text-red-500 font-semibold mb-2">{error}</div>}
                 <div className="flex gap-2 mb-3">
                   <div className="flex-1">
                     <label className="text-[10px] font-bold text-gray-700 uppercase tracking-wider block mb-1">Session</label>
-                    <select value={newSession} onChange={(e) => setNewSession(e.target.value)} className="w-full text-xs font-semibold px-2 py-2 rounded-lg border border-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-black">
+                    <select value={newSession} onChange={(e) => setNewSession(e.target.value)} className="w-full text-xs font-semibold px-2 py-2 rounded-lg border border-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-[#0c1925]">
                       <option value="AM">AM</option>
                       <option value="PM">PM</option>
                     </select>
                   </div>
                   <div className="flex-1">
                     <label className="text-[10px] font-bold text-gray-700 uppercase tracking-wider block mb-1">Type</label>
-                    <select value={newType} onChange={(e) => setNewType(e.target.value)} className="w-full text-xs font-semibold px-2 py-2 rounded-lg border border-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-black">
+                    <select value={newType} onChange={(e) => setNewType(e.target.value)} className="w-full text-xs font-semibold px-2 py-2 rounded-lg border border-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-[#0c1925]">
                       <option value="Lecture">Lecture</option>
                       <option value="Laboratory">Laboratory</option>
                     </select>
                   </div>
                 </div>
-                <button onClick={addDate} className="w-full text-xs font-bold px-3 py-2 rounded-lg text-black" style={{ background: '#f5a623' }}>
+                <button onClick={addDate} className="w-full text-xs font-bold px-3 py-2 rounded-lg text-[#0c1925]" style={{ background: '#f5a623' }}>
                   Add to Table
                 </button>
               </div>
@@ -462,7 +469,7 @@ const Attendance = () => {
             placeholder="Search by name or ID..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
+            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           {searchQuery && (
@@ -485,7 +492,7 @@ const Attendance = () => {
             <table className="text-xs select-none" style={{ width: 'fit-content', minWidth: 'max-content', borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
-                  <th colSpan={3} className="bg-black border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[352px] sticky left-0 z-20">
+                  <th colSpan={3} className="bg-[#0c1925] border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[352px] sticky left-0 z-20" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
                     <div className="flex justify-between items-center">
                       <span>STUDENT INFORMATION</span>
                       <span className="text-[12px] text-gray-300">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
@@ -495,7 +502,7 @@ const Attendance = () => {
                     const color = getColor(idx);
                     const { session, type } = parseKey(key);
                     return (
-                      <th key={key} className="border-b-2 border-r-2 border-gray-200 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative group z-0 bg-black">
+                      <th key={key} className="border-b-2 border-r-2 border-gray-200 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative group z-0 bg-[#0c1925]"style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
                         <div className="flex items-center justify-center gap-2">
                           <div className="text-center leading-tight">
                             <div className="text-sm font-bold">{formatDate(key)}</div>
@@ -516,7 +523,7 @@ const Attendance = () => {
                       </th>
                     );
                   })}
-                  <th className="bg-amber-400 border-b-2 border-gold-hover p-3 text-black text-center font-bold text-base uppercase tracking-wider min-w-[100px] relative z-0">
+                  <th className="bg-amber-400 border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-base uppercase tracking-wider min-w-[100px] relative z-0">
                     TOTAL
                   </th>
                 </tr>
@@ -578,8 +585,8 @@ const Attendance = () => {
                     const studentTotal = getStudentTotal(student.id);
                     return (
                       <tr key={student.id} className={`transition-colors ${selectedRow === student.id ? 'bg-green-200' : 'hover:bg-green-50/10'}`}>
-                        <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-black text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 15 + index + 1}</td>
-                        <td className={`px-2 py-1 sticky border-r border-b border-gray-200 z-20 w-28 text-xs font-mono font-semibold text-black cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '48px' }} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
+                        <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-[#0c1925] text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 15 + index + 1}</td>
+                        <td className={`px-2 py-1 sticky border-r border-b border-gray-200 z-20 w-28 text-xs font-mono font-semibold text-[#0c1925] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '48px' }} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
                         <td className={`px-2 py-1 sticky border-r-2 border-b border-border z-20 min-w-[180px] text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '160px' }} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
                         {columns.map((key) => {
                           const isSelected = selectedRow === student.id;
@@ -635,8 +642,8 @@ const Attendance = () => {
       </div>
 
       {confirmRemoveKey && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
+        <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl modal-surface p-6 w-full max-w-sm mx-4">
             <h3 className="text-base font-bold text-gray-800 mb-2">Remove Date</h3>
             <p className="text-sm text-gray-700 mb-1">
               This will delete all attendance records for <strong>{confirmRemoveKey}</strong>.

@@ -76,7 +76,7 @@ const Login = () => {
 
       {/* ===== LEFT COLUMN — Login Form ===== */}
       <div className="w-full lg:w-[42%] flex items-center justify-center p-4 sm:p-6 lg:p-10 relative z-10">
-        <div className="w-full max-w-[420px] bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 md:p-10 shadow-2xl shadow-black/30">
+        <div className="w-full max-w-[420px] bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 md:p-10 shadow-2xl shadow-[#0c1925]/30">
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <img src="/src/assets/logo.png" className="w-20 h-20 object-contain mb-4" alt="SmartGrade Logo" />

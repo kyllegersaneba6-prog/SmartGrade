@@ -75,8 +75,8 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-      <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-50 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+      <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-50 max-h-[90vh] overflow-y-auto">
         <div className="mb-6 text-center">
           <h1 className="text-xl font-bold text-gray-900 mb-1">Create New Admin</h1>
           <p className="text-[10px] text-gray-500 uppercase tracking-wider">Provision a new admin account</p>
@@ -104,7 +104,7 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
 
           <div>
             <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Username (auto-generated)</label>
-            <input type="text" value={username} readOnly placeholder="Last name will auto-generate" className="w-full px-3 py-2 bg-gray-100 border border-gray-50 rounded-lg text-sm text-blackcursor-not-allowed font-mono" />
+            <input type="text" value={username} readOnly placeholder="Last name will auto-generate" className="w-full px-3 py-2 bg-gray-100 border border-gray-50 rounded-lg text-sm text-[#0c1925] cursor-not-allowed font-mono" />
             {lastName.trim() && (
               <p className="text-[10px] text-gray-400 mt-1">Format: lastname.####@smartgrade (numeric only)</p>
             )}

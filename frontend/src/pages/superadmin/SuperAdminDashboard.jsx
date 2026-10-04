@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import { ArrowRight, FileText, Cpu, Network, Shield, Users, GraduationCap, BookOpen, ShieldCheck, Clock, Activity, CheckCircle, Trash2, Bell, Send, AlertTriangle, RefreshCw } from 'lucide-react';
 import api from '../../utils/api';
+import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../components/common/Skeleton';
 
 const MetricCard = ({ title, value, icon: Icon, color, subtitle }) => (
   <div className="bg-gray-50 p-5 rounded-2xl shadow-sm flex items-center justify-between hover:shadow-md transition-all duration-300">
@@ -21,7 +22,7 @@ const MetricCard = ({ title, value, icon: Icon, color, subtitle }) => (
 const SuperAdminDashboard = () => {
   const [staffUsers, setStaffUsers] = useState([]);
   const [activityLog, setActivityLog] = useState([]);
-  const [activityFilter, setActivityFilter] = useState('All');
+  const [initialLoading, setInitialLoading] = useState(true);
   const [notification, setNotification] = useState({ title: '', content: '', urgency: 'Not Urgent', audience: ['Admins', 'Teachers'] });
   const [notifSuccess, setNotifSuccess] = useState(false);
 
@@ -46,7 +47,7 @@ const SuperAdminDashboard = () => {
     } catch (err) { console.error(err); }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadData().finally(() => setInitialLoading(false)); }, [loadData]);
 
   useEffect(() => {
     const handler = () => loadData();
@@ -75,26 +76,40 @@ const SuperAdminDashboard = () => {
 
   return (
   <div className="space-y-6 max-w-7xl mx-auto pt-4 md:pt-6 lg:pt-0">
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50 p-5 rounded-2xl shadow-sm">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50 p-5 rounded-2xl shadow-sm" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Dashboard</h1>
+        <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Dashboard</h1>
+        <p className="text-xs sm:text-sm mt-1 text-amber-400" >Monitor registered users, department distribution, system activities, and broadcast announcements .</p>
 
       </div>
     </div>
 
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+      {initialLoading ? (
+        <div className="col-span-2 lg:col-span-4" aria-busy="true"><SkeletonMetricCards count={4} /></div>
+      ) : (
+      <>
       <MetricCard title="Total Accounts" value={staffUsers.length} icon={Users} color="#142a3f" subtitle="Registered members" />
       <MetricCard title="Faculty Members" value={totals.teachers} icon={BookOpen} color="#142a3f" subtitle="Teachers" />
       <MetricCard title="Admin Accounts" value={totals.admins} icon={ShieldCheck} color="#142a3f" subtitle="Admins" />
       <MetricCard title="Audit logs" value={activityLog.length} icon={Activity} color="#142a3f" subtitle="Events logged" />
+      </>
+      )}
     </div>
 
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      {initialLoading ? (
+        <>
+          <div className="lg:col-span-2" aria-busy="true"><SkeletonTable cols={3} rows={5} /></div>
+          <div aria-busy="true"><SkeletonList rows={4} avatar /></div>
+        </>
+      ) : (
+      <>
       <div className="lg:col-span-2 flex flex-col gap-5">
         <div className="rounded-xl p-5 shadow-sm bg-gray-50">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base font-bold" style={{ color: '#000000' }}>Department User Overview</h2>
+              <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Department User Overview</h2>
               <p className="text-[10px] text-gray-900 uppercase tracking-widest mt-0.5">Users per category by department</p>
             </div>
             <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#1a2233' }}>{staffUsers.length} TOTAL</span>
@@ -119,12 +134,18 @@ const SuperAdminDashboard = () => {
                   {departments.map((dept) => (
                     <tr key={dept.name} className="border-t border-gray-200">
                       <td className="py-3 pr-4 font-semibold text-gray-700 text-xs">{dept.name}</td>
-                      {[{ val: dept.teachers, bg: '#ffbd38' }, { val: dept.admins, bg: '#ffbd38' }].map((cell, i) => (
+                      {[{ val: dept.teachers, bg: '#fbbf24' }, { val: dept.admins, bg: '#fbbf24' }].map((cell, i) => (
                         <td key={i} className="py-3 px-2 text-center">
-                          <span className="inline-block w-10 py-1 rounded text-xs font-bold" style={{ background: cell.val > 0 ? cell.bg : '#f9fafb', color: cell.val > 0 ? '#1a2233' : '#d1d5db' }}>{cell.val}</span>
+                          <span
+                            className="inline-block w-10 py-1 rounded text-xs font-bold border"
+                            style={cell.val > 0
+                              ? { background: cell.bg, color: '#1a2233', borderColor: 'transparent' }
+                              : { background: '#fbbf24', color: '#0c1925', borderColor: '#fbbf24' }}
+                            title={cell.val === 0 ? 'No users in this category yet' : undefined}
+                          >{cell.val}</span>
                         </td>
                       ))}
-                      <td className="py-3 px-2 text-center"><span className="inline-block w-10 py-1 rounded text-xs font-bold text-white" style={{ background: '#000000' }}>{dept.total}</span></td>
+                      <td className="py-3 px-2 text-center"><span className="inline-block w-10 py-1 rounded text-xs font-bold text-white" style={{ background: '#0c1925' }}>{dept.total}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -136,19 +157,12 @@ const SuperAdminDashboard = () => {
         <div className="rounded-xl p-4 sm:p-5 shadow-sm bg-gray-50">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
             <h2 className="text-sm sm:text-base font-bold" style={{ color: '#000000' }}>System Activities</h2>
-            <div className="flex items-center gap-2">
-              <select value={activityFilter} onChange={(e) => setActivityFilter(e.target.value)} className="text-xs px-2 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 border-gray-200 text-gray-700">
-                <option value="All">All Activities</option>
-                <option value="User Created">Creations</option>
-                <option value="User Deleted">Deletions</option>
-              </select>
-            </div>
           </div>
           <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
             {activityLog.length === 0 ? (
               <p className="text-sm text-gray-400 italic py-6 text-center">No recent activities found.</p>
             ) : (
-              activityLog.filter(log => activityFilter === 'All' || log.action === activityFilter).map((log) => {
+              activityLog.slice(0, 5).map((log) => {
                 const isCreate = log.action.toLowerCase().includes('created');
                 const isDelete = log.action.toLowerCase().includes('deleted');
                 const isUpdate = log.action.toLowerCase().includes('updated');
@@ -186,7 +200,7 @@ const SuperAdminDashboard = () => {
 
       <div className="flex flex-col gap-5">
         <div className="rounded-xl p-5 shadow-sm h-full bg-gray-50">
-          <div className="flex items-center gap-2 mb-4"><Bell size={18} style={{ color: '#142a3f' }} /><h2 className="text-sm font-bold" style={{ color: '#000000' }}>Broadcast Notification</h2></div>
+          <div className="flex items-center gap-2 mb-4"><Bell size={18} style={{ color: '#142a3f' }} /><h2 className="text-sm font-bold" style={{ color: '#0c1925' }}>Broadcast Notification</h2></div>
           <p className="text-[11px] mb-5 text-gray-900">Send an update or alert to Users (Teachers, Admins).</p>
           <form onSubmit={handlePostNotification} className="flex flex-col gap-4">
             <div>
@@ -194,7 +208,7 @@ const SuperAdminDashboard = () => {
               <div className="flex flex-col gap-2 p-3 border rounded-lg bg-gray-100 border-gray-200">
                 {['Admins', 'Teachers'].map((role) => (
                   <label key={role} className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-900">
-                    <input type="checkbox" checked={notification.audience.includes(role)} onChange={(e) => { let newAudience = [...notification.audience]; if (e.target.checked) newAudience.push(role); else newAudience = newAudience.filter(item => item !== role); setNotification({ ...notification, audience: newAudience }); }} className="rounded border-gray-200 text-black focus:ring-black w-4 h-4 cursor-pointer" />
+                    <input type="checkbox" checked={notification.audience.includes(role)} onChange={(e) => { let newAudience = [...notification.audience]; if (e.target.checked) newAudience.push(role); else newAudience = newAudience.filter(item => item !== role); setNotification({ ...notification, audience: newAudience }); }} className="rounded border-gray-200 text-[#0c1925] focus:ring-[#0c1925] w-4 h-4 cursor-pointer accent-amber-400" />
                     {role}
                   </label>
                 ))}
@@ -202,24 +216,26 @@ const SuperAdminDashboard = () => {
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Title</label>
-              <input type="text" placeholder="Notification Title" value={notification.title} onChange={(e) => setNotification({ ...notification, title: e.target.value })} className="w-full text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black bg-white border-black" required />
+              <input type="text" placeholder="Notification Title" value={notification.title} onChange={(e) => setNotification({ ...notification, title: e.target.value })} className="w-full text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-white border-[#0c1925]" required />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Message</label>
-              <textarea placeholder="Write your message here..." value={notification.content} onChange={(e) => setNotification({ ...notification, content: e.target.value })} className="w-full text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black bg-white border-black resize-none h-24" required />
+              <textarea placeholder="Write your message here..." value={notification.content} onChange={(e) => setNotification({ ...notification, content: e.target.value })} className="w-full text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-white border-[#0c1925] resize-none h-24" required />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-2">Urgency Level</label>
               <div className="flex gap-3">
-                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="urgency" value="Not Urgent" checked={notification.urgency === 'Not Urgent'} onChange={(e) => setNotification({ ...notification, urgency: e.target.value })} className="accent-black" /><span className="text-xs text-gray-900">Not Urgent</span></label>
-                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="urgency" value="Urgent" checked={notification.urgency === 'Urgent'} onChange={(e) => setNotification({ ...notification, urgency: e.target.value })} className="accent-black" /><span className="text-xs text-gray-900 font-semibold flex items-center gap-1"><AlertTriangle size={14} /> Urgent</span></label>
+                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="urgency" value="Not Urgent" checked={notification.urgency === 'Not Urgent'} onChange={(e) => setNotification({ ...notification, urgency: e.target.value })} className="accent-[#0c1925]" /><span className="text-xs text-gray-900">Not Urgent</span></label>
+                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="urgency" value="Urgent" checked={notification.urgency === 'Urgent'} onChange={(e) => setNotification({ ...notification, urgency: e.target.value })} className="accent-[#0c1925]" /><span className="text-xs text-gray-900 font-semibold flex items-center gap-1"><AlertTriangle size={14} /> Urgent</span></label>
               </div>
             </div>
-            <button type="submit" className="w-full mt-2 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: '#000000' }} disabled={!notification.title || !notification.content || notification.audience.length === 0}><Send size={14} /> POST NOTIFICATION</button>
+            <button type="submit" className="w-full mt-2 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: '#0c1925' }} disabled={!notification.title || !notification.content || notification.audience.length === 0}><Send size={14} /> POST NOTIFICATION</button>
             {notifSuccess && <div className="mt-2 p-2 rounded-lg bg-green-50 border border-green-100 flex items-center gap-2 text-green-700 text-xs font-medium"><CheckCircle size={14} /> Notification broadcasted successfully!</div>}
           </form>
         </div>
       </div>
+      </>
+      )}
     </div>
   </div>
   );

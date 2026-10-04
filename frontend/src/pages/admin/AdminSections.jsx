@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Trash2, X, UserPlus, Layers, Loader, Upload } from 'lucide-react';
+import { Plus, Trash2, X, UserPlus, Layers, Upload } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import Pagination from '../../components/common/Pagination';
+import { SkeletonList, SkeletonTable } from '../../components/common/Skeleton';
 import * as XLSX from 'xlsx';
 
 const formatStudentId = (value) => {
@@ -314,17 +315,18 @@ const AdminSections = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl shadow-sm border border-gray-50" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Manage Sections</h1>
-            <p className="text-xs sm:text-sm mt-0.5 text-gray-900">{yearLabels[year] || year}</p>
+            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Manage Sections</h1>
+            <p className="text-xs sm:text-sm mt-0.5" style={{ color: '#cbd5e1' }}>{yearLabels[year] || year}</p>
+            <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>Create and organize class sections and manage student rosters.</p>
           </div>
           {courses.length > 0 && (
             <select
               value={selectedCourseId}
               onChange={(e) => setSelectedCourseId(e.target.value)}
-              className="px-3 py-1.5 text-sm font-semibold border border-black rounded-lg bg-gray-300 focus:outline-none focus:ring-2 focus:ring-[#000000]"
+              className="px-3 py-1.5 text-sm font-semibold border border-[#0c1925] rounded-lg bg-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0c1925]"
             >
               <option value="">All courses</option>
               {courses.map(c => <option key={c.id} value={c.id}>{c.abbreviation} — {c.name}</option>)}
@@ -355,8 +357,8 @@ const AdminSections = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-1 bg-white rounded-xl p-5 shadow-sm border border-gray-50">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-black flex items-center gap-2">
-              <Layers size={16} style={{ color: '#000000' }} /> Sections
+            <h2 className="text-sm font-bold text-[#0c1925] flex items-center gap-2">
+              <Layers size={16} style={{ color: '#0c1925' }} /> Sections
             </h2>
             <div className="relative group">
               <button
@@ -365,7 +367,7 @@ const AdminSections = () => {
                 className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
                   isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
                 }`}
-                style={{ background: '#000000' }}
+                style={{ background: '#0c1925' }}
               >
                 <Plus size={14} /> Add
               </button>
@@ -378,7 +380,7 @@ const AdminSections = () => {
           </div>
 
           {loadingSections ? (
-            <div className="flex justify-center py-8"><Loader size={20} className="animate-spin text-gray-400" /></div>
+            <div aria-busy="true"><SkeletonList rows={4} /></div>
           ) : sections.length === 0 ? (
             <p className="text-xs text-gray-400 text-center py-8">No sections found for this term.</p>
           ) : (
@@ -388,8 +390,8 @@ const AdminSections = () => {
                   key={section.id}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm ${
                     selectedSection?.id === section.id
-                      ? 'bg-gray-500 text-black font-bold'
-                      : 'text-black bg-gray-100 hover:bg-gray-300 font-bold'
+                      ? 'bg-gray-500 text-[#0c1925] font-bold'
+                      : 'text-[#0c1925] bg-gray-100 hover:bg-gray-300 font-bold'
                   }`}
                   onClick={() => setSelectedSection(section)}
                 >
@@ -424,7 +426,7 @@ const AdminSections = () => {
             <>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold text-gray-900">
-                  Students — <span style={{ color: '#000000' }}>{selectedSection.name}</span>
+                  Students — <span style={{ color: '#0c1925' }}>{selectedSection.name}</span>
                 </h2>
                 <input
                   type="file"
@@ -450,7 +452,7 @@ const AdminSections = () => {
                       className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
                         isArchiveMode || !selectedSection ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
                       }`}
-                      style={{ background: '#000000' }}
+                      style={{ background: '#0c1925' }}
                     >
                       <UserPlus size={14} /> Add Multiple
                     </button>
@@ -467,7 +469,7 @@ const AdminSections = () => {
                       className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
                         isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
                       }`}
-                      style={{ background: '#000000' }}
+                      style={{ background: '#0c1925' }}
                     >
                       <UserPlus size={14} /> Add Student
                     </button>
@@ -481,10 +483,10 @@ const AdminSections = () => {
                     <button
                       onClick={() => { if (!isArchiveMode) { fileInputRef.current?.click(); } }}
                       disabled={isArchiveMode}
-                      className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-black rounded-lg shadow-sm transition-transform ${
+                      className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-[#0c1925] rounded-lg shadow-sm transition-transform ${
                         isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
                       }`}
-                      style={{ background: '#ffbd38' }}
+                      style={{ background: '#fbbf24' }}
                     >
                       <Upload size={14} /> Import
                     </button>
@@ -498,7 +500,7 @@ const AdminSections = () => {
               </div>
 
               {loadingStudents ? (
-                <div className="flex justify-center py-12"><Loader size={20} className="animate-spin text-gray-400" /></div>
+                <div aria-busy="true"><SkeletonTable cols={5} rows={6} /></div>
               ) : students.length === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-12">No students enrolled yet.</p>
               ) : (
@@ -557,8 +559,8 @@ const AdminSections = () => {
       </div>
 
       {showAddSection && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Add Section</h3>
               <button onClick={() => setShowAddSection(false)} className="text-gray-400 hover:text-gray-600">
@@ -598,8 +600,8 @@ const AdminSections = () => {
       )}
 
       {showAddStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Add Students</h3>
               <button onClick={() => { setShowAddStudent(false); setStudentRows([{ id: '', first_name: '', last_name: '', mi: '', gender: '' }]); setStudentError(''); }} className="text-gray-400 hover:text-gray-600">
@@ -705,8 +707,8 @@ const AdminSections = () => {
       )}
 
       {showImport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 border border-gray-100 max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-2xl w-full mx-4 border border-gray-100 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Import Students</h3>
               <button onClick={() => { setShowImport(false); setImportRows([]); setImportHeaderError(''); setImportError(''); setImportResult(null); }} className="text-gray-400 hover:text-gray-600">
@@ -834,8 +836,8 @@ const AdminSections = () => {
       )}
 
       {deleteSectionOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Section</h3>
             <p className="text-sm text-gray-500 mb-4">Are you sure you want to delete <strong>{sectionToDelete?.name}</strong>? This will also delete all enrolled students.</p>
             <div className="mb-4"><label className="block text-xs font-bold text-gray-700 mb-1">Type <strong>Confirm</strong> to delete</label>
@@ -850,8 +852,8 @@ const AdminSections = () => {
       )}
 
       {deleteStudentOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Remove Student</h3>
             <p className="text-sm text-gray-500 mb-4">Are you sure you want to remove <strong>{studentToDelete?.student_name}</strong> ({studentToDelete?.student_id})?</p>
             <div className="mb-4"><label className="block text-xs font-bold text-gray-700 mb-1">Type <strong>Confirm</strong> to delete</label>

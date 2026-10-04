@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Filter, RefreshCw, Download, Share2, FileText, Table2, BookOpen, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { Filter, Download, Share2, FileText, Table2, BookOpen, ChevronLeft, ChevronRight, Info, Check } from 'lucide-react';
 import api from '../../utils/api';
+import { SkeletonTable } from '../../components/common/Skeleton';
 
 const outputFormats = [
   { label: 'RAW LOGS', sub: 'JSON/TXT Format', pct: 100, icon: FileText, color: '#b5a98a' },
@@ -13,6 +14,15 @@ const SecurityAudit = () => {
   const [logs, setLogs] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionFilter, setActionFilter] = useState('ALL');
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const ACTION_FILTERS = [
+    { value: 'ALL', label: 'ALL ACTIVITIES' },
+    { value: 'CREATED', label: 'CREATED' },
+    { value: 'UPDATED', label: 'UPDATED' },
+    { value: 'DELETED', label: 'DELETED' },
+  ];
 
 
 
@@ -40,9 +50,9 @@ const SecurityAudit = () => {
     const user = users.find(u => u.username === userName || u.full_name === userName);
     if (!user) return { role: 'system', color: '#3b82f6', name: userName };
     switch (user.system_role) {
-      case 'superadmin': return { role: 'system', color: '#ef4444', name: user.full_name };
-      case 'admin': return { role: 'admin', color: '#0F4A82', name: user.full_name };
-      case 'teacher': return { role: 'teacher', color: '#ffbd38', name: user.full_name };
+      case 'superadmin': return { role: 'system', color: '#0c1925', name: user.full_name };
+      case 'admin': return { role: 'admin', color: ' #fbbf24 ' , name: user.full_name };
+      case 'teacher': return { role: 'teacher', color: '#fbbf24', name: user.full_name };
       default: return { role: 'system', color: '#3b82f6', name: user.full_name };
     }
   };
@@ -71,13 +81,16 @@ const SecurityAudit = () => {
   const dataExports = logs.filter(l => l.action.toLowerCase().includes('export') || l.action.toLowerCase().includes('download')).length;
 
   const metrics = [
-    { label: 'CRITICAL ALERTS', value: criticalCount.toString().padStart(2, '0'), color: '#FF0000', bg: '#e12727', icon: '⚠', tooltip: 'High-risk system activities requiring immediate administrator attention.' },
-    { label: 'SYSTEM ACCESSES', value: systemAccesses.toLocaleString(), color: '#000000', bg: '#ffbd38', icon: '↗', tooltip: 'Total authentication events across all user roles.' },
+    { label: 'CRITICAL ALERTS', value: criticalCount.toString().padStart(2, '0'), color: '#FF0000', bg: '#957272', icon: '⚠', tooltip: 'High-risk system activities requiring immediate administrator attention.' },
+    { label: 'SYSTEM ACCESSES', value: systemAccesses.toLocaleString(), color: '#0c1925', bg: '#fbbf24', icon: '↗', tooltip: 'Total account across all user roles.' },
   ];
 
   const ROWS_PER_PAGE = 10;
-  const totalPages = Math.max(1, Math.ceil(dynamicRows.length / ROWS_PER_PAGE));
-  const paginatedRows = dynamicRows.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
+  const filteredRows = actionFilter === 'ALL'
+    ? dynamicRows
+    : dynamicRows.filter(r => r.action.includes(actionFilter === 'CREATED' ? 'CREAT' : actionFilter === 'UPDATED' ? 'UPDAT' : 'DELET'));
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / ROWS_PER_PAGE));
+  const paginatedRows = filteredRows.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
 
   const getPageNumbers = () => {
     let pages = [];
@@ -88,9 +101,10 @@ const SecurityAudit = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Security & Audit</h1>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Security & Audit</h1>
+          <p className="text-xs sm:text-sm text-amber-400 mt-1">Review critical alerts and trace every system access in the institutional audit trail.</p>
         </div>
       </div>
 
@@ -121,21 +135,42 @@ const SecurityAudit = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2"><span className="text-lg">🔄</span><h2 className="text-base font-bold text-gray-900">Institutional System Audit Trail (Root Access)</h2></div>
               <div className="flex gap-2">
-                <button className="p-1.5 rounded border" style={{ borderColor: '#e5e0d5' }}><Filter size={14} className="text-gray-400" /></button>
-                <button onClick={fetchData} className="p-1.5 rounded border" style={{ borderColor: '#e5e0d5' }}><RefreshCw size={14} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} /></button>
+                <div className="relative">
+                  <button onClick={() => setFilterOpen(o => !o)} className="p-1.5 rounded border flex items-center gap-1" style={{ borderColor: '#565656' }} title="Filter by action">
+                    <Filter size={16} className={actionFilter === 'ALL' ? 'text-black' : 'text-[#0c1925]'} />
+                  </button>
+                  {filterOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
+                      <div className="absolute right-0 mt-1 w-44 rounded-lg border border-gray-100 bg-white shadow-xl z-20 py-1">
+                        {ACTION_FILTERS.map((f) => (
+                          <button
+                            key={f.value}
+                            onClick={() => { setActionFilter(f.value); setPage(1); setFilterOpen(false); }}
+                            className={`w-full flex items-center justify-between px-3 py-2 text-[11px] font-bold tracking-wide hover:bg-gray-50 ${actionFilter === f.value ? 'text-[#0c1925]' : 'text-gray-500'}`}
+                          >
+                            {f.label}
+                            {actionFilter === f.value && <Check size={12} />}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             <div className="table-responsive"><table className="w-full text-xs min-w-[800px]">
               <thead><tr className="border-b" style={{ borderColor: '#f0ede6' }}>{['Timestamp', 'User', 'Role', 'Action', 'Description', '#'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">{h}</th>))}</tr></thead>
               <tbody>
-                {loading ? (<tr><td colSpan="6" className="py-8 text-center text-gray-400">Loading audit trail...</td></tr>
+                {loading ? (
+                  <tr><td colSpan="6" className="py-4"><div aria-busy="true"><SkeletonTable cols={6} rows={6} /></div></td></tr>
                 ) : paginatedRows.length === 0 ? (<tr><td colSpan="6" className="py-8 text-center text-gray-400">No activity recorded yet.</td></tr>
                 ) : paginatedRows.map((row, i) => (
                   <tr key={row.id || i} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
-                    <td className="py-3 pr-3 whitespace-pre font-mono text-[11px]" style={{ color: row.critical ? '#ff0000' : '#000000' }}>{row.ts}</td>
+                    <td className="py-3 pr-3 whitespace-pre font-mono text-[11px]" style={{ color: '#0c1925' }}>{row.ts}</td>
                     <td className="py-3 pr-3 font-bold text-gray-800">{row.user}</td>
-                    <td className="py-3 pr-3"><span className="px-2 py-0.5 rounded text-[10px] font-bold text-white" style={{ background: row.roleColor }}>{row.role}</span></td>
-                    <td className="py-3 pr-3 font-mono text-gray-700">{row.action}</td>
+                    <td className="py-3 pr-3"><span className={`px-2 py-0.5 rounded text-[12px] font-bold ${row.role === 'admin' ? 'text-black' : 'text-white'}`} style={{ background: row.roleColor }}>{row.role}</span></td>
+                    <td className="py-3 pr-3 font-mono font-bold" style={{ color: row.action.includes('DELET') ? '#dc2626' : row.action.includes('UPDAT') ? '#2563eb' : row.action.includes('CREAT') ? '#16a34a' : '#4b5563' }}>{row.action}</td>
                     <td className="py-3 pr-3 text-gray-700 max-w-[300px] truncate" title={row.desc}>{row.desc}</td>
                     <td className="py-3 text-gray-400 font-semibold">{row.count}</td>
                   </tr>
@@ -143,10 +178,10 @@ const SecurityAudit = () => {
               </tbody>
             </table></div>
             <div className="flex items-center justify-between mt-4 pt-4 border-t text-xs" style={{ borderColor: '#f0ede6' }}>
-              <span className="text-gray-900">Showing {Math.min((page - 1) * ROWS_PER_PAGE + 1, dynamicRows.length)} to {Math.min(page * ROWS_PER_PAGE, dynamicRows.length)} of {dynamicRows.length.toLocaleString()} entries</span>
+              <span className="text-gray-900">Showing {Math.min((page - 1) * ROWS_PER_PAGE + 1, filteredRows.length)} to {Math.min(page * ROWS_PER_PAGE, filteredRows.length)} of {filteredRows.length.toLocaleString()} entries</span>
               <div className="flex items-center gap-1">
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 rounded border text-gray-500 disabled:opacity-50" style={{ borderColor: '#e5e0d5' }}>Previous</button>
-                {getPageNumbers().map((p) => (<button key={p} onClick={() => setPage(p)} className="w-7 h-7 rounded font-semibold" style={page === p ? { background: '#000000', color: '#fff' } : { background: '#f0ede6', color: '#6b7280' }}>{p}</button>))}
+                {getPageNumbers().map((p) => (<button key={p} onClick={() => setPage(p)} className="w-7 h-7 rounded font-semibold" style={page === p ? { background: '#0c1925', color: '#fff' } : { background: '#f0ede6', color: '#6b7280' }}>{p}</button>))}
                 <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || totalPages === 0} className="px-3 py-1 rounded border text-gray-500 disabled:opacity-50" style={{ borderColor: '#e5e0d5' }}>Next</button>
               </div>
             </div>

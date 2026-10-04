@@ -1,6 +1,7 @@
 import React from 'react';
 import { LayoutDashboard, BookOpen, GraduationCap, Archive, Loader } from 'lucide-react';
 import { useTeacher } from '../../contexts/TeacherContext';
+import { SkeletonClassGrid } from '../../components/common/Skeleton';
 
 const yearOrder = ['1st', '2nd', '3rd', '4th'];
 const yearLabels = { '1st': '1st Year', '2nd': '2nd Year', '3rd': '3rd Year', '4th': '4th Year' };
@@ -57,12 +58,14 @@ const TeacherDashboard = () => {
 
       <div>
         <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <GraduationCap size={18} style={{ color: '#000000' }} />
+          <GraduationCap size={18} style={{ color: '#0c1925' }} />
           {isArchiveMode ? 'Archived Classes' : 'My Assigned Classes'}
         </h3>
 
         {loading ? (
-          <div className="flex justify-center py-12"><Loader size={20} className="animate-spin text-gray-900" /></div>
+          <div aria-busy="true">
+            <SkeletonClassGrid count={4} />
+          </div>
         ) : !activeTerm && !isArchiveMode ? (
           <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-50 text-center">
             <BookOpen size={40} className="mx-auto mb-3 text-gray-900" />
@@ -91,7 +94,7 @@ const TeacherDashboard = () => {
                           <p className="text-[13px] text-gray-900">{a.sections?.name}</p>
                           <p className="text-[12px] text-gray-900">{a.school_year} {a.semester}</p>
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded text-black" style={{ background: '#f5a623' }}>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded text-[#0c1925]" style={{ background: '#f5a623' }}>
                           {a.sections?.year_level}
                         </span>
                       </div>

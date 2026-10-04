@@ -33,7 +33,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-[#0c1925]/50 z-40 lg:hidden"
           onClick={onClose}
         />
       )}
@@ -98,8 +98,8 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       </div>
 
       {showLogoutModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Sign Out</h3>
             <p className="text-sm text-gray-900 mb-6">Are you sure you want to sign out?</p>
             <div className="flex gap-3 justify-end">

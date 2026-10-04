@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
+import { SkeletonHeaderCard, SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
 import {
@@ -120,7 +121,13 @@ const GradeSummary = () => {
   const hasAnyData = Object.values(termData).some(td => td?.components?.some(c => c.is_attendance || c.activities?.length > 0));
 
   if (ctxLoading) {
-    return <div className="flex justify-center py-20"><Loader size={24} className="animate-spin text-gray-400" /></div>;
+    return (
+      <div className="space-y-6" aria-busy="true">
+        <AssignmentSelector />
+        <SkeletonHeaderCard />
+        <SkeletonTable cols={8} rows={8} />
+      </div>
+    );
   }
 
   if (!currentAssignment) {
@@ -307,7 +314,7 @@ const GradeSummary = () => {
         </div>
         {dataLoading && <Loader size={18} className="animate-spin text-sidebar/40" />}
         {hasAnyData && !dataLoading && (
-          <button onClick={handleExportExcel} className="px-4 py-2 bg-black text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
+          <button onClick={handleExportExcel} className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
             <Download size={16} /> Export Excel
           </button>
         )}
@@ -321,7 +328,7 @@ const GradeSummary = () => {
             placeholder="Search by name or ID..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-black bg-white"
+            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           {searchQuery && (
@@ -334,7 +341,9 @@ const GradeSummary = () => {
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
-        {!hasAnyData ? (
+        {dataLoading && !hasAnyData ? (
+          <div aria-busy="true"><SkeletonTable cols={8} rows={8} /></div>
+        ) : !hasAnyData ? (
           <div className="py-12 text-center text-gray-400">
             <BarChart3 size={36} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm font-medium">No grading data available.</p>
@@ -345,20 +354,18 @@ const GradeSummary = () => {
             <table className="min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
-                  <th colSpan={3} className="bg-sidebar border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[280px] sticky left-0 z-20">
+                  <th colSpan={3} className="bg-sidebar border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[280px] sticky left-0 z-20" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
                     <div className="flex justify-between items-center">
                       <span>STUDENT INFORMATION</span>
                       <span className="text-[10px] text-gray-300">{searchQuery ? `${studentRows.filter(r => r.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || r.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
                     </div>
                   </th>
                   {TERMS.map(term => (
-                    <th key={term} colSpan={2} className="border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0"
-                      style={{ backgroundColor: '#0f172a', borderColor: '#0f172a' }}
-                    >
+                    <th key={term} colSpan={2} className="border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
                       {term} {TERM_PCTS[term]}
                     </th>
                   ))}
-                  <th className="bg-gold border-b-2 border-gold-hover p-3 text-black text-center font-bold text-sm uppercase tracking-wider relative z-0" colSpan={3}>SEMESTRAL GRADE</th>
+                  <th className="bg-gold border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-sm uppercase tracking-wider relative z-0" colSpan={3}>SEMESTRAL GRADE</th>
                 </tr>
                 <tr className="bg-gray-50 border-b border-border text-center font-semibold text-sidebar">
                   <th className="px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20 w-10" style={{ left: 0 }}>#</th>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Loader, Archive, X } from 'lucide-react';
+import { Settings, Archive, X } from 'lucide-react';
 import { useTeacher } from '../../contexts/TeacherContext';
+import { SkeletonSettingsCard } from '../../components/common/Skeleton';
 
 const TeacherSettings = () => {
   const { activeTerm, allTerms, viewTerm, setViewTerm, isArchiveMode, loading } = useTeacher();
@@ -10,22 +11,22 @@ const TeacherSettings = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <Loader size={24} className="animate-spin text-gray-400" />
+      <div className="space-y-6 max-w-3xl mx-auto" aria-busy="true">
+        <SkeletonSettingsCard />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50"  style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
            
-            <h1 className="text-xl font-bold" style={{ color: '#142a3f' }}>Settings</h1>
+            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Settings</h1>
           </div>
         </div>
-        <p className="text-xs text-gray-900 mt-1">View academic terms and browse archived semesters</p>
+        <p className="text-xs text-amber-400 mt-1">View academic terms and browse archived semesters</p>
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50">
@@ -118,8 +119,8 @@ const TeacherSettings = () => {
       </div>
 
       {confirmTerm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 rounded-lg bg-amber-50"><Archive size={20} className="text-amber-600" /></div>
               <h3 className="text-lg font-bold text-gray-900">Browse Archived Term</h3>

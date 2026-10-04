@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Upload, UserCheck, BookOpen, GraduationCap, Calendar, CheckCircle, Eye, X, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Upload, UserCheck, BookOpen, GraduationCap, Calendar,
+CheckCircle, Eye, EyeOff, X, Lock } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import CreateAdminTeacher from './CreateAdminTeacher';
 import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
+import { SkeletonList } from '../../components/common/Skeleton';
 
 const USERS_PER_PAGE = 10;
 
@@ -25,8 +27,9 @@ const AdminTeachers = () => {
   const [page, setPage] = useState(1);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [teacherToEdit, setTeacherToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({ full_name: '' });
+  const [editForm, setEditForm] = useState({ full_name: '', username: '', password: '' });
   const [editLoading, setEditLoading] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [teacherToAssign, setTeacherToAssign] = useState(null);
@@ -115,7 +118,12 @@ const AdminTeachers = () => {
 
   const openEditModal = (u) => {
     setTeacherToEdit(u);
-    setEditForm({ full_name: u.name });
+    setEditForm({
+      full_name: u.name,
+      username: u.username === 'N/A' ? '' : u.username,
+      password: ''
+    });
+    setShowEditPassword(false);
     setEditModalOpen(true);
   };
 
@@ -123,10 +131,14 @@ const AdminTeachers = () => {
     if (!teacherToEdit?.rawId) return;
     setEditLoading(true);
     try {
-      const res = await api(`http://localhost:5000/api/users/${teacherToEdit.rawId}`, { method: 'PATCH', body: JSON.stringify(editForm) });
+      const body = { full_name: editForm.full_name };
+      const res = await api(`http://localhost:5000/api/users/${teacherToEdit.rawId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(editForm.password.trim() ? { ...body, password: editForm.password } : body)
+      });
       if (res.ok) {
         const updated = await res.json();
-        setTeachers(prev => prev.map(u => u.rawId !== teacherToEdit.rawId ? u : { ...u, name: updated.full_name }));
+        setTeachers(prev => prev.map(u => u.rawId !== teacherToEdit.rawId ? u : { ...u, name: updated.full_name, username: updated.username || u.username }));
         setEditModalOpen(false);
         setTeacherToEdit(null);
       }
@@ -229,20 +241,20 @@ const AdminTeachers = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#142a3f' }}>Teacher Management</h1>
-          <p className="text-xs sm:text-sm mt-0.5 text-gray-900">Provision, edit, and manage all teacher accounts.</p>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Teacher Management</h1>
+          <p className="text-xs sm:text-sm mt-0.5 text-amber-400">Provision, edit, and manage all teacher accounts.</p>
         </div>
-        <span className="text-[10px] sm:text-sm font-bold px-3 py-1 rounded-full text-white" style={{ background: '#000000' }}>{teachers.length} TEACHERS</span>
+        <span className="text-[10px] sm:text-sm font-bold px-3 py-1 rounded-full text-white" style={{ background: '#0c1925' }}>{teachers.length} TEACHERS</span>
       </div>
 
       <div className="rounded-xl p-5 shadow-sm border border-gray-50" style={{ background: '#fff' }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold" style={{ color: '#000000' }}>Teacher Accounts</h2>
+          <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Teacher Accounts</h2>
           <div className="flex gap-2">
-            <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#000000', borderColor: '#000000' }}><UserPlus size={14} /> Add Teacher</button>
-            <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-black text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#ffbd38', borderColor: '#ffbd38' }}><Upload size={14} /> Export</button>
+            <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0c1925', borderColor: '#0c1925' }}><UserPlus size={14} /> Add Teacher</button>
+            <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-[#0c1925] text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#fbbf24', borderColor: '#fbbf24' }}><Upload size={14} /> Export</button>
           </div>
         </div>
 
@@ -272,7 +284,7 @@ const AdminTeachers = () => {
                   <div className="flex items-center gap-1">
                     <button onClick={() => openViewModal(u)} className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded-md hover:bg-white flex items-center gap-1 text-[11px] font-semibold" title="View Assigned"><Eye size={14} /> View</button>
                     <div className="relative group inline-block">
-                      <button onClick={() => openAssignModal(u)} disabled={isArchiveMode} className={`text-black transition-colors p-1 rounded-md flex items-center gap-1 text-[11px] font-semibold ${isArchiveMode ? 'opacity-40 cursor-not-allowed' : 'hover:text-blackhover:bg-gray-300'}`} title={isArchiveMode ? 'Cannot assign while viewing archives' : 'Assign'}><UserCheck size={14} /> Assign</button>
+                      <button onClick={() => openAssignModal(u)} disabled={isArchiveMode} className={`text-[#0c1925] transition-colors p-1 rounded-md flex items-center gap-1 text-[11px] font-semibold ${isArchiveMode ? 'opacity-40 cursor-not-allowed' : 'hover:text-[#0c1925] hover:bg-gray-300'}`} title={isArchiveMode ? 'Cannot assign while viewing archives' : 'Assign'}><UserCheck size={14} /> Assign</button>
                       {isArchiveMode && <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">Cannot modify while viewing archives</div>}
                     </div>
                     <button onClick={() => openEditModal(u)} className="text-blue-500 hover:text-blue-700 transition-colors p-1 rounded-md hover:bg-blue-50" title="Edit"><Pencil size={14} /></button>
@@ -295,23 +307,23 @@ const AdminTeachers = () => {
       </div>
 
       {viewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 border border-gray-100 max-h-[80vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-lg w-full mx-4 border border-gray-100 max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-blue-50"><Eye size={20} className="text-blue-600" /></div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Assigned Subjects</h3>
-                  <p className="text-xs text-gray-400">{teacherToView?.name}</p>
+                  <p className="text-sm text-gray-900">{teacherToView?.name}</p>
                 </div>
               </div>
               <button onClick={() => { setViewModalOpen(false); setTeacherToView(null); setTeacherAssignments([]); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <div className="flex-1 overflow-y-auto">
               {viewLoading ? (
-                <div className="flex justify-center py-12"><div className="animate-spin w-5 h-5 border-2 border-gray-300 border-t-[#f5a623] rounded-full" /></div>
+                <div aria-busy="true"><SkeletonList rows={3} avatar /></div>
               ) : teacherAssignments.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
+                <div className="text-center py-12 text-gray-500">
                   <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
                   <p className="text-sm font-medium">No subjects assigned yet.</p>
                 </div>
@@ -329,7 +341,7 @@ const AdminTeachers = () => {
                       const isActive = activeTerm && group.school_year === activeTerm.school_year && group.semester === activeTerm.semester;
                       return (
                         <div key={gk}>
-                          <div className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-t-lg border-b ${
+                          <div className={`px-3 py-1.5 text-[12px] font-bold uppercase tracking-wider rounded-t-lg border-b ${
                             isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'
                           }`}>
                             {group.school_year} | {group.semester}
@@ -339,8 +351,8 @@ const AdminTeachers = () => {
                             {group.items.map(a => (
                               <div key={a.id} className="flex items-center justify-between px-4 py-3 rounded-lg border border-gray-100 bg-gray-50">
                                 <div className="space-y-0.5">
-                                  <p className="text-sm font-semibold text-gray-800">{a.subjects?.code ? <span className="text-gray-400 font-mono text-[11px] mr-1.5">{a.subjects.code}</span> : null}{a.subjects?.name}</p>
-                                  <p className="text-xs text-gray-400">{a.sections?.name}</p>
+                                  <p className="text-sm font-semibold text-gray-900">{a.subjects?.code ? <span className="text-gray-900 font-mono text-[11px] mr-1.5">{a.subjects.code}</span> : null}{a.subjects?.name}</p>
+                                  <p className="text-xs text-gray-900">{a.sections?.name}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   {isActive ? (
@@ -376,25 +388,36 @@ const AdminTeachers = () => {
       )}
 
       {editModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Teacher</h3>
             <div className="space-y-4">
-              <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Name</label><input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000000] bg-gray-100 text-sm" /></div>
+              <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Name</label><input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" /></div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Username</label>
+                <input type="text" value={editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">New Password (leave blank to keep current)</label>
+                <div className="relative">
+                  <input type={showEditPassword ? "text" : "password"} value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep current" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm pr-10" />
+                  <button type="button" onClick={() => setShowEditPassword(!showEditPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                </div>
+              </div>
             </div>
             <div className="flex gap-3 justify-end mt-6">
               <button onClick={() => { setEditModalOpen(false); setTeacherToEdit(null); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={editLoading}>Cancel</button>
-              <button onClick={handleEditSave} disabled={editLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#000000' }}>{editLoading ? 'Saving...' : 'Save Changes'}</button>
+              <button onClick={handleEditSave} disabled={editLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#0c1925' }}>{editLoading ? 'Saving...' : 'Save Changes'}</button>
             </div>
           </div>
         </div>
       )}
 
       {assignModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-lg w-full mx-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-5">
-              <div className="p-2 rounded-lg bg-gray-100"><UserCheck size={22} className="text-black" /></div>
+              <div className="p-2 rounded-lg bg-gray-100"><UserCheck size={22} className="text-[#0c1925]" /></div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Assign Teacher</h3>
                 <p className="text-xs text-gray-900">Assign <strong className="text-gray-700">{teacherToAssign?.name}</strong> to a class</p>
@@ -425,7 +448,7 @@ const AdminTeachers = () => {
                     <select
                       value={assignYear}
                       onChange={(e) => { setAssignYear(e.target.value); setAssignSection(''); }}
-                      className="w-full px-3 py-2 border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000000] bg-gray-100  text-sm"
+                      className="w-full px-3 py-2 border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-gray-100  text-sm"
                     >
                       {yearLevels.map((y) => <option key={y} value={y}>{yearLabels[y]}</option>)}
                     </select>
@@ -436,7 +459,7 @@ const AdminTeachers = () => {
                     <select
                       value={assignCourse}
                       onChange={(e) => { setAssignCourse(e.target.value); setAssignSection(''); setAssignSubject(''); }}
-                      className="w-full px-3 py-2 border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000000] bg-gray-100  text-sm"
+                      className="w-full px-3 py-2 border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-gray-100  text-sm"
                     >
                       <option value="">-- Select Course --</option>
                       {coursesList.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.abbreviation})</option>)}
@@ -449,7 +472,7 @@ const AdminTeachers = () => {
                       value={assignSection}
                       onChange={(e) => setAssignSection(e.target.value)}
                       disabled={!assignCourse}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000000] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100'}`}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100'}`}
                     >
                       <option value="">-- Select Section --</option>
                       {filteredSections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -467,7 +490,7 @@ const AdminTeachers = () => {
                       value={assignSubject}
                       onChange={(e) => setAssignSubject(e.target.value)}
                       disabled={!assignCourse}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000000] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100'}`}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100'}`}
                     >
                       <option value="">-- Select Subject --</option>
                       {filteredSubjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -498,7 +521,7 @@ const AdminTeachers = () => {
                     onClick={handleAssign}
                     disabled={!assignSection || !assignSubject || assignLoading}
                     className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50"
-                    style={{ background: '#000000' }}
+                    style={{ background: '#0c1925' }}
                   >
                     {assignLoading ? 'Assigning...' : <><UserCheck size={16} /> Assign</>}
                   </button>
@@ -510,8 +533,8 @@ const AdminTeachers = () => {
       )}
 
       {deleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Teacher</h3>
             <p className="text-sm text-gray-500 mb-4">Are you sure you want to delete <strong>{teacherToDelete?.name}</strong>?</p>
             <div className="mb-4"><label className="block text-xs font-bold text-gray-700 mb-1">Type <strong>Confirm</strong> to delete</label>
@@ -526,8 +549,8 @@ const AdminTeachers = () => {
       )}
 
       {removeAssignOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Remove Assignment</h3>
             <p className="text-sm text-gray-500 mb-1">Remove <strong>{assignmentToRemove?.subjects?.name}</strong> from <strong>{assignmentToRemove?.sections?.name}</strong>?</p>
             <p className="text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
