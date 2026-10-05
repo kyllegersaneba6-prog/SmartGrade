@@ -87,28 +87,37 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
     return res.status(400).json({ message: 'teacher_assignment_id, term, name, and weight are required' });
   }
   try {
-    if (await checkTermClosed(teacher_assignment_id)) {
+    // One batch: assignment lookup (ownership + term data), active term, and
+    // max sort_order are independent — run in parallel, not sequentially.
+    const [assignRes, termRes, maxOrderRes] = await Promise.all([
+      supabase
+        .from('teacher_assignments')
+        .select('id, teacher_id, school_year, semester')
+        .eq('id', teacher_assignment_id)
+        .maybeSingle(),
+      supabase
+        .from('academic_terms')
+        .select('school_year, semester')
+        .eq('is_active', true)
+        .maybeSingle(),
+      supabase
+        .from('grading_components')
+        .select('sort_order')
+        .eq('teacher_assignment_id', teacher_assignment_id)
+        .eq('term', term)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const assign = assignRes.data;
+    const activeTerm = termRes.data;
+    if (!assign || !activeTerm || activeTerm.school_year !== assign.school_year || activeTerm.semester !== assign.semester) {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
+    if (assign.teacher_id !== req.user.id) return res.status(403).json({ message: 'Access denied.' });
 
-    const { data: assign } = await supabase
-      .from('teacher_assignments')
-      .select('id')
-      .eq('id', teacher_assignment_id)
-      .eq('teacher_id', req.user.id)
-      .maybeSingle();
-    if (!assign) return res.status(403).json({ message: 'Access denied.' });
-
-    const { data: maxOrder } = await supabase
-      .from('grading_components')
-      .select('sort_order')
-      .eq('teacher_assignment_id', teacher_assignment_id)
-      .eq('term', term)
-      .order('sort_order', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const sort_order = (maxOrder?.sort_order ?? -1) + 1;
+    const sort_order = (maxOrderRes.data?.sort_order ?? -1) + 1;
 
     const { data, error } = await supabase
       .from('grading_components')
@@ -120,6 +129,55 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
     res.status(201).json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/grading-components/reorder — persist drag-and-drop display order
+router.post('/reorder', authorizeRole('teacher'), async (req, res) => {
+  const { teacher_assignment_id, term, ordered_ids } = req.body;
+  if (!teacher_assignment_id || !term || !Array.isArray(ordered_ids)) {
+    return res.status(400).json({ message: 'teacher_assignment_id, term, and ordered_ids are required' });
+  }
+  try {
+    const [assignRes, termRes, compsRes] = await Promise.all([
+      supabase
+        .from('teacher_assignments')
+        .select('id, teacher_id, school_year, semester')
+        .eq('id', teacher_assignment_id)
+        .maybeSingle(),
+      supabase
+        .from('academic_terms')
+        .select('school_year, semester')
+        .eq('is_active', true)
+        .maybeSingle(),
+      supabase
+        .from('grading_components')
+        .select('id')
+        .eq('teacher_assignment_id', teacher_assignment_id)
+        .eq('term', term),
+    ]);
+
+    const assign = assignRes.data;
+    const activeTerm = termRes.data;
+    if (!assign || !activeTerm || activeTerm.school_year !== assign.school_year || activeTerm.semester !== assign.semester) {
+      return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
+    }
+    if (assign.teacher_id !== req.user.id) return res.status(403).json({ message: 'Access denied.' });
+
+    const validIds = new Set((compsRes.data || []).map(c => c.id));
+    if (ordered_ids.length !== validIds.size || !ordered_ids.every(id => validIds.has(id))) {
+      return res.status(400).json({ message: 'Ordered ids must match this term\'s components exactly.' });
+    }
+
+    await Promise.all(
+      ordered_ids.map((id, index) =>
+        supabase.from('grading_components').update({ sort_order: index }).eq('id', id)
+      )
+    );
+    res.json({ ok: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

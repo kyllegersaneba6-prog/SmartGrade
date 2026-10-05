@@ -1,26 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, UserPlus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, UserPlus, CheckCircle } from 'lucide-react';
 import api from '../../utils/api';
 
-const genNumericId = () => String(Math.floor(1000 + Math.random() * 9000));
+// Preview-only normalization (mirrors backend): lowercase, no spaces.
+// The final username is generated and validated by the backend on creation.
+const previewUsername = (lastName) => {
+  const norm = lastName.trim().toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+  return norm ? `${norm}.xxxx@sg` : '';
+};
 
 const CreateAdminTeacher = ({ onClose, onSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [username, setUsername] = useState('');
-  const [numericSuffix, setNumericSuffix] = useState(genNumericId());
   const [password, setPassword] = useState('smartgrade123');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (lastName.trim()) {
-      setUsername(`${lastName.trim().toLowerCase()}.${numericSuffix}@smartgrade`);
-    } else {
-      setUsername('');
-    }
-  }, [lastName, numericSuffix]);
+  const [createdUsername, setCreatedUsername] = useState('');
 
   const handleSubmit = async () => {
     if (!firstName.trim() || !lastName.trim() || !password) {
@@ -39,14 +35,13 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
           full_name: fullName,
-          username,
           system_role: 'teacher',
           password
         })
       });
       if (response.ok) {
-        if (onSuccess) onSuccess();
-        if (onClose) onClose();
+        const created = await response.json();
+        setCreatedUsername(created.username || '');
       } else {
         const data = await response.json();
         setError(data.message || data.error || 'Failed to create teacher');
@@ -57,6 +52,32 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
       setLoading(false);
     }
   };
+
+  const handleClose = () => {
+    if (createdUsername && onSuccess) onSuccess();
+    if (onClose) onClose();
+  };
+
+  if (createdUsername) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+        <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
+          <div className="mb-6 text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 mb-4"><CheckCircle size={28} className="text-emerald-600" /></div>
+            <h1 className="text-xl font-bold text-gray-900 mb-1">Teacher Account Created</h1>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider">Share these credentials with the teacher</p>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Assigned Username</label>
+            <input type="text" value={createdUsername} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-800 font-mono" />
+          </div>
+          <div className="flex items-center justify-end gap-3 mt-6">
+            <button type="button" onClick={handleClose} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md" style={{ background: '#f5a623' }}>Done</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
@@ -80,9 +101,9 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
 
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Username (auto-generated)</label>
-            <input type="text" value={username} readOnly placeholder="Last name will auto-generate" className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
+            <input type="text" value={previewUsername(lastName)} readOnly placeholder="Last name will auto-generate" className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
             {lastName.trim() && (
-              <p className="text-[10px] text-gray-400 mt-1">Format: lastname.####@smartgrade (numeric only)</p>
+              <p className="text-[10px] text-gray-400 mt-1">Preview format: lastname.xxxx@sg — the system assigns the final username on creation</p>
             )}
           </div>
 

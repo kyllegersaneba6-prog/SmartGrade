@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Download, ArrowLeft, FileSpreadsheet, Percent, HelpCircle, Plus, Trash2, Loader } from 'lucide-react';
+import { Download, ArrowLeft, FileSpreadsheet, Percent, HelpCircle, Plus, Trash2, Loader, GripVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
@@ -36,11 +36,18 @@ const ClassRecord = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [addCompOpen, setAddCompOpen] = useState(false);
+  const [addingComp, setAddingComp] = useState(null);
+  const [addingActivityId, setAddingActivityId] = useState(null);
   const [copyingPrelims, setCopyingPrelims] = useState(false);
   const [error, setError] = useState('');
   const [clampWarnings, setClampWarnings] = useState({});
   const [deleteModal, setDeleteModal] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [dragCompId, setDragCompId] = useState(null);
+  const [dropCompId, setDropCompId] = useState(null);
+  const [reordering, setReordering] = useState(false);
   const inputRefs = useRef({});
+  const focusCompIdRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -159,7 +166,9 @@ const ClassRecord = () => {
   const addComponent = async (isAttendance) => {
     if (!selectedAssignment || totalWeight === 100) return;
     if (isAttendance && hasAttendance) return;
-    setAddCompOpen(false);
+    if (addingComp) return;
+    const kind = isAttendance ? 'attendance' : 'regular';
+    setAddingComp(kind);
     try {
       const res = await api('http://localhost:5000/api/grading-components', {
         method: 'POST',
@@ -176,8 +185,21 @@ const ClassRecord = () => {
         comp.activities = [];
         if (!isAttendance) comp.name = '';
         setComponents(prev => [...prev, comp]);
+        setError('');
+        setAddCompOpen(false);
+        if (!isAttendance) focusCompIdRef.current = comp.id;
+      } else {
+        const data = await res.json().catch(() => null);
+        setError(data?.message || 'Failed to add component. Please try again.');
+        setTimeout(() => setError(''), 4000);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setError('Network error. Please try again.');
+      setTimeout(() => setError(''), 4000);
+    } finally {
+      setAddingComp(null);
+    }
   };
 
   const copyFromPrelims = async () => {
@@ -202,6 +224,8 @@ const ClassRecord = () => {
   };
 
   // Update component
+  // Merge ONLY the fields that were sent — never the full server echo — so one
+  // field's save can never overwrite another field's unsaved local edits.
   const updateComponent = async (id, updates) => {
     try {
       const res = await api(`http://localhost:5000/api/grading-components/${id}`, {
@@ -209,10 +233,17 @@ const ClassRecord = () => {
         body: JSON.stringify(updates)
       });
       if (res.ok) {
-        const updated = await res.json();
-        setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updated } : c));
+        setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+      } else {
+        const data = await res.json().catch(() => null);
+        setError(data?.message || 'Failed to save component. Please try again.');
+        setTimeout(() => setError(''), 4000);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setError('Network error. Changes may not have been saved.');
+      setTimeout(() => setError(''), 4000);
+    }
   };
 
   // Delete component
@@ -230,26 +261,71 @@ const ClassRecord = () => {
           }
           return prev;
         });
+        return true;
       }
-    } catch (err) { console.error(err); }
+      const data = await res.json().catch(() => null);
+      setError(data?.message || 'Failed to delete component. Please try again.');
+      setTimeout(() => setError(''), 4000);
+      return false;
+    } catch (err) {
+      console.error(err);
+      setError('Network error. Please try again.');
+      setTimeout(() => setError(''), 4000);
+      return false;
+    }
+  };
+
+  // Next sub-component name from the parent component name: first letter of every
+  // word + running number (Performance Task->PTn, Written Works->WWn, Final
+  // Exam->FEn). Continues from the highest existing number; null = keep legacy behavior.
+  const nextActivityName = (comp) => {
+    const words = String(comp?.name || '').split(/\s+/).filter(Boolean);
+    let prefix = '';
+    words.forEach(w => {
+      const m = w.match(/[A-Za-z]/);
+      if (m) prefix += m[0].toUpperCase();
+    });
+    if (!prefix) return null;
+    let max = 0;
+    (comp.activities || []).forEach(a => {
+      const m = String(a?.name || '').trim().match(new RegExp(`^${prefix}(\\d+)$`, 'i'));
+      if (m) max = Math.max(max, parseInt(m[1], 10));
+    });
+    return `${prefix}${max + 1}`;
   };
 
   // Add activity
   const addActivity = async (componentId) => {
+    if (addingActivityId) return;
+    setAddingActivityId(componentId);
+    const parent = components.find(c => c.id === componentId);
+    const autoName = nextActivityName(parent);
     try {
       const res = await api('http://localhost:5000/api/component-activities', {
         method: 'POST',
-        body: JSON.stringify({ component_id: componentId, name: 'Activity', max_score: 100 })
+        body: JSON.stringify({ component_id: componentId, name: autoName || 'Activity', max_score: 100 })
       });
       if (res.ok) {
         const act = await res.json();
-        // Immediately set name and max_score to empty/0 to force placeholder behavior in UI
-        const cleanAct = { ...act, name: '', max_score: 0 };
+        // Keep the auto-generated name visible (still editable); otherwise use
+        // empty to force placeholder behavior in UI (legacy behavior).
+        const cleanAct = autoName ? { ...act, name: autoName, max_score: 0 } : { ...act, name: '', max_score: 0 };
         setComponents(prev => prev.map(c =>
           c.id === componentId ? { ...c, activities: [...(c.activities || []), cleanAct] } : c
         ));
+        setError('');
+      } else {
+        const data = await res.json().catch(() => null);
+        setError(data?.message || 'Failed to add activity. Please try again.');
+        setTimeout(() => setError(''), 4000);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setError('Network error. Please try again.');
+      setTimeout(() => setError(''), 4000);
+    } finally {
+      setAddingActivityId(null);
+    }
   };
 
   // Update activity
@@ -275,15 +351,83 @@ const ClassRecord = () => {
           delete next[activityId];
           return next;
         });
+        return true;
       }
-    } catch (err) { console.error(err); }
+      const data = await res.json().catch(() => null);
+      setError(data?.message || 'Failed to delete activity. Please try again.');
+      setTimeout(() => setError(''), 4000);
+      return false;
+    } catch (err) {
+      console.error(err);
+      setError('Network error. Please try again.');
+      setTimeout(() => setError(''), 4000);
+      return false;
+    }
   };
 
-  const handleConfirmDelete = () => {
-    if (!deleteModal) return;
-    if (deleteModal.type === 'component') deleteComponent(deleteModal.id);
-    else deleteActivity(deleteModal.componentId, deleteModal.id);
-    setDeleteModal(null);
+  const handleConfirmDelete = async () => {
+    if (!deleteModal || deleting) return;
+    setDeleting(true);
+    try {
+      const ok = deleteModal.type === 'component'
+        ? await deleteComponent(deleteModal.id)
+        : await deleteActivity(deleteModal.componentId, deleteModal.id);
+      if (ok) setDeleteModal(null);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Drag-and-drop reorder of component columns (display order only).
+  // Sub-components, scores, and ids move with the component automatically
+  // since every row renders from the same `components` array keyed by id.
+  const persistComponentOrder = async (ordered) => {
+    if (reordering) return;
+    setReordering(true);
+    const prev = components;
+    setComponents(ordered);
+    try {
+      const res = await api('http://localhost:5000/api/grading-components/reorder', {
+        method: 'POST',
+        body: JSON.stringify({
+          teacher_assignment_id: selectedAssignment,
+          term: selectedTerm,
+          ordered_ids: ordered.map(c => c.id),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setComponents(prev);
+        setError(data?.message || 'Failed to save component order. Please try again.');
+        setTimeout(() => setError(''), 4000);
+      } else {
+        setError('');
+      }
+    } catch (err) {
+      console.error(err);
+      setComponents(prev);
+      setError('Network error. Component order was not saved.');
+      setTimeout(() => setError(''), 4000);
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  const handleCompDrop = (targetId) => {
+    if (!dragCompId || dragCompId === targetId || isReadOnly || reordering) {
+      setDragCompId(null);
+      setDropCompId(null);
+      return;
+    }
+    const from = components.findIndex(c => c.id === dragCompId);
+    const to = components.findIndex(c => c.id === targetId);
+    setDragCompId(null);
+    setDropCompId(null);
+    if (from < 0 || to < 0) return;
+    const next = [...components];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    persistComponentOrder(next);
   };
 
   // Compute component totals
@@ -334,6 +478,14 @@ const ClassRecord = () => {
 
   const totalWeight = components.reduce((sum, c) => sum + parseFloat(c.weight || 0), 0);
   const hasAttendance = components.some(c => c.is_attendance);
+
+  // Table-ready = has a Title/Name AND a Percentage (weight > 0). Attendance is
+  // auto-created with a fixed name, so it is exempt from the name rule and
+  // appears in the table automatically once its percentage is set.
+  const isTableReady = (c) => c?.is_attendance
+    ? parseFloat(c?.weight) > 0
+    : (String(c?.name || '').trim() !== '' && parseFloat(c?.weight) > 0);
+  const tableComponents = useMemo(() => components.filter(isTableReady), [components]);
 
   const visibleActivityIds = useMemo(() => {
     const ids = [];
@@ -696,20 +848,7 @@ const ClassRecord = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        <div className="p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between min-h-[140px] relative overflow-hidden xl:col-span-1 text-white" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-          <FileSpreadsheet size={120} className="absolute -right-4 -bottom-4 opacity-10 text-white" />
-          <div>
-            <span className="text-[10px] bg-white/20 text-amber-400  px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
-              Class Record
-            </span>
-            <h2 className="text-xl font-bold mt-2 leading-snug text-white">{currentAssignment?.subjects?.code ? <span className="text-gray-300 font-mono text-sm mr-2">{currentAssignment.subjects.code}</span> : null}{currentAssignment?.subjects?.name}</h2>
-            <p className="text-xs text-gray-300 mt-1">{currentAssignment?.sections?.name} — {currentAssignment?.sections?.year_level}</p>
-            <p className="text-[10px] text-gray-400 mt-1">{currentAssignment?.school_year} {currentAssignment?.semester}</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 xl:col-span-3">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-lg bg-gray-300"><Percent size={16} className="text-[#0c1925]" /></div>
@@ -748,16 +887,15 @@ const ClassRecord = () => {
                 </button>
                 {addCompOpen && !isReadOnly && (
                   <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[180px] overflow-hidden add-comp-popup">
-                    <button onClick={() => addComponent(false)} className="w-full text-left px-4 py-3 text-xs font-bold text-sidebar hover:bg-gray-50 border-b border-gray-100 transition-colors">
-                      Regular Component
+                    <button onClick={() => addComponent(false)} disabled={!!addingComp} className="w-full text-left px-4 py-3 text-xs font-bold text-sidebar hover:bg-gray-50 border-b border-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                      {addingComp === 'regular' ? 'Adding Component...' : 'Regular Component'}
                     </button>
                     <button
                       onClick={() => addComponent(true)}
-                      disabled={hasAttendance}
-                      className={`w-full text-left px-4 py-3 text-xs font-bold transition-colors ${hasAttendance ? 'text-gray-300 cursor-not-allowed' : 'text-sidebar hover:bg-gray-50'}`}
+                      disabled={hasAttendance || !!addingComp}
+                      className={`w-full text-left px-4 py-3 text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${hasAttendance ? 'text-gray-300 cursor-not-allowed' : 'text-sidebar hover:bg-gray-50'}`}
                     >
-                      <span className={hasAttendance ? 'text-gray-300' : 'text-amber-600'}>Attendance</span>
-                      {hasAttendance && <span className="ml-1 text-[10px] text-gray-300">(already added)</span>}
+                      {addingComp === 'attendance' ? 'Adding...' : (<><span className={hasAttendance ? 'text-gray-300' : 'text-amber-600'}>Attendance</span>{hasAttendance && <span className="ml-1 text-[10px] text-gray-300">(already added)</span>}</>)}
                     </button>
                   </div>
                 )}
@@ -765,25 +903,41 @@ const ClassRecord = () => {
             </div>
           ) : (
             <>
-              <div className="flex flex-wrap gap-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {components.map((comp, idx) => {
                   const color = getColor(idx);
+                  const needsSetup = !isTableReady(comp);
+                  const missing = [
+                    (comp?.is_attendance || String(comp?.name || '').trim() !== '') ? null : 'a name',
+                    parseFloat(comp?.weight) > 0 ? null : 'a percentage',
+                  ].filter(Boolean);
                   return (
-                    <div key={comp.id} className="flex-1 min-w-[220px] max-w-[320px] rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow bg-gray-200">
-                      <div className="px-4 py-2.5 flex items-center justify-between border-b border-gray-900" style={{ backgroundColor: '#d1d5db' }}>
+                    <div key={comp.id} className={`group w-full rounded-xl border shadow-sm overflow-visible hover:shadow-md transition-shadow bg-gray-200 relative ${needsSetup && !isReadOnly ? 'border-red-300 ring-1 ring-red-300' : 'border-gray-200'}`}>
+                      {needsSetup && !isReadOnly && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 -translate-y-full w-56 p-2.5 bg-sidebar text-white text-[10px] rounded-lg shadow-xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-30 leading-relaxed font-normal normal-case">
+                          This component needs {missing.join(' and ')} before it appears in the class-record table.
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-sidebar"></div>
+                        </div>
+                      )}
+                      <div className="px-4 py-2.5 flex items-center justify-between border-b border-gray-900 rounded-t-[10px]" style={{ backgroundColor: '#d1d5db' }}>
                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <input
-                            type="text"
-                            value={comp.name}
-                            onChange={(e) => setComponents(prev => prev.map(c => c.id === comp.id ? { ...c, name: e.target.value } : c))}
-                            onBlur={() => updateComponent(comp.id, { name: comp.name })}
-                            className="text-sm font-extrabold text-sidebar bg-transparent border-b border-transparent hover:border-sidebar/20 focus:border-gold focus:outline-none px-1 py-0.5 flex-1 min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                            placeholder="Assessment"
-                            disabled={isReadOnly}
-                          />
-                          {comp.is_attendance && (
-                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-300 shrink-0">
-                              Attendance
+                          {comp.is_attendance ? (
+                            <span className="text-sm font-extrabold text-sidebar px-1 py-0.5">Attendance</span>
+                          ) : (
+                            <input
+                              type="text"
+                              value={comp.name}
+                              onChange={(e) => setComponents(prev => prev.map(c => c.id === comp.id ? { ...c, name: e.target.value } : c))}
+                              onBlur={() => updateComponent(comp.id, { name: comp.name })}
+                              ref={(el) => { if (el && focusCompIdRef.current === comp.id) { focusCompIdRef.current = null; el.focus(); el.select(); } }}
+                              className="text-sm font-extrabold text-sidebar bg-transparent border-b border-transparent hover:border-sidebar/20 focus:border-gold focus:outline-none px-1 py-0.5 flex-1 min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                              placeholder="Assessment"
+                              disabled={isReadOnly}
+                            />
+                          )}
+                          {needsSetup && !isReadOnly && (
+                            <span title={`This component needs ${missing.join(' and ')}`} className="shrink-0 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-extrabold flex items-center justify-center cursor-help">
+                              !
                             </span>
                           )}
                         </div>
@@ -820,6 +974,7 @@ const ClassRecord = () => {
                         </div>
                       </div>
                       <div className="p-3 space-y-1.5">
+                        <div className={(comp.activities || []).length > 3 ? 'max-h-[122px] overflow-y-auto pr-1 space-y-1.5' : 'space-y-1.5'} style={{ scrollbarWidth: 'thin' }}>
                         {(comp.activities || []).map((act) => (
                           <div key={act.id} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 border border-gray-200 bg-white">
                               <input
@@ -855,13 +1010,16 @@ const ClassRecord = () => {
                             )}
                           </div>
                         ))}
+                        </div>
                         {!comp.is_attendance && !isReadOnly && (
                             <button
                               onClick={() => addActivity(comp.id)}
+                              disabled={addingActivityId === comp.id}
                               className="w-full text-[10px] font-bold text-white flex items-center justify-center gap-1 py-1.5 rounded-lg border border-transparent hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                               style={{ backgroundColor: '#0c1925' }}
                             >
-                              <Plus size={12} /> Add
+                              {addingActivityId === comp.id ? <Loader size={12} className="animate-spin" /> : <Plus size={12} />}
+                              {addingActivityId === comp.id ? 'Adding...' : 'Add'}
                             </button>
                         )}
                         {comp.is_attendance && (
@@ -874,7 +1032,7 @@ const ClassRecord = () => {
                   );
                 })}
                 {!isReadOnly && (
-                <div className="flex-[0_0_160px] min-w-[160px] relative">
+                <div className="relative min-h-[120px]">
                   <button
                     onClick={() => setAddCompOpen(true)}
                     disabled={isReadOnly || totalWeight === 100}
@@ -885,16 +1043,15 @@ const ClassRecord = () => {
                   </button>
                   {addCompOpen && (
                     <div className="absolute top-0 left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[180px] overflow-hidden add-comp-popup">
-                      <button onClick={() => addComponent(false)} className="w-full text-left px-4 py-3 text-xs font-bold text-sidebar hover:bg-gray-50 border-b border-gray-100 transition-colors">
-                        Regular Component
+                      <button onClick={() => addComponent(false)} disabled={!!addingComp} className="w-full text-left px-4 py-3 text-xs font-bold text-sidebar hover:bg-gray-50 border-b border-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        {addingComp === 'regular' ? 'Adding Component...' : 'Regular Component'}
                       </button>
                       <button
                         onClick={() => addComponent(true)}
-                        disabled={hasAttendance}
-                        className={`w-full text-left px-4 py-3 text-xs font-bold transition-colors ${hasAttendance ? 'text-gray-300 cursor-not-allowed' : 'text-sidebar hover:bg-gray-50'}`}
+                        disabled={hasAttendance || !!addingComp}
+                        className={`w-full text-left px-4 py-3 text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${hasAttendance ? 'text-gray-300 cursor-not-allowed' : 'text-sidebar hover:bg-gray-50'}`}
                       >
-                        <span className={hasAttendance ? 'text-gray-300' : 'text-amber-600'}>Attendance</span>
-                        {hasAttendance && <span className="ml-1 text-[10px] text-gray-300">(already added)</span>}
+                        {addingComp === 'attendance' ? 'Adding...' : (<><span className={hasAttendance ? 'text-gray-300' : 'text-amber-600'}>Attendance</span>{hasAttendance && <span className="ml-1 text-[10px] text-gray-300">(already added)</span>}</>)}
                       </button>
                     </div>
                   )}
@@ -917,7 +1074,6 @@ const ClassRecord = () => {
             </>
           )}
         </div>
-      </div>
 
       {error && (
         <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-bold">
@@ -983,15 +1139,31 @@ const ClassRecord = () => {
                       <span className="text-[10px] text-white">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
                     </div>
                   </th>
-                  {components.map((comp, idx) => {
+                  {tableComponents.map((comp, idx) => {
                     const color = getColor(idx);
                     const actCount = comp.activities?.length || 0;
                     const cols = comp.is_attendance ? 3 : actCount + 3;
                     if (cols === 0) return null;
+                    const isDragging = dragCompId === comp.id;
+                    const isDropTarget = dropCompId === comp.id && dragCompId !== comp.id;
                     return (
-                      <th key={comp.id} colSpan={cols} className="bg-[#0c1925] border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-                        {comp.name} ({comp.weight}%)
-                        {comp.is_attendance && <span className="ml-2 text-[10px] font-normal opacity-70">[ATTENDANCE]</span>}
+                      <th
+                        key={comp.id}
+                        colSpan={cols}
+                        draggable={!isReadOnly && !reordering}
+                        onDragStart={(e) => { if (isReadOnly) return; e.dataTransfer.setData('text/plain', comp.id); e.dataTransfer.effectAllowed = 'move'; setDragCompId(comp.id); }}
+                        onDragOver={(e) => { if (dragCompId && dragCompId !== comp.id) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dropCompId !== comp.id) setDropCompId(comp.id); } }}
+                        onDragLeave={() => { if (dropCompId === comp.id) setDropCompId(null); }}
+                        onDrop={(e) => { e.preventDefault(); handleCompDrop(comp.id); }}
+                        onDragEnd={() => { setDragCompId(null); setDropCompId(null); }}
+                        title={isReadOnly ? undefined : 'Drag to reorder columns'}
+                        className={`bg-[#0c1925] border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0 ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : ''} ${isDragging ? 'opacity-40' : ''} ${isDropTarget ? 'outline outline-2 outline-amber-400 outline-offset-[-2px]' : ''}`}
+                        style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}
+                      >
+                        <span className="inline-flex items-center justify-center gap-1.5">
+                          {!isReadOnly && <GripVertical size={14} className="opacity-50 shrink-0" />}
+                          <span>{comp.is_attendance ? 'Attendance' : comp.name} ({comp.weight}%)</span>
+                        </span>
                       </th>
                     );
                   })}
@@ -1004,7 +1176,7 @@ const ClassRecord = () => {
                   <th className="px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20 w-12" style={{ left: 0 }}>#</th>
                   <th className="px-3 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20 w-28" style={{ left: '48px' }}>Stud ID</th>
                   <th className="px-4 py-2.5 text-left sticky bg-gray-50 border-r-2 border-border z-20 min-w-[180px]" style={{ left: '160px' }}>Student Name</th>
-                  {components.map((comp, idx) => {
+                  {tableComponents.map((comp, idx) => {
                     const color = getColor(idx);
                     if (comp.is_attendance) {
                       return [
@@ -1028,7 +1200,7 @@ const ClassRecord = () => {
                   <td className="px-1 py-2 text-center sticky bg-white border-r border-border z-20 w-12" style={{ left: 0 }}></td>
                   <td className="px-3 py-2 text-left sticky bg-white border-r border-border z-20 text-[10px] text-gray-900 w-28" style={{ left: '48px' }}>MAX SCORE</td>
                   <td className="px-4 py-2 text-left sticky bg-white border-r-2 border-border z-20 text-[10px] text-gray-900 font-normal italic min-w-[180px]" style={{ left: '160px' }}>Maximum target scores</td>
-                  {components.map((comp, idx) => {
+                  {tableComponents.map((comp, idx) => {
                     const color = getColor(idx);
                     const maxTotal = getComponentMaxTotal(comp);
                     if (comp.is_attendance) {
@@ -1094,7 +1266,7 @@ const ClassRecord = () => {
                         <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-gray-900 text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 10 + index + 1}</td>
                         <td className={`px-2 py-1 sticky border-r border-b border-gray-200 z-20 w-28 text-xs font-mono font-semibold text-gray-900 cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '48px' }} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
                         <td className={`px-2 py-1 sticky border-r-2 border-b border-border z-20 min-w-[180px] text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '160px' }} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
-                        {components.map((comp, idx) => {
+                        {tableComponents.map((comp, idx) => {
                           const componentTotal = getComponentTotal(student.id, comp);
                           const componentEquiv = getComponentEquiv(student.id, comp);
                           const componentWeighted = getComponentWeighted(student.id, comp);
@@ -1161,8 +1333,11 @@ const ClassRecord = () => {
             <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Delete</h3>
             <p className="text-sm text-gray-900 mb-6">Are you sure you want to delete this {deleteModal.type}? This action cannot be undone.</p>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setDeleteModal(null)} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-              <button onClick={handleConfirmDelete} className="px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md" style={{ background: '#ef4444' }}>Delete</button>
+              <button onClick={() => setDeleteModal(null)} disabled={deleting} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
+              <button onClick={handleConfirmDelete} disabled={deleting} className="px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" style={{ background: '#ef4444' }}>
+                {deleting && <Loader size={14} className="animate-spin" />}
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
             </div>
           </div>
         </div>

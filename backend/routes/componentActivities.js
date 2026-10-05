@@ -82,22 +82,46 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
     return res.status(400).json({ message: 'component_id and name are required' });
   }
   try {
-    if (await checkTermClosedByComponent(component_id)) {
+    // One batch: component lookup, active term, and max sort_order are
+    // independent — run in parallel, not sequentially.
+    const [compRes, termRes, maxOrderRes] = await Promise.all([
+      supabase
+        .from('grading_components')
+        .select('id, teacher_assignment_id')
+        .eq('id', component_id)
+        .maybeSingle(),
+      supabase
+        .from('academic_terms')
+        .select('school_year, semester')
+        .eq('is_active', true)
+        .maybeSingle(),
+      supabase
+        .from('component_activities')
+        .select('sort_order')
+        .eq('component_id', component_id)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const compRow = compRes.data;
+    if (!compRow) {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
 
-    const comp = await verifyOwnership(component_id, req.user.id);
-    if (!comp) return res.status(403).json({ message: 'Access denied.' });
-
-    const { data: maxOrder } = await supabase
-      .from('component_activities')
-      .select('sort_order')
-      .eq('component_id', component_id)
-      .order('sort_order', { ascending: false })
-      .limit(1)
+    const { data: assign } = await supabase
+      .from('teacher_assignments')
+      .select('id, teacher_id, school_year, semester')
+      .eq('id', compRow.teacher_assignment_id)
       .maybeSingle();
 
-    const sort_order = (maxOrder?.sort_order ?? -1) + 1;
+    const activeTerm = termRes.data;
+    if (!assign || !activeTerm || activeTerm.school_year !== assign.school_year || activeTerm.semester !== assign.semester) {
+      return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
+    }
+    if (assign.teacher_id !== req.user.id) return res.status(403).json({ message: 'Access denied.' });
+
+    const sort_order = (maxOrderRes.data?.sort_order ?? -1) + 1;
 
     const { data, error } = await supabase
       .from('component_activities')

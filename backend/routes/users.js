@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const router = express.Router();
@@ -46,9 +47,32 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Username format: lastname.xxxx@sg where xxxx = 2nd UUID segment.
+// Display names are never modified — only the generated username is normalized.
+const normalizeLastName = (name) =>
+  String(name || '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+
+async function generateUniqueUsername(lastName) {
+  const norm = normalizeLastName(lastName) || 'user';
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const uuid = crypto.randomUUID();
+    const segment = uuid.split('-')[1];
+    const username = `${norm}.${segment}@sg`;
+    const { data } = await supabase
+      .from('staff_users')
+      .select('id')
+      .eq('username', username)
+      .limit(1);
+    if (!data || data.length === 0) return { uuid, username };
+  }
+  const err = new Error('Could not generate a unique username. Please try again.');
+  err.status = 500;
+  throw err;
+}
+
 // POST /api/users — create user (superadmin creates admin, admin creates teacher)
 router.post('/', async (req, res) => {
-  const { first_name, last_name, full_name, department, course_id, system_role, password, username } = req.body;
+  const { first_name, last_name, full_name, department, course_id, system_role, password } = req.body;
   const { role: requesterRole } = req.user;
 
   const resolvedFullName = full_name || (first_name && last_name ? `${first_name.trim()} ${last_name.trim()}` : null);
@@ -108,11 +132,17 @@ router.post('/', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Server-generated identity: fresh UUID becomes the record id and the
+    // source of the username segment (lastname.xxxx@sg). Client-supplied
+    // usernames are ignored for admin/teacher accounts.
+    const { uuid: generatedId, username: generatedUsername } = await generateUniqueUsername(resolvedLastName);
+
     const insertData = {
+      id: generatedId,
       first_name: resolvedFirstName,
       last_name: resolvedLastName,
       full_name: resolvedFullName,
-      username: username || resolvedFullName.toLowerCase().replace(/\s+/g, '.'),
+      username: generatedUsername,
       department: resolvedDepartment || null,
       course_id: course_id || null,
       system_role,
@@ -134,7 +164,7 @@ router.post('/', async (req, res) => {
     await supabase.from('activity_log').insert([{
       user_name: actingUser,
       action: 'User Created',
-      details: `Created ${system_role} "${full_name}"`,
+      details: `Created ${system_role} "${resolvedFullName}" (${generatedUsername})`,
       department: req.user.department || null
     }]);
 
