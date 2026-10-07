@@ -1,42 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, UserPlus, CheckCircle } from 'lucide-react';
 import api from '../../utils/api';
+import { formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
 
-// Preview-only normalization (mirrors backend): lowercase, no spaces.
-// The final username is generated and validated by the backend on creation.
-const previewUsername = (lastName) => {
-  const norm = lastName.trim().toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
-  return norm ? `${norm}.xxxx@sg` : '';
-};
+// Username is generated from last name + ID (lastname.4512@sg) and
+// validated by the backend on creation.
+const previewUsername = (lastName, staffId) => usernameFromLastNameAndId(lastName, staffId);
 
 const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [staffId, setStaffId] = useState('');
   const [departmentId, setDepartmentId] = useState('');
   const [departments, setDepartments] = useState([]);
+  const [departmentsWithAdmin, setDepartmentsWithAdmin] = useState(new Set());
   const [password, setPassword] = useState('smartgrade123');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [createdUsername, setCreatedUsername] = useState('');
 
   useEffect(() => {
-    const fetchDepts = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api('http://localhost:5000/api/departments');
-        if (res.ok) setDepartments(await res.json());
+        const [deptRes, usersRes] = await Promise.all([
+          api('http://localhost:5000/api/departments'),
+          api('http://localhost:5000/api/users'),
+        ]);
+        if (deptRes.ok) setDepartments(await deptRes.json());
+        if (usersRes.ok) {
+          const users = await usersRes.json();
+          setDepartmentsWithAdmin(new Set(
+            users.filter((u) => u.system_role === 'admin' && u.department).map((u) => u.department.trim().toLowerCase())
+          ));
+        }
       } catch (err) { console.error(err); }
     };
-    fetchDepts();
+    fetchData();
   }, []);
 
   const handleSubmit = async () => {
-    if (!firstName.trim() || !lastName.trim() || !departmentId || !password) {
+    if (!firstName.trim() || !lastName.trim() || !departmentId || !password || !staffId.trim()) {
       setError('All required fields must be filled.');
+      return;
+    }
+    if (!isValidStaffId(staffId)) {
+      setError('ID must contain exactly 9 digits (format 00000-0000).');
       return;
     }
     const dept = departments.find(d => d.id === departmentId);
     if (!dept) { setError('Please select a valid department.'); return; }
+    if (departmentsWithAdmin.has(dept.name.trim().toLowerCase())) {
+      setError(`An admin already exists in ${dept.name}. One admin per department only.`);
+      return;
+    }
     setLoading(true);
     setError('');
 
@@ -51,6 +68,7 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
           full_name: fullName,
           department: dept.name,
           system_role: 'admin',
+          staff_id: staffIdToDigits(staffId),
           password
         })
       });
@@ -116,18 +134,30 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
           </div>
 
           <div>
+            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">ID</label>
+            <input type="text" value={staffId} onChange={(e) => { setStaffId(formatStaffId(e.target.value)); setError(''); }} placeholder="00000-0000" maxLength={10} inputMode="numeric" className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm font-mono" />
+          </div>
+
+          <div>
             <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Department</label>
-            <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} className="w-full px-3 py-2 border border-gray-50 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm">
+            <select value={departmentId} onChange={(e) => { setDepartmentId(e.target.value); setError(''); }} className="w-full px-3 py-2 border border-gray-50 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm">
               <option value="" disabled>Select a department</option>
-              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              {departments.map((d) => {
+                const taken = departmentsWithAdmin.has(d.name.trim().toLowerCase());
+                return (
+                  <option key={d.id} value={d.id} disabled={taken}>
+                    {d.name}{taken ? ' (admin already assigned)' : ''}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Username (auto-generated)</label>
-            <input type="text" value={previewUsername(lastName)} readOnly placeholder="Last name will auto-generate" className="w-full px-3 py-2 bg-gray-100 border border-gray-50 rounded-lg text-sm text-[#0c1925] cursor-not-allowed font-mono" />
-            {lastName.trim() && (
-              <p className="text-[10px] text-gray-400 mt-1">Preview format: lastname.xxxx@sg — the system assigns the final username on creation</p>
+            <input type="text" value={previewUsername(lastName, staffId)} readOnly placeholder="Enter last name + complete ID" className="w-full px-3 py-2 bg-gray-100 border border-gray-50 rounded-lg text-sm text-[#0c1925] cursor-not-allowed font-mono" />
+            {(lastName.trim() || staffId.trim()) && !previewUsername(lastName, staffId) && (
+              <p className="text-[10px] text-gray-400 mt-1">Enter a last name and all 9 ID digits to generate the username</p>
             )}
           </div>
 

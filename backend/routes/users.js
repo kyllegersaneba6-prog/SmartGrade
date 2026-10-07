@@ -47,32 +47,39 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Username format: lastname.xxxx@sg where xxxx = 2nd UUID segment.
-// Display names are never modified — only the generated username is normalized.
-const normalizeLastName = (name) =>
-  String(name || '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+// Username rule: lastname.4512@sg where 4512 = last 2 digits of the first
+// 5-digit ID portion + first 2 digits of the second 4-digit portion.
+// ("Santos", "123451234") -> "santos.4512@sg". Always strings —
+// leading zeros preserved, never integers.
+const normalizeLastName = (value) => String(value || '')
+  .trim()
+  .toLowerCase()
+  .replace(/\s+/g, '.')
+  .replace(/[^a-z0-9.]/g, '')
+  .replace(/\.+/g, '.')
+  .replace(/^\.|\.$/g, '');
 
-async function generateUniqueUsername(lastName) {
-  const norm = normalizeLastName(lastName) || 'user';
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const uuid = crypto.randomUUID();
-    const segment = uuid.split('-')[1];
-    const username = `${norm}.${segment}@sg`;
-    const { data } = await supabase
-      .from('staff_users')
-      .select('id')
-      .eq('username', username)
-      .limit(1);
-    if (!data || data.length === 0) return { uuid, username };
-  }
-  const err = new Error('Could not generate a unique username. Please try again.');
-  err.status = 500;
-  throw err;
-}
+const lastNameFromFullName = (fullName) => {
+  const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? parts.slice(1).join(' ') : '';
+};
+
+const usernameFromLastNameAndId = (lastName, raw9) => {
+  const norm = normalizeLastName(lastName);
+  const digits = String(raw9 || '');
+  if (!norm || digits.length !== 9) return '';
+  return `${norm}.${digits.slice(3, 7)}@sg`;
+};
+
+// Staff ID: raw 9 digits stored (leading zeros preserved as TEXT).
+// Accepts dashed display form too ("00000-1234" -> "000001234").
+const normalizeStaffId = (value) => String(value || '').replace(/\D/g, '').slice(0, 9);
+const isValidStaffId = (value) => /^[0-9]{9}$/.test(String(value || ''));
 
 // POST /api/users — create user (superadmin creates admin, admin creates teacher)
 router.post('/', async (req, res) => {
   const { first_name, last_name, full_name, department, course_id, system_role, password } = req.body;
+  const staffId = normalizeStaffId(req.body.staff_id);
   const { role: requesterRole } = req.user;
 
   const resolvedFullName = full_name || (first_name && last_name ? `${first_name.trim()} ${last_name.trim()}` : null);
@@ -116,6 +123,21 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'A user with this name already exists' });
     }
 
+    // Staff ID is required for new admin/teacher accounts (legacy rows may stay NULL)
+    if ((system_role === 'admin' || system_role === 'teacher') && !isValidStaffId(staffId)) {
+      return res.status(400).json({ message: 'ID must contain exactly 9 digits (format 00000-0000).' });
+    }
+    if (staffId) {
+      const { data: existingId } = await supabase
+        .from('staff_users')
+        .select('id')
+        .eq('staff_id', staffId)
+        .limit(1);
+      if (existingId && existingId.length > 0) {
+        return res.status(400).json({ message: 'ID already exists. Please enter a different ID.' });
+      }
+    }
+
     // One admin per department
     if (system_role === 'admin' && resolvedDepartment) {
       const { data: existingAdmin } = await supabase
@@ -132,10 +154,25 @@ router.post('/', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Server-generated identity: fresh UUID becomes the record id and the
-    // source of the username segment (lastname.xxxx@sg). Client-supplied
-    // usernames are ignored for admin/teacher accounts.
-    const { uuid: generatedId, username: generatedUsername } = await generateUniqueUsername(resolvedLastName);
+    // Server-generated identity: fresh UUID becomes the record id; the
+    // username is derived strictly from last name + staff ID (no silent fallback).
+    const generatedId = crypto.randomUUID();
+    const generatedUsername = staffId
+      ? usernameFromLastNameAndId(resolvedLastName, staffId)
+      : null;
+    if (staffId && !generatedUsername) {
+      return res.status(400).json({ message: 'Last name is required to generate the username.' });
+    }
+    if (generatedUsername) {
+      const { data: existingUsername } = await supabase
+        .from('staff_users')
+        .select('id')
+        .eq('username', generatedUsername)
+        .limit(1);
+      if (existingUsername && existingUsername.length > 0) {
+        return res.status(400).json({ message: 'Username already exists. Please enter a different ID.' });
+      }
+    }
 
     const insertData = {
       id: generatedId,
@@ -143,6 +180,7 @@ router.post('/', async (req, res) => {
       last_name: resolvedLastName,
       full_name: resolvedFullName,
       username: generatedUsername,
+      staff_id: staffId || null,
       department: resolvedDepartment || null,
       course_id: course_id || null,
       system_role,
@@ -184,7 +222,7 @@ router.patch('/:id', async (req, res) => {
   try {
     const { data: targetUser } = await supabase
       .from('staff_users')
-      .select('system_role, created_by, department')
+      .select('system_role, created_by, department, staff_id, last_name, full_name')
       .eq('id', id)
       .single();
 
@@ -231,10 +269,67 @@ router.patch('/:id', async (req, res) => {
     }
 
     const updates = {};
+    // Staff ID edit: same format + global uniqueness (excluding self). Empty clears back to NULL.
+    if (req.body.staff_id !== undefined) {
+      const raw = String(req.body.staff_id || '').trim();
+      if (raw === '') {
+        updates.staff_id = null;
+      } else {
+        const normalized = normalizeStaffId(raw);
+        if (!isValidStaffId(normalized)) {
+          return res.status(400).json({ message: 'ID must contain exactly 9 digits (format 00000-0000).' });
+        }
+        const { data: existingId } = await supabase
+          .from('staff_users')
+          .select('id')
+          .eq('staff_id', normalized)
+          .neq('id', id)
+          .limit(1);
+        if (existingId && existingId.length > 0) {
+          return res.status(400).json({ message: 'ID already exists. Please enter a different ID.' });
+        }
+        updates.staff_id = normalized;
+      }
+    }
+
+    // Username always follows last name + staff ID — never edited directly.
+    // Recalculate when the ID changes, or when the name changes on a record
+    // that already has an ID.
+    {
+      const clearingStaff = req.body.staff_id !== undefined && String(req.body.staff_id || '').trim() === '';
+      const staffChanged = req.body.staff_id !== undefined && !clearingStaff;
+      const nameChanged = !clearingStaff && (full_name !== undefined || req.body.last_name !== undefined);
+      const effectiveStaff = staffChanged
+        ? normalizeStaffId(req.body.staff_id)
+        : (targetUser.staff_id || '');
+      const effectiveLast = req.body.last_name !== undefined
+        ? req.body.last_name
+        : full_name !== undefined
+          ? (lastNameFromFullName(full_name) || targetUser.last_name)
+          : targetUser.last_name;
+      if (staffChanged && !effectiveLast) {
+        return res.status(400).json({ message: 'Last name is required to generate the username.' });
+      }
+      if ((staffChanged || nameChanged) && effectiveStaff && effectiveLast) {
+        const derivedUsername = usernameFromLastNameAndId(effectiveLast, effectiveStaff);
+        if (derivedUsername) {
+          const { data: existingUsername } = await supabase
+            .from('staff_users')
+            .select('id')
+            .eq('username', derivedUsername)
+            .neq('id', id)
+            .limit(1);
+          if (existingUsername && existingUsername.length > 0) {
+            return res.status(400).json({ message: 'Username already exists. Please enter a different ID.' });
+          }
+          updates.username = derivedUsername;
+        }
+      }
+    }
+
     if (full_name !== undefined) updates.full_name = full_name;
     if (course_id !== undefined) updates.course_id = course_id;
     if (department !== undefined) updates.department = department;
-    if (username !== undefined) updates.username = username;
     if (password !== undefined && password.trim()) {
       const salt = await bcrypt.genSalt(10);
       updates.password = await bcrypt.hash(password, salt);

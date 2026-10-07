@@ -10,6 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS public.departments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT UNIQUE NOT NULL,
+  abbr TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -33,6 +34,7 @@ CREATE TABLE IF NOT EXISTS public.staff_users (
   department TEXT,
   course_id UUID REFERENCES public.courses(id),
   system_role TEXT NOT NULL CHECK (system_role IN ('superadmin', 'admin', 'teacher')),
+  staff_id TEXT CHECK (staff_id IS NULL OR staff_id ~ '^[0-9]{9}$'),
   password TEXT NOT NULL,
   created_by UUID REFERENCES public.staff_users(id),
   created_at TIMESTAMPTZ DEFAULT now()
@@ -41,6 +43,7 @@ CREATE TABLE IF NOT EXISTS public.staff_users (
 -- 5. Index for fast login lookups
 CREATE INDEX IF NOT EXISTS idx_staff_users_username ON public.staff_users (username);
 CREATE INDEX IF NOT EXISTS idx_staff_users_role ON public.staff_users (system_role);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_users_staff_id ON public.staff_users (staff_id);
 
 -- 6. Sections table
 CREATE TABLE IF NOT EXISTS public.sections (

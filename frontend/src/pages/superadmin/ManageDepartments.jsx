@@ -1,29 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit3, X, Building2, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Edit3, Building2, BookOpen, ChevronDown } from 'lucide-react';
 import api from '../../utils/api';
 import { SkeletonList } from '../../components/common/Skeleton';
 
-const COLLEGE_OPTIONS = [
-  'College of Information and Communication Technology (CICT)',
-  'College of Education (COE)',
-  'College of Education, Arts and Sciences (CEAS)',
-  'College of Criminal Justice Education (CCJE)',
-  'College of Business Management and Accountancy (CBMA)',
-  'College of Hospitality and Tourism Management (CHTM)',
-];
-
 const ManageDepartments = () => {
   const [departments, setDepartments] = useState([]);
-  const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [addDeptOpen, setAddDeptOpen] = useState(false);
   const [deptName, setDeptName] = useState('');
+  const [deptAbbreviation, setDeptAbbreviation] = useState('');
   const [addDeptLoading, setAddDeptLoading] = useState(false);
 
   const [editDeptOpen, setEditDeptOpen] = useState(false);
   const [editDept, setEditDept] = useState(null);
   const [editDeptName, setEditDeptName] = useState('');
+  const [editDeptAbbreviation, setEditDeptAbbreviation] = useState('');
   const [editDeptLoading, setEditDeptLoading] = useState(false);
 
   const [deleteDeptOpen, setDeleteDeptOpen] = useState(false);
@@ -31,8 +23,9 @@ const ManageDepartments = () => {
   const [deleteDeptLoading, setDeleteDeptLoading] = useState(false);
 
   const [manageCoursesDept, setManageCoursesDept] = useState(null);
-  const [deptCourses, setDeptCourses] = useState([]);
-  const [courseLoading, setCourseLoading] = useState(false);
+  const [coursesByDept, setCoursesByDept] = useState({});
+  const [coursesLoadingByDept, setCoursesLoadingByDept] = useState({});
+  const [expandedDepts, setExpandedDepts] = useState({});
 
   const [addCourseOpen, setAddCourseOpen] = useState(false);
   const [courseName, setCourseName] = useState('');
@@ -52,6 +45,14 @@ const ManageDepartments = () => {
   const errorColor = '#ef4444';
   const [error, setError] = useState('');
 
+  // Stored abbr first; fall back to the code in parentheses
+  // (e.g. "College of … (CICT)" → "CICT") so older rows still show one.
+  const getDeptAbbr = (dept) => {
+    if (dept.abbr && String(dept.abbr).trim()) return String(dept.abbr).trim();
+    const m = String(dept.name || '').match(/\(([^)]+)\)\s*$/);
+    return m ? m[1].trim() : '';
+  };
+
   const fetchDepartments = async () => {
     try {
       const res = await api('http://localhost:5000/api/departments');
@@ -59,34 +60,69 @@ const ManageDepartments = () => {
     } catch (err) { console.error(err); }
   };
 
+  const [courseCounts, setCourseCounts] = useState({});
+  const [countsLoaded, setCountsLoaded] = useState(false);
+
+  // Independent from expand/collapse: loads every department's total up front on page load.
+  const fetchCourseCounts = async () => {
+    try {
+      const res = await api('http://localhost:5000/api/courses');
+      if (res.ok) {
+        const all = await res.json();
+        const counts = {};
+        all.forEach((c) => {
+          if (c.department_id) counts[c.department_id] = (counts[c.department_id] || 0) + 1;
+        });
+        setCourseCounts(counts);
+      }
+    } catch (err) { console.error(err); }
+    finally { setCountsLoaded(true); }
+  };
+
   const fetchDeptCourses = async (deptId) => {
-    setCourseLoading(true);
+    setCoursesLoadingByDept((prev) => ({ ...prev, [deptId]: true }));
     try {
       const res = await api(`http://localhost:5000/api/courses?department_id=${deptId}`);
-      if (res.ok) setDeptCourses(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setCoursesByDept((prev) => ({ ...prev, [deptId]: data }));
+      }
     } catch (err) { console.error(err); }
-    finally { setCourseLoading(false); }
+    finally { setCoursesLoadingByDept((prev) => ({ ...prev, [deptId]: false })); }
+  };
+
+  const toggleDept = (dept) => {
+    const willExpand = !expandedDepts[dept.id];
+    setExpandedDepts((prev) => ({ ...prev, [dept.id]: willExpand }));
+    if (willExpand && coursesByDept[dept.id] === undefined && !coursesLoadingByDept[dept.id]) {
+      fetchDeptCourses(dept.id);
+    }
   };
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchDepartments()]).finally(() => setLoading(false));
+    Promise.all([fetchDepartments(), fetchCourseCounts()]).finally(() => setLoading(false));
   }, []);
 
   const handleAddDept = async () => {
-    if (!deptName.trim()) return;
+    if (!deptName.trim() || !deptAbbreviation.trim()) return;
     if (departments.some((d) => d.name.trim().toLowerCase() === deptName.trim().toLowerCase())) {
       setError('This department has already been added.');
+      return;
+    }
+    if (departments.some((d) => getDeptAbbr(d).toLowerCase() === deptAbbreviation.trim().toLowerCase())) {
+      setError('This abbreviation is already in use by another department.');
       return;
     }
     setAddDeptLoading(true);
     setError('');
     try {
-      const res = await api('http://localhost:5000/api/departments', { method: 'POST', body: JSON.stringify({ name: deptName.trim() }) });
+      const res = await api('http://localhost:5000/api/departments', { method: 'POST', body: JSON.stringify({ name: deptName.trim(), abbr: deptAbbreviation.trim() }) });
       if (res.ok) {
         await fetchDepartments();
         setAddDeptOpen(false);
         setDeptName('');
+        setDeptAbbreviation('');
       } else {
         const data = await res.json();
         setError(data.error || data.message || 'Failed to create department');
@@ -100,7 +136,7 @@ const ManageDepartments = () => {
     setEditDeptLoading(true);
     setError('');
     try {
-      const res = await api(`http://localhost:5000/api/departments/${editDept.id}`, { method: 'PATCH', body: JSON.stringify({ name: editDeptName.trim() }) });
+      const res = await api(`http://localhost:5000/api/departments/${editDept.id}`, { method: 'PATCH', body: JSON.stringify({ name: editDeptName.trim(), abbr: editDeptAbbreviation.trim() }) });
       if (res.ok) {
         await fetchDepartments();
         setEditDeptOpen(false);
@@ -120,9 +156,25 @@ const ManageDepartments = () => {
     try {
       const res = await api(`http://localhost:5000/api/departments/${deleteDept.id}`, { method: 'DELETE' });
       if (res.ok) {
+        const removedId = deleteDept.id;
         await fetchDepartments();
         setDeleteDeptOpen(false);
         setDeleteDept(null);
+        setExpandedDepts((prev) => {
+          const next = { ...prev };
+          delete next[removedId];
+          return next;
+        });
+        setCoursesByDept((prev) => {
+          const next = { ...prev };
+          delete next[removedId];
+          return next;
+        });
+        setCourseCounts((prev) => {
+          const next = { ...prev };
+          delete next[removedId];
+          return next;
+        });
       } else {
         const data = await res.json();
         setError(data.message || 'Failed to delete department');
@@ -131,9 +183,10 @@ const ManageDepartments = () => {
     finally { setDeleteDeptLoading(false); }
   };
 
-  const openManageCourses = (dept) => {
+  const openAddCourse = (dept) => {
     setManageCoursesDept(dept);
-    fetchDeptCourses(dept.id);
+    setAddCourseOpen(true);
+    setError('');
   };
 
   const handleAddCourse = async () => {
@@ -143,7 +196,7 @@ const ManageDepartments = () => {
     try {
       const res = await api('http://localhost:5000/api/courses', { method: 'POST', body: JSON.stringify({ name: courseName.trim(), abbreviation: courseAbbreviation.trim(), department_id: manageCoursesDept.id }) });
       if (res.ok) {
-        await fetchDeptCourses(manageCoursesDept.id);
+        await Promise.all([fetchDeptCourses(manageCoursesDept.id), fetchCourseCounts()]);
         setAddCourseOpen(false);
         setCourseName('');
         setCourseAbbreviation('');
@@ -164,7 +217,7 @@ const ManageDepartments = () => {
       if (editCourseAbbreviation.trim()) body.abbreviation = editCourseAbbreviation.trim();
       const res = await api(`http://localhost:5000/api/courses/${editCourse.id}`, { method: 'PATCH', body: JSON.stringify(body) });
       if (res.ok) {
-        await fetchDeptCourses(manageCoursesDept.id);
+        await Promise.all([fetchDeptCourses(manageCoursesDept.id), fetchCourseCounts()]);
         setEditCourseOpen(false);
         setEditCourse(null);
       } else {
@@ -182,7 +235,7 @@ const ManageDepartments = () => {
     try {
       const res = await api(`http://localhost:5000/api/courses/${deleteCourse.id}`, { method: 'DELETE' });
       if (res.ok) {
-        await fetchDeptCourses(manageCoursesDept.id);
+        await Promise.all([fetchDeptCourses(manageCoursesDept.id), fetchCourseCounts()]);
         setDeleteCourseOpen(false);
         setDeleteCourse(null);
       } else {
@@ -204,7 +257,7 @@ const ManageDepartments = () => {
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Departments & Courses</h1>
           <p className="text-xs sm:text-sm text-amber-400 mt-1">Organize academic departments and manage the courses under each one.</p>
                   </div>
-        <button onClick={() => { setAddDeptOpen(true); setError(''); }} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0c1925', borderColor: '#142a3f' }}><Plus size={14} /> Add Department</button>
+        <button onClick={() => { setAddDeptOpen(true); setDeptName(''); setDeptAbbreviation(''); setError(''); }} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0c1925', borderColor: '#142a3f' }}><Plus size={14} /> Add Department</button>
       </div>
 
       {departments.length === 0 ? (
@@ -215,27 +268,42 @@ const ManageDepartments = () => {
         </div>
       ) : (
         <div className="grid gap-4">
-          {departments.map((dept) => (
-            <div key={dept.id} className="bg-white rounded-xl p-5 border border-gray-50 shadow-sm">
-              <div className="flex items-center justify-between">
+          {departments.map((dept) => {
+            const expanded = !!expandedDepts[dept.id];
+            const deptCourses = coursesByDept[dept.id];
+            const courseLoading = !!coursesLoadingByDept[dept.id];
+            return (
+            <div key={dept.id} className="bg-white rounded-xl border border-gray-50 shadow-sm overflow-hidden">
+              <div
+                onClick={() => toggleDept(dept)}
+                className={`flex items-center justify-between p-5 cursor-pointer transition-colors ${expanded ? 'bg-[#0c1925]/5' : 'hover:bg-gray-50'}`}
+              >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="p-2 rounded-lg" style={{ background: '#ffffff' }}>
+                  <ChevronDown size={18} className={`shrink-0 text-[#0c1925] transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
+                  <div className="p-2 rounded-lg bg-white border border-gray-100 shadow-sm">
                     <Building2 size={20} className="text-[#0c1925]" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-base font-bold text-gray-900" style={{ whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{dept.name}</h3>
+                    <h3 className="text-base font-bold text-gray-900" style={{ whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+                      {dept.name}
+                      {(() => {
+                        const stored = dept.abbr && String(dept.abbr).trim() ? String(dept.abbr).trim() : '';
+                        if (!stored) return null;
+                        const m = String(dept.name || '').match(/\(([^)]+)\)\s*$/);
+                        if (m && m[1].trim().toLowerCase() === stored.toLowerCase()) return null;
+                        return (
+                          <span className="ml-1 font-semibold text-gray-500">({stored})</span>
+                        );
+                      })()}
+                    </h3>
+                    <p className="text-[11px] text-gray-600 font-semibold mt-0.5">
+                      {!countsLoaded ? '… courses' : `${courseCounts[dept.id] ?? 0} course${(courseCounts[dept.id] ?? 0) === 1 ? '' : 's'}`}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                   <button
-                    onClick={() => openManageCourses(dept)}
-                    className="px-3 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs font-semibold hover:bg-gray-200"
-                    style={{ borderColor: ' #F9FAFB' }}
-                  >
-                    <BookOpen size={14} /> Courses
-                  </button>
-                  <button
-                    onClick={() => { setEditDept(dept); setEditDeptName(dept.name); setEditDeptOpen(true); setError(''); }}
+                    onClick={() => { setEditDept(dept); setEditDeptName(dept.name); setEditDeptAbbreviation(getDeptAbbr(dept)); setEditDeptOpen(true); setError(''); }}
                     className="p-1.5 rounded-md text-blue-700 hover:text-blue-900 hover:bg-blue-50"
                     title="Edit department"
                   >
@@ -250,8 +318,63 @@ const ManageDepartments = () => {
                   </button>
                 </div>
               </div>
+              <div className={`grid transition-all duration-300 ease-in-out ${expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                  <div className="px-5 pb-5 pt-1 ml-4 border-l-2 border-[#0c1925]/15">
+                    <div className="flex items-center justify-between mb-2 ml-3">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                        <BookOpen size={13} /> Courses
+                      </p>
+                      <button
+                        onClick={() => openAddCourse(dept)}
+                        className="px-3 py-1.5 rounded-lg flex items-center gap-1 text-xs font-bold text-white shadow-sm hover:scale-105 transition-transform"
+                        style={{ background: '#142a3f' }}
+                      >
+                        <Plus size={12} /> Add Course
+                      </button>
+                    </div>
+                    {courseLoading ? (
+                      <div aria-busy="true" className="ml-3"><SkeletonList rows={3} /></div>
+                    ) : deptCourses === undefined || deptCourses.length === 0 ? (
+                      <div className="text-center py-8 ml-3 rounded-lg bg-gray-50 border border-dashed border-gray-200 text-gray-400">
+                        <BookOpen size={32} className="mx-auto mb-2 opacity-30" />
+                        <p className="text-xs font-semibold">No courses yet in this department.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 ml-3">
+                        {deptCourses.map((c) => (
+                          <div key={c.id} className="flex items-center justify-between px-4 py-2.5 rounded-lg border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors">
+                            <div className="min-w-0 flex-1 flex items-center gap-2">
+                              <span className="text-gray-300 font-bold select-none">•</span>
+                              <span className="text-sm font-semibold text-gray-800 truncate">{c.name}</span>
+                              <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full text-white shrink-0" style={{ background: '#8b5cf6' }}>{c.abbreviation}</span>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0 ml-2">
+                              <button
+                                onClick={() => { setManageCoursesDept(dept); setEditCourse(c); setEditCourseName(c.name); setEditCourseAbbreviation(c.abbreviation || ''); setEditCourseOpen(true); setError(''); }}
+                                className="p-1.5 rounded-md text-blue-500 hover:text-blue-700 hover:bg-blue-100"
+                                title="Edit course"
+                              >
+                                <Edit3 size={12} />
+                              </button>
+                              <button
+                                onClick={() => { setManageCoursesDept(dept); setDeleteCourse(c); setDeleteCourseOpen(true); setError(''); }}
+                                className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-100"
+                                title="Delete course"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -263,32 +386,35 @@ const ManageDepartments = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Department Name</label>
-                <select
+                <input
+                  type="text"
                   value={deptName}
                   onChange={(e) => { setDeptName(e.target.value); setError(''); }}
+                  placeholder="e.g. College of Information Technology"
                   className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm text-gray-800"
-                >
-                  <option value="">-- Select a department --</option>
-                  {COLLEGE_OPTIONS.map((name) => {
-                    const alreadyAdded = departments.some((d) => d.name.trim().toLowerCase() === name.toLowerCase());
-                    return (
-                      <option key={name} value={name} disabled={alreadyAdded}>
-                        {name}{alreadyAdded ? ' (already added)' : ''}
-                      </option>
-                    );
-                  })}
-                </select>
+                />
               </div>
-              {deptName && departments.some((d) => d.name.trim().toLowerCase() === deptName.trim().toLowerCase()) && (
+              <div>
+                <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Abbreviation</label>
+                <input
+                  type="text"
+                  value={deptAbbreviation}
+                  onChange={(e) => { setDeptAbbreviation(e.target.value.toUpperCase()); setError(''); }}
+                  placeholder="e.g. CIT"
+                  maxLength={10}
+                  className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm text-gray-800 uppercase"
+                />
+              </div>
+              {deptName.trim() && departments.some((d) => d.name.trim().toLowerCase() === deptName.trim().toLowerCase()) && (
                 <p className="text-sm font-semibold" style={{ color: errorColor }}>This department has already been added.</p>
               )}
               {error && <p className="text-sm font-semibold" style={{ color: errorColor }}>{error}</p>}
             </div>
             <div className="flex gap-3 justify-end mt-6">
-              <button onClick={() => { setAddDeptOpen(false); setDeptName(''); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+              <button onClick={() => { setAddDeptOpen(false); setDeptName(''); setDeptAbbreviation(''); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
               <button
                 onClick={handleAddDept}
-                disabled={!deptName.trim() || addDeptLoading || departments.some((d) => d.name.trim().toLowerCase() === deptName.trim().toLowerCase())}
+                disabled={!deptName.trim() || !deptAbbreviation.trim() || addDeptLoading || departments.some((d) => d.name.trim().toLowerCase() === deptName.trim().toLowerCase())}
                 className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50"
                 style={{ background: '#0c1925' }}
               >{addDeptLoading ? 'Adding...' : 'Confirm'}</button>
@@ -306,6 +432,10 @@ const ManageDepartments = () => {
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Department Name</label>
                 <input type="text" value={editDeptName} onChange={(e) => setEditDeptName(e.target.value)} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Abbreviation</label>
+                <input type="text" value={editDeptAbbreviation} onChange={(e) => setEditDeptAbbreviation(e.target.value.toUpperCase())} placeholder="e.g. CIT" maxLength={10} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm uppercase" />
               </div>
               {error && <p className="text-sm font-semibold" style={{ color: errorColor }}>{error}</p>}
             </div>
@@ -327,75 +457,6 @@ const ManageDepartments = () => {
             <div className="flex gap-3 justify-end">
               <button onClick={() => { setDeleteDeptOpen(false); setDeleteDept(null); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
               <button onClick={handleDeleteDept} disabled={deleteDeptLoading} className="px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#ef4444' }}>{deleteDeptLoading ? 'Deleting...' : 'Delete'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Manage Courses Modal */}
-      {manageCoursesDept && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-lg w-full mx-4 border border-gray-100 max-h-[80vh] flex flex-col">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-start gap-2 flex-1 min-w-0">
-                <div className="p-2 rounded-lg bg-blue-50 shrink-0"><BookOpen size={20} className="text-blue-900" /></div>
-                <div className="min-w-0">
-                  <h3 className="text-lg font-bold text-gray-900">Courses</h3>
-                  <p className="text-xs text-gray-400" style={{ whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{manageCoursesDept.name}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => { setAddCourseOpen(true); setError(''); }}
-                  className="px-3 py-1.5 rounded-lg border flex items-center gap-1 text-xs font-bold text-white shadow-sm hover:scale-105"
-                  style={{ background: '#142a3f', borderColor: '#142a3f' }}
-                >
-                  <Plus size={12} /> Add Course
-                </button>
-                <button onClick={() => { setManageCoursesDept(null); setDeptCourses([]); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto">
-              {courseLoading ? (
-                <div aria-busy="true"><SkeletonList rows={3} /></div>
-              ) : deptCourses.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
-                  <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-medium">No courses yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {deptCourses.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between px-4 py-3 rounded-lg border border-gray-100 bg-gray-50">
-                      <div className="min-w-0 flex-1">
-                        <span className="text-sm font-semibold text-gray-800">{c.name}</span>
-                        <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: '#8b5cf6' }}>{c.abbreviation}</span>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 ml-2">
-                        <button
-                          onClick={() => { setEditCourse(c); setEditCourseName(c.name); setEditCourseAbbreviation(c.abbreviation || ''); setEditCourseOpen(true); setError(''); }}
-                          className="p-1.5 rounded-md text-blue-500 hover:text-blue-700 hover:bg-blue-100"
-                          title="Edit course"
-                        >
-                          <Edit3 size={12} />
-                        </button>
-                        <button
-                          onClick={() => { setDeleteCourse(c); setDeleteCourseOpen(true); setError(''); }}
-                          className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-100"
-                          title="Delete course"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end mt-4 pt-3 border-t border-gray-100">
-              <button onClick={() => { setManageCoursesDept(null); setDeptCourses([]); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Close</button>
             </div>
           </div>
         </div>

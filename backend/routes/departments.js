@@ -26,14 +26,16 @@ router.get('/', async (req, res) => {
 
 // POST /api/departments — create department (superadmin only)
 router.post('/', authorizeRole('superadmin'), async (req, res) => {
-  const { name } = req.body;
+  const { name, abbr } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ message: 'Department name is required' });
   }
+  const payload = { name: name.trim() };
+  if (abbr && String(abbr).trim()) payload.abbr = String(abbr).trim().toUpperCase();
   try {
     const { data, error } = await supabase
       .from('departments')
-      .insert([{ name: name.trim() }])
+      .insert([payload])
       .select()
       .single();
     if (error) return res.status(500).json({ error: error.message });
@@ -46,14 +48,18 @@ router.post('/', authorizeRole('superadmin'), async (req, res) => {
 
 // PATCH /api/departments/:id — rename department (superadmin only)
 router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
-  const { name } = req.body;
+  const { name, abbr } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ message: 'Department name is required' });
+  }
+  const updates = { name: name.trim() };
+  if (abbr !== undefined) {
+    updates.abbr = String(abbr).trim() ? String(abbr).trim().toUpperCase() : null;
   }
   try {
     const { data, error } = await supabase
       .from('departments')
-      .update({ name: name.trim() })
+      .update(updates)
       .eq('id', req.params.id)
       .select()
       .single();

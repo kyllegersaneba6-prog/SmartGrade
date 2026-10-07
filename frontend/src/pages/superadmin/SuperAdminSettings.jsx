@@ -1,7 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Settings, X, Plus } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Settings, X, Plus, ChevronDown, Check, CalendarDays } from 'lucide-react';
 import api from '../../utils/api';
 import { SkeletonSettingsCard } from '../../components/common/Skeleton';
+
+// Academic year starts in August: e.g. June 2026 → 2025-2026, Sept 2026 → 2026-2027.
+const getCurrentStartYear = () => {
+  const now = new Date();
+  return now.getMonth() + 1 >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+};
 
 const SuperAdminSettings = () => {
   const [activeTerm, setActiveTerm] = useState(null);
@@ -15,10 +21,39 @@ const SuperAdminSettings = () => {
   const [endingSemester, setEndingSemester] = useState(false);
   const [endSemesterError, setEndSemesterError] = useState('');
   const [createTermOpen, setCreateTermOpen] = useState(false);
-  const [newSchoolYear, setNewSchoolYear] = useState('');
+  const [newStartYear, setNewStartYear] = useState(null);
   const [newSemester, setNewSemester] = useState('1st Semester');
   const [creatingTerm, setCreatingTerm] = useState(false);
   const [createTermError, setCreateTermError] = useState('');
+  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+  const yearDropdownRef = useRef(null);
+
+  // Generated dynamically: current academic year + upcoming years, end = start + 1.
+  const academicYearOptions = useMemo(() => {
+    const base = getCurrentStartYear();
+    return Array.from({ length: 6 }, (_, i) => {
+      const start_year = base + i;
+      return { start_year, end_year: start_year + 1, label: `${start_year}-${start_year + 1}` };
+    });
+  }, []);
+
+  const newSchoolYear = newStartYear !== null ? `${newStartYear}-${newStartYear + 1}` : '';
+  const duplicateTerm = newSchoolYear !== '' && allTerms.some((t) => t.school_year === newSchoolYear && t.semester === newSemester);
+  const canCreateTerm = newStartYear !== null && !duplicateTerm && !creatingTerm;
+
+  useEffect(() => {
+    if (!yearDropdownOpen) return;
+    const onDown = (e) => {
+      if (yearDropdownRef.current && !yearDropdownRef.current.contains(e.target)) setYearDropdownOpen(false);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') setYearDropdownOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [yearDropdownOpen]);
 
   const loadData = useCallback(async () => {
     setNoActiveTerm(false);
@@ -92,7 +127,7 @@ const SuperAdminSettings = () => {
         const data = await res.json();
         setActiveTerm(data);
         setCreateTermOpen(false);
-        setNewSchoolYear('');
+        setNewStartYear(null);
         setNewSemester('1st Semester');
         setNoActiveTerm(false);
         const order = ['1st Semester', '2nd Semester', 'Summer'];
@@ -248,7 +283,7 @@ const SuperAdminSettings = () => {
           <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Create Term</h3>
-              <button onClick={() => { setCreateTermOpen(false); setNewSchoolYear(''); setNewSemester('1st Semester'); setCreateTermError(''); }} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setCreateTermOpen(false); setNewStartYear(null); setNewSemester('1st Semester'); setCreateTermError(''); setYearDropdownOpen(false); }} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
@@ -257,13 +292,44 @@ const SuperAdminSettings = () => {
             </p>
             <div className="mb-3">
               <label className="block text-xs font-bold text-gray-700 mb-1.5">School Year</label>
-              <input
-                type="text"
-                value={newSchoolYear}
-                onChange={(e) => setNewSchoolYear(e.target.value)}
-                placeholder="e.g. 2025-2026"
-                className="w-full px-3 py-2 border border-gray-50 rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#142a3f]"
-              />
+              <div ref={yearDropdownRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setYearDropdownOpen((v) => !v)}
+                  className={`w-full flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 text-left text-sm bg-[#fbf8f1] border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] transition-colors ${yearDropdownOpen ? 'border-[#142a3f]' : 'border-gray-50 hover:border-[#142a3f]/40'}`}
+                >
+                  <span className={`flex items-center justify-center w-7 h-7 rounded-md shrink-0 ${newStartYear !== null ? 'text-white' : 'text-[#142a3f] bg-[#142a3f]/5'}`} style={newStartYear !== null ? { background: '#142a3f' } : {}}>
+                    <CalendarDays size={15} />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    {newStartYear !== null ? (
+                      <span className="block font-bold text-gray-900 leading-tight">{newSchoolYear}</span>
+                    ) : (
+                      <span className="block font-semibold text-gray-400">Select school year</span>
+                    )}
+                  </span>
+                  <ChevronDown size={15} className={`shrink-0 text-gray-400 transition-transform duration-200 ${yearDropdownOpen ? 'rotate-180 text-[#142a3f]' : ''}`} />
+                </button>
+                {yearDropdownOpen && (
+                  <div className="dropdown-pop absolute left-0 right-0 top-full mt-1.5 z-20 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden origin-top">
+                    <div className="max-h-56 overflow-y-auto p-1.5">
+                      {academicYearOptions.map((o) => {
+                        const active = o.start_year === newStartYear;
+                        return (
+                          <div
+                            key={o.label}
+                            onClick={() => { setNewStartYear(o.start_year); setYearDropdownOpen(false); setCreateTermError(''); }}
+                            className={`flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer transition-colors ${active ? 'bg-[#142a3f]/5' : 'hover:bg-gray-100'}`}
+                          >
+                            <span className={`flex-1 text-sm ${active ? 'font-bold text-[#142a3f]' : 'font-semibold text-gray-700'}`}>{o.label}</span>
+                            {active && <Check size={14} className="shrink-0" style={{ color: '#142a3f' }} />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="mb-4">
               <label className="block text-xs font-bold text-gray-700 mb-1.5">Semester</label>
@@ -277,10 +343,11 @@ const SuperAdminSettings = () => {
                 <option value="Summer">Summer</option>
               </select>
             </div>
+            {duplicateTerm && <p className="text-xs font-semibold text-red-500 mb-3">The {newSchoolYear} — {newSemester} combination already exists. Choose a different school year or semester.</p>}
             {createTermError && <p className="text-xs font-semibold text-red-500 mb-3">{createTermError}</p>}
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setCreateTermOpen(false); setNewSchoolYear(''); setNewSemester('1st Semester'); setCreateTermError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={creatingTerm}>Cancel</button>
-              <button onClick={createTerm} disabled={!newSchoolYear.trim() || creatingTerm} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${newSchoolYear.trim() && !creatingTerm ? 'shadow-sm' : 'opacity-50 cursor-not-allowed'}`} style={{ background: newSchoolYear.trim() && !creatingTerm ? '#142a3f' : '#d1d5db' }}>{creatingTerm ? 'Creating...' : 'Create Term'}</button>
+              <button onClick={() => { setCreateTermOpen(false); setNewStartYear(null); setNewSemester('1st Semester'); setCreateTermError(''); setYearDropdownOpen(false); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={creatingTerm}>Cancel</button>
+              <button onClick={createTerm} disabled={!canCreateTerm} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${canCreateTerm ? 'shadow-sm' : 'opacity-50 cursor-not-allowed'}`} style={{ background: canCreateTerm ? '#142a3f' : '#d1d5db' }}>{creatingTerm ? 'Creating...' : 'Create Term'}</button>
             </div>
           </div>
         </div>

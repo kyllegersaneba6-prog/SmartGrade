@@ -1,15 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Upload, X, UserPlus, Loader, Check, ArrowRight } from 'lucide-react';
+import { Download, FileSpreadsheet, ArrowLeft, CheckCircle2, Plus, Trash2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import api from '../../utils/api';
 
-const formatStudentId = (v) => {
-  const d = v.replace(/\D/g, '').slice(0, 9);
-  if (d.length <= 2) return d;
-  if (d.length <= 6) return `${d.slice(0, 2)}-${d.slice(2)}`;
-  return `${d.slice(0, 2)}-${d.slice(2, 6)}-${d.slice(6)}`;
-};
+const TEMPLATE_HEADERS = ['firstname', 'lastname', 'middle initial', 'student id', 'gender'];
+
+const emptyRow = () => ({ firstname: '', lastname: '', 'middle initial': '', 'student id': '', gender: '' });
 
 const BulkStudentImport = () => {
   const [searchParams] = useSearchParams();
@@ -17,81 +13,62 @@ const BulkStudentImport = () => {
   const courseName = searchParams.get('course') || '';
   const yearLevel = searchParams.get('year') || '';
   const sectionName = searchParams.get('section') || '';
+  const autoDownloaded = useRef(false);
+  const [rows, setRows] = useState([emptyRow()]);
 
-  const [rows, setRows] = useState([{ student_id: '', student_name: '', gender: '' }]);
-  const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
-  const fileRef = useRef(null);
+  const buildWorkbook = useCallback(
+    (withData) => {
+      const data = withData
+        ? [TEMPLATE_HEADERS, ...rows
+            .filter((r) => Object.values(r).some((v) => String(v).trim() !== ''))
+            .map((r) => TEMPLATE_HEADERS.map((h) => r[h] ?? ''))]
+        : [TEMPLATE_HEADERS];
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      ws['!cols'] = [{ wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Students');
+      return wb;
+    },
+    [rows]
+  );
 
-  const addRow = () => setRows((r) => [...r, { student_id: '', student_name: '', gender: '' }]);
-  const removeRow = (i) => setRows((r) => r.filter((_, idx) => idx !== i));
-  const updateRow = (i, field, val) => setRows((r) => r.map((row, idx) => idx === i ? { ...row, [field]: val } : row));
+  const downloadTemplate = useCallback(() => {
+    const safeName = (sectionName || 'template').replace(/[^a-z0-9-_]+/gi, '-');
+    XLSX.writeFile(buildWorkbook(false), `students-${safeName}-template.xlsx`);
+  }, [buildWorkbook, sectionName]);
 
-  const handleFile = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-        if (json.length === 0) { setError('File is empty.'); return; }
-        const mapped = json.map((row, i) => ({
-          student_id: String(row['Student ID'] || row['student_id'] || '').trim(),
-          student_name: String(row['Student Name'] || row['student_name'] || row['First Name'] || '').trim(),
-          gender: String(row['Gender'] || row['gender'] || '').trim(),
-        }));
-        setRows(mapped.length ? mapped : [{ student_id: '', student_name: '', gender: '' }]);
-        setError('');
-      } catch {
-        setError('Failed to read Excel file.');
-      }
-    };
-    reader.readAsArrayBuffer(file);
-    e.target.value = '';
-  };
+  const downloadCompleted = useCallback(() => {
+    const safeName = (sectionName || 'template').replace(/[^a-z0-9-_]+/gi, '-');
+    XLSX.writeFile(buildWorkbook(true), `students-${safeName}-completed.xlsx`);
+  }, [buildWorkbook, sectionName]);
 
-  const handleSave = async () => {
-    if (!sectionId) { setError('No section selected.'); return; }
-    const valid = rows.filter((r) => r.student_id.trim() && r.student_name.trim());
-    if (valid.length === 0) { setError('Enter at least one student.'); return; }
-    setImporting(true); setError(''); setResult(null);
-    try {
-      const payload = valid.map((r) => ({
-        student_id: formatStudentId(r.student_id),
-        first_name: r.student_name.split(' ')[0] || r.student_name,
-        last_name: r.student_name.split(' ').slice(1).join(' ') || '',
-        gender: r.gender || 'Male',
-        mi: '',
-      }));
-      const res = await api(`http://localhost:5000/api/sections/${sectionId}/students/bulk`, {
-        method: 'POST',
-        body: JSON.stringify({ students: payload }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setResult({ added: data.added?.length || valid.length, skipped: data.skipped?.length || 0 });
-      } else {
-        const d = await res.json();
-        setError(d.message || 'Import failed');
-      }
-    } catch {
-      setError('Network error');
-    } finally {
-      setImporting(false);
-    }
-  };
+  useEffect(() => {
+    if (autoDownloaded.current) return;
+    autoDownloaded.current = true;
+    const t = setTimeout(() => downloadTemplate(), 600);
+    return () => clearTimeout(t);
+  }, [downloadTemplate]);
+
+  const updateRow = (i, field, val) =>
+    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [field]: val } : r)));
+  const addRow = () => setRows((prev) => [...prev, emptyRow()]);
+  const removeRow = (i) => setRows((prev) => (prev.length === 1 ? [emptyRow()] : prev.filter((_, idx) => idx !== i)));
+
+  const filledCount = rows.filter((r) => Object.values(r).some((v) => String(v).trim() !== '')).length;
 
   return (
     <div className="min-h-screen bg-[#fbf6eb] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <div className="max-w-4xl mx-auto p-6 md:p-10">
+      <div className="max-w-3xl mx-auto p-6 md:p-10">
         <div className="bg-white rounded-2xl shadow-lg border border-[#e5e0d5] overflow-hidden">
           <div className="bg-[#142a3f] px-6 py-5 flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">Bulk Student Import</h1>
-              <p className="text-xs text-white/70 mt-1">Add multiple students to a section at once</p>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10">
+                <FileSpreadsheet size={20} className="text-white" />
+              </span>
+              <div>
+                <h1 className="text-xl font-bold text-white tracking-tight">Student Excel Template</h1>
+                <p className="text-xs text-white/70 mt-0.5">Fill it out here or in Excel, save it, then upload it back in admin/sections</p>
+              </div>
             </div>
             <div className="text-right text-xs text-white/90 bg-white/10 rounded-lg px-3 py-2">
               <div className="font-semibold">{courseName || '—'} — {yearLevel || '—'}</div>
@@ -99,65 +76,88 @@ const BulkStudentImport = () => {
             </div>
           </div>
 
-          <div className="p-6 space-y-6">
-            <div className="flex items-center gap-3 text-sm text-gray-600 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
-              <ArrowRight size={18} className="text-amber-600 shrink-0" />
-              <span className="font-medium">Course:</span> <span className="font-bold text-gray-800">{courseName || '—'}</span>
-              <span className="text-gray-300">|</span>
-              <span className="font-medium">Year:</span> <span className="font-bold text-gray-800">{yearLevel || '—'}</span>
-              <span className="text-gray-300">|</span>
-              <span className="font-medium">Section:</span> <span className="font-bold text-gray-800">{sectionName || '—'}</span>
+          <div className="p-6 space-y-5">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-gray-700 leading-relaxed">
+              <p className="font-bold text-gray-900 mb-1">How this works</p>
+              <ol className="list-decimal ml-4 space-y-1">
+                <li>A blank Excel template with the required headers was downloaded for you.</li>
+                <li>Enter students <strong>directly in the table below</strong> or open the file in Excel / Google Sheets.</li>
+                <li>Click <strong>Save / Download Completed Excel File</strong> when finished.</li>
+                <li>Return to the original <strong>admin/sections</strong> tab (left open in the background).</li>
+                <li>There, click <strong>Import / Upload Completed Excel File</strong> and select your file to preview, review duplicates, and confirm.</li>
+              </ol>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button onClick={() => fileRef.current?.click()} className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-white rounded-xl shadow-sm hover:opacity-90 transition bg-[#3b82f6]">
-                <Upload size={16} /> Upload Excel (.xlsx)
-              </button>
-              <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFile} />
-              <button onClick={addRow} className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-white rounded-xl shadow-sm hover:opacity-90 transition bg-[#f5a623]">
-                <UserPlus size={16} /> Add Row
-              </button>
-            </div>
-
-            {error && <div className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{error}</div>}
-
-            <div className="overflow-x-auto rounded-xl border border-[#e5e0d5]">
-              <table className="w-full text-xs">
-                <thead className="bg-[#142a3f] text-white">
-                  <tr>
-                    <th className="text-left px-3 py-2.5 font-semibold">#</th>
-                    <th className="text-left px-3 py-2.5 font-semibold">Student ID</th>
-                    <th className="text-left px-3 py-2.5 font-semibold">Student Name</th>
-                    <th className="text-left px-3 py-2.5 font-semibold">Gender</th>
-                    <th className="text-left px-3 py-2.5 font-semibold">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r, i) => (
-                    <tr key={i} className="border-b last:border-0 hover:bg-amber-50/30 transition-colors">
-                      <td className="px-3 py-2 text-gray-400">{i + 1}</td>
-                      <td className="px-3 py-2"><input value={r.student_id} onChange={(e) => updateRow(i, 'student_id', e.target.value)} placeholder="00-0000-000" className="w-36 px-2 py-1 text-xs border border-[#e5e0d5] rounded-md focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1]" /></td>
-                      <td className="px-3 py-2"><input value={r.student_name} onChange={(e) => updateRow(i, 'student_name', e.target.value)} placeholder="First Last" className="w-48 px-2 py-1 text-xs border border-[#e5e0d5] rounded-md focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1]" /></td>
-                      <td className="px-3 py-2"><input value={r.gender} onChange={(e) => updateRow(i, 'gender', e.target.value)} placeholder="Male / Female" className="w-28 px-2 py-1 text-xs border border-[#e5e0d5] rounded-md focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1]" /></td>
-                      <td className="px-3 py-2"><button onClick={() => removeRow(i)} className="text-red-400 hover:text-red-600"><X size={14} /></button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-gray-500">Enter Student ID, Name, and Gender. Upload an .xlsx file to populate automatically.</p>
-              <button onClick={handleSave} disabled={importing || !sectionId} className="flex items-center gap-2 px-6 py-3 text-sm font-bold text-white rounded-xl shadow-md hover:opacity-90 disabled:opacity-50 transition bg-[#22c55e]">
-                {importing ? <Loader size={16} className="animate-spin" /> : <Check size={16} />} {importing ? 'Importing...' : 'Import / Save'}
-              </button>
-            </div>
-
-            {result && (
-              <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 text-sm text-green-800 font-medium">
-                Import complete: <strong>{result.added}</strong> student(s) added{result.skipped ? `, ${result.skipped} skipped` : ''}.
+            <div className="rounded-xl border border-[#e5e0d5] overflow-hidden">
+              <div className="bg-gray-50 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Required first-row headers</div>
+              <div className="flex flex-wrap gap-2 px-4 py-3">
+                {TEMPLATE_HEADERS.map((h) => (
+                  <span key={h} className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-gray-100 text-gray-800 border border-gray-200">{h}</span>
+                ))}
               </div>
-            )}
+              <p className="px-4 pb-3 text-[11px] text-gray-500">Do not rename, remove, or reorder these headers. Extra columns are ignored. Student ID format: 00-0000-000.</p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-bold text-gray-900">Enter students ({filledCount} filled)</p>
+                <button onClick={addRow} className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg bg-[#0c1925] hover:opacity-90">
+                  <Plus size={14} /> Add Row
+                </button>
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-[#e5e0d5]">
+                <table className="w-full text-xs">
+                  <thead className="bg-[#142a3f] text-white">
+                    <tr>
+                      <th className="text-left px-3 py-2.5 font-semibold">#</th>
+                      {TEMPLATE_HEADERS.map((h) => (
+                        <th key={h} className="text-left px-3 py-2.5 font-semibold">{h}</th>
+                      ))}
+                      <th className="text-left px-3 py-2.5 font-semibold">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, i) => (
+                      <tr key={i} className="border-b last:border-0 hover:bg-amber-50/30">
+                        <td className="px-3 py-2 text-gray-400">{i + 1}</td>
+                        {TEMPLATE_HEADERS.map((h) => (
+                          <td key={h} className="px-3 py-2">
+                            <input
+                              value={r[h]}
+                              onChange={(e) => updateRow(i, h, e.target.value)}
+                              placeholder={h}
+                              className="w-28 px-2 py-1 text-xs border border-[#e5e0d5] rounded-md focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1]"
+                            />
+                          </td>
+                        ))}
+                        <td className="px-3 py-2">
+                          <button onClick={() => removeRow(i)} className="text-red-400 hover:text-red-600" title="Remove row">
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={downloadCompleted} className="flex items-center justify-center gap-2 px-5 py-3 text-sm font-bold text-white rounded-xl shadow-md hover:opacity-90 transition bg-[#22c55e]">
+                <Download size={16} /> Save / Download Completed Excel File ({filledCount})
+              </button>
+              <button onClick={downloadTemplate} className="flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-gray-700 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition">
+                <Download size={16} /> Blank Template
+              </button>
+              <button onClick={() => window.close()} className="flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-gray-700 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition">
+                <ArrowLeft size={16} /> Return to Sections Tab
+              </button>
+            </div>
+
+            <div className="flex items-start gap-2 text-[11px] text-gray-500">
+              <CheckCircle2 size={14} className="text-green-600 mt-0.5 shrink-0" />
+              <p>Your original admin/sections tab was left open. After saving, switch back to it and use the <strong>Import / Upload Completed Excel File</strong> button next to the student list to upload, preview duplicates (in-file + already in section), and confirm the import. Browsers don’t allow auto-detecting the saved file, so uploading it manually is the final step.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -166,5 +166,3 @@ const BulkStudentImport = () => {
 };
 
 export default BulkStudentImport;
-
-

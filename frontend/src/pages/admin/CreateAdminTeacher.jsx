@@ -1,26 +1,29 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, UserPlus, CheckCircle } from 'lucide-react';
 import api from '../../utils/api';
+import { formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
 
-// Preview-only normalization (mirrors backend): lowercase, no spaces.
-// The final username is generated and validated by the backend on creation.
-const previewUsername = (lastName) => {
-  const norm = lastName.trim().toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
-  return norm ? `${norm}.xxxx@sg` : '';
-};
+// Username is generated from last name + ID (lastname.4512@sg) and
+// validated by the backend on creation.
+const previewUsername = (lastName, staffId) => usernameFromLastNameAndId(lastName, staffId);
 
 const CreateAdminTeacher = ({ onClose, onSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [staffId, setStaffId] = useState('');
   const [password, setPassword] = useState('smartgrade123');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [createdUsername, setCreatedUsername] = useState('');
 
   const handleSubmit = async () => {
-    if (!firstName.trim() || !lastName.trim() || !password) {
+    if (!firstName.trim() || !lastName.trim() || !password || !staffId.trim()) {
       setError('All required fields must be filled.');
+      return;
+    }
+    if (!isValidStaffId(staffId)) {
+      setError('ID must contain exactly 9 digits (format 00000-0000).');
       return;
     }
     setLoading(true);
@@ -36,6 +39,7 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
           last_name: lastName.trim(),
           full_name: fullName,
           system_role: 'teacher',
+          staff_id: staffIdToDigits(staffId),
           password
         })
       });
@@ -100,10 +104,15 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
           </div>
 
           <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">ID</label>
+            <input type="text" value={staffId} onChange={(e) => { setStaffId(formatStaffId(e.target.value)); setError(''); }} placeholder="00000-0000" maxLength={10} inputMode="numeric" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm font-mono" />
+          </div>
+
+          <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Username (auto-generated)</label>
-            <input type="text" value={previewUsername(lastName)} readOnly placeholder="Last name will auto-generate" className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
-            {lastName.trim() && (
-              <p className="text-[10px] text-gray-400 mt-1">Preview format: lastname.xxxx@sg — the system assigns the final username on creation</p>
+            <input type="text" value={previewUsername(lastName, staffId)} readOnly placeholder="Enter last name + complete ID" className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
+            {(lastName.trim() || staffId.trim()) && !previewUsername(lastName, staffId) && (
+              <p className="text-[10px] text-gray-400 mt-1">Enter a last name and all 9 ID digits to generate the username</p>
             )}
           </div>
 

@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import CreateAdminTeacher from './CreateAdminTeacher';
 import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
+import { displayStaffId, formatStaffId, isValidStaffId, lastNameFromFullName, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
 import { SkeletonList } from '../../components/common/Skeleton';
 
 const USERS_PER_PAGE = 10;
@@ -27,7 +28,8 @@ const AdminTeachers = () => {
   const [page, setPage] = useState(1);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [teacherToEdit, setTeacherToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({ full_name: '', username: '', password: '' });
+  const [editForm, setEditForm] = useState({ full_name: '', staff_id: '', username: '', password: '' });
+  const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -90,6 +92,7 @@ const AdminTeachers = () => {
         const mapped = data.map((u) => ({
           rawId: u.id,
           name: u.full_name,
+          staffId: u.staff_id || '',
           username: u.username || 'N/A',
           dept: u.department || 'N/A',
           createdAt: u.created_at
@@ -109,7 +112,7 @@ const AdminTeachers = () => {
   }, []);
 
   const exportToExcel = () => {
-    const exportData = teachers.map(u => ({ 'Name': u.name, 'Username': u.username }));
+    const exportData = teachers.map(u => ({ 'ID': displayStaffId(u.staffId), 'Name': u.name, 'Username': u.username }));
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Teachers');
@@ -120,29 +123,40 @@ const AdminTeachers = () => {
     setTeacherToEdit(u);
     setEditForm({
       full_name: u.name,
+      staff_id: formatStaffId(u.staffId || ''),
       username: u.username === 'N/A' ? '' : u.username,
       password: ''
     });
     setShowEditPassword(false);
+    setEditError('');
     setEditModalOpen(true);
   };
 
   const handleEditSave = async () => {
     if (!teacherToEdit?.rawId) return;
+    if (editForm.staff_id.trim() && !isValidStaffId(editForm.staff_id)) {
+      setEditError('ID must contain exactly 9 digits (format 00000-0000).');
+      return;
+    }
     setEditLoading(true);
+    setEditError('');
     try {
-      const body = { full_name: editForm.full_name };
+      const body = { full_name: editForm.full_name, staff_id: staffIdToDigits(editForm.staff_id) };
       const res = await api(`http://localhost:5000/api/users/${teacherToEdit.rawId}`, {
         method: 'PATCH',
         body: JSON.stringify(editForm.password.trim() ? { ...body, password: editForm.password } : body)
       });
       if (res.ok) {
         const updated = await res.json();
-        setTeachers(prev => prev.map(u => u.rawId !== teacherToEdit.rawId ? u : { ...u, name: updated.full_name, username: updated.username || u.username }));
+        setTeachers(prev => prev.map(u => u.rawId !== teacherToEdit.rawId ? u : { ...u, name: updated.full_name, staffId: updated.staff_id || '', username: updated.username || u.username }));
         setEditModalOpen(false);
         setTeacherToEdit(null);
+        setEditError('');
+      } else {
+        const data = await res.json();
+        setEditError(data.message || data.error || 'Failed to update teacher');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); setEditError('Network error. Please try again.'); }
     finally { setEditLoading(false); }
   };
 
@@ -261,12 +275,20 @@ const AdminTeachers = () => {
         <div className="table-responsive"><table className="w-full text-xs min-w-[600px]">
           <thead>
             <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
-              {['NAME', 'USERNAME', 'ASSIGNED COURSE', 'ACTIONS'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">{h}</th>))}
+              {['ID', 'NAME', 'USERNAME', 'ASSIGNED COURSE', 'ACTIONS'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">{h}</th>))}
             </tr>
           </thead>
           <tbody>
+            {paginated.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-10 text-center text-xs text-gray-400">
+                  No teachers have been added yet. Click <strong className="text-gray-600">Add Teacher</strong> to create the first account.
+                </td>
+              </tr>
+            )}
             {paginated.map((u) => (
               <tr key={u.rawId} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
+                <td className="py-3 pr-3 font-mono text-[11px] text-gray-900">{displayStaffId(u.staffId)}</td>
                 <td className="py-3 pr-3 font-bold text-gray-900">{u.name}</td>
                 <td className="py-3 pr-3 text-gray-900 text-[12px]">{u.username}</td>
                 <td className="py-3 pr-3">
@@ -393,9 +415,10 @@ const AdminTeachers = () => {
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Teacher</h3>
             <div className="space-y-4">
               <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Name</label><input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" /></div>
+              <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">ID</label><input type="text" value={editForm.staff_id} onChange={(e) => setEditForm({ ...editForm, staff_id: formatStaffId(e.target.value) })} placeholder="00000-0000" maxLength={10} inputMode="numeric" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm font-mono" /></div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Username</label>
-                <input type="text" value={editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed" />
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Username (auto-generated)</label>
+                <input type="text" value={usernameFromLastNameAndId(lastNameFromFullName(editForm.full_name), editForm.staff_id) || editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">New Password (leave blank to keep current)</label>
@@ -405,8 +428,9 @@ const AdminTeachers = () => {
                 </div>
               </div>
             </div>
+            {editError && <p className="mt-4 text-sm font-semibold text-red-500">{editError}</p>}
             <div className="flex gap-3 justify-end mt-6">
-              <button onClick={() => { setEditModalOpen(false); setTeacherToEdit(null); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={editLoading}>Cancel</button>
+              <button onClick={() => { setEditModalOpen(false); setTeacherToEdit(null); setEditError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={editLoading}>Cancel</button>
               <button onClick={handleEditSave} disabled={editLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#0c1925' }}>{editLoading ? 'Saving...' : 'Save Changes'}</button>
             </div>
           </div>

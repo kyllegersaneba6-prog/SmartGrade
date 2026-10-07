@@ -76,12 +76,29 @@
 
 /* Industry Standard: Elegant Minimalist modal styling (surface only). */
 .modal-backdrop {
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
 }
 
 .modal-surface {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* Custom dropdown panel entrance */
+@keyframes dropdown-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.98) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.dropdown-pop {
+  animation: dropdown-pop 150ms ease-out;
 }
 
