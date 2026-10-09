@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Upload, Eye, EyeOff, CalendarX } from 'lucide-react';
+import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Upload, Eye, EyeOff, CalendarX, Cog } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import CreateSuperAdminUser from './CreateSuperAdminUser';
 import api from '../../utils/api';
@@ -25,7 +26,35 @@ const SuperAdminUsers = () => {
   const [departments, setDepartments] = useState([]);
   const [noTermModalOpen, setNoTermModalOpen] = useState(false);
   const [checkingTerm, setCheckingTerm] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPos, setMenuPos] = useState(null);
   const navigate = useNavigate();
+
+  const closeMenu = () => { setOpenMenuId(null); setMenuPos(null); };
+
+  const openMenu = (u, e) => {
+    if (openMenuId === u.id) { closeMenu(); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const MENU_W = 160;
+    const MENU_H = 96;
+    const left = Math.max(8, Math.min(rect.right - MENU_W, window.innerWidth - MENU_W - 8));
+    const top = rect.bottom + MENU_H + 8 > window.innerHeight
+      ? Math.max(8, rect.top - MENU_H - 6)
+      : rect.bottom + 6;
+    setMenuPos({ top, left });
+    setOpenMenuId(u.id);
+  };
+
+  // Keep the portaled menu glued correctly — close it on scroll/resize
+  useEffect(() => {
+    if (!openMenuId) return;
+    window.addEventListener('scroll', closeMenu, true);
+    window.addEventListener('resize', closeMenu);
+    return () => {
+      window.removeEventListener('scroll', closeMenu, true);
+      window.removeEventListener('resize', closeMenu);
+    };
+  }, [openMenuId]);
 
   const handleAddAdminClick = async () => {
     setCheckingTerm(true);
@@ -159,6 +188,7 @@ const SuperAdminUsers = () => {
   };
 
   const sortedUsers = usersList;
+  const menuUser = usersList.find((x) => x.id === openMenuId) || null;
   const totalUserPages = Math.max(1, Math.ceil(sortedUsers.length / USERS_PER_PAGE));
   const paginatedUsers = sortedUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
 
@@ -201,11 +231,8 @@ const SuperAdminUsers = () => {
                 <td className="py-3 pr-3 font-bold text-gray-900 text-[12px]">{u.name}</td>
                 <td className="py-3 pr-3 text-gray-900 font-mono text-[12px]">{u.username}</td>
                 <td className="py-3 pr-3 text-gray-900 text-[12px]">{u.dept}</td>
-                <td className="py-3">
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => openEditModal(u)} className="text-blue-500 hover:text-blue-700 transition-colors p-1 rounded-md hover:bg-blue-50" title="Edit"><Pencil size={14} /></button>
-                    <button onClick={() => { setUserToDelete(u); setConfirmText(''); setDeleteModalOpen(true); }} className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-md hover:bg-red-50" title="Delete"><Trash2 size={14} /></button>
-                  </div>
+                <td className="py-3 items-center">
+                  <button onClick={(e) => openMenu(u, e)} className="text-gray-900 hover:text-[#0c1925] transition-colors p-1 rounded-md hover:bg-gray-100" title="Actions"><Cog size={20} /></button>
                 </td>
               </tr>
             ))}
@@ -222,19 +249,30 @@ const SuperAdminUsers = () => {
         </div>
       </div>
 
+      {openMenuId && menuUser && menuPos && createPortal(
+        <>
+          <div className="fixed inset-0 z-40" onClick={closeMenu} />
+          <div className="fixed z-50 w-40 rounded-xl border border-gray-100 bg-white shadow-xl py-1 overflow-hidden" style={{ top: menuPos.top, left: menuPos.left }}>
+            <button onClick={() => { closeMenu(); openEditModal(menuUser); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors"><Pencil size={13} className="text-blue-500" /> Edit</button>
+            <button onClick={() => { closeMenu(); setUserToDelete(menuUser); setConfirmText(''); setDeleteModalOpen(true); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 size={13} className="text-red-500" /> Delete</button>
+          </div>
+        </>,
+        document.body
+      )}
+
       {editModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Admin</h3>
             <div className="space-y-4">
-              <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Name</label><input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" /></div>
-              <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">ID</label><input type="text" value={editForm.staff_id} onChange={(e) => setEditForm({ ...editForm, staff_id: formatStaffId(e.target.value) })} placeholder="00000-0000" maxLength={10} inputMode="numeric" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm font-mono" /></div>
+              <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Name</label><input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
+              <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">ID</label><input type="text" value={editForm.staff_id} onChange={(e) => setEditForm({ ...editForm, staff_id: formatStaffId(e.target.value) })} placeholder="00000-0000" maxLength={10} inputMode="numeric" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm font-mono" /></div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Username (auto-generated)</label>
+                <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Username (auto-generated)</label>
                 <input type="text" value={usernameFromLastNameAndId(lastNameFromFullName(editForm.full_name), editForm.staff_id) || editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
               </div>
-              <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Department</label>
-                <select value={editForm.department_id} onChange={(e) => { const dept = departments.find(d => d.id === e.target.value); setEditForm({ ...editForm, department_id: e.target.value, department: dept ? dept.name : '' }); setEditError(''); }} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm">
+              <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Department</label>
+                <select value={editForm.department_id} onChange={(e) => { const dept = departments.find(d => d.id === e.target.value); setEditForm({ ...editForm, department_id: e.target.value, department: dept ? dept.name : '' }); setEditError(''); }} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm">
                   <option value="">Select department</option>
                   {departments.map((d) => {
                     const takenByOther = usersList.some((u) => u.rawId !== userToEdit?.rawId && u.dept.trim().toLowerCase() === d.name.trim().toLowerCase());
@@ -247,9 +285,9 @@ const SuperAdminUsers = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">New Password (leave blank to keep current)</label>
+                <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">New Password (leave blank to keep current)</label>
                 <div className="relative">
-                  <input type={showEditPassword ? "text" : "password"} value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep current" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm pr-10" />
+                  <input type={showEditPassword ? "text" : "password"} value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep current" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm pr-10" />
                   <button type="button" onClick={() => setShowEditPassword(!showEditPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
                 </div>
               </div>
@@ -267,8 +305,8 @@ const SuperAdminUsers = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Admin</h3>
-            <p className="text-sm text-gray-500 mb-4">Are you sure you want to delete <strong>{userToDelete?.name}</strong>? This action cannot be undone.</p>
-            <div className="mb-4"><label className="block text-xs font-bold text-gray-700 mb-1">Type <strong>Confirm</strong> to delete</label>
+            <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{userToDelete?.name}</strong>? This action cannot be undone.</p>
+            <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
               <input type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
             </div>
             <div className="flex gap-3 justify-end">

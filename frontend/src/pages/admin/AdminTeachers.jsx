@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Upload, UserCheck, BookOpen, GraduationCap, Calendar,
-CheckCircle, Eye, EyeOff, X, Lock } from 'lucide-react';
+CheckCircle, Eye, EyeOff, X, Lock, Cog } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import CreateAdminTeacher from './CreateAdminTeacher';
 import { useAdmin } from '../../contexts/AdminContext';
@@ -33,6 +34,8 @@ const AdminTeachers = () => {
   const [editLoading, setEditLoading] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPos, setMenuPos] = useState(null);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [teacherToAssign, setTeacherToAssign] = useState(null);
   const [assignYear, setAssignYear] = useState('1st');
@@ -55,6 +58,32 @@ const AdminTeachers = () => {
   const [removingAssignment, setRemovingAssignment] = useState(false);
   const [allAssignments, setAllAssignments] = useState([]);
   const { isArchiveMode, currentTerm, activeTerm } = useAdmin();
+
+  const closeMenu = () => { setOpenMenuId(null); setMenuPos(null); };
+
+  const openMenu = (u, e) => {
+    if (openMenuId === u.rawId) { closeMenu(); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const MENU_W = 176;
+    const MENU_H = 152;
+    const left = Math.max(8, Math.min(rect.right - MENU_W, window.innerWidth - MENU_W - 8));
+    const top = rect.bottom + MENU_H + 8 > window.innerHeight
+      ? Math.max(8, rect.top - MENU_H - 6)
+      : rect.bottom + 6;
+    setMenuPos({ top, left });
+    setOpenMenuId(u.rawId);
+  };
+
+  // Keep the portaled menu glued correctly — close it on scroll/resize
+  useEffect(() => {
+    if (!openMenuId) return;
+    window.addEventListener('scroll', closeMenu, true);
+    window.addEventListener('resize', closeMenu);
+    return () => {
+      window.removeEventListener('scroll', closeMenu, true);
+      window.removeEventListener('resize', closeMenu);
+    };
+  }, [openMenuId]);
 
   const teacherCourses = useMemo(() => {
     const target = currentTerm;
@@ -252,6 +281,7 @@ const AdminTeachers = () => {
 
   const totalPages = Math.max(1, Math.ceil(teachers.length / USERS_PER_PAGE));
   const paginated = teachers.slice((page - 1) * USERS_PER_PAGE, page * USERS_PER_PAGE);
+  const menuTeacher = teachers.find((x) => x.rawId === openMenuId) || null;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -303,15 +333,7 @@ const AdminTeachers = () => {
                   )}
                 </td>
                 <td className="py-3">
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => openViewModal(u)} className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded-md hover:bg-white flex items-center gap-1 text-[11px] font-semibold" title="View Assigned"><Eye size={14} /> View</button>
-                    <div className="relative group inline-block">
-                      <button onClick={() => openAssignModal(u)} disabled={isArchiveMode} className={`text-[#0c1925] transition-colors p-1 rounded-md flex items-center gap-1 text-[11px] font-semibold ${isArchiveMode ? 'opacity-40 cursor-not-allowed' : 'hover:text-[#0c1925] hover:bg-gray-300'}`} title={isArchiveMode ? 'Cannot assign while viewing archives' : 'Assign'}><UserCheck size={14} /> Assign</button>
-                      {isArchiveMode && <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">Cannot modify while viewing archives</div>}
-                    </div>
-                    <button onClick={() => openEditModal(u)} className="text-blue-500 hover:text-blue-700 transition-colors p-1 rounded-md hover:bg-blue-50" title="Edit"><Pencil size={14} /></button>
-                    <button onClick={() => { setTeacherToDelete(u); setConfirmText(''); setDeleteModalOpen(true); }} className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-md hover:bg-red-50" title="Delete"><Trash2 size={14} /></button>
-                  </div>
+                  <button onClick={(e) => openMenu(u, e)} className="text-gray-500 hover:text-[#0c1925] transition-colors p-1 rounded-md hover:bg-gray-100" title="Actions"><Cog size={16} /></button>
                 </td>
               </tr>
             ))}
@@ -327,6 +349,19 @@ const AdminTeachers = () => {
           </div>
         </div>
       </div>
+
+      {openMenuId && menuTeacher && menuPos && createPortal(
+        <>
+          <div className="fixed inset-0 z-40" onClick={closeMenu} />
+          <div className="fixed z-50 w-44 rounded-xl border border-gray-100 bg-white shadow-xl py-1 overflow-hidden" style={{ top: menuPos.top, left: menuPos.left }}>
+            <button onClick={() => { if (isArchiveMode) return; closeMenu(); openAssignModal(menuTeacher); }} disabled={isArchiveMode} className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold transition-colors ${isArchiveMode ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}`} title={isArchiveMode ? 'Cannot assign while viewing archives' : 'Assign'}><UserCheck size={13} className={isArchiveMode ? 'text-gray-300' : 'text-[#0c1925]'} /> Assign</button>
+            <button onClick={() => { closeMenu(); openViewModal(menuTeacher); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors"><Eye size={13} className="text-blue-600" /> View Assigned</button>
+            <button onClick={() => { closeMenu(); openEditModal(menuTeacher); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors"><Pencil size={13} className="text-blue-500" /> Edit</button>
+            <button onClick={() => { closeMenu(); setTeacherToDelete(menuTeacher); setConfirmText(''); setDeleteModalOpen(true); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 size={13} className="text-red-500" /> Delete</button>
+          </div>
+        </>,
+        document.body
+      )}
 
       {viewModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
