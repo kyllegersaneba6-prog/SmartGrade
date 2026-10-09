@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart3, Loader, ArrowLeft, Download } from 'lucide-react';
+import { BarChart3, Loader, ArrowLeft, Download, Summary } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
@@ -132,8 +132,8 @@ const GradeSummary = () => {
 
   if (!currentAssignment) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-        <BarChart3 size={48} className="mb-3 opacity-30" />
+      <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+        <Summary size={48} className="mb-3 opacity-30" />
         <p className="text-sm font-medium">No class assignments yet.</p>
         <p className="text-xs mt-1">Ask an admin to assign you to a class.</p>
       </div>
@@ -300,7 +300,7 @@ const GradeSummary = () => {
     <div className="space-y-6">
       <AssignmentSelector />
       {/* Header */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-100 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
             <ArrowLeft size={20} />
@@ -340,11 +340,11 @@ const GradeSummary = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-hidden">
         {dataLoading && !hasAnyData ? (
           <div aria-busy="true"><SkeletonTable cols={8} rows={8} /></div>
         ) : !hasAnyData ? (
-          <div className="py-12 text-center text-gray-400">
+          <div className="py-12 text-center text-gray-500">
             <BarChart3 size={36} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm font-medium">No grading data available.</p>
             <p className="text-xs mt-1">Set up components and scores in Class Record first.</p>
@@ -450,7 +450,7 @@ const GradeSummary = () => {
       </div>
 
       {/* Grade Point Legend */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-50">
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-50 card-hover">
         <div className="text-[12px] font-bold text-gray-900 uppercase tracking-wider mb-2">Grade Point Scale</div>
         <table className="w-full text-xs text-gray-900 border-collapse">
           <thead>

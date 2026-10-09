@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AdminProvider, useAdmin } from '../contexts/AdminContext';
 import AdminSidebar from '../components/admin/AdminSidebar';
+import NotificationDropdown from '../components/common/NotificationDropdown';
 import { Menu, X, Archive } from 'lucide-react';
 
 const AdminLayoutInner = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { activeTerm, currentTerm, isArchiveMode, setViewTerm } = useAdmin();
+  const { currentTerm, isArchiveMode, setViewTerm } = useAdmin();
 
   const getTitle = () => {
     switch (location.pathname) {
@@ -16,7 +17,7 @@ const AdminLayoutInner = () => {
       case '/admin/teachers/create': return 'Create New Teacher';
       case '/admin/sections': return 'Manage Sections';
       case '/admin/subjects': return 'Manage Subjects';
-      default: return 'Admin Portal';
+      default: return 'Settings';
     }
   };
 
@@ -30,7 +31,6 @@ const AdminLayoutInner = () => {
               <Menu size={22} />
             </button>
             <h3 className="text-xs sm:text-sm text-white truncate font-medium">{getTitle()}</h3>
-            <span className="text-[10px] bg-gold/20 text-amber-400 border border-gold/30 px-3 py-1 rounded-full font-bold uppercase tracking-wider">ADMIN PORTAL</span>
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-gold/20 text-amber-400 whitespace-nowrap">{JSON.parse(localStorage.getItem('user') || '{}')?.department}</span>
             {currentTerm && (
               <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap border ${
@@ -43,7 +43,9 @@ const AdminLayoutInner = () => {
             )}
             
           </div>
-          
+          <div className="flex items-center gap-2 shrink-0">
+            <NotificationDropdown items={[]} />
+          </div>
         </header>
 
         {isArchiveMode && currentTerm && (

@@ -544,7 +544,7 @@ const BehavioralAnalytics = () => {
 
   if (!currentAssignment) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+      <div className="flex flex-col items-center justify-center py-20 text-gray-500">
         <BarChart3 size={48} className="mb-3 opacity-30" />
         <p className="text-sm font-medium">No class assignments yet.</p>
         <p className="text-xs mt-1">Ask an admin to assign you to a class.</p>
@@ -558,7 +558,7 @@ const BehavioralAnalytics = () => {
     <div className="space-y-6">
       <AssignmentSelector />
       {/* Header */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-100 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
             <ArrowLeft size={20} />
@@ -597,25 +597,25 @@ const BehavioralAnalytics = () => {
       {/* Summary KPI Cards */}
       {hasComponents && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover">
             <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Final Grade</div>
             <div className={`text-2xl font-extrabold ${summary.avgGrade >= 75 ? 'text-green-700' : 'text-red-600'}`}>
               {summary.avgGrade.toFixed(2)}
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover">
             <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Submission Rate</div>
             <div className={`text-2xl font-extrabold ${summary.avgSubRate >= 0.9 ? 'text-green-700' : summary.avgSubRate >= 0.75 ? 'text-amber-600' : 'text-red-600'}`}>
               {(summary.avgSubRate * 100).toFixed(1)}%
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover">
             <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Attendance Rate</div>
             <div className={`text-2xl font-extrabold ${summary.avgAttendanceRate >= 0.9 ? 'text-green-700' : summary.avgAttendanceRate >= 0.75 ? 'text-amber-600' : 'text-red-600'}`}>
               {(summary.avgAttendanceRate * 100).toFixed(1)}%
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover">
             <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Overall Performance</div>
             <div className={`text-2xl font-extrabold ${summary.avgPerformance >= 75 ? 'text-green-700' : summary.avgPerformance >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
               {summary.avgPerformance.toFixed(1)}%
@@ -644,11 +644,11 @@ const BehavioralAnalytics = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-hidden">
         {dataLoading && !hasComponents ? (
           <div aria-busy="true"><SkeletonTable cols={7} rows={8} /></div>
         ) : !hasComponents ? (
-          <div className="py-12 text-center text-gray-400">
+          <div className="py-12 text-center text-gray-500">
             <BarChart3 size={36} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm font-medium">No grading components for this term.</p>
             <p className="text-xs mt-1">Set up components in Class Record first.</p>
@@ -764,7 +764,7 @@ const BehavioralAnalytics = () => {
       {/* Detail Modal */}
       {detailStudent && (
         <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center" onClick={() => setSelectedStudent(null)}>
-          <div className="bg-white rounded-2xl modal-surface p-6 w-full max-w-3xl mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-xl modal-surface p-6 w-full max-w-3xl mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-white z-10 pb-3 flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-gray-800">{detailStudent.student.student_name}</h3>

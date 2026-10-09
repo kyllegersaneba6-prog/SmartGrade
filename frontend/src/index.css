@@ -1,4 +1,9 @@
 @import "tailwindcss";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/inter/800.css";
 
 @theme {
   --color-sidebar: #0f172a;
@@ -16,7 +21,8 @@
   --color-orange-warn: #f97316;
   --color-red-critical: #ef4444;
 
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 @layer base {
@@ -27,6 +33,8 @@
     background-color: var(--color-bg-light);
     color: var(--color-text-main);
     font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01';
+    font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
@@ -41,6 +49,28 @@
   .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+  /* Consistent card hover elevation: soft shadow on hover so the
+     focused card is clearly identifiable. Background, border, size
+     and layout are untouched — only box-shadow transitions. Apply via
+     the `card-hover` class on card containers only (not buttons,
+     inputs, tables, nav, dropdowns or modals). */
+  .card-hover {
+    transition: box-shadow 150ms ease;
+  }
+  .card-hover:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+  /* Admin header cards: uniform height matching Manage Sections
+     (title + two subtitle lines ≈ 106px mobile / 118px sm+).
+     Apply via the `admin-header-card` class on admin page headers. */
+  .admin-header-card {
+    min-height: 106px;
+  }
+  @media (min-width: 640px) {
+    .admin-header-card {
+      min-height: 118px;
+    }
   }
   /* Facebook-style skeleton shimmer: soft light sweep over gray blocks. */
   .skeleton-shimmer {

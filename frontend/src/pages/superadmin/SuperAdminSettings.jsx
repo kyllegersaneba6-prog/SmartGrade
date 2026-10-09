@@ -158,23 +158,20 @@ const SuperAdminSettings = () => {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            
-            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Settings</h1>
-          </div>
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card flex flex-col justify-center" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Settings</h1>
+          <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>View academic terms and browse archived semesters</p>
         </div>
-        <p className="text-sm text-amber-400 mt-1">View academic terms and browse archived semesters</p>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50">
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50 card-hover">
         <h2 className="text-sm font-bold text-gray-900 mb-4">Academic Term Management</h2>
 
         {noActiveTerm ? (
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
             <p className="text-sm font-semibold text-gray-500 mb-1">No active term</p>
-            <p className="text-xs text-gray-400 mb-4">Create the first academic term to get started.</p>
+            <p className="text-xs text-gray-500 mb-4">Create the first academic term to get started.</p>
             <button
               onClick={() => { setCreateTermOpen(true); setCreateTermError(''); }}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm transition-colors"
@@ -238,16 +235,16 @@ const SuperAdminSettings = () => {
                 <X size={20} />
               </button>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-gray-900 mb-4">
               This will close <strong>{activeTerm?.school_year} — {activeTerm?.semester}</strong> and open the next term.
               All sections and assignments in this term will be locked (read-only).
             </p>
             <div className="mb-4">
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">Open next term</label>
+              <label className="block text-xs font-bold text-gray-900 mb-1.5">Open next term</label>
               <select
                 value={`${nextSchoolYear}|${nextSemester}`}
                 onChange={(e) => { const [sy, sem] = e.target.value.split('|'); setNextSchoolYear(sy); setNextSemester(sem); }}
-                className="w-full px-3 py-2 border border-gray-50 rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#142a3f]"
+                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#142a3f]"
               >
                 {(() => {
                   if (!activeTerm) return null;
@@ -266,7 +263,7 @@ const SuperAdminSettings = () => {
               </select>
             </div>
             <div className="mb-4">
-              <label className="block text-xs font-bold text-gray-700 mb-1">Type <strong>CONFIRM</strong> to end</label>
+              <label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>CONFIRM</strong> to end</label>
               <input type="text" value={confirmEndText} onChange={(e) => setConfirmEndText(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="CONFIRM" />
             </div>
             {endSemesterError && <p className="text-xs font-semibold text-red-500 mb-3">{endSemesterError}</p>}
@@ -291,7 +288,7 @@ const SuperAdminSettings = () => {
               Create the first active academic term. This will enable admins and teachers to start working.
             </p>
             <div className="mb-3">
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">School Year</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1.5">School Year</label>
               <div ref={yearDropdownRef} className="relative">
                 <button
                   type="button"
@@ -332,11 +329,11 @@ const SuperAdminSettings = () => {
               </div>
             </div>
             <div className="mb-4">
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">Semester</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1.5">Semester</label>
               <select
                 value={newSemester}
                 onChange={(e) => setNewSemester(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-50 rounded-lg bg-[#fbf8f1] text-sm focus:outline-none focus:ring-2 focus:ring-[#142a3f]"
+                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#142a3f]"
               >
                 <option value="1st Semester">1st Semester</option>
                 <option value="2nd Semester">2nd Semester</option>

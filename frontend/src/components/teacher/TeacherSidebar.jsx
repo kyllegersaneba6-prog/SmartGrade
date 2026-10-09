@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, LayoutDashboard, Users, BookOpen, FileText, Download, X, FileSpreadsheet, CalendarCheck, LogOut, User, Settings } from 'lucide-react';
+import { BarChart3, LayoutDashboard, Users, BookOpen, Download, X, FileSpreadsheet, CalendarCheck, LogOut, User, Settings, Summary } from 'lucide-react';
 import clsx from 'clsx';
 
 const navItems = [
@@ -8,7 +8,7 @@ const navItems = [
   { name: 'Attendance', path: '/teacher/attendance', icon: CalendarCheck },
   { name: 'Class Record', path: '/teacher/class-record', icon: FileSpreadsheet },
   { name: 'Analytics', path: '/teacher/analytics', icon: BarChart3 },
-  { name: 'Grade Summary', path: '/teacher/grade-summary', icon: FileText },
+  { name: 'Grade Summary', path: '/teacher/grade-summary', icon: Summary },
   { name: 'Settings', path: '/teacher/settings', icon: Settings },
 ];
 
@@ -68,14 +68,14 @@ const TeacherSidebar = ({ isOpen, onClose }) => {
                 to={item.path}
                 onClick={onClose}
                 className={clsx(
-                  'flex items-center gap-3 px-6 py-3 transition-colors whitespace-nowrap',
+                  'group flex items-center gap-3 px-6 py-3 transition-colors whitespace-nowrap',
                   isActive
                     ? 'bg-[#0a316a] text-amber-400 font-medium border-l-4 border-gold'
-                    : ' hover:bg-[#0a316a] hover:text-white border-l-4 border-transparent'
+                    : 'hover:text-white border-l-4 border-transparent'
                 )}
               >
-                <Icon size={20} className={isActive ? 'text-amber-400' : 'text-white'} />
-                {item.name}
+                <Icon size={20} className={`${isActive ? 'text-amber-400' : 'text-white'} inline-block transition-transform duration-150 origin-center group-hover:scale-110`} />
+                <span className="inline-block transition-transform duration-150 origin-left group-hover:scale-110">{item.name}</span>
               </Link>
             );
           })}

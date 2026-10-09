@@ -164,15 +164,15 @@ const SuperAdminUsers = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-[#F9FAFB]" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Admin Management</h1>
-          <p className="text-xs sm:text-sm text-amber-400 mt-1">Create, edit, and manage administrator accounts across all departments.</p>
+          <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>Create, edit, and manage administrator accounts across all departments.</p>
                   </div>
         <span className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#0c1925' }}>{usersList.length} ADMINS</span>
       </div>
 
-      <div className="rounded-xl p-5 shadow-sm" style={{ background: '#fff', border: '1px solid ##F9FAFB' }}>
+      <div className="rounded-xl p-5 shadow-sm border border-[#F9FAFB] card-hover" style={{ background: '#fff' }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Admin Accounts</h2>
           <div className="flex gap-2">
@@ -184,23 +184,23 @@ const SuperAdminUsers = () => {
         <div className="table-responsive"><table className="w-full text-xs min-w-[500px]">
           <thead>
             <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
-              {['ID', 'NAME', 'USERNAME', 'DEPARTMENT', 'ACTIONS'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">{h}</th>))}
+              {['ID', 'NAME', 'USERNAME', 'DEPARTMENT', 'ACTIONS'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[12px] uppercase tracking-wide">{h}</th>))}
             </tr>
           </thead>
           <tbody>
             {paginatedUsers.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-10 text-center text-xs text-gray-400">
-                  No admins have been added yet. Click <strong className="text-gray-600">Add Admin</strong> to create the first account.
+                <td colSpan={5} className="py-10 text-center text-xs text-gray-500">
+                  No admins have been added yet. Click <strong>Add Admin</strong> to create the first account.
                 </td>
               </tr>
             )}
             {paginatedUsers.map((u) => (
               <tr key={u.id} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
-                <td className="py-3 pr-3 font-mono text-[11px] text-gray-900">{displayStaffId(u.staffId)}</td>
-                <td className="py-3 pr-3 font-bold text-gray-900">{u.name}</td>
-                <td className="py-3 pr-3 text-gray-900 font-mono text-[11px]">{u.username}</td>
-                <td className="py-3 pr-3 text-gray-900">{u.dept}</td>
+                <td className="py-3 pr-3 font-mono text-[12px] text-gray-900">{displayStaffId(u.staffId)}</td>
+                <td className="py-3 pr-3 font-bold text-gray-900 text-[12px]">{u.name}</td>
+                <td className="py-3 pr-3 text-gray-900 font-mono text-[12px]">{u.username}</td>
+                <td className="py-3 pr-3 text-gray-900 text-[12px]">{u.dept}</td>
                 <td className="py-3">
                   <div className="flex items-center gap-1">
                     <button onClick={() => openEditModal(u)} className="text-blue-500 hover:text-blue-700 transition-colors p-1 rounded-md hover:bg-blue-50" title="Edit"><Pencil size={14} /></button>

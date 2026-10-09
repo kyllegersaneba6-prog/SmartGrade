@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CalendarCheck, Loader, Plus, X, Trash2, ArrowLeft, Cloud } from 'lucide-react';
+import { CalendarCheck, Loader, Plus, X, Trash2, ArrowLeft, Cloud, Clock, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
+import CustomDropdown from '../../components/common/CustomDropdown';
 import Pagination from '../../components/common/Pagination';
 import { SkeletonHeaderCard, SkeletonTable } from '../../components/common/Skeleton';
 import api from '../../utils/api';
@@ -138,7 +139,7 @@ const Attendance = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedAssignment) return;
+    if (!selectedAssignment) { setLoading(false); return; }
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -362,7 +363,7 @@ const Attendance = () => {
 
   if (!currentAssignment) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-900">
+      <div className="flex flex-col items-center justify-center py-20 text-gray-500">
         <CalendarCheck size={48} className="mb-3 opacity-30" />
         <p className="text-sm font-medium">No class assignments yet.</p>
         <p className="text-xs mt-1">Ask an admin to assign you to a class.</p>
@@ -373,7 +374,7 @@ const Attendance = () => {
   return (
     <div className="space-y-6">
       <AssignmentSelector />
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-200 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
             <ArrowLeft size={20} />
@@ -420,17 +421,31 @@ const Attendance = () => {
                 <div className="flex gap-2 mb-3">
                   <div className="flex-1">
                     <label className="text-[10px] font-bold text-gray-700 uppercase tracking-wider block mb-1">Session</label>
-                    <select value={newSession} onChange={(e) => setNewSession(e.target.value)} className="w-full text-xs font-semibold px-2 py-2 rounded-lg border border-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-[#0c1925]">
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
+                    <CustomDropdown
+                      value={newSession}
+                      onChange={setNewSession}
+                      options={[
+                        { value: 'AM', label: 'AM', sublabel: 'Morning session' },
+                        { value: 'PM', label: 'PM', sublabel: 'Afternoon session' },
+                      ]}
+                      placeholder="Select session"
+                      icon={Clock}
+                      emptyMessage="No sessions found."
+                    />
                   </div>
                   <div className="flex-1">
                     <label className="text-[10px] font-bold text-gray-700 uppercase tracking-wider block mb-1">Type</label>
-                    <select value={newType} onChange={(e) => setNewType(e.target.value)} className="w-full text-xs font-semibold px-2 py-2 rounded-lg border border-gray-500 bg-white focus:outline-none focus:ring-2 focus:ring-[#0c1925]">
-                      <option value="Lecture">Lecture</option>
-                      <option value="Laboratory">Laboratory</option>
-                    </select>
+                    <CustomDropdown
+                      value={newType}
+                      onChange={setNewType}
+                      options={[
+                        { value: 'Lecture', label: 'Lecture' },
+                        { value: 'Laboratory', label: 'Laboratory' },
+                      ]}
+                      placeholder="Select type"
+                      icon={BookOpen}
+                      emptyMessage="No types found."
+                    />
                   </div>
                 </div>
                 <button onClick={addDate} className="w-full text-xs font-bold px-3 py-2 rounded-lg text-[#0c1925]" style={{ background: '#f5a623' }}>
@@ -480,9 +495,9 @@ const Attendance = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-hidden">
         {columns.length === 0 ? (
-          <div className="py-12 text-center text-gray-900">
+          <div className="py-12 text-center text-gray-500">
             <CalendarCheck size={36} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm font-medium">No attendance dates yet.</p>
             <p className="text-xs mt-1">Click "Add Date" to start recording attendance.</p>
@@ -643,7 +658,7 @@ const Attendance = () => {
 
       {confirmRemoveKey && (
         <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center">
-          <div className="bg-white rounded-2xl modal-surface p-6 w-full max-w-sm mx-4">
+          <div className="bg-white rounded-xl modal-surface p-6 w-full max-w-sm mx-4">
             <h3 className="text-base font-bold text-gray-800 mb-2">Remove Date</h3>
             <p className="text-sm text-gray-700 mb-1">
               This will delete all attendance records for <strong>{confirmRemoveKey}</strong>.

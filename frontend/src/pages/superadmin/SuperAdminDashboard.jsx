@@ -2,12 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-import { ArrowRight, FileText, Cpu, Network, Shield, Users, GraduationCap, BookOpen, ShieldCheck, Clock, Activity, CheckCircle, Trash2, Bell, Send, AlertTriangle, RefreshCw } from 'lucide-react';
+import { ArrowRight, FileText, Cpu, Network, Shield, Users, UserGroup, GraduationCap, BookOpen, ShieldCheck, ShieldUser, Clock, Activity, CheckCircle, Trash2, Megaphone, Send, AlertTriangle, RefreshCw, User, Equal } from 'lucide-react';
 import api from '../../utils/api';
 import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../components/common/Skeleton';
 
 const MetricCard = ({ title, value, icon: Icon, color, subtitle }) => (
-  <div className="bg-gray-50 p-5 rounded-2xl shadow-sm flex items-center justify-between hover:shadow-md transition-all duration-300">
+  <div className="bg-gray-50 p-5 rounded-2xl shadow-sm card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
     <div className="space-y-1">
       <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">{title}</span>
       <div className="text-3xl font-extrabold text-[#1a2233]">{value}</div>
@@ -76,11 +76,10 @@ const SuperAdminDashboard = () => {
 
   return (
   <div className="space-y-6 max-w-7xl mx-auto pt-4 md:pt-6 lg:pt-0">
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50 p-5 rounded-2xl shadow-sm" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
       <div>
         <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Dashboard</h1>
-        <p className="text-xs sm:text-sm mt-1 text-amber-400" >Monitor registered users, department distribution, system activities, and broadcast announcements .</p>
-
+        <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>Monitor registered users, department distribution, system activities, and broadcast announcements.</p>
       </div>
     </div>
 
@@ -89,9 +88,9 @@ const SuperAdminDashboard = () => {
         <div className="col-span-2 lg:col-span-4" aria-busy="true"><SkeletonMetricCards count={4} /></div>
       ) : (
       <>
-      <MetricCard title="Total Accounts" value={staffUsers.length} icon={Users} color="#142a3f" subtitle="Registered members" />
-      <MetricCard title="Faculty Members" value={totals.teachers} icon={BookOpen} color="#142a3f" subtitle="Teachers" />
-      <MetricCard title="Admin Accounts" value={totals.admins} icon={ShieldCheck} color="#142a3f" subtitle="Admins" />
+      <MetricCard title="Total Accounts" value={staffUsers.length} icon={UserGroup} color="#142a3f" subtitle="Registered members" />
+      <MetricCard title="Faculty Members" value={totals.teachers} icon={Users} color="#142a3f" subtitle="Teachers" />
+      <MetricCard title="Admin Accounts" value={totals.admins} icon={ShieldUser} color="#142a3f" subtitle="Admins" />
       <MetricCard title="Audit logs" value={activityLog.length} icon={Activity} color="#142a3f" subtitle="Events logged" />
       </>
       )}
@@ -106,7 +105,7 @@ const SuperAdminDashboard = () => {
       ) : (
       <>
       <div className="lg:col-span-2 flex flex-col gap-5">
-        <div className="rounded-xl p-5 shadow-sm bg-gray-50">
+        <div className="rounded-xl p-5 shadow-sm bg-gray-50 card-hover">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Department User Overview</h2>
@@ -115,19 +114,21 @@ const SuperAdminDashboard = () => {
             <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#1a2233' }}>{staffUsers.length} TOTAL</span>
           </div>
           {departments.length === 0 ? (
-            <p className="text-sm text-gray-400 italic py-6 text-center">No users registered yet.</p>
+            <p className="text-sm text-gray-500 italic py-6 text-center">No users registered yet.</p>
           ) : (
             <div className="table-responsive">
               <table className="w-full text-xs min-w-[500px]">
                 <thead>
                   <tr>
                     <th className="text-left pb-3 pr-4 font-medium text-gray-900 w-44">Department</th>
-                    {[{ label: 'Teachers', icon: BookOpen, color: '#142a3f' }, { label: 'Admins', icon: ShieldCheck, color: '#142a3f' }].map(({ label, icon: Icon, color }) => (
+                    {[{ label: 'Teachers', icon: Users, color: '#142a3f' }, { label: 'Admins', icon: ShieldCheck, color: '#142a3f' }].map(({ label, icon: Icon, color }) => (
                       <th key={label} className="pb-3 px-2 text-center">
                         <div className="flex flex-col items-center gap-1"><Icon size={14} style={{ color }} /><span className="font-medium text-gray-900">{label}</span></div>
                       </th>
                     ))}
-                    <th className="pb-3 px-2 font-medium text-gray-900 text-center">Total</th>
+                    <th className="pb-3 px-2 text-center">
+                      <div className="flex flex-col items-center gap-1"><Equal size={14} style={{ color: '#142a3f' }} /><span className="font-medium text-gray-900">Total</span></div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -154,13 +155,13 @@ const SuperAdminDashboard = () => {
           )}
         </div>
 
-        <div className="rounded-xl p-4 sm:p-5 shadow-sm bg-gray-50">
+        <div className="rounded-xl p-4 sm:p-5 shadow-sm bg-gray-50 card-hover">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-            <h2 className="text-sm sm:text-base font-bold" style={{ color: '#000000' }}>System Activities</h2>
+            <h2 className="text-sm sm:text-base font-bold" style={{ color: '#0c1925' }}>Recent Activities</h2>
           </div>
           <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
             {activityLog.length === 0 ? (
-              <p className="text-sm text-gray-400 italic py-6 text-center">No recent activities found.</p>
+              <p className="text-sm text-gray-500 italic py-6 text-center">No recent activities found.</p>
             ) : (
               activityLog.slice(0, 5).map((log) => {
                 const isCreate = log.action.toLowerCase().includes('created');
@@ -179,8 +180,12 @@ const SuperAdminDashboard = () => {
                   const days = Math.floor(hrs / 24);
                   return `${days}d ago`;
                 })();
+                const actor = staffUsers.find((u) => u.username === log.user_name || u.full_name === log.user_name);
+                const actorLabel = (actor && actor.system_role === 'superadmin') || String(log.user_name || '').trim().toLowerCase() === 'admin'
+                  ? 'SUPER ADMIN'
+                  : log.user_name;
                 return (
-                  <div key={log.id} className="flex gap-3 p-3 rounded-lg border border-gray-50 shadow-sm hover:shadow-md transition-all duration-100">
+                  <div key={log.id} className="flex gap-3 p-3 rounded-lg border border-gray-50 card-hover shadow-sm hover:shadow-md transition-all duration-100">
                     <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: bg }}><Icon size={14} style={{ color: iconColor }} /></div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1">
@@ -188,7 +193,7 @@ const SuperAdminDashboard = () => {
                         <span className="flex items-center gap-1 text-[10px] text-gray-900 whitespace-nowrap"><Clock size={10} /> {timeAgo}</span>
                       </div>
                       <p className="text-xs text-gray-900 truncate mb-1">{log.details}</p>
-                      <p className="text-[10px] font-medium tracking-widest text-gray-600 uppercase">BY {log.user_name}</p>
+                      <p className="text-[10px] font-medium tracking-widest text-gray-600 uppercase">BY {actorLabel}</p>
                     </div>
                   </div>
                 );
@@ -199,8 +204,8 @@ const SuperAdminDashboard = () => {
       </div>
 
       <div className="flex flex-col gap-5">
-        <div className="rounded-xl p-5 shadow-sm h-full bg-gray-50">
-          <div className="flex items-center gap-2 mb-4"><Bell size={18} style={{ color: '#142a3f' }} /><h2 className="text-sm font-bold" style={{ color: '#0c1925' }}>Broadcast Notification</h2></div>
+        <div className="rounded-xl p-5 shadow-sm h-full bg-gray-50 card-hover">
+          <div className="flex items-center gap-2 mb-4"><Megaphone size={18} style={{ color: '#142a3f' }} /><h2 className="text-sm font-bold" style={{ color: '#0c1925' }}>Broadcast Notification</h2></div>
           <p className="text-[11px] mb-5 text-gray-900">Send an update or alert to Users (Teachers, Admins).</p>
           <form onSubmit={handlePostNotification} className="flex flex-col gap-4">
             <div>
@@ -216,11 +221,11 @@ const SuperAdminDashboard = () => {
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Title</label>
-              <input type="text" placeholder="Notification Title" value={notification.title} onChange={(e) => setNotification({ ...notification, title: e.target.value })} className="w-full text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-white border-[#0c1925]" required />
+              <input type="text" placeholder="Notification Title" value={notification.title} onChange={(e) => setNotification({ ...notification, title: e.target.value })} className="w-full text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-white" required />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Message</label>
-              <textarea placeholder="Write your message here..." value={notification.content} onChange={(e) => setNotification({ ...notification, content: e.target.value })} className="w-full text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-white border-[#0c1925] resize-none h-24" required />
+              <textarea placeholder="Write your message here..." value={notification.content} onChange={(e) => setNotification({ ...notification, content: e.target.value })} className="w-full text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-white resize-none h-24" required />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-2">Urgency Level</label>

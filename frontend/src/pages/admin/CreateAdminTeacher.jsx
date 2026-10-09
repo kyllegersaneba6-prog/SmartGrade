@@ -88,28 +88,28 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
       <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
         <div className="mb-6 text-center">
           <h1 className="text-xl font-bold text-gray-900 mb-1">Create New Teacher</h1>
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Provision a new teacher account</p>
+          <p className="text-[10px] text-gray-900 uppercase tracking-wider">Provision a new teacher account</p>
         </div>
 
         <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">ID</label>
+            <input type="text" value={staffId} onChange={(e) => { setStaffId(formatStaffId(e.target.value)); setError(''); }} placeholder="00000-0000" maxLength={10} inputMode="numeric" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm font-mono" />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">First Name</label>
-              <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm" />
+              <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">First Name</label>
+              <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Last Name</label>
-              <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm" />
+              <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Last Name</label>
+              <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">ID</label>
-            <input type="text" value={staffId} onChange={(e) => { setStaffId(formatStaffId(e.target.value)); setError(''); }} placeholder="00000-0000" maxLength={10} inputMode="numeric" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm font-mono" />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Username (auto-generated)</label>
+            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Username (auto-generated)</label>
             <input type="text" value={previewUsername(lastName, staffId)} readOnly placeholder="Enter last name + complete ID" className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
             {(lastName.trim() || staffId.trim()) && !previewUsername(lastName, staffId) && (
               <p className="text-[10px] text-gray-400 mt-1">Enter a last name and all 9 ID digits to generate the username</p>
@@ -117,9 +117,9 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Password</label>
+            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Password</label>
             <div className="relative">
-              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm pr-10" />
+              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm pr-10" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
             </div>
           </div>
@@ -128,8 +128,8 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
         {error && <div className="mt-4 text-red-500 text-sm font-semibold">{error}</div>}
 
         <div className="flex items-center justify-end gap-3 mt-6">
-          <button type="button" onClick={() => onClose && onClose()} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-          <button type="button" onClick={handleSubmit} disabled={loading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50 flex items-center gap-2" style={{ background: '#f5a623' }}><UserPlus size={16} />{loading ? 'Creating...' : 'Create Teacher'}</button>
+          <button type="button" onClick={() => onClose && onClose()} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+          <button type="button" onClick={handleSubmit} disabled={loading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50 flex items-center gap-2" style={{ background: '#0c1925' }}><UserPlus size={16} />{loading ? 'Creating...' : 'Create Teacher'}</button>
         </div>
       </div>
     </div>

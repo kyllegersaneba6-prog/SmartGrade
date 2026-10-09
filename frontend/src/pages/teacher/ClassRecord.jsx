@@ -800,7 +800,7 @@ const ClassRecord = () => {
 
   if (!currentAssignment) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+      <div className="flex flex-col items-center justify-center py-20 text-gray-500">
         <FileSpreadsheet size={48} className="mb-3 opacity-30" />
         <p className="text-sm font-medium">No class assignments yet.</p>
         <p className="text-xs mt-1">Ask an admin to assign you to a class.</p>
@@ -811,7 +811,7 @@ const ClassRecord = () => {
   return (
     <div className="space-y-6">
       <AssignmentSelector />
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-100 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
             <ArrowLeft size={20} />
@@ -848,7 +848,7 @@ const ClassRecord = () => {
         </div>
       </div>
 
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-lg bg-gray-300"><Percent size={16} className="text-[#0c1925]" /></div>
@@ -867,10 +867,10 @@ const ClassRecord = () => {
               <SkeletonList rows={3} />
             </div>
           ) : components.length === 0 ? (
-            <div className="text-center py-8 text-sidebar/40">
-              <Percent size={36} className="mx-auto mb-3 opacity-20 text-sidebar" />
-              <p className="text-sm font-bold text-sidebar/60">No grading components yet</p>
-              <p className="text-xs mt-1 mb-4 text-sidebar/40">Click below to set up your grading system.</p>
+            <div className="text-center py-8 text-gray-500">
+              <Percent size={36} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-bold">No grading components yet</p>
+              <p className="text-xs mt-1 mb-4">Click below to set up your grading system.</p>
               {selectedTerm !== 'PRELIMS' && (
                 <div className="mb-4">
                   <button onClick={copyFromPrelims} disabled={copyingPrelims || isReadOnly}
@@ -912,7 +912,7 @@ const ClassRecord = () => {
                     parseFloat(comp?.weight) > 0 ? null : 'a percentage',
                   ].filter(Boolean);
                   return (
-                    <div key={comp.id} className={`group w-full rounded-xl border shadow-sm overflow-visible hover:shadow-md transition-shadow bg-gray-200 relative ${needsSetup && !isReadOnly ? 'border-red-300 ring-1 ring-red-300' : 'border-gray-200'}`}>
+                    <div key={comp.id} className={`group w-full rounded-xl border card-hover shadow-sm overflow-visible hover:shadow-md transition-shadow bg-gray-200 relative ${needsSetup && !isReadOnly ? 'border-red-300 ring-1 ring-red-300' : 'border-gray-200'}`}>
                       {needsSetup && !isReadOnly && (
                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 -translate-y-full w-56 p-2.5 bg-sidebar text-white text-[10px] rounded-lg shadow-xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-30 leading-relaxed font-normal normal-case">
                           This component needs {missing.join(' and ')} before it appears in the class-record table.
@@ -1109,7 +1109,7 @@ const ClassRecord = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-hidden">
         {components.length > 0 && totalWeight === 100 && (
           <div className="flex items-center gap-2 px-5 py-2.5 bg-green-50 border-b border-green-200 text-green-700 text-xs font-bold">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>

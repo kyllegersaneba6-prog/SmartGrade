@@ -140,7 +140,7 @@ const CustomDropdown = ({
           )}
           <div className="max-h-56 overflow-y-auto p-1.5">
             {filtered.length === 0 ? (
-              <p className="px-3 py-5 text-[11px] text-gray-400 text-center">{emptyMessage}</p>
+              <p className="px-3 py-5 text-[11px] text-gray-500 text-center">{emptyMessage}</p>
             ) : (
               filtered.map((o) => {
                 const active = String(o.value) === String(value);

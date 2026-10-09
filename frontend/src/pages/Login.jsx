@@ -75,13 +75,19 @@ const Login = () => {
       </div>
 
       {/* ===== LEFT COLUMN — Login Form ===== */}
-      <div className="w-full lg:w-[42%] flex items-center justify-center p-4 sm:p-6 lg:p-10 relative z-10">
-        <div className="w-full max-w-[420px] bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 md:p-10 shadow-2xl shadow-[#0c1925]/30">
+      <div
+        className="w-full lg:w-[42%] flex items-center justify-center p-4 sm:p-6 lg:p-10 relative z-10"
+        style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}
+      >
+        <div
+          className="w-full max-w-[420px] backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 md:p-10 shadow-2xl shadow-[#0c1925]/30"
+          style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}
+        >
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <img src="/src/assets/logo.png" className="w-20 h-20 object-contain mb-4" alt="SmartGrade Logo" />
             <h1 className="text-amber-400 font-extrabold text-2xl tracking-wide">SmartGrade</h1>
-            <p className="text-slate-300 text-sm mt-1">Academic Management Platform</p>
+            <p className="text-slate-300 text-sm mt-1">Academic Management System</p>
           </div>
 
           {error && (
@@ -165,33 +171,20 @@ const Login = () => {
       </div>
 
       {/* ===== RIGHT COLUMN — Hero Section (hidden below lg) ===== */}
-      <div className="hidden lg:flex lg:w-[58%] bg-gradient-to-br from-slate-800 via-slate-900 to-indigo-950 relative overflow-hidden items-center justify-center p-12">
-        {/* Abstract Geometric Elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-[-15%] right-[-10%] w-[80vh] h-[80vh] rounded-full bg-[radial-gradient(circle,rgba(209,166,56,0.15)_0%,transparent_60%)]" />
-          <div className="absolute bottom-[-20%] left-[-15%] w-[70vh] h-[70vh] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.12)_0%,transparent_60%)]" />
-          <div className="absolute top-[30%] left-[25%] w-[40vh] h-[40vh] rounded-full bg-[radial-gradient(circle,rgba(209,166,56,0.08)_0%,transparent_60%)]" />
-          <div className="absolute bottom-[30%] right-[20%] w-[25vh] h-[25vh] rounded-full bg-[radial-gradient(circle,rgba(167,139,250,0.1)_0%,transparent_60%)]" />
-        </div>
-
-        {/* Grid pattern overlay */}
+      <div className="hidden lg:flex lg:w-[58%] bg-slate-900 relative overflow-hidden items-center justify-center p-12">
+        {/* Blurred campus photo background */}
         <div
-          className="absolute inset-0 opacity-[0.04]"
+          className="absolute inset-0"
           style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
+            backgroundImage: "url('/src/assets/STI_Background.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'blur(10px)',
+            transform: 'scale(1.05)',
           }}
         />
-
-        {/* Decorative diagonal accent lines */}
-        <svg className="absolute top-0 right-0 w-[120%] h-[120%] opacity-[0.06]" viewBox="0 0 400 400" preserveAspectRatio="none">
-          <line x1="0" y1="400" x2="400" y2="0" stroke="#D1A638" strokeWidth="1" />
-          <line x1="100" y1="400" x2="400" y2="100" stroke="#818cf8" strokeWidth="0.5" />
-          <line x1="200" y1="400" x2="400" y2="200" stroke="#D1A638" strokeWidth="0.5" />
-          <line x1="300" y1="400" x2="400" y2="300" stroke="#818cf8" strokeWidth="0.3" />
-          <line x1="0" y1="300" x2="300" y2="0" stroke="#D1A638" strokeWidth="0.3" />
-        </svg>
+        {/* Dark overlay so text stays legible over the photo */}
+        <div className="absolute inset-0 bg-slate-900/60" />
 
         {/* Content */}
         <div className="relative z-10 max-w-lg">
@@ -205,8 +198,9 @@ const Login = () => {
           </div>
 
           <p className="text-base text-slate-300 leading-relaxed mb-10">
-            Empowering educators with intelligent tools for grade computation,
-            attendance tracking, and comprehensive class management.
+            SmartGrade unifies grade computation, attendance tracking, and
+            behavioral analytics in one academic platform — with AI-powered
+            insights that help teachers understand every learner.
           </p>
 
           {/* Feature list */}

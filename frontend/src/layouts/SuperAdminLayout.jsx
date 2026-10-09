@@ -27,7 +27,6 @@ const SuperAdminLayout = () => {
               <Menu size={22} />
             </button>
             <h3 className="text-xs sm:text-sm text-white truncate font-medium">{getTitle()}</h3>
-             <span className="text-[10px] bg-gold/20 text-amber-400 border border-gold/30 px-3 py-1 rounded-full font-bold uppercase tracking-wider">SUPER ADMIN PORTAL</span>
           </div>
 
         </header>

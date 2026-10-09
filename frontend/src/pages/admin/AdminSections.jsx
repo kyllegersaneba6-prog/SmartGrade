@@ -463,7 +463,7 @@ const AdminSections = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl shadow-sm border border-gray-50" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Manage Sections</h1>
           <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>Create and organize class sections and manage student rosters.</p>
@@ -501,7 +501,7 @@ const AdminSections = () => {
               emptyMessage="No year levels found."
             />
           </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-50 flex-1 flex flex-col">
+          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-50 card-hover flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold text-[#0c1925] flex items-center gap-2">
               <Layers size={16} style={{ color: '#0c1925' }} /> Sections
@@ -533,7 +533,7 @@ const AdminSections = () => {
           {loadingSections ? (
             <div aria-busy="true"><SkeletonList rows={4} /></div>
           ) : sections.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-8">No sections found for this term.</p>
+            <p className="text-xs text-gray-500 text-center py-8">No sections found for this term.</p>
           ) : (
             <div className="space-y-1">
               {sections.map((section) => (
@@ -568,9 +568,9 @@ const AdminSections = () => {
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-gray-50 h-full flex flex-col">
+        <div className="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-gray-50 card-hover h-full flex flex-col">
           {!selectedSection ? (
-            <div className="flex flex-col flex-1 items-center justify-center py-16 text-gray-400">
+            <div className="flex flex-col flex-1 items-center justify-center py-16 text-gray-500">
               <Layers size={48} className="mb-3 opacity-30" />
               <p className="text-sm font-medium">Select a section to view its students</p>
             </div>
@@ -663,7 +663,7 @@ const AdminSections = () => {
               {loadingStudents ? (
                 <div aria-busy="true"><SkeletonTable cols={5} rows={6} /></div>
               ) : students.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-12">No students enrolled yet.</p>
+                <p className="text-xs text-gray-500 text-center py-12">No students enrolled yet.</p>
               ) : (
                 <div className="flex flex-col flex-1">
                   <div className="overflow-x-auto flex-1">
@@ -724,7 +724,7 @@ const AdminSections = () => {
           <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Add Section</h3>
-              <button onClick={() => { setShowAddSection(false); setSectionLetterMissing(false); }} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setShowAddSection(false); setSectionLetterMissing(false); }} className="text-gray-400 hover:text-gray-900">
                 <X size={20} />
               </button>
             </div>
@@ -738,7 +738,7 @@ const AdminSections = () => {
                     value={newSectionLetter}
                     onChange={(e) => { setNewSectionLetter(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2)); if (e.target.value.trim()) setSectionLetterMissing(false); }}
                     placeholder="e.g. A"
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-[#fbf8f1] text-sm ${sectionLetterMissing && !newSectionLetter.trim() ? 'border-red-500 focus:ring-red-500' : 'border-gray-50 focus:ring-[#f5a623]'}`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-gray-100 text-sm ${sectionLetterMissing && !newSectionLetter.trim() ? 'border-red-500 focus:ring-red-500' : 'border-[#e5e0d5] focus:ring-[#142a3f]'}`}
                     autoFocus
                     maxLength={2}
                     onKeyDown={(e) => e.key === 'Enter' && addSection()}
@@ -750,7 +750,7 @@ const AdminSections = () => {
                   )}
                 </div>
                 {newSectionLetter.trim() && (
-                  <p className="text-xs text-gray-500 mb-2">
+                  <p className="text-xs text-gray-900 mb-2">
                     Will be saved as: <strong className="text-gray-700">{getPreviewName(newSectionLetter)}</strong>
                     <br />
                     {currentTerm?.school_year || '—'} — {currentTerm?.semester || '—'}
@@ -758,9 +758,9 @@ const AdminSections = () => {
                 )}
                 {sectionError && <p className="text-xs font-semibold text-red-500 mb-3">{sectionError}</p>}
                 <div className="flex justify-end gap-3">
-                  <button onClick={() => { setShowAddSection(false); setSectionError(''); setSectionLetterMissing(false); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                  <button onClick={() => { setShowAddSection(false); setSectionError(''); setSectionLetterMissing(false); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
                   <div className="relative group">
-                    <button onClick={addSection} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#f5a623' }}>Add</button>
+                    <button onClick={addSection} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#0c1925' }}>Add</button>
                     {sectionLetterMissing && !newSectionLetter.trim() && (
                       <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         Please enter a section letter
@@ -784,7 +784,7 @@ const AdminSections = () => {
               </button>
             </div>
             <div className="space-y-3 mb-4 p-0.5">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Student Details</label>
+              <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Student Details</label>
               {studentRows.map((row, i) => (
                 <div key={i} className="flex flex-col gap-2 p-3 rounded-lg border border-gray-200 relative">
                   <input
@@ -797,7 +797,7 @@ const AdminSections = () => {
                     }}
                     placeholder="Student ID (00-0000-000)"
                     maxLength={11}
-                    className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm font-mono"
+                    className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm font-mono"
                     autoFocus={i === 0}
                   />
                   <input
@@ -809,7 +809,7 @@ const AdminSections = () => {
                       setStudentRows(next);
                     }}
                     placeholder="First Name"
-                    className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                    className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm"
                   />
                   <input
                     type="text"
@@ -820,7 +820,7 @@ const AdminSections = () => {
                       setStudentRows(next);
                     }}
                     placeholder="Last Name"
-                    className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                    className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm"
                   />
                   <div className="flex items-center gap-2">
                     <input
@@ -833,7 +833,7 @@ const AdminSections = () => {
                       }}
                       placeholder="M.I."
                       maxLength={1}
-                      className="w-20 px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm text-center"
+                      className="w-20 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm text-center"
                     />
                     <select
                       value={row.gender}
@@ -842,7 +842,7 @@ const AdminSections = () => {
                         next[i] = { ...next[i], gender: e.target.value };
                         setStudentRows(next);
                       }}
-                      className="flex-1 px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                      className="flex-1 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm"
                     >
                       <option value="">Select Gender</option>
                       <option value="Male">Male</option>
@@ -856,8 +856,8 @@ const AdminSections = () => {
             <hr className="border-t border-gray-200 my-2" />
             <div className="flex items-center justify-end">
               <div className="flex gap-3">
-                <button onClick={() => { setShowAddStudent(false); setStudentRows([{ id: '', first_name: '', last_name: '', mi: '', gender: '' }]); setStudentError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-                <button onClick={addStudents} disabled={addingStudents} className="flex items-center gap-1 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#22c55e' }}>
+                <button onClick={() => { setShowAddStudent(false); setStudentRows([{ id: '', first_name: '', last_name: '', mi: '', gender: '' }]); setStudentError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                <button onClick={addStudents} disabled={addingStudents} className="flex items-center gap-1 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#0c1925' }}>
                   <UserPlus size={14} /> {addingStudents ? 'Adding...' : 'Add'}
                 </button>
               </div>
@@ -1036,8 +1036,8 @@ const AdminSections = () => {
             </button>
             <p className="mt-2 text-[11px] text-gray-500">Saving opens a preview that flags duplicates (in file and already in section). Duplicates are shown and left unchecked — only confirmed rows are imported.</p>
             <div className="flex justify-end gap-3 mt-3 pt-3 border-t border-gray-100">
-              <button onClick={() => { setShowExcelModal(false); setExcelError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Close</button>
-              <button onClick={previewExcelRows} className="flex items-center gap-1 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#22c55e' }}>
+              <button onClick={() => { setShowExcelModal(false); setExcelError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200">Close</button>
+              <button onClick={previewExcelRows} className="flex items-center gap-1 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#0c1925' }}>
                 <Upload size={14} /> Save
               </button>
             </div>

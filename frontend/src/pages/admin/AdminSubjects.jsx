@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, X, BookOpen, GraduationCap } from 'lucide-react';
+import { Plus, Trash2, X, BookOpen, GraduationCap, CalendarDays } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
 import { SkeletonList, SkeletonTable } from '../../components/common/Skeleton';
+import CustomDropdown from '../../components/common/CustomDropdown';
 
 const yearLevels = ['1st', '2nd', '3rd', '4th'];
 const yearLabels = { '1st': '1st Year', '2nd': '2nd Year', '3rd': '3rd Year', '4th': '4th Year' };
@@ -134,7 +135,7 @@ const AdminSubjects = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Manage Subjects</h1>
           <p className="text-xs sm:text-sm mt-0.5 text-amber-400">Add and organize subjects per year level.</p>
@@ -157,35 +158,51 @@ const AdminSubjects = () => {
               </div>
             )}
           </div>
-            <select
-              value={semesterFilter}
-              onChange={(e) => setSemesterFilter(e.target.value)}
-              className="px-3 py-1.5 text-xs font-semibold border border-[#0c1925] rounded-lg bg-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0c1925]"
-            >
-            <option value="1st Semester">1st Semester</option>
-            <option value="2nd Semester">2nd Semester</option>
-            <option value="Summer">Summer</option>
-          </select>
+            <div className="w-44 sm:w-52">
+              <CustomDropdown
+                value={semesterFilter}
+                onChange={setSemesterFilter}
+                options={[
+                  { value: '1st Semester', label: '1st Semester' },
+                  { value: '2nd Semester', label: '2nd Semester' },
+                  { value: 'Summer', label: 'Summer' },
+                ]}
+                placeholder="Select semester"
+                icon={CalendarDays}
+                emptyMessage="No semesters found."
+              />
+            </div>
           {courses.length > 0 && (
-            <select
-              value={selectedCourseId}
-              onChange={(e) => setSelectedCourseId(e.target.value)}
-              className="px-3 py-1.5 text-sm font-semibold border border-[#0c1925] rounded-lg bg-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0c1925]"
-            >
-              <option value="">All Courses</option>
-              {courses.map(c => <option key={c.id} value={c.id}>{c.abbreviation} — {c.name}</option>)}
-            </select>
+            <div className="w-52 sm:w-64">
+              <CustomDropdown
+                value={selectedCourseId}
+                onChange={setSelectedCourseId}
+                options={[
+                  { value: '', label: 'All Courses', sublabel: 'Show every course' },
+                  ...courses.map((c) => ({
+                    value: c.id,
+                    label: c.abbreviation ? `${c.abbreviation} — ${c.name}` : c.name,
+                    sublabel: c.abbreviation ? c.name : undefined,
+                  })),
+                ]}
+                placeholder="Select course"
+                icon={GraduationCap}
+                searchable={courses.length > 5}
+                searchPlaceholder="Search courses…"
+                emptyMessage="No courses found."
+              />
+            </div>
           )}
         </div>
       </div>
 
       {error && <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-4 py-2 rounded-lg whitespace-pre-line">{error}</div>}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-50 overflow-x-auto">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-50 card-hover overflow-x-auto">
         {loading ? (
           <div aria-busy="true"><SkeletonTable cols={4} rows={6} /></div>
         ) : subjects.length === 0 ? (
-          <div className="flex flex-col items-center py-16 text-gray-400">
+          <div className="flex flex-col items-center py-16 text-gray-500">
             <BookOpen size={48} className="mb-3 opacity-30" />
             <p className="text-sm font-medium">No subjects found.</p>
           </div>
@@ -243,10 +260,9 @@ const AdminSubjects = () => {
               <select
                 value={addCourseId}
                 onChange={(e) => setAddCourseId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm"
               >
                 <option value="" disabled>-- Select Course --</option>
-                <option value="">All Courses (Department-wide)</option>
                 {courses.map(c => <option key={c.id} value={c.id}>{c.abbreviation} — {c.name}</option>)}
               </select>
             </div>
@@ -255,7 +271,7 @@ const AdminSubjects = () => {
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm"
               >
                 <option value="" disabled>-- Select Year Level --</option>
                 {yearLevels.map((y) => <option key={y} value={y}>{yearLabels[y]}</option>)}
@@ -266,7 +282,7 @@ const AdminSubjects = () => {
               <select
                 value={addSemester}
                 onChange={(e) => setAddSemester(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm"
               >
                 <option value="" disabled>-- Select Semester --</option>
                 <option value="1st Semester">1st Semester</option>
@@ -290,7 +306,7 @@ const AdminSubjects = () => {
                       setSubjectRows(next);
                     }}
                     placeholder="e.g. MATH1001"
-                    className="w-28 px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm font-mono"
+                    className="w-28 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm font-mono"
                     maxLength={8}
                     autoFocus={i === 0}
                   />
@@ -303,7 +319,7 @@ const AdminSubjects = () => {
                       setSubjectRows(next);
                     }}
                     placeholder="e.g. Mathematics 1"
-                    className="flex-1 px-3 py-2 border border-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-sm"
+                    className="flex-1 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm"
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (i === subjectRows.length - 1) setSubjectRows([...subjectRows, { code: '', name: '' }]); } }}
                   />
                   {subjectRows.length > 1 && (
@@ -321,13 +337,13 @@ const AdminSubjects = () => {
               <button
                 onClick={() => setSubjectRows([...subjectRows, { code: '', name: '' }])}
                 className="px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm hover:scale-105 transition-transform"
-                style={{ background: '#f5a623' }}
+                style={{ background: '#0c1925' }}
               >
                 Add More Subjects
               </button>
               <div className="flex gap-3">
-                <button onClick={() => { setShowAdd(false); setSubjectRows([{ code: '', name: '' }]); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-                <button onClick={addSubjects} disabled={adding || !selectedYear || !addSemester} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#0c1925' }}>{adding ? 'Adding...' : 'Add'}</button>
+                <button onClick={() => { setShowAdd(false); setSubjectRows([{ code: '', name: '' }]); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                <button onClick={addSubjects} disabled={adding || !selectedYear || !addSemester || !addCourseId} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#0c1925' }}>{adding ? 'Adding...' : 'Add'}</button>
               </div>
             </div>
           </div>
@@ -351,7 +367,7 @@ const AdminSubjects = () => {
               {assignLoading ? (
                 <div aria-busy="true"><SkeletonList rows={3} avatar /></div>
               ) : subjectAssignments.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
+                <div className="text-center py-12 text-gray-500">
                   <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
                   <p className="text-sm font-medium">No teachers assigned to this subject.</p>
                 </div>

@@ -68,14 +68,14 @@ const SuperAdminSidebar = ({ isOpen, onClose }) => {
                 to={item.path}
                 onClick={onClose}
                 className={clsx(
-                  'flex items-center gap-3 px-6 py-3 transition-colors whitespace-nowrap',
+                  'group flex items-center gap-3 px-6 py-3 transition-colors whitespace-nowrap',
                   isActive
                     ? 'bg-[#0a316a] text-amber-400 font-medium border-l-4 border-gold'
-                    : ' hover:bg-[#0a316a] hover:text-white border-l-4 border-transparent'
+                    : 'hover:text-white border-l-4 border-transparent'
                 )}
               >
-                <item.icon size={20} className={isActive ? 'text-amber-400' : 'text-white'} />
-                {item.name}
+                <item.icon size={20} className={`${isActive ? 'text-amber-400' : 'text-white'} inline-block transition-transform duration-150 origin-center group-hover:scale-110`} />
+                <span className="inline-block transition-transform duration-150 origin-left group-hover:scale-110">{item.name}</span>
               </Link>
             );
           })}

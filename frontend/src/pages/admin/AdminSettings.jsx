@@ -19,17 +19,14 @@ const AdminSettings = () => {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            
-            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Settings</h1>
-          </div>
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card flex flex-col justify-center" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Settings</h1>
+          <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>View academic terms and browse archived semesters</p>
         </div>
-        <p className="text-sm text-amber-400 mt-1">View academic terms and browse archived semesters</p>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50">
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50 card-hover">
         <h2 className="text-sm font-bold text-gray-900 mb-4">Academic Term Information</h2>
 
         {isArchiveMode && viewTerm && (
@@ -53,7 +50,7 @@ const AdminSettings = () => {
         {!activeTerm && !isArchiveMode && (
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center mb-6">
             <p className="text-sm font-semibold text-gray-500">No active term</p>
-            <p className="text-xs text-gray-400 mt-1">Contact superadmin to create a term.</p>
+            <p className="text-xs text-gray-500 mt-1">Contact superadmin to create a term.</p>
           </div>
         )}
 

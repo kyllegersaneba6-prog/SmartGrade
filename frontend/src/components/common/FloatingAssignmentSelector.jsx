@@ -34,29 +34,37 @@ const FloatingAssignmentSelector = () => {
     <div ref={ref} className="relative inline-flex items-center gap-1">
       <button
         onClick={() => setOpen(!open)}
-        className={`flex items-center gap-2 px-3 py-2 border rounded-xl hover:shadow-md transition-all text-sidebar text-xs font-bold cursor-pointer ${
-          isArchiveMode ? 'bg-amber-50 border-amber-300' : 'bg-white border-border'
+        className={`flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 text-left text-xs bg-white border rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 cursor-pointer ${
+          isArchiveMode
+            ? 'bg-amber-50 border-amber-300 focus:ring-amber-400/30'
+            : open
+              ? 'border-[#0c1925] ring-2 ring-[#0c1925]/15'
+              : 'border-gray-200 hover:border-[#0c1925]/50 focus:ring-[#0c1925]/30'
         }`}
       >
-        {isArchiveMode ? <Archive size={16} className="text-amber-600 shrink-0" /> : <BookOpen size={16} className="text-amber-400 shrink-0" />}
-        <span className="truncate max-w-[160px] sm:max-w-[220px]">
-          {currentAssignment ? `${currentAssignment.subjects?.code} — ${currentAssignment.sections?.name}` : 'Select Subject'}
+        <span className={`flex items-center justify-center w-7 h-7 rounded-md shrink-0 transition-colors ${currentAssignment ? 'text-white' : 'text-[#0c1925] bg-[#0c1925]/5'}`} style={currentAssignment ? { background: '#0c1925' } : {}}>
+          {isArchiveMode ? <Archive size={15} /> : <BookOpen size={15} />}
         </span>
-        {currentAssignment && (
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
-            isArchiveMode ? 'bg-amber-200 text-amber-800' : 'bg-sidebar/10 text-sidebar/60'
-          }`}>{currentAssignment.school_year} | {currentAssignment.semester}</span>
-        )}
+        <span className="flex-1 min-w-0">
+          {currentAssignment ? (
+            <>
+              <span className="block font-bold text-gray-900 truncate leading-tight">{currentAssignment.subjects?.code} — {currentAssignment.sections?.name}</span>
+              <span className="block text-[10px] text-gray-400 truncate leading-tight">{currentAssignment.school_year} | {currentAssignment.semester}</span>
+            </>
+          ) : (
+            <span className="block font-semibold text-gray-400 truncate">Select Subject</span>
+          )}
+        </span>
         {isArchiveMode && (
           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 uppercase shrink-0">ARCHIVE</span>
         )}
-        <ChevronDown size={14} className={`shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown size={15} className={`shrink-0 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180 text-[#0c1925]' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1.5 w-72 sm:w-80 bg-white border border-border rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto">
+        <div className="dropdown-pop absolute top-full left-0 mt-1.5 w-72 sm:w-80 bg-white border border-gray-100 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto origin-top">
           {groupKeys.length === 0 && (
-            <div className="px-4 py-6 text-center text-gray-400 text-xs">No assignments found.</div>
+            <div className="px-3 py-5 text-[11px] text-gray-500 text-center">No assignments found.</div>
           )}
           {groupKeys.map((gk) => {
             const group = groups[gk];
@@ -78,19 +86,18 @@ const FloatingAssignmentSelector = () => {
                         setSelectedAssignment(a.id);
                         setOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-3 border-b last:border-0 border-border hover:bg-gray-50 transition-colors flex items-center gap-3 ${
-                        isItemActive ? 'bg-amber-50' : ''
+                      className={`w-full text-left px-4 py-2.5 border-b last:border-0 border-gray-100 transition-colors flex items-center gap-2 cursor-pointer ${
+                        isItemActive ? 'bg-[#0c1925]/5' : 'hover:bg-gray-100'
                       }`}
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isItemActive ? 'bg-amber-400 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                        {isItemActive ? <Check size={16} /> : <BookOpen size={16} />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-gray-800 leading-tight truncate">{a.subjects?.name}</div>
-                        <div className="text-[11px] text-gray-600 leading-tight">{a.subjects?.code} — {a.sections?.name} ({a.sections?.year_level})</div>
-                        <div className="text-[10px] text-gray-400 leading-tight">{a.school_year} {a.semester}</div>
-                      </div>
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-sidebar/10 text-sidebar/60 shrink-0">{a.semester}</span>
+                      <span className={`flex items-center justify-center w-7 h-7 rounded-md shrink-0 transition-colors ${isItemActive ? 'text-white' : 'text-gray-400 bg-gray-100'}`} style={isItemActive ? { background: '#0c1925' } : {}}>
+                        {isItemActive ? <Check size={15} /> : <BookOpen size={15} />}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className={`block text-xs truncate ${isItemActive ? 'font-bold text-[#0c1925]' : 'font-semibold text-gray-700'}`}>{a.subjects?.name}</span>
+                        <span className="block text-[10px] text-gray-400 truncate">{a.subjects?.code} — {a.sections?.name} ({a.sections?.year_level})</span>
+                      </span>
+                      {isItemActive && <Check size={14} className="shrink-0 font-bold" style={{ color: '#0c1925' }} />}
                     </button>
                   );
                 })}

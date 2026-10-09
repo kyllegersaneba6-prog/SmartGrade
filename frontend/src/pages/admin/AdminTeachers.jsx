@@ -255,7 +255,7 @@ const AdminTeachers = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Teacher Management</h1>
           <p className="text-xs sm:text-sm mt-0.5 text-amber-400">Provision, edit, and manage all teacher accounts.</p>
@@ -263,7 +263,7 @@ const AdminTeachers = () => {
         <span className="text-[10px] sm:text-sm font-bold px-3 py-1 rounded-full text-white" style={{ background: '#0c1925' }}>{teachers.length} TEACHERS</span>
       </div>
 
-      <div className="rounded-xl p-5 shadow-sm border border-gray-50" style={{ background: '#fff' }}>
+      <div className="rounded-xl p-5 shadow-sm border border-gray-50 card-hover" style={{ background: '#fff' }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Teacher Accounts</h2>
           <div className="flex gap-2">
@@ -275,20 +275,20 @@ const AdminTeachers = () => {
         <div className="table-responsive"><table className="w-full text-xs min-w-[600px]">
           <thead>
             <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
-              {['ID', 'NAME', 'USERNAME', 'ASSIGNED COURSE', 'ACTIONS'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">{h}</th>))}
+              {['ID', 'NAME', 'USERNAME', 'ASSIGNED COURSE', 'ACTIONS'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[12px] uppercase tracking-wide">{h}</th>))}
             </tr>
           </thead>
           <tbody>
             {paginated.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-10 text-center text-xs text-gray-400">
-                  No teachers have been added yet. Click <strong className="text-gray-600">Add Teacher</strong> to create the first account.
+                <td colSpan={5} className="py-10 text-center text-xs text-gray-500">
+                  No teachers have been added yet. Click <strong>Add Teacher</strong> to create the first account.
                 </td>
               </tr>
             )}
             {paginated.map((u) => (
               <tr key={u.rawId} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
-                <td className="py-3 pr-3 font-mono text-[11px] text-gray-900">{displayStaffId(u.staffId)}</td>
+                <td className="py-3 pr-3 font-mono text-[12px] text-gray-900">{displayStaffId(u.staffId)}</td>
                 <td className="py-3 pr-3 font-bold text-gray-900">{u.name}</td>
                 <td className="py-3 pr-3 text-gray-900 text-[12px]">{u.username}</td>
                 <td className="py-3 pr-3">
@@ -504,7 +504,7 @@ const AdminTeachers = () => {
                     {!assignCourse ? (
                       <p className="text-[10px] text-gray-900 mt-1">Select a course first.</p>
                     ) : filteredSections.length === 0 ? (
-                      <p className="text-[10px] text-gray-900 mt-1">No sections found for {yearLabels[assignYear]} and selected course.</p>
+                      <p className="text-[10px] text-gray-500 mt-1">No sections found for {yearLabels[assignYear]} and selected course.</p>
                     ) : null}
                   </div>
 
@@ -522,7 +522,7 @@ const AdminTeachers = () => {
                     {!assignCourse ? (
                       <p className="text-[10px] text-gray-900 mt-1">Select a course first.</p>
                     ) : filteredSubjects.length === 0 ? (
-                      <p className="text-[10px] text-gray-900 mt-1">No subjects found for {yearLabels[assignYear]} and selected course.</p>
+                      <p className="text-[10px] text-gray-500 mt-1">No subjects found for {yearLabels[assignYear]} and selected course.</p>
                     ) : null}
                   </div>
 

@@ -57,9 +57,9 @@ const BulkStudentImport = () => {
   const filledCount = rows.filter((r) => Object.values(r).some((v) => String(v).trim() !== '')).length;
 
   return (
-    <div className="min-h-screen bg-[#fbf6eb] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-[#fbf6eb] font-sans">
       <div className="max-w-3xl mx-auto p-6 md:p-10">
-        <div className="bg-white rounded-2xl shadow-lg border border-[#e5e0d5] overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-lg border border-[#e5e0d5] card-hover overflow-hidden">
           <div className="bg-[#142a3f] px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10">

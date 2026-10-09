@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { TeacherProvider, useTeacher } from '../contexts/TeacherContext';
 import Sidebar from '../components/teacher/TeacherSidebar';
+import NotificationDropdown from '../components/common/NotificationDropdown';
 import { Archive, X, Menu } from 'lucide-react';
 
 const TeacherLayoutInner = () => {
@@ -35,14 +36,16 @@ const TeacherLayoutInner = () => {
           
             <h3 className="text-xs sm:text-sm text-white truncate font-medium">{getTitle()}</h3>
 
-               <span className="text-[10px] bg-gold/20 text-amber-400 border border-gold/30 px-3 py-1 rounded-full font-bold uppercase tracking-wider">TEACHER PORTAL</span>
                 <span className="text-xs font-bold px-3 py-1 rounded-full bg-gold/20 text-amber-400 whitespace-nowrap">{JSON.parse(localStorage.getItem('user') || '{}')?.department}</span>
            {currentTerm && (
               <>
                 <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/10 text-amber-400 whitespace-nowrap tracking-wider">{currentTerm.school_year} | {currentTerm.semester}</span>
               </>
             )}
-           
+            
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <NotificationDropdown items={[]} />
           </div>
         </header>
         {isArchiveMode && currentTerm && (
