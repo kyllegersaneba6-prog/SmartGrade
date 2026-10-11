@@ -46,6 +46,13 @@ router.post('/', authorizeRole('superadmin'), async (req, res) => {
       .select()
       .single();
     if (error) return res.status(500).json({ error: error.message });
+    const abbrSuffix = data.abbreviation ? ` (${data.abbreviation})` : '';
+    await supabase.from('activity_log').insert([{
+      user_name: req.user.username || 'System',
+      action: 'Course Created',
+      details: `Created course "${data.name}"${abbrSuffix}`,
+      department: req.user.department || null
+    }]);
     res.status(201).json(data);
   } catch (err) {
     console.error(err);
@@ -60,6 +67,11 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
     return res.status(400).json({ message: 'Course name is required' });
   }
   try {
+    const { data: oldCourse } = await supabase
+      .from('courses')
+      .select('name, abbreviation')
+      .eq('id', req.params.id)
+      .single();
     const updates = { name: name.trim() };
     if (abbreviation !== undefined) updates.abbreviation = abbreviation.trim().toUpperCase();
     const { data, error } = await supabase
@@ -69,6 +81,22 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
       .select()
       .single();
     if (error) return res.status(500).json({ error: error.message });
+    const changes = [];
+    if (oldCourse && oldCourse.name !== data.name) {
+      changes.push(`name ("${oldCourse.name}" → "${data.name}")`);
+    }
+    if (oldCourse && (oldCourse.abbreviation || null) !== (data.abbreviation || null)) {
+      changes.push(`abbreviation ("${oldCourse.abbreviation || '—'}" → "${data.abbreviation || '—'}")`);
+    }
+    // Identical resubmits stay invisible in Recent Activities and the Audit Trail.
+    if (changes.length > 0) {
+      await supabase.from('activity_log').insert([{
+        user_name: req.user.username || 'System',
+        action: 'Course Updated',
+        details: `Updated course "${data.name}" — changed: ${changes.join(', ')}`,
+        department: req.user.department || null
+      }]);
+    }
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -79,7 +107,15 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
 // DELETE /api/courses/:id — delete course (superadmin only)
 router.delete('/:id', authorizeRole('superadmin'), async (req, res) => {
   try {
-    const { data: users, error: checkError } = await supabase
+    const { data: course } = await supabase
+      .from('courses')
+      .select('id, name, abbreviation')
+      .eq('id', req.params.id)
+      .single();
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found.' });
+    }
+    const { data: users } = await supabase
       .from('staff_users')
       .select('id')
       .eq('course_id', req.params.id)
@@ -87,11 +123,32 @@ router.delete('/:id', authorizeRole('superadmin'), async (req, res) => {
     if (users && users.length > 0) {
       return res.status(400).json({ message: 'Cannot delete course assigned to users. Reassign users first.' });
     }
+    const { data: sections } = await supabase
+      .from('sections')
+      .select('id')
+      .eq('course_id', req.params.id)
+      .limit(1);
+    if (sections && sections.length > 0) {
+      return res.status(400).json({ message: 'Cannot delete course with existing sections. Remove sections first.' });
+    }
     const { error } = await supabase
       .from('courses')
       .delete()
       .eq('id', req.params.id);
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) {
+      // Foreign-key violation from any other dependent record — explain instead of 500ing
+      if (error.code === '23503') {
+        return res.status(400).json({ message: 'Cannot delete course because it is still referenced by other records.' });
+      }
+      return res.status(500).json({ error: error.message });
+    }
+    const abbrSuffix = course.abbreviation ? ` (${course.abbreviation})` : '';
+    await supabase.from('activity_log').insert([{
+      user_name: req.user.username || 'System',
+      action: 'Course Deleted',
+      details: `Deleted course "${course.name}"${abbrSuffix}`,
+      department: req.user.department || null
+    }]);
     res.json({ message: 'Course deleted' });
   } catch (err) {
     console.error(err);

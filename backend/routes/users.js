@@ -222,7 +222,7 @@ router.patch('/:id', async (req, res) => {
   try {
     const { data: targetUser } = await supabase
       .from('staff_users')
-      .select('system_role, created_by, department, staff_id, last_name, full_name')
+      .select('system_role, created_by, department, staff_id, last_name, full_name, username, course_id')
       .eq('id', id)
       .single();
 
@@ -350,12 +350,47 @@ router.patch('/:id', async (req, res) => {
     }
 
     const actingUser = req.user.username || 'System';
-    await supabase.from('activity_log').insert([{
-      user_name: actingUser,
-      action: 'User Updated',
-      details: `Updated user "${updatedUser.full_name}"`,
-      department: req.user.department || null
-    }]);
+    // Specify exactly what changed so Recent Activities and the Audit Trail
+    // show field-level details (password value itself is never logged).
+    const roleWord = targetUser.system_role || 'user';
+    const norm = (v) => String(v ?? '').trim();
+    const fmtId = (digits) => {
+      const d = String(digits || '').replace(/\D/g, '');
+      return d.length === 9 ? `${d.slice(0, 5)}-${d.slice(5)}` : (d || '—');
+    };
+    const changes = [];
+    if (updates.full_name !== undefined && norm(updates.full_name) !== norm(targetUser.full_name)) {
+      changes.push(`name ("${norm(targetUser.full_name) || '—'}" → "${norm(updates.full_name)}")`);
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, 'staff_id') && normalizeStaffId(updates.staff_id) !== normalizeStaffId(targetUser.staff_id)) {
+      changes.push(`ID (${fmtId(targetUser.staff_id)} → ${fmtId(updates.staff_id)})`);
+    }
+    if (updates.department !== undefined && norm(updates.department) !== norm(targetUser.department)) {
+      changes.push(`department ("${norm(targetUser.department) || '—'}" → "${norm(updates.department)}")`);
+    }
+    if (updates.username !== undefined && norm(updates.username) !== norm(targetUser.username)) {
+      changes.push(`username ("${norm(targetUser.username) || '—'}" → "${norm(updates.username)}")`);
+    }
+    if (updates.system_role !== undefined && norm(updates.system_role) !== norm(targetUser.system_role)) {
+      changes.push(`role ("${norm(targetUser.system_role)}" → "${norm(updates.system_role)}")`);
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, 'course_id') && norm(updates.course_id) !== norm(targetUser.course_id)) {
+      changes.push('course assignment');
+    }
+    if (updates.password !== undefined) {
+      changes.push('password');
+    }
+    // Only log when something actually changed — identical resubmits
+    // stay invisible in Recent Activities and the Audit Trail.
+    if (changes.length > 0) {
+      const details = `Updated ${roleWord} "${updatedUser.full_name}" — changed: ${changes.join(', ')}`;
+      await supabase.from('activity_log').insert([{
+        user_name: actingUser,
+        action: 'User Updated',
+        details,
+        department: req.user.department || null
+      }]);
+    }
 
     res.json(updatedUser);
   } catch (err) {

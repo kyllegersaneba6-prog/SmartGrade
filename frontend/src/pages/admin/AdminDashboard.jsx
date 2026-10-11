@@ -215,7 +215,7 @@ const AdminDashboard = () => {
                         <span className="font-semibold text-gray-800 text-xs sm:text-sm">{log.action}</span>
                         <span className="flex items-center gap-1 text-[10px] text-gray-900 whitespace-nowrap"><Clock size={10} /> {timeAgo}</span>
                       </div>
-                      <p className="text-[12px] text-gray-700 truncate">{isOwn ? `You ${log.details.charAt(0).toLowerCase() + log.details.slice(1)}` : log.details}</p>
+                      <p className="text-[12px] text-gray-700 truncate" title={isOwn ? `You ${log.details.charAt(0).toLowerCase() + log.details.slice(1)}` : log.details}>{isOwn ? `You ${log.details.charAt(0).toLowerCase() + log.details.slice(1)}` : log.details}</p>
                     </div>
                   </div>
                 );

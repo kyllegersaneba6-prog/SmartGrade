@@ -243,8 +243,8 @@ const ManageDepartments = () => {
         setDeleteCourse(null);
         setDeleteCourseConfirmText('');
       } else {
-        const data = await res.json();
-        setError(data.message || 'Failed to delete course');
+        const data = await res.json().catch(() => null);
+        setError(data?.message || data?.error || 'Failed to delete course');
       }
     } catch { setError('Network error'); }
     finally { setDeleteCourseLoading(false); }
@@ -392,7 +392,7 @@ const ManageDepartments = () => {
                 <input
                   type="text"
                   value={deptName}
-                  onChange={(e) => { setDeptName(e.target.value); setError(''); }}
+                  onChange={(e) => { setDeptName(e.target.value.replace(/[^A-Za-z\s]/g, '')); setError(''); }}
                   placeholder="e.g. College of Information Technology"
                   className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm text-gray-800"
                 />
@@ -402,7 +402,7 @@ const ManageDepartments = () => {
                 <input
                   type="text"
                   value={deptAbbreviation}
-                  onChange={(e) => { setDeptAbbreviation(e.target.value.toUpperCase()); setError(''); }}
+                  onChange={(e) => { setDeptAbbreviation(e.target.value.toUpperCase().replace(/[^A-Z]/g, '')); setError(''); }}
                   placeholder="e.g. CIT"
                   maxLength={10}
                   className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm text-gray-800 uppercase"
@@ -477,11 +477,11 @@ const ManageDepartments = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Course Name</label>
-                <input type="text" value={courseName} onChange={(e) => setCourseName(e.target.value)} placeholder="e.g. Bachelor of Science in Information Technology" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" />
+                <input type="text" value={courseName} onChange={(e) => setCourseName(e.target.value.replace(/[^A-Za-z\s]/g, ''))} placeholder="e.g. Bachelor of Science in Information Technology" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Abbreviation</label>
-                <input type="text" value={courseAbbreviation} onChange={(e) => setCourseAbbreviation(e.target.value)} placeholder="e.g. BSIT" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm uppercase" />
+                <input type="text" value={courseAbbreviation} onChange={(e) => setCourseAbbreviation(e.target.value.replace(/[^A-Za-z]/g, ''))} placeholder="e.g. BSIT" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-[#fbf8f1] text-sm uppercase" />
               </div>
               {error && <p className="text-sm font-semibold" style={{ color: errorColor }}>{error}</p>}
             </div>

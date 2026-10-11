@@ -22,6 +22,7 @@ const MetricCard = ({ title, value, icon: Icon, color, subtitle }) => (
 const SuperAdminDashboard = () => {
   const [staffUsers, setStaffUsers] = useState([]);
   const [activityLog, setActivityLog] = useState([]);
+  const [liveDeptNames, setLiveDeptNames] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [notification, setNotification] = useState({ title: '', content: '', urgency: 'Not Urgent', audience: ['Admins', 'Teachers'] });
   const [notifSuccess, setNotifSuccess] = useState(false);
@@ -41,6 +42,15 @@ const SuperAdminDashboard = () => {
           try {
             const res = await api('http://localhost:5000/api/activity');
             if (res.ok) { const data = await res.json(); setActivityLog(data); }
+          } catch (err) { console.error(err); }
+        })(),
+        (async () => {
+          try {
+            const res = await api('http://localhost:5000/api/departments');
+            if (res.ok) {
+              const data = await res.json();
+              setLiveDeptNames(new Set(data.map((d) => String(d.name || '').trim().toLowerCase())));
+            }
           } catch (err) { console.error(err); }
         })(),
       ]);
@@ -66,7 +76,11 @@ const SuperAdminDashboard = () => {
 
   const deptMap = {};
   staffUsers.forEach(u => {
-    let dept = u.department || 'Unassigned';
+    const raw = String(u.department || '').trim();
+    // Only departments that still exist get a row — users stranded by a
+    // deleted department (or with no department) are excluded entirely.
+    if (liveDeptNames && !liveDeptNames.has(raw.toLowerCase())) return;
+    const dept = raw || 'Unassigned';
     if (!deptMap[dept]) deptMap[dept] = { admins: 0, teachers: 0 };
     if (u.system_role === 'teacher') deptMap[dept].teachers++;
     else if (u.system_role === 'admin') deptMap[dept].admins++;
@@ -192,7 +206,7 @@ const SuperAdminDashboard = () => {
                         <span className="font-semibold text-gray-800 text-xs sm:text-sm">{log.action}</span>
                         <span className="flex items-center gap-1 text-[10px] text-gray-900 whitespace-nowrap"><Clock size={10} /> {timeAgo}</span>
                       </div>
-                      <p className="text-xs text-gray-900 truncate mb-1">{log.details}</p>
+                      <p className="text-xs text-gray-900 truncate mb-1" title={log.details}>{log.details}</p>
                       <p className="text-[10px] font-medium tracking-widest text-gray-600 uppercase">BY {actorLabel}</p>
                     </div>
                   </div>

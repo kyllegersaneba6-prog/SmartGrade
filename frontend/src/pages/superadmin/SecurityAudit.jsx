@@ -48,7 +48,7 @@ const SecurityAudit = () => {
 
   const getRoleInfo = (userName) => {
     const user = users.find(u => u.username === userName || u.full_name === userName);
-    if (!user) return { role: 'system', color: '#3b82f6', name: userName };
+    if (!user) return { role: 'system', color: '#0c1925', name: userName };
     switch (user.system_role) {
       case 'superadmin': return { role: 'system', color: '#0c1925', name: user.full_name };
       case 'admin': return { role: 'admin', color: ' #fbbf24 ' , name: user.full_name };
@@ -76,13 +76,11 @@ const SecurityAudit = () => {
   });
 
   const criticalCount = dynamicRows.filter(r => r.critical).length;
-  const loginAccesses = logs.filter(l => l.action.toLowerCase().includes('login') || l.action.toLowerCase().includes('access')).length;
-  const systemAccesses = loginAccesses > 0 ? loginAccesses : logs.length;
-  const dataExports = logs.filter(l => l.action.toLowerCase().includes('export') || l.action.toLowerCase().includes('download')).length;
+  const totalEvents = logs.length;
 
   const metrics = [
-    { label: 'CRITICAL ALERTS', value: criticalCount.toString().padStart(2, '0'), color: '#FF0000', bg: '#957272', icon: '⚠', tooltip: 'High-risk system activities requiring immediate administrator attention.' },
-    { label: 'SYSTEM ACCESSES', value: systemAccesses.toLocaleString(), color: '#0c1925', bg: '#fbbf24', icon: '↗', tooltip: 'Total account across all user roles.' },
+    { label: 'CRITICAL ALERTS', value: criticalCount.toString(), color: '#FF0000', bg: '#957272', icon: '⚠', tooltip: 'High-risk system activities requiring immediate administrator attention.' },
+    { label: 'TOTAL LOGGED EVENTS', value: totalEvents.toLocaleString(), color: '#0c1925', bg: '#fbbf24', icon: '↗', tooltip: 'Total events recorded in the institutional audit trail.' },
   ];
 
   const ROWS_PER_PAGE = 10;

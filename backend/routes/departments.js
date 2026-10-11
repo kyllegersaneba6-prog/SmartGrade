@@ -39,6 +39,13 @@ router.post('/', authorizeRole('superadmin'), async (req, res) => {
       .select()
       .single();
     if (error) return res.status(500).json({ error: error.message });
+    const abbrSuffix = data.abbr ? ` (${data.abbr})` : '';
+    await supabase.from('activity_log').insert([{
+      user_name: req.user.username || 'System',
+      action: 'Department Created',
+      details: `Created department "${data.name}"${abbrSuffix}`,
+      department: req.user.department || null
+    }]);
     res.status(201).json(data);
   } catch (err) {
     console.error(err);
@@ -57,6 +64,11 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
     updates.abbr = String(abbr).trim() ? String(abbr).trim().toUpperCase() : null;
   }
   try {
+    const { data: oldDept } = await supabase
+      .from('departments')
+      .select('name, abbr')
+      .eq('id', req.params.id)
+      .single();
     const { data, error } = await supabase
       .from('departments')
       .update(updates)
@@ -64,6 +76,22 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
       .select()
       .single();
     if (error) return res.status(500).json({ error: error.message });
+    const changes = [];
+    if (oldDept && oldDept.name !== data.name) {
+      changes.push(`name ("${oldDept.name}" → "${data.name}")`);
+    }
+    if (oldDept && (oldDept.abbr || null) !== (data.abbr || null)) {
+      changes.push(`abbreviation ("${oldDept.abbr || '—'}" → "${data.abbr || '—'}")`);
+    }
+    // Identical resubmits stay invisible in Recent Activities and the Audit Trail.
+    if (changes.length > 0) {
+      await supabase.from('activity_log').insert([{
+        user_name: req.user.username || 'System',
+        action: 'Department Updated',
+        details: `Updated department "${data.name}" — changed: ${changes.join(', ')}`,
+        department: req.user.department || null
+      }]);
+    }
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -74,7 +102,7 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
 // DELETE /api/departments/:id — delete department (superadmin only)
 router.delete('/:id', authorizeRole('superadmin'), async (req, res) => {
   try {
-    const { data: courses, error: checkError } = await supabase
+    const { data: courses } = await supabase
       .from('courses')
       .select('id')
       .eq('department_id', req.params.id)
@@ -82,11 +110,34 @@ router.delete('/:id', authorizeRole('superadmin'), async (req, res) => {
     if (courses && courses.length > 0) {
       return res.status(400).json({ message: 'Cannot delete department with existing courses. Remove courses first.' });
     }
+    const { data: dept } = await supabase
+      .from('departments')
+      .select('id, name, abbr')
+      .eq('id', req.params.id)
+      .single();
+    if (!dept) {
+      return res.status(404).json({ message: 'Department not found.' });
+    }
+    // Users carry the department as a plain name snapshot (no FK), so without
+    // this the deleted name would linger as a ghost row in Department User
+    // Overview. Move affected users to Unassigned instead.
+    const { error: clearError } = await supabase
+      .from('staff_users')
+      .update({ department: null })
+      .eq('department', dept.name);
+    if (clearError) return res.status(500).json({ error: clearError.message });
+    const abbrSuffix = dept.abbr ? ` (${dept.abbr})` : '';
     const { error } = await supabase
       .from('departments')
       .delete()
       .eq('id', req.params.id);
     if (error) return res.status(500).json({ error: error.message });
+    await supabase.from('activity_log').insert([{
+      user_name: req.user.username || 'System',
+      action: 'Department Deleted',
+      details: `Deleted department "${dept.name}"${abbrSuffix}`,
+      department: req.user.department || null
+    }]);
     res.json({ message: 'Department deleted' });
   } catch (err) {
     console.error(err);

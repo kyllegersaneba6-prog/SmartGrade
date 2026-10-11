@@ -99,10 +99,10 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
           <div className="mb-6 text-center">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 mb-4"><CheckCircle size={28} className="text-emerald-600" /></div>
             <h1 className="text-xl font-bold text-gray-900 mb-1">Admin Account Created</h1>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider">Share these credentials with the admin</p>
+            <p className="text-[10px] text-gray-900 uppercase tracking-wider">Share these credentials with the admin</p>
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Assigned Username</label>
+            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Assigned Username</label>
             <input type="text" value={createdUsername} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-800 font-mono" />
           </div>
           <div className="flex items-center justify-end gap-3 mt-6">
@@ -144,9 +144,15 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
               <option value="" disabled>Select a department</option>
               {departments.map((d) => {
                 const taken = departmentsWithAdmin.has(d.name.trim().toLowerCase());
+                const storedAbbr = d.abbr && String(d.abbr).trim() ? String(d.abbr).trim() : '';
+                const nameEndsWithAbbr = (() => {
+                  if (!storedAbbr) return false;
+                  const m = String(d.name || '').match(/\(([^)]+)\)\s*$/);
+                  return !!m && m[1].trim().toLowerCase() === storedAbbr.toLowerCase();
+                })();
                 return (
                   <option key={d.id} value={d.id} disabled={taken}>
-                    {d.name}{taken ? ' (admin already assigned)' : ''}
+                    {d.name}{storedAbbr && !nameEndsWithAbbr ? ` (${storedAbbr})` : ''}
                   </option>
                 );
               })}

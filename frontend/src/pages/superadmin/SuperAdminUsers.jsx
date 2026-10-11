@@ -188,6 +188,18 @@ const SuperAdminUsers = () => {
   };
 
   const sortedUsers = usersList;
+  const deptAbbrByName = {};
+  departments.forEach((d) => {
+    const abbr = d.abbr && String(d.abbr).trim() ? String(d.abbr).trim() : '';
+    if (abbr) deptAbbrByName[String(d.name || '').trim().toLowerCase()] = abbr;
+  });
+  const deptDisplay = (name) => {
+    const abbr = deptAbbrByName[String(name || '').trim().toLowerCase()];
+    if (!abbr) return name;
+    const m = String(name || '').match(/\(([^)]+)\)\s*$/);
+    if (m && m[1].trim().toLowerCase() === abbr.toLowerCase()) return name;
+    return `${name} (${abbr})`;
+  };
   const menuUser = usersList.find((x) => x.id === openMenuId) || null;
   const totalUserPages = Math.max(1, Math.ceil(sortedUsers.length / USERS_PER_PAGE));
   const paginatedUsers = sortedUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
@@ -230,7 +242,7 @@ const SuperAdminUsers = () => {
                 <td className="py-3 pr-3 font-mono text-[12px] text-gray-900">{displayStaffId(u.staffId)}</td>
                 <td className="py-3 pr-3 font-bold text-gray-900 text-[12px]">{u.name}</td>
                 <td className="py-3 pr-3 text-gray-900 font-mono text-[12px]">{u.username}</td>
-                <td className="py-3 pr-3 text-gray-900 text-[12px]">{u.dept}</td>
+                <td className="py-3 pr-3 text-gray-900 text-[12px]">{deptDisplay(u.dept)}</td>
                 <td className="py-3 items-center">
                   <button onClick={(e) => openMenu(u, e)} className="text-gray-900 hover:text-[#0c1925] transition-colors p-1 rounded-md hover:bg-gray-100" title="Actions"><Cog size={20} /></button>
                 </td>
