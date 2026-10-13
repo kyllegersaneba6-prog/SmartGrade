@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CalendarCheck, Loader, Plus, X, Trash2, ArrowLeft, Cloud, Clock, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
+import ExportButtons from '../../components/teacher/ExportButtons';
 import CustomDropdown from '../../components/common/CustomDropdown';
 import Pagination from '../../components/common/Pagination';
 import { SkeletonHeaderCard, SkeletonTable } from '../../components/common/Skeleton';
 import api from '../../utils/api';
+import { buildTeacherFilename, TEACHER_TERM_TOKENS } from '../../utils/exportFilenames';
+import { exportTablePdf } from '../../utils/exportPdf';
 
 const LS_PREFIX = 'pending_attendance_';
 
@@ -86,6 +90,8 @@ const Attendance = () => {
   const [error, setError] = useState('');
   const [clampWarnings, setClampWarnings] = useState({});
   const [syncing, setSyncing] = useState(false);
+  const [exporting, setExporting] = useState(null);
+  const [exportError, setExportError] = useState('');
   const datePickerRef = useRef(null);
   const saveTimerRef = useRef(null);
   const columnsRef = useRef(columns);
@@ -351,6 +357,98 @@ const Attendance = () => {
     return sum;
   };
 
+  // --- Export (reuses the page's own data, headers, search filter) ---
+  const getFilteredStudents = () => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter(s =>
+      s.student_name?.toLowerCase().includes(q) ||
+      s.student_id?.toLowerCase().includes(q)
+    );
+  };
+
+  const dateLabel = (key) => {
+    const { session, type } = parseKey(key);
+    return `${formatDate(key)} ${session} ${type === 'Laboratory' ? 'LAB' : 'LEC'}`;
+  };
+
+  const exportContext = () => [
+    `${currentAssignment.subjects?.name || ''} — ${currentAssignment.sections?.name || ''}`,
+    `Term: ${selectedTerm}`,
+  ];
+
+  const handleExportExcel = () => {
+    if (!currentAssignment || columns.length === 0 || exporting) return;
+    setExporting('excel');
+    setExportError('');
+    try {
+      const filtered = getFilteredStudents();
+      const subHeader = ['Stud No.', 'Student Name', ...columns.map(dateLabel), 'TOTAL'];
+      const maxRow = ['MAX SCORE', '', ...columns.map(() => 2), columns.length * 2];
+      const dataRows = filtered.map((s) => [
+        String(s.student_id ?? ''),
+        s.student_name ?? '',
+        ...columns.map((k) => attendanceMap[k]?.[s.id] ?? 0),
+        getStudentTotal(s.id),
+      ]);
+      const titleRow = Array(subHeader.length).fill('');
+      titleRow[0] = `Attendance — ${currentAssignment.subjects?.name || ''}`.trim();
+      titleRow[1] = `Section: ${currentAssignment.sections?.name || ''}`;
+      titleRow[2] = `Term: ${selectedTerm}`;
+      const allRows = [titleRow, subHeader, maxRow, ...dataRows];
+      const worksheet = XLSX.utils.aoa_to_sheet(allRows);
+      worksheet['!cols'] = [{ wch: 14 }, { wch: 28 }, ...columns.map(() => ({ wch: 12 })), { wch: 10 }];
+      const lastCol = subHeader.length - 1;
+      worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } }];
+      worksheet['!rows'] = Array.from({ length: allRows.length }, () => ({ hpt: 22 }));
+      // Keep Stud ID as text so leading zeros survive in Excel.
+      for (let r = 3; r < allRows.length; r++) {
+        const addr = XLSX.utils.encode_cell({ r, c: 0 });
+        if (worksheet[addr]) worksheet[addr].t = 's';
+      }
+      if (dataRows.length > 0) {
+        worksheet['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 1, c: 0 }, e: { r: allRows.length - 1, c: lastCol } }) };
+      }
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
+      XLSX.writeFile(workbook, buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'attendance', ext: 'xlsx' }));
+    } catch (err) {
+      console.error(err);
+      setExportError('Excel export failed. Please try again.');
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const handleExportPdf = () => {
+    if (!currentAssignment || columns.length === 0 || exporting) return;
+    setExporting('pdf');
+    setExportError('');
+    try {
+      const filtered = getFilteredStudents();
+      exportTablePdf({
+        title: 'Attendance',
+        context: exportContext(),
+        filename: buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'attendance', ext: 'pdf' }),
+        head: [['#', 'Stud ID', 'Student Name', ...columns.map(dateLabel), 'TOTAL']],
+        body: filtered.map((s, i) => [
+          i + 1,
+          String(s.student_id ?? ''),
+          s.student_name ?? '',
+          ...columns.map((k) => attendanceMap[k]?.[s.id] ?? 0),
+          getStudentTotal(s.id),
+        ]),
+        landscape: true,
+        emptyMessage: 'No students match the current filters.',
+      });
+    } catch (err) {
+      console.error(err);
+      setExportError('PDF export failed. Please try again.');
+    } finally {
+      setExporting(null);
+    }
+  };
+
   if (ctxLoading || loading) {
     return (
       <div className="space-y-6" aria-busy="true">
@@ -454,6 +552,9 @@ const Attendance = () => {
               </div>
             )}
           </div>
+          {columns.length > 0 && (
+            <ExportButtons onExcel={handleExportExcel} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
+          )}
         </div>
       </div>
 

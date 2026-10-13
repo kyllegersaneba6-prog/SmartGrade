@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Download, ArrowLeft, FileSpreadsheet, Percent, HelpCircle, Plus, Trash2, Loader, GripVertical } from 'lucide-react';
+import { ArrowLeft, FileSpreadsheet, Percent, HelpCircle, Plus, Trash2, Loader, GripVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
+import ExportButtons from '../../components/teacher/ExportButtons';
 import { SkeletonHeaderCard, SkeletonList, SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
+import { buildTeacherFilename, TEACHER_TERM_TOKENS } from '../../utils/exportFilenames';
+import { exportTablePdf } from '../../utils/exportPdf';
 
 const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
 
@@ -46,6 +49,8 @@ const ClassRecord = () => {
   const [dragCompId, setDragCompId] = useState(null);
   const [dropCompId, setDropCompId] = useState(null);
   const [reordering, setReordering] = useState(false);
+  const [exporting, setExporting] = useState(null);
+  const [exportError, setExportError] = useState('');
   const inputRefs = useRef({});
   const focusCompIdRef = useRef(null);
 
@@ -785,7 +790,72 @@ const ClassRecord = () => {
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Class Record');
-    XLSX.writeFile(workbook, `${currentAssignment.subjects?.name?.replace(/\s+/g, '_')}_${selectedTerm}.xlsx`);
+    XLSX.writeFile(workbook, buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'classrecord', ext: 'xlsx' }));
+  };
+
+  const handleExportPdf = () => {
+    if (!currentAssignment || components.length === 0 || exporting) return;
+    setExporting('pdf');
+    setExportError('');
+    try {
+      const visibleComponents = components.filter(c => c.is_attendance || c.activities?.length > 0);
+      const q = searchQuery.trim().toLowerCase();
+      const filtered = q
+        ? students.filter(s => s.student_name?.toLowerCase().includes(q) || s.student_id?.toLowerCase().includes(q))
+        : students;
+      const head = ['#', 'Stud ID', 'Student Name'];
+      visibleComponents.forEach(c => {
+        if (!c.is_attendance) (c.activities || []).forEach(a => head.push(a.name));
+        head.push(`TOTAL (${c.name})`, `EQUIV (${c.name})`, `WTD (${c.name})`);
+      });
+      head.push(`${selectedTerm} GRADE`);
+      const body = filtered.map((student, i) => {
+        const row = [i + 1, String(student.student_id ?? ''), student.student_name ?? ''];
+        visibleComponents.forEach(c => {
+          if (!c.is_attendance) {
+            (c.activities || []).forEach(a => row.push(scores[a.id]?.[student.id] ?? 0));
+          }
+          row.push(
+            getComponentTotal(student.id, c),
+            getComponentEquiv(student.id, c).toFixed(2),
+            getComponentWeighted(student.id, c).toFixed(2)
+          );
+        });
+        row.push(getFinalGrade(student.id).toFixed(2));
+        return row;
+      });
+      exportTablePdf({
+        title: 'Class Record',
+        context: [
+          `${currentAssignment.subjects?.name || ''} — ${currentAssignment.sections?.name || ''}`,
+          `Term: ${selectedTerm}`,
+        ],
+        filename: buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'classrecord', ext: 'pdf' }),
+        head: [head],
+        body,
+        landscape: true,
+        emptyMessage: 'No students match the current filters.',
+      });
+    } catch (err) {
+      console.error(err);
+      setExportError('PDF export failed. Please try again.');
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const onExcelClick = () => {
+    if (exporting) return;
+    setExporting('excel');
+    setExportError('');
+    try {
+      handleExportExcel();
+    } catch (err) {
+      console.error(err);
+      setExportError('Excel export failed. Please try again.');
+    } finally {
+      setExporting(null);
+    }
   };
 
   if (ctxLoading) {
@@ -842,9 +912,7 @@ const ClassRecord = () => {
             {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
           </div>
 
-          <button onClick={handleExportExcel} className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
-            <Download size={16} /> Export Excel
-          </button>
+          <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
         </div>
       </div>
 

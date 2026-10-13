@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '55mb' }));
 
 const usersRoutes = require('./routes/users');
 const activityRoutes = require('./routes/activity');
@@ -25,6 +25,7 @@ const componentActivitiesRoutes = require('./routes/componentActivities');
 const componentScoresRoutes = require('./routes/componentScores');
 const attendanceRoutes = require('./routes/attendance');
 const aiRoutes = require('./routes/ai');
+const backupRoutes = require('./routes/backup');
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -41,6 +42,7 @@ app.use('/api/component-activities', componentActivitiesRoutes);
 app.use('/api/component-scores', componentScoresRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/backup', backupRoutes);
 
 // One-time setup: create activity_log table if it doesn't exist
 const { createClient } = require('@supabase/supabase-js');

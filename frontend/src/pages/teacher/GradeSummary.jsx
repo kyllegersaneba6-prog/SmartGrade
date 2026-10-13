@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart3, Loader, ArrowLeft, Download, Summary } from 'lucide-react';
+import { BarChart3, Loader, ArrowLeft, Summary } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
+import ExportButtons from '../../components/teacher/ExportButtons';
 import { SkeletonHeaderCard, SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
+import { buildTeacherFilename } from '../../utils/exportFilenames';
+import { exportTablePdf } from '../../utils/exportPdf';
 import {
   TERMS, TERM_PCTS, TERM_WEIGHTS, GRADE_RANGES,
   gradeToPoint, getComponentTotal, getComponentMaxTotal,
@@ -24,6 +27,8 @@ const GradeSummary = () => {
   const [highlightedRowId, setHighlightedRowId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(null);
+  const [exportError, setExportError] = useState('');
 
   useEffect(() => {
     if (!currentAssignment) return;
@@ -140,12 +145,21 @@ const GradeSummary = () => {
     );
   }
 
+  const getSummaryFiltered = () => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return studentRows;
+    return studentRows.filter(r =>
+      r.student.student_name?.toLowerCase().includes(q) ||
+      r.student.student_id?.toLowerCase().includes(q)
+    );
+  };
+
   const handleExportExcel = () => {
     const subHeaders = ['#', 'Stud ID', 'Student Name'];
     TERMS.forEach(t => { subHeaders.push('Grade', 'G.P.'); });
     subHeaders.push('FINAL Grade', 'FINAL G.P.', 'Remarks');
 
-    const dataRows = studentRows.map((r, i) => {
+    const dataRows = getSummaryFiltered().map((r, i) => {
       const row = [i + 1, r.student.student_id, r.student.student_name];
       TERMS.forEach(t => {
         const cell = r[t];
@@ -280,7 +294,67 @@ const GradeSummary = () => {
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'GradeSummary');
-    XLSX.writeFile(workbook, `${currentAssignment.subjects?.name?.replace(/\s+/g, '_')}_GradeSummary.xlsx`);
+    XLSX.writeFile(workbook, buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: 'all-terms', page: 'gradesummary', ext: 'xlsx' }));
+  };
+
+  const handleExportPdf = () => {
+    if (!currentAssignment || exporting) return;
+    setExporting('pdf');
+    setExportError('');
+    try {
+      const filtered = getSummaryFiltered();
+      const head = ['#', 'Stud ID', 'Student Name'];
+      TERMS.forEach(t => { head.push(`${t} Grade`, `${t} G.P.`); });
+      head.push('FINAL Grade', 'FINAL G.P.', 'Remarks');
+      const body = filtered.map((r, i) => {
+        const row = [i + 1, String(r.student.student_id ?? ''), r.student.student_name ?? ''];
+        TERMS.forEach(t => {
+          const cell = r[t];
+          row.push(cell.grade !== null ? cell.grade.toFixed(2) : '-');
+          row.push(cell.gp !== null ? cell.gp.toFixed(2) : '-');
+        });
+        row.push(r.finalGrade !== null ? r.finalGrade.toFixed(2) : '-');
+        row.push(r.finalGp !== null ? r.finalGp.toFixed(2) : '-');
+        row.push(r.remarks ?? '-');
+        return row;
+      });
+      exportTablePdf({
+        title: 'Grade Summary',
+        context: [`${currentAssignment.subjects?.name || ''} — ${currentAssignment.sections?.name || ''}`],
+        filename: buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: 'all-terms', page: 'gradesummary', ext: 'pdf' }),
+        head: [head],
+        body,
+        landscape: true,
+        emptyMessage: 'No students match the current filters.',
+        extraTables: [{
+          title: 'Grade Point Scale',
+          head: [['Grade', 'Equivalent', 'Description']],
+          body: [
+            ...GRADE_RANGES.map((r, i) => [r.gp.toFixed(2), `${r.min}%${i > 0 ? ` – ${GRADE_RANGES[i - 1].min - 1}%` : ' – 100%'}`, r.desc]),
+            ['5.00', 'below 75%', 'Failed'],
+          ],
+        }],
+      });
+    } catch (err) {
+      console.error(err);
+      setExportError('PDF export failed. Please try again.');
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const onExcelClick = () => {
+    if (exporting) return;
+    setExporting('excel');
+    setExportError('');
+    try {
+      handleExportExcel();
+    } catch (err) {
+      console.error(err);
+      setExportError('Excel export failed. Please try again.');
+    } finally {
+      setExporting(null);
+    }
   };
 
   const gpColor = (gp) => {
@@ -314,9 +388,7 @@ const GradeSummary = () => {
         </div>
         {dataLoading && <Loader size={18} className="animate-spin text-sidebar/40" />}
         {hasAnyData && !dataLoading && (
-          <button onClick={handleExportExcel} className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
-            <Download size={16} /> Export Excel
-          </button>
+          <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
         )}
       </div>
 

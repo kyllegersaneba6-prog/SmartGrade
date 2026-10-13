@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart3, Loader, ArrowLeft, Download, TrendingUp, TrendingDown, Minus, X, Sparkles, AlertTriangle } from 'lucide-react';
+import { BarChart3, Loader, ArrowLeft, TrendingUp, TrendingDown, Minus, X, Sparkles, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
+import ExportButtons from '../../components/teacher/ExportButtons';
 import Pagination from '../../components/common/Pagination';
 import { SkeletonHeaderCard, SkeletonMetricCards, SkeletonTable } from '../../components/common/Skeleton';
 import api from '../../utils/api';
+import { buildTeacherFilename, TEACHER_TERM_TOKENS } from '../../utils/exportFilenames';
+import { exportTablePdf } from '../../utils/exportPdf';
 import {
   TERMS, getComponentTotal, getComponentMaxTotal,
   getComponentEquiv, getComponentWeighted, getFinalGrade
@@ -34,6 +37,8 @@ const BehavioralAnalytics = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiReport, setAiReport] = useState(null);
   const [aiError, setAiError] = useState(null);
+  const [exporting, setExporting] = useState(null);
+  const [exportError, setExportError] = useState('');
 
   useEffect(() => {
     if (!currentAssignment) return;
@@ -451,7 +456,86 @@ const BehavioralAnalytics = () => {
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Analytics');
-    XLSX.writeFile(workbook, `${currentAssignment.subjects?.name?.replace(/\s+/g, '_')}_${selectedTerm}_Analytics.xlsx`);
+    XLSX.writeFile(workbook, buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'analytics', ext: 'xlsx' }));
+  };
+
+  const getAnalyticsFiltered = () => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return sortedStudents;
+    return sortedStudents.filter(s =>
+      s.student.student_name?.toLowerCase().includes(q) ||
+      s.student.student_id?.toLowerCase().includes(q)
+    );
+  };
+
+  const handleExportPdf = () => {
+    if (!currentAssignment || components.length === 0 || exporting) return;
+    setExporting('pdf');
+    setExportError('');
+    try {
+      const visibleComponents = components.filter(c => c.is_attendance || c.activities?.length > 0);
+      const filtered = getAnalyticsFiltered();
+      const head = ['#', 'Stud ID', 'Student Name'];
+      visibleComponents.forEach(c => {
+        head.push(`EQUIV (${c.name})`, `Perf% (${c.name})`, `Sub% (${c.name})`);
+      });
+      head.push('FINAL', 'Sub%', 'Att.%', 'PERFORMANCE');
+      const body = filtered.map((entry, i) => {
+        const row = [i + 1, String(entry.student.student_id ?? ''), entry.student.student_name ?? ''];
+        visibleComponents.forEach(c => {
+          const cd = entry.components[c.id];
+          row.push(
+            cd ? cd.equiv.toFixed(2) : '-',
+            cd ? cd.performance.toFixed(1) + '%' : '-',
+            cd ? (cd.is_attendance ? '-' : (cd.submissionRate * 100).toFixed(1) + '%') : '-'
+          );
+        });
+        row.push(
+          entry.finalGrade.toFixed(2),
+          (entry.overallSubRate * 100).toFixed(1) + '%',
+          (entry.attendanceRate * 100).toFixed(1) + '%',
+          entry.overallPerformance.toFixed(1) + '%'
+        );
+        return row;
+      });
+      exportTablePdf({
+        title: 'Behavioral Analytics',
+        context: [
+          `${currentAssignment.subjects?.name || ''} — ${currentAssignment.sections?.name || ''}`,
+          `Term: ${selectedTerm}`,
+        ],
+        filename: buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'analytics', ext: 'pdf' }),
+        head: [['Metric', 'Value']],
+        body: [
+          ['Avg Final Grade', summary.avgGrade.toFixed(2)],
+          ['Avg Submission Rate', (summary.avgSubRate * 100).toFixed(1) + '%'],
+          ['Avg Attendance Rate', (summary.avgAttendanceRate * 100).toFixed(1) + '%'],
+          ['Overall Performance', summary.avgPerformance.toFixed(1) + '%'],
+        ],
+        landscape: false,
+        emptyMessage: 'No analytics data available.',
+        extraTables: [{ title: 'Student Analytics', head: [head], body }],
+      });
+    } catch (err) {
+      console.error(err);
+      setExportError('PDF export failed. Please try again.');
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const onExcelClick = () => {
+    if (exporting) return;
+    setExporting('excel');
+    setExportError('');
+    try {
+      handleExportExcel();
+    } catch (err) {
+      console.error(err);
+      setExportError('Excel export failed. Please try again.');
+    } finally {
+      setExporting(null);
+    }
   };
 
   // --- Trend icon ---
@@ -587,9 +671,7 @@ const BehavioralAnalytics = () => {
             {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
           </div>
           {hasComponents && (
-            <button onClick={handleExportExcel} className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer">
-              <Download size={16} /> Export Excel
-            </button>
+            <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
           )}
         </div>
       </div>

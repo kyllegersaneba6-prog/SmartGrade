@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Settings, X, Plus, ChevronDown, Check, CalendarDays } from 'lucide-react';
 import api from '../../utils/api';
 import { SkeletonSettingsCard } from '../../components/common/Skeleton';
+import BackupRestore from '../../components/superadmin/BackupRestore';
 
 // Academic year starts in August: e.g. June 2026 → 2025-2026, Sept 2026 → 2026-2027.
 const getCurrentStartYear = () => {
@@ -225,6 +226,8 @@ const SuperAdminSettings = () => {
           </div>
         )}
       </div>
+
+      <BackupRestore />
 
       {endSemesterOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">

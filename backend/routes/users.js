@@ -102,7 +102,10 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // If admin creates teacher, inherit admin's department
+    // If admin creates teacher, inherit admin's department.
+    // The creator row must still exist: created_by references it, so a
+    // stale token (deleted/recreated admin, restored backup) would otherwise
+    // surface as a raw 23503 FK violation on insert.
     let resolvedDepartment = department;
     if (requesterRole === 'admin') {
       const { data: adminUser } = await supabase
@@ -110,7 +113,10 @@ router.post('/', async (req, res) => {
         .select('department')
         .eq('id', req.user.id)
         .single();
-      if (adminUser) resolvedDepartment = adminUser.department;
+      if (!adminUser) {
+        return res.status(401).json({ message: 'Session expired. Please log out and log in again.' });
+      }
+      if (adminUser.department) resolvedDepartment = adminUser.department;
     }
 
     const { data: existingUser, error: checkError } = await supabase
@@ -195,6 +201,14 @@ router.post('/', async (req, res) => {
       .single();
 
     if (error) {
+      // 23503 on created_by = stale admin session (creator row gone);
+      // surface it as session-expired instead of a raw FK error.
+      if (error.code === '23503' && /created_by/i.test(error.message)) {
+        return res.status(401).json({ message: 'Session expired. Please log out and log in again.' });
+      }
+      if (error.code === '23503') {
+        return res.status(400).json({ message: 'Invalid reference (course or creator). Please refresh and try again.' });
+      }
       return res.status(500).json({ error: error.message });
     }
 
