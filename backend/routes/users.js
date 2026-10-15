@@ -216,7 +216,7 @@ router.post('/', async (req, res) => {
     await supabase.from('activity_log').insert([{
       user_name: actingUser,
       action: 'User Created',
-      details: `Created ${system_role} "${resolvedFullName}" (${generatedUsername})`,
+      details: `A new ${system_role} account for "${resolvedFullName}" was created with the username "${generatedUsername}".`,
       department: req.user.department || null
     }]);
 
@@ -230,13 +230,13 @@ router.post('/', async (req, res) => {
 // PATCH /api/users/:id — update user
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
-  const { full_name, course_id, department, system_role, username, password } = req.body;
+  const { full_name, first_name, last_name, course_id, department, system_role, username, password } = req.body;
   const { role: requesterRole } = req.user;
 
   try {
     const { data: targetUser } = await supabase
       .from('staff_users')
-      .select('system_role, created_by, department, staff_id, last_name, full_name, username, course_id')
+      .select('system_role, created_by, department, staff_id, first_name, last_name, full_name, username, course_id')
       .eq('id', id)
       .single();
 
@@ -307,24 +307,31 @@ router.patch('/:id', async (req, res) => {
     }
 
     // Username always follows last name + staff ID — never edited directly.
-    // Recalculate when the ID changes, or when the name changes on a record
-    // that already has an ID.
+    // Only the LAST name drives the username, so editing the first name
+    // (which may be a double name like "Mary Jane") never changes it.
+    // Recalculate only when the last name or the staff ID actually changes.
     {
       const clearingStaff = req.body.staff_id !== undefined && String(req.body.staff_id || '').trim() === '';
       const staffChanged = req.body.staff_id !== undefined && !clearingStaff;
-      const nameChanged = !clearingStaff && (full_name !== undefined || req.body.last_name !== undefined);
       const effectiveStaff = staffChanged
         ? normalizeStaffId(req.body.staff_id)
         : (targetUser.staff_id || '');
-      const effectiveLast = req.body.last_name !== undefined
-        ? req.body.last_name
+      const effectiveLast = last_name !== undefined
+        ? last_name
         : full_name !== undefined
           ? (lastNameFromFullName(full_name) || targetUser.last_name)
           : targetUser.last_name;
+      const lastChanged = last_name !== undefined
+        && normalizeLastName(last_name) !== normalizeLastName(targetUser.last_name || '');
+      // Legacy path: full_name sent without an explicit last_name (old
+      // clients). Only treat as a last-name change when the parsed last
+      // name actually differs, so first-name-only edits keep the username.
+      const parsedLastChanged = last_name === undefined && full_name !== undefined
+        && normalizeLastName(lastNameFromFullName(full_name) || '') !== normalizeLastName(targetUser.last_name || '');
       if (staffChanged && !effectiveLast) {
         return res.status(400).json({ message: 'Last name is required to generate the username.' });
       }
-      if ((staffChanged || nameChanged) && effectiveStaff && effectiveLast) {
+      if ((staffChanged || lastChanged || parsedLastChanged) && effectiveStaff && effectiveLast) {
         const derivedUsername = usernameFromLastNameAndId(effectiveLast, effectiveStaff);
         if (derivedUsername) {
           const { data: existingUsername } = await supabase
@@ -342,6 +349,15 @@ router.patch('/:id', async (req, res) => {
     }
 
     if (full_name !== undefined) updates.full_name = full_name;
+    if (first_name !== undefined) updates.first_name = first_name;
+    if (last_name !== undefined) updates.last_name = last_name;
+    // Keep full_name consistent when first/last are sent without it.
+    if (full_name === undefined && (first_name !== undefined || last_name !== undefined)) {
+      const effFirst = first_name !== undefined ? String(first_name).trim() : String(targetUser.first_name || '').trim();
+      const effLast = last_name !== undefined ? String(last_name).trim() : String(targetUser.last_name || '').trim();
+      const combined = `${effFirst} ${effLast}`.trim();
+      if (combined) updates.full_name = combined;
+    }
     if (course_id !== undefined) updates.course_id = course_id;
     if (department !== undefined) updates.department = department;
     if (password !== undefined && password.trim()) {
@@ -397,7 +413,7 @@ router.patch('/:id', async (req, res) => {
     // Only log when something actually changed — identical resubmits
     // stay invisible in Recent Activities and the Audit Trail.
     if (changes.length > 0) {
-      const details = `Updated ${roleWord} "${updatedUser.full_name}" — changed: ${changes.join(', ')}`;
+      const details = `The ${roleWord} account "${updatedUser.full_name}" was updated. Changes made: ${changes.join(', ')}.`;
       await supabase.from('activity_log').insert([{
         user_name: actingUser,
         action: 'User Updated',
@@ -442,6 +458,27 @@ router.delete('/:id', async (req, res) => {
       return res.status(403).json({ message: 'Teachers cannot delete users.' });
     }
 
+    // Allow deleting an admin even when teacher accounts (or sections /
+    // subjects / assignments) still reference it via created_by. Detach
+    // those creator links first so the FK (NO ACTION) doesn't block the
+    // delete. Teacher accounts themselves are kept — only the creator
+    // reference is cleared.
+    const detachTables = ['staff_users', 'sections', 'subjects', 'teacher_assignments'];
+    for (const table of detachTables) {
+      const { error: detachError } = await supabase
+        .from(table)
+        .update({ created_by: null })
+        .eq('created_by', id);
+      // Ignore "table/column missing" errors so this stays robust across
+      // schema variants; fail only on real DB errors.
+      if (detachError && detachError.code !== 'PGRST205' && detachError.code !== '42703') {
+        // If the table doesn't exist in this install, Supabase returns
+        // PGRST205 — safe to continue. Otherwise log and continue anyway;
+        // the final delete will surface any true blocker.
+        console.warn(`Detach created_by on ${table} failed:`, detachError.message);
+      }
+    }
+
     const { error } = await supabase
       .from('staff_users')
       .delete()
@@ -455,7 +492,7 @@ router.delete('/:id', async (req, res) => {
     await supabase.from('activity_log').insert([{
       user_name: actingUser,
       action: 'User Deleted',
-      details: `Deleted user "${userToDelete.full_name}" (${userToDelete.system_role})`,
+      details: `The ${userToDelete.system_role} account "${userToDelete.full_name}" was deleted.`,
       department: req.user.department || null
     }]);
 

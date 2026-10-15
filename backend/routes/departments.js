@@ -43,7 +43,7 @@ router.post('/', authorizeRole('superadmin'), async (req, res) => {
     await supabase.from('activity_log').insert([{
       user_name: req.user.username || 'System',
       action: 'Department Created',
-      details: `Created department "${data.name}"${abbrSuffix}`,
+      details: `The department "${data.name}"${abbrSuffix} was created.`,
       department: req.user.department || null
     }]);
     res.status(201).json(data);
@@ -76,6 +76,16 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
       .select()
       .single();
     if (error) return res.status(500).json({ error: error.message });
+    // staff_users.department is a plain name snapshot (no FK), so a rename
+    // must cascade manually — otherwise admin/teacher accounts keep showing
+    // the old department name.
+    if (oldDept && oldDept.name !== data.name) {
+      const { error: cascadeError } = await supabase
+        .from('staff_users')
+        .update({ department: data.name })
+        .eq('department', oldDept.name);
+      if (cascadeError) return res.status(500).json({ error: cascadeError.message });
+    }
     const changes = [];
     if (oldDept && oldDept.name !== data.name) {
       changes.push(`name ("${oldDept.name}" → "${data.name}")`);
@@ -88,7 +98,7 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
       await supabase.from('activity_log').insert([{
         user_name: req.user.username || 'System',
         action: 'Department Updated',
-        details: `Updated department "${data.name}" — changed: ${changes.join(', ')}`,
+        details: `The department "${data.name}" was updated. Changes made: ${changes.join(', ')}.`,
         department: req.user.department || null
       }]);
     }
@@ -135,7 +145,7 @@ router.delete('/:id', authorizeRole('superadmin'), async (req, res) => {
     await supabase.from('activity_log').insert([{
       user_name: req.user.username || 'System',
       action: 'Department Deleted',
-      details: `Deleted department "${dept.name}"${abbrSuffix}`,
+      details: `The department "${dept.name}"${abbrSuffix} was deleted.`,
       department: req.user.department || null
     }]);
     res.json({ message: 'Department deleted' });

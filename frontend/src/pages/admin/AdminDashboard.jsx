@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { BookOpen, Activity, Clock, CheckCircle, Trash2, RefreshCw, UsersRound, GraduationCap } from 'lucide-react';
+import { BookOpen, Activity, Clock, CheckCircle, Trash2, RefreshCw, UsersRound, GraduationCap, UserRoundCheck, UserRoundX } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
+import { splitUpdateDescription, isSentenceDescription } from '../../utils/auditText';
 import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../components/common/Skeleton';
 
 const AdminDashboard = () => {
@@ -202,10 +203,18 @@ const AdminDashboard = () => {
                 const timeAgo = mins < 1 ? 'Just now' : mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`;
                 const isCreate = log.action.toLowerCase().includes('created');
                 const isDelete = log.action.toLowerCase().includes('deleted');
+                const isFailed = log.action.toLowerCase().includes('failed login');
+                const isSuccess = log.action.toLowerCase().includes('successful login');
                 const isUpdate = log.action.toLowerCase().includes('updated');
-                const Icon = isCreate ? CheckCircle : isDelete ? Trash2 : isUpdate ? RefreshCw : Activity;
-                const iconColor = isCreate ? '#22c55e' : isDelete ? '#ef4444' : isUpdate ? '#142a3f' : '#142a3f';
-                const bg = isCreate ? '#f0fdf4' : isDelete ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
+                // The "You …" rewrite only reads correctly on the legacy
+                // verb-first format — sentence-style descriptions stand alone.
+                const actorText = isOwn && !isSentenceDescription(log.details)
+                  ? `You ${String(log.details).charAt(0).toLowerCase() + String(log.details).slice(1)}`
+                  : log.details;
+                const split = isUpdate ? splitUpdateDescription(actorText) : null;
+                const Icon = isCreate ? CheckCircle : isDelete ? Trash2 : isFailed ? UserRoundX : isSuccess ? UserRoundCheck : isUpdate ? RefreshCw : Activity;
+                const iconColor = isCreate || isSuccess ? '#22c55e' : isDelete || isFailed ? '#ef4444' : isUpdate ? '#142a3f' : '#142a3f';
+                const bg = isCreate || isSuccess ? '#f0fdf4' : isDelete || isFailed ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
 
                 return (
                   <div key={log.id} className="flex gap-3 p-3 rounded-lg border border-gray-50 card-hover shadow-sm hover:shadow-md transition-all duration-100">
@@ -215,7 +224,17 @@ const AdminDashboard = () => {
                         <span className="font-semibold text-gray-800 text-xs sm:text-sm">{log.action}</span>
                         <span className="flex items-center gap-1 text-[10px] text-gray-900 whitespace-nowrap"><Clock size={10} /> {timeAgo}</span>
                       </div>
-                      <p className="text-[12px] text-gray-700 truncate" title={isOwn ? `You ${log.details.charAt(0).toLowerCase() + log.details.slice(1)}` : log.details}>{isOwn ? `You ${log.details.charAt(0).toLowerCase() + log.details.slice(1)}` : log.details}</p>
+                      <p className="text-[12px] text-gray-700 mb-1 break-words whitespace-normal" title={actorText}>
+                        {split ? (
+                          <>
+                            {split.head}
+                            <br />
+                            <span>{split.label} {split.tail}</span>
+                          </>
+                        ) : (
+                          <span className="block truncate">{actorText}</span>
+                        )}
+                      </p>
                     </div>
                   </div>
                 );

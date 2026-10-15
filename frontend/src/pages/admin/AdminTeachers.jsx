@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import CreateAdminTeacher from './CreateAdminTeacher';
 import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
-import { displayStaffId, formatStaffId, isValidStaffId, lastNameFromFullName, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
+import { displayStaffId, formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
 import { SkeletonList } from '../../components/common/Skeleton';
 
 const USERS_PER_PAGE = 10;
@@ -29,7 +29,7 @@ const AdminTeachers = () => {
   const [page, setPage] = useState(1);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [teacherToEdit, setTeacherToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({ full_name: '', staff_id: '', username: '', password: '' });
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', staff_id: '', username: '', password: '' });
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
@@ -38,7 +38,7 @@ const AdminTeachers = () => {
   const [menuPos, setMenuPos] = useState(null);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [teacherToAssign, setTeacherToAssign] = useState(null);
-  const [assignYear, setAssignYear] = useState('1st');
+  const [assignYear, setAssignYear] = useState('');
   const [sectionsList, setSectionsList] = useState([]);
   const [subjectsList, setSubjectsList] = useState([]);
   const [coursesList, setCoursesList] = useState([]);
@@ -121,6 +121,8 @@ const AdminTeachers = () => {
         const mapped = data.map((u) => ({
           rawId: u.id,
           name: u.full_name,
+          firstName: u.first_name || '',
+          lastName: u.last_name || '',
           staffId: u.staff_id || '',
           username: u.username || 'N/A',
           dept: u.department || 'N/A',
@@ -150,8 +152,16 @@ const AdminTeachers = () => {
 
   const openEditModal = (u) => {
     setTeacherToEdit(u);
+    let firstName = u.firstName || '';
+    let lastName = u.lastName || '';
+    if (!firstName && !lastName && u.name) {
+      const parts = String(u.name).trim().split(/\s+/).filter(Boolean);
+      firstName = parts.length > 1 ? parts[0] : (parts[0] || '');
+      lastName = parts.length > 1 ? parts.slice(1).join(' ') : '';
+    }
     setEditForm({
-      full_name: u.name,
+      first_name: firstName,
+      last_name: lastName,
       staff_id: formatStaffId(u.staffId || ''),
       username: u.username === 'N/A' ? '' : u.username,
       password: ''
@@ -167,17 +177,23 @@ const AdminTeachers = () => {
       setEditError('ID must contain exactly 9 digits (format 00000-0000).');
       return;
     }
+    const firstName = editForm.first_name.trim();
+    const lastName = editForm.last_name.trim();
+    if (!firstName || !lastName) {
+      setEditError('First name and last name are required.');
+      return;
+    }
     setEditLoading(true);
     setEditError('');
     try {
-      const body = { full_name: editForm.full_name, staff_id: staffIdToDigits(editForm.staff_id) };
+      const body = { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`, staff_id: staffIdToDigits(editForm.staff_id) };
       const res = await api(`http://localhost:5000/api/users/${teacherToEdit.rawId}`, {
         method: 'PATCH',
         body: JSON.stringify(editForm.password.trim() ? { ...body, password: editForm.password } : body)
       });
       if (res.ok) {
         const updated = await res.json();
-        setTeachers(prev => prev.map(u => u.rawId !== teacherToEdit.rawId ? u : { ...u, name: updated.full_name, staffId: updated.staff_id || '', username: updated.username || u.username }));
+        setTeachers(prev => prev.map(u => u.rawId !== teacherToEdit.rawId ? u : { ...u, name: updated.full_name, firstName: updated.first_name || '', lastName: updated.last_name || '', staffId: updated.staff_id || '', username: updated.username || u.username }));
         setEditModalOpen(false);
         setTeacherToEdit(null);
         setEditError('');
@@ -221,7 +237,7 @@ const AdminTeachers = () => {
 
   const openAssignModal = async (teacher) => {
     setTeacherToAssign(teacher);
-    setAssignYear('1st');
+    setAssignYear('');
     setAssignCourse('');
     setAssignSection('');
     setAssignSubject('');
@@ -255,7 +271,7 @@ const AdminTeachers = () => {
   const filteredSubjects = subjectsList.filter((s) => s.year_level === assignYear && (!assignCourse || s.course_id === assignCourse || !s.course_id));
 
   const handleAssign = async () => {
-    if (!assignSection || !assignSubject || !teacherToAssign || !currentTerm) return;
+    if (!assignSection || !assignSubject || !assignYear || !teacherToAssign || !currentTerm) return;
     setAssignLoading(true);
     setAssignError('');
     try {
@@ -271,6 +287,9 @@ const AdminTeachers = () => {
       });
       if (res.ok) {
         setAssignSuccess(true);
+        // Silently refresh teachers + assignments so the Assigned Course
+        // column updates immediately without a page refresh.
+        fetchTeachers();
       } else {
         const data = await res.json();
         setAssignError(data.message || 'Failed to assign');
@@ -354,9 +373,9 @@ const AdminTeachers = () => {
         <>
           <div className="fixed inset-0 z-40" onClick={closeMenu} />
           <div className="fixed z-50 w-44 rounded-xl border border-gray-100 bg-white shadow-xl py-1 overflow-hidden" style={{ top: menuPos.top, left: menuPos.left }}>
-            <button onClick={() => { if (isArchiveMode) return; closeMenu(); openAssignModal(menuTeacher); }} disabled={isArchiveMode} className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold transition-colors ${isArchiveMode ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}`} title={isArchiveMode ? 'Cannot assign while viewing archives' : 'Assign'}><UserCheck size={13} className={isArchiveMode ? 'text-gray-300' : 'text-[#0c1925]'} /> Assign</button>
-            <button onClick={() => { closeMenu(); openViewModal(menuTeacher); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors"><Eye size={13} className="text-blue-600" /> View Assigned</button>
-            <button onClick={() => { closeMenu(); openEditModal(menuTeacher); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors"><Pencil size={13} className="text-blue-500" /> Edit</button>
+            <button onClick={() => { if (isArchiveMode) return; closeMenu(); openAssignModal(menuTeacher); }} disabled={isArchiveMode} className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold transition-colors ${isArchiveMode ? 'text-gray-600 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'}`} title={isArchiveMode ? 'Cannot assign while viewing archives' : 'Assign'}><UserCheck size={13} className={isArchiveMode ? 'text-gray-300' : 'text-[#0c1925]'} /> Assign</button>
+            <button onClick={() => { closeMenu(); openViewModal(menuTeacher); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-amber-50 hover:text-amber-600 transition-colors"><Eye size={13} className="text-amber-600" /> View Assigned</button>
+            <button onClick={() => { closeMenu(); openEditModal(menuTeacher); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"><Pencil size={13} className="text-blue-600" /> Edit</button>
             <button onClick={() => { closeMenu(); setTeacherToDelete(menuTeacher); setConfirmText(''); setDeleteModalOpen(true); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 size={13} className="text-red-500" /> Delete</button>
           </div>
         </>,
@@ -449,11 +468,14 @@ const AdminTeachers = () => {
           <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Teacher</h3>
             <div className="space-y-4">
-              <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Name</label><input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
               <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">ID</label><input type="text" value={editForm.staff_id} onChange={(e) => setEditForm({ ...editForm, staff_id: formatStaffId(e.target.value) })} placeholder="00000-0000" maxLength={10} inputMode="numeric" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm font-mono" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">First Name</label><input type="text" value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} placeholder="First name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
+                <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Last Name</label><input type="text" value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} placeholder="Last name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
+              </div>
               <div>
                 <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Username (auto-generated)</label>
-                <input type="text" value={usernameFromLastNameAndId(lastNameFromFullName(editForm.full_name), editForm.staff_id) || editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-900 cursor-not-allowed font-mono" />
+                <input type="text" value={usernameFromLastNameAndId(editForm.last_name, editForm.staff_id) || editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-900 cursor-not-allowed font-mono" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">New Password (leave blank to keep current)</label>
@@ -487,8 +509,8 @@ const AdminTeachers = () => {
               <div className="text-center py-8">
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 mb-4"><CheckCircle size={28} className="text-emerald-600" /></div>
                 <h4 className="text-base font-bold text-gray-900 mb-1">Successfully Assigned!</h4>
-                <p className="text-xs text-gray-400">{teacherToAssign?.name} has been assigned.</p>
-                <button onClick={() => { setAssignModalOpen(false); setTeacherToAssign(null); }} className="mt-6 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#f5a623' }}>Done</button>
+                <p className="text-xs text-gray-900">{teacherToAssign?.name} has been assigned.</p>
+                <button onClick={() => { setAssignModalOpen(false); setTeacherToAssign(null); }} className="mt-6 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#142a3f' }}>Done</button>
               </div>
             ) : (
               <>
@@ -503,41 +525,46 @@ const AdminTeachers = () => {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider mb-1.5"><Calendar size={14} /> Year Level</label>
-                    <select
-                      value={assignYear}
-                      onChange={(e) => { setAssignYear(e.target.value); setAssignSection(''); }}
-                      className="w-full px-3 py-2 border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-gray-100  text-sm"
-                    >
-                      {yearLevels.map((y) => <option key={y} value={y}>{yearLabels[y]}</option>)}
-                    </select>
-                  </div>
-
-                  <div>
                     <label className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider mb-1.5"><BookOpen size={14} /> Course</label>
                     <select
                       value={assignCourse}
                       onChange={(e) => { setAssignCourse(e.target.value); setAssignSection(''); setAssignSubject(''); }}
                       className="w-full px-3 py-2 border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-gray-100  text-sm"
                     >
-                      <option value="">-- Select Course --</option>
+                      <option value="" disabled>-- Select Course --</option>
                       {coursesList.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.abbreviation})</option>)}
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider mb-1.5"><Calendar size={14} /> Year Level</label>
+                    <select
+                      value={assignYear}
+                      onChange={(e) => { setAssignYear(e.target.value); setAssignSection(''); setAssignSubject(''); }}
+                      disabled={!assignCourse}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-900'}`}
+                    >
+                      <option value="" disabled>-- Select Year Level --</option>
+                      {yearLevels.map((y) => <option key={y} value={y}>{yearLabels[y]}</option>)}
+                    </select>
+                    {!assignCourse && (
+                      <p className="text-[10px] text-gray-900 mt-1">Select a course first.</p>
+                    )}
                   </div>
 
                   <div>
                     <label className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider mb-1.5"><GraduationCap size={14} /> Section</label>
                     <select
                       value={assignSection}
-                      onChange={(e) => setAssignSection(e.target.value)}
-                      disabled={!assignCourse}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100'}`}
+                      onChange={(e) => { setAssignSection(e.target.value); setAssignSubject(''); }}
+                      disabled={!assignCourse || !assignYear}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] text-sm ${!assignCourse || !assignYear ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100'}`}
                     >
-                      <option value="">-- Select Section --</option>
+                      <option value="" disabled>-- Select Section --</option>
                       {filteredSections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
-                    {!assignCourse ? (
-                      <p className="text-[10px] text-gray-900 mt-1">Select a course first.</p>
+                    {!assignCourse || !assignYear ? (
+                      <p className="text-[10px] text-gray-900 mt-1">Select a course and year level first.</p>
                     ) : filteredSections.length === 0 ? (
                       <p className="text-[10px] text-gray-500 mt-1">No sections found for {yearLabels[assignYear]} and selected course.</p>
                     ) : null}
@@ -548,14 +575,16 @@ const AdminTeachers = () => {
                     <select
                       value={assignSubject}
                       onChange={(e) => setAssignSubject(e.target.value)}
-                      disabled={!assignCourse}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100'}`}
+                      disabled={!assignCourse || !assignYear || !assignSection}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] text-sm ${!assignCourse || !assignYear || !assignSection ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100'}`}
                     >
-                      <option value="">-- Select Subject --</option>
+                      <option value="" disabled>-- Select Subject --</option>
                       {filteredSubjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
-                    {!assignCourse ? (
-                      <p className="text-[10px] text-gray-900 mt-1">Select a course first.</p>
+                    {!assignCourse || !assignYear ? (
+                      <p className="text-[10px] text-gray-900 mt-1">Select a course and year level first.</p>
+                    ) : !assignSection ? (
+                      <p className="text-[10px] text-gray-900 mt-1">Select a section first.</p>
                     ) : filteredSubjects.length === 0 ? (
                       <p className="text-[10px] text-gray-500 mt-1">No subjects found for {yearLabels[assignYear]} and selected course.</p>
                     ) : null}
@@ -568,7 +597,7 @@ const AdminTeachers = () => {
                       <strong className="text-gray-700">{sectionsList.find((s) => s.id === assignSection)?.name || '___'}</strong>
                       {' '}—{' '}
                       <strong className="text-gray-700">{subjectsList.find((s) => s.id === assignSubject)?.name || '___'}</strong>
-                      {' '}({yearLabels[assignYear]}) — {currentTerm?.school_year} {currentTerm?.semester}.
+                      {' '}({yearLabels[assignYear] || '___'}) — {currentTerm?.school_year} {currentTerm?.semester}.
                     </p>
                   </div>
                 </div>
@@ -595,12 +624,12 @@ const AdminTeachers = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Teacher</h3>
-            <p className="text-sm text-gray-500 mb-4">Are you sure you want to delete <strong>{teacherToDelete?.name}</strong>?</p>
-            <div className="mb-4"><label className="block text-xs font-bold text-gray-700 mb-1">Type <strong>Confirm</strong> to delete</label>
+            <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{teacherToDelete?.name}</strong>?</p>
+            <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
               <input type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
             </div>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setDeleteModalOpen(false); setTeacherToDelete(null); setConfirmText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deleting}>Cancel</button>
+              <button onClick={() => { setDeleteModalOpen(false); setTeacherToDelete(null); setConfirmText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deleting}>Cancel</button>
               <button onClick={confirmDelete} disabled={confirmText !== 'Confirm' || deleting} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmText === 'Confirm' && !deleting ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deleting ? 'Deleting...' : 'Delete'}</button>
             </div>
           </div>
@@ -611,15 +640,15 @@ const AdminTeachers = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Remove Assignment</h3>
-            <p className="text-sm text-gray-500 mb-1">Remove <strong>{assignmentToRemove?.subjects?.name}</strong> from <strong>{assignmentToRemove?.sections?.name}</strong>?</p>
+            <p className="text-sm text-gray-900 mb-1">Remove <strong>{assignmentToRemove?.subjects?.name}</strong> from <strong>{assignmentToRemove?.sections?.name}</strong>?</p>
             <p className="text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
               This permanently deletes all grading components, scores, and attendance records for this assignment. This action cannot be undone.
             </p>
-            <div className="mb-4"><label className="block text-xs font-bold text-gray-700 mb-1">Type <strong>Confirm</strong> to remove</label>
+            <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to remove</label>
               <input type="text" value={confirmAssignText} onChange={(e) => setConfirmAssignText(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
             </div>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setRemoveAssignOpen(false); setAssignmentToRemove(null); setConfirmAssignText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={removingAssignment}>Cancel</button>
+              <button onClick={() => { setRemoveAssignOpen(false); setAssignmentToRemove(null); setConfirmAssignText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={removingAssignment}>Cancel</button>
               <button onClick={async () => { if (!assignmentToRemove) return; setRemovingAssignment(true); try { const res = await api(`http://localhost:5000/api/assignments/${assignmentToRemove.id}`, { method: 'DELETE' }); if (res.ok) setTeacherAssignments((prev) => prev.filter((a) => a.id !== assignmentToRemove.id)); } catch (err) { console.error(err); } finally { setRemovingAssignment(false); setRemoveAssignOpen(false); setAssignmentToRemove(null); setConfirmAssignText(''); } }} disabled={confirmAssignText !== 'Confirm' || removingAssignment} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmAssignText === 'Confirm' && !removingAssignment ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{removingAssignment ? 'Removing...' : 'Remove'}</button>
             </div>
           </div>

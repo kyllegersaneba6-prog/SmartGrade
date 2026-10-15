@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, UserPlus, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, UserPlus, CheckCircle, Copy, Check } from 'lucide-react';
 import api from '../../utils/api';
 import { formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
 
@@ -19,6 +19,23 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [createdUsername, setCreatedUsername] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyUsername = async () => {
+    if (!createdUsername) return;
+    try {
+      await navigator.clipboard.writeText(createdUsername);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = createdUsername;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch { /* clipboard unavailable */ }
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -103,7 +120,18 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Assigned Username</label>
-            <input type="text" value={createdUsername} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-800 font-mono" />
+            <div className="flex items-center gap-2">
+              <input type="text" value={createdUsername} readOnly className="flex-1 min-w-0 px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-800 font-mono" />
+              <button
+                type="button"
+                onClick={handleCopyUsername}
+                title={copied ? 'Copied!' : 'Copy username'}
+                className={`shrink-0 p-2 rounded-lg border transition-colors ${copied ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-gray-100 border-[#e5e0d5] text-gray-500 hover:text-gray-800 hover:bg-gray-200'}`}
+              >
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+              </button>
+            </div>
+            {copied && <p className="text-[11px] font-semibold text-emerald-600 mt-1">Username copied to clipboard</p>}
           </div>
           <div className="flex items-center justify-end gap-3 mt-6">
             <button type="button" onClick={handleClose} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md" style={{ background: '#142a3f' }}>Done</button>

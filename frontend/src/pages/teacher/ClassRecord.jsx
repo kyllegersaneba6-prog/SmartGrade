@@ -492,11 +492,16 @@ const ClassRecord = () => {
     : (String(c?.name || '').trim() !== '' && parseFloat(c?.weight) > 0);
   const tableComponents = useMemo(() => components.filter(isTableReady), [components]);
 
+  // Score-ready = activity has a name AND a max score above zero. Score cells
+  // stay locked until both are set, so blank activities can't collect scores.
+  const isActivityReady = (act) => String(act?.name || '').trim() !== '' && parseFloat(act?.max_score) > 0;
+  const hasUnreadyActivity = tableComponents.some((comp) => !comp.is_attendance && (comp.activities || []).some((a) => !isActivityReady(a)));
+
   const visibleActivityIds = useMemo(() => {
     const ids = [];
     components.forEach(comp => {
       if (!comp.is_attendance && comp.activities) {
-        comp.activities.forEach(act => ids.push(act.id));
+        comp.activities.forEach(act => { if (isActivityReady(act)) ids.push(act.id); });
       }
     });
     return ids;
@@ -1178,10 +1183,16 @@ const ClassRecord = () => {
       )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-hidden">
-        {components.length > 0 && totalWeight === 100 && (
+        {components.length > 0 && totalWeight === 100 && !hasUnreadyActivity && (
           <div className="flex items-center gap-2 px-5 py-2.5 bg-green-50 border-b border-green-200 text-green-700 text-xs font-bold">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
             <span>Component weights total 100%. Grade computation is balanced — you can now enter scores.</span>
+          </div>
+        )}
+        {components.length > 0 && totalWeight === 100 && hasUnreadyActivity && (
+          <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs font-bold">
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+            <span>Name each activity and set its max score before entering scores.</span>
           </div>
         )}
         {components.length > 0 && totalWeight !== 100 && (
@@ -1280,19 +1291,9 @@ const ClassRecord = () => {
                     }
                     return (comp.activities || []).map((act) => (
                       <td key={act.id} className="p-1 border-r border-b border-gray-200 bg-gray-50/20 relative z-0">
-                        <input type="number" step="any" value={act.max_score || 0}
-                          disabled={totalWeight !== 100 || isReadOnly}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            setComponents(prev => prev.map(c =>
-                              c.id === comp.id ? {
-                                ...c,
-                                activities: c.activities.map(a => a.id === act.id ? { ...a, max_score: val } : a)
-                              } : c
-                            ));
-                          }}
-                          onBlur={() => updateActivity(act.id, { max_score: act.max_score })}
-                          className="w-full text-center text-xs font-black text-sidebar p-1 border border-transparent rounded hover:border-gray-300 focus:border-gold focus:outline-none bg-transparent [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-40 disabled:cursor-not-allowed" />
+                        <div className="w-full text-center text-xs font-black text-sidebar p-1" title="Set the max score in the component setup above">
+                          {act.max_score || 0}
+                        </div>
                       </td>
                     )).concat(
                       <td key={`${comp.id}-total`} className="px-2 py-2 border-r border-b border-gray-200 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{maxTotal}</td>,
@@ -1352,12 +1353,14 @@ const ClassRecord = () => {
                             const val = scores[act.id]?.[student.id] ?? '';
                             const maxVal = act.max_score || 100;
                             const inputVal = val !== null && val !== undefined ? val : '';
+                            const actLocked = !isActivityReady(act);
                             return (
                               <td key={act.id} className={`p-0.5 border-r border-b border-gray-200 ${isSelected ? 'bg-green-200' : 'bg-[#f3f4f6]'}`}>
                                 <div className="relative">
                                   <input type="number" step="any" placeholder="0" value={inputVal === '' ? '' : inputVal}
                                     ref={el => { if (el) inputRefs.current[`${student.id}:${act.id}`] = el; }}
-                                    disabled={totalWeight !== 100 || isReadOnly}
+                                    disabled={totalWeight !== 100 || isReadOnly || actLocked}
+                                    title={actLocked && !isReadOnly && totalWeight === 100 ? 'Set the activity name and max score first' : undefined}
                                     onChange={(e) => handleScoreChange(act.id, student.id, e.target.value)}
                                     onKeyDown={(e) => handleKeyDown(e, student.id, act.id, index, paginatedStudents, visibleActivityIds)}
                                     className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-40 disabled:cursor-not-allowed ${clampWarnings[`${act.id}-${student.id}`] ? 'border-amber-400 bg-amber-50' : 'border-transparent'}`}
@@ -1374,7 +1377,7 @@ const ClassRecord = () => {
                             <td key={`${comp.id}-wt-${student.id}`} className={`px-2 py-2 border-r-4 border-b border-gray-200 text-center font-bold text-sidebar text-xs ${isSelected ? 'bg-green-200' : 'bg-white'}`}>{componentWeighted.toFixed(2)}</td>
                           );
                         })}
-                        <td className={`px-2 py-2 text-center font-extrabold text-sm border-b border-gray-200 bg-white ${isFinalFail ? 'text-red-700' : 'text-green-700'}`}>
+                        <td className={`px-2 py-2 text-center font-extrabold text-sm border-b border-gray-200 ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'} ${isFinalFail ? 'text-red-700' : 'text-green-700'}`}>
                           {finalGrade.toFixed(2)}
                         </td>
                       </tr>

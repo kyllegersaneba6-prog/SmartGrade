@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS public.staff_users (
   system_role TEXT NOT NULL CHECK (system_role IN ('superadmin', 'admin', 'teacher')),
   staff_id TEXT CHECK (staff_id IS NULL OR staff_id ~ '^[0-9]{9}$'),
   password TEXT NOT NULL,
-  created_by UUID REFERENCES public.staff_users(id),
+  created_by UUID REFERENCES public.staff_users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS public.sections (
   year_level TEXT NOT NULL CHECK (year_level IN ('1st', '2nd', '3rd', '4th')),
   school_year TEXT NOT NULL DEFAULT '2025-2026',
   semester TEXT NOT NULL DEFAULT '1st Semester' CHECK (semester IN ('1st Semester', '2nd Semester', 'Summer')),
-  created_by UUID REFERENCES public.staff_users(id),
+  created_by UUID REFERENCES public.staff_users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(course_id, name, school_year)
 );
@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS public.subjects (
   school_year TEXT,
   semester TEXT CHECK (semester IN ('1st Semester', '2nd Semester', 'Summer') OR semester IS NULL),
   course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
-  created_by UUID REFERENCES public.staff_users(id),
+  created_by UUID REFERENCES public.staff_users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS public.teacher_assignments (
   subject_id UUID NOT NULL REFERENCES public.subjects(id) ON DELETE CASCADE,
   school_year TEXT NOT NULL DEFAULT '2025-2026',
   semester TEXT NOT NULL DEFAULT '1st Semester' CHECK (semester IN ('1st Semester', '2nd Semester', 'Summer')),
-  created_by UUID REFERENCES public.staff_users(id),
+  created_by UUID REFERENCES public.staff_users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(teacher_id, section_id, subject_id, school_year, semester)
 );

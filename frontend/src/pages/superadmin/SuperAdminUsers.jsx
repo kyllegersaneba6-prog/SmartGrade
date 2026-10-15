@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Upload, Eye, EyeOf
 import * as XLSX from 'xlsx';
 import CreateSuperAdminUser from './CreateSuperAdminUser';
 import api from '../../utils/api';
-import { displayStaffId, formatStaffId, isValidStaffId, lastNameFromFullName, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
+import { displayStaffId, formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
 
 const USERS_PER_PAGE = 10;
 
@@ -15,10 +15,11 @@ const SuperAdminUsers = () => {
   const [userToDelete, setUserToDelete] = useState(null);
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const [userPage, setUserPage] = useState(1);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({ full_name: '', staff_id: '', department: '', department_id: '', username: '', password: '' });
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', staff_id: '', department: '', department_id: '', username: '', password: '' });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -84,6 +85,8 @@ const SuperAdminUsers = () => {
           id: `USR-${u.id.substring(0,4).toUpperCase()}`,
           rawId: u.id,
           name: u.full_name,
+          firstName: u.first_name || '',
+          lastName: u.last_name || '',
           staffId: u.staff_id || '',
           dept: u.department || 'N/A',
           username: u.username || 'N/A',
@@ -129,8 +132,19 @@ const SuperAdminUsers = () => {
     const deptName = u.dept === 'N/A' ? '' : u.dept;
     const dept = departments.find(d => d.name === deptName);
     const deptId = dept ? dept.id : '';
+    // Prefer stored first/last names so double first names
+    // (e.g. "Mary Jane Santos") never corrupt the username preview.
+    // Fallback splits full name only for legacy rows missing the split.
+    let firstName = u.firstName || '';
+    let lastName = u.lastName || '';
+    if (!firstName && !lastName && u.name) {
+      const parts = String(u.name).trim().split(/\s+/).filter(Boolean);
+      firstName = parts.length > 1 ? parts[0] : (parts[0] || '');
+      lastName = parts.length > 1 ? parts.slice(1).join(' ') : '';
+    }
     setEditForm({
-      full_name: u.name,
+      first_name: firstName,
+      last_name: lastName,
       staff_id: formatStaffId(u.staffId || ''),
       department: deptName,
       department_id: deptId,
@@ -157,7 +171,14 @@ const SuperAdminUsers = () => {
     setEditLoading(true);
     setEditError('');
     try {
-      const body = { full_name: editForm.full_name, staff_id: staffIdToDigits(editForm.staff_id), department: editForm.department };
+      const firstName = editForm.first_name.trim();
+      const lastName = editForm.last_name.trim();
+      if (!firstName || !lastName) {
+        setEditError('First name and last name are required.');
+        setEditLoading(false);
+        return;
+      }
+      const body = { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`, staff_id: staffIdToDigits(editForm.staff_id), department: editForm.department };
 
       const res = await api(`http://localhost:5000/api/users/${userToEdit.rawId}`, {
         method: 'PATCH',
@@ -165,7 +186,7 @@ const SuperAdminUsers = () => {
       });
       if (res.ok) {
         const updated = await res.json();
-        setUsersList(prev => prev.map(u => u.rawId !== userToEdit.rawId ? u : { ...u, name: updated.full_name, staffId: updated.staff_id || '', dept: updated.department || 'N/A', username: updated.username || u.username }));
+        setUsersList(prev => prev.map(u => u.rawId !== userToEdit.rawId ? u : { ...u, name: updated.full_name, firstName: updated.first_name || '', lastName: updated.last_name || '', staffId: updated.staff_id || '', dept: updated.department || 'N/A', username: updated.username || u.username }));
         setEditModalOpen(false);
         setUserToEdit(null);
         setEditError('');
@@ -180,11 +201,20 @@ const SuperAdminUsers = () => {
   const confirmDelete = async () => {
     if (confirmText !== 'Confirm' || !userToDelete) return;
     setDeleting(true);
+    setDeleteError('');
     try {
       const response = await api(`http://localhost:5000/api/users/${userToDelete.rawId}`, { method: 'DELETE' });
-      if (response.ok) setUsersList(usersList.filter(u => u.rawId !== userToDelete.rawId));
-    } catch (err) { console.error(err); }
-    finally { setDeleting(false); setDeleteModalOpen(false); setUserToDelete(null); setConfirmText(''); }
+      if (response.ok) {
+        setUsersList(usersList.filter(u => u.rawId !== userToDelete.rawId));
+        setDeleteModalOpen(false);
+        setUserToDelete(null);
+        setConfirmText('');
+      } else {
+        const data = await response.json().catch(() => ({}));
+        setDeleteError(data.message || data.error || 'Failed to delete admin. Please try again.');
+      }
+    } catch (err) { console.error(err); setDeleteError('Network error. Please try again.'); }
+    finally { setDeleting(false); }
   };
 
   const sortedUsers = usersList;
@@ -266,7 +296,7 @@ const SuperAdminUsers = () => {
           <div className="fixed inset-0 z-40" onClick={closeMenu} />
           <div className="fixed z-50 w-40 rounded-xl border border-gray-100 bg-white shadow-xl py-1 overflow-hidden" style={{ top: menuPos.top, left: menuPos.left }}>
             <button onClick={() => { closeMenu(); openEditModal(menuUser); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors"><Pencil size={13} className="text-blue-500" /> Edit</button>
-            <button onClick={() => { closeMenu(); setUserToDelete(menuUser); setConfirmText(''); setDeleteModalOpen(true); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 size={13} className="text-red-500" /> Delete</button>
+            <button onClick={() => { closeMenu(); setUserToDelete(menuUser); setConfirmText(''); setDeleteError(''); setDeleteModalOpen(true); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 size={13} className="text-red-500" /> Delete</button>
           </div>
         </>,
         document.body
@@ -277,11 +307,14 @@ const SuperAdminUsers = () => {
           <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Admin</h3>
             <div className="space-y-4">
-              <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Name</label><input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
               <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">ID</label><input type="text" value={editForm.staff_id} onChange={(e) => setEditForm({ ...editForm, staff_id: formatStaffId(e.target.value) })} placeholder="00000-0000" maxLength={10} inputMode="numeric" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm font-mono" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">First Name</label><input type="text" value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} placeholder="First name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
+                <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Last Name</label><input type="text" value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} placeholder="Last name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
+              </div>
               <div>
                 <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Username (auto-generated)</label>
-                <input type="text" value={usernameFromLastNameAndId(lastNameFromFullName(editForm.full_name), editForm.staff_id) || editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
+                <input type="text" value={usernameFromLastNameAndId(editForm.last_name, editForm.staff_id) || editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
               </div>
               <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Department</label>
                 <select value={editForm.department_id} onChange={(e) => { const dept = departments.find(d => d.id === e.target.value); setEditForm({ ...editForm, department_id: e.target.value, department: dept ? dept.name : '' }); setEditError(''); }} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm">
@@ -317,10 +350,11 @@ const SuperAdminUsers = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Admin</h3>
-            <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{userToDelete?.name}</strong>? This action cannot be undone.</p>
+            <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{userToDelete?.name}</strong>? Existing teacher accounts in this department will be kept — only the admin account is removed. This action cannot be undone.</p>
             <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
-              <input type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
+              <input type="text" value={confirmText} onChange={(e) => { setConfirmText(e.target.value); setDeleteError(''); }} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
             </div>
+            {deleteError && <p className="mb-4 text-sm font-semibold text-red-500">{deleteError}</p>}
             <div className="flex gap-3 justify-end">
               <button onClick={() => { setDeleteModalOpen(false); setUserToDelete(null); setConfirmText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deleting}>Cancel</button>
               <button onClick={confirmDelete} disabled={confirmText !== 'Confirm' || deleting} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmText === 'Confirm' && !deleting ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deleting ? 'Deleting...' : 'Delete'}</button>

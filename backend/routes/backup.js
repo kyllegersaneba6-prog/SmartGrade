@@ -43,7 +43,7 @@ router.post('/export', async (req, res) => {
     const file = await buildBackup(supabase, categories, password || null);
     const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, (m) => (m === 'T' ? '_' : ''));
     const filename = `backup_${stamp}.backup.sg`;
-    await audit(supabase, req, 'Backup Exported', `backupId=${file.manifest.backupId} categories=${categories.join(',')} records=${file.manifest.totalRecords} encrypted=${Boolean(password)}`);
+    await audit(supabase, req, 'Backup Exported', `A system backup with ID "${file.manifest.backupId}" was exported. It covers ${file.manifest.totalRecords} records across ${categories.join(', ')}. Encryption is ${password ? 'enabled' : 'disabled'}.`);
     res.json({ filename, file, summary: file.manifest });
   } catch (err) {
     console.error(err);
@@ -112,7 +112,7 @@ router.post('/restore', sizeGuard, async (req, res) => {
     else if (m === 'replace') outcome = await applyReplace(supabase, req, result.data, tables);
     else outcome = await applyFull(supabase, req, result.data);
 
-    await audit(supabase, req, 'Backup Restored', `backupId=${file.manifest.backupId} mode=${m} tables=${tables.join(',')}`);
+    await audit(supabase, req, 'Backup Restored', `A system backup with ID "${file.manifest.backupId}" was restored in "${m}" mode. Affected tables: ${tables.join(', ')}.`);
     res.json({ ok: true, mode: m, outcome, manifest: file.manifest });
   } catch (err) {
     console.error(err);

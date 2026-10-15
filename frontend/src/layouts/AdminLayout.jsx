@@ -3,12 +3,14 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { AdminProvider, useAdmin } from '../contexts/AdminContext';
 import AdminSidebar from '../components/admin/AdminSidebar';
 import NotificationDropdown from '../components/common/NotificationDropdown';
+import { useDeptLabel } from '../utils/deptLabel';
 import { Menu, X, Archive } from 'lucide-react';
 
 const AdminLayoutInner = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { currentTerm, isArchiveMode, setViewTerm } = useAdmin();
+  const deptLabel = useDeptLabel();
 
   const getTitle = () => {
     switch (location.pathname) {
@@ -31,7 +33,7 @@ const AdminLayoutInner = () => {
               <Menu size={22} />
             </button>
             <h3 className="text-xs sm:text-sm text-white truncate font-medium">{getTitle()}</h3>
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-gold/20 text-amber-400 whitespace-nowrap">{JSON.parse(localStorage.getItem('user') || '{}')?.department}</span>
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-gold/20 text-amber-400 whitespace-nowrap">{deptLabel}</span>
             {currentTerm && (
               <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap border ${
                 isArchiveMode ? 'bg-amber-500/20 text-amber-300 border-amber-400/30' : 'bg-amber-100 text-amber-700 border-amber-200'

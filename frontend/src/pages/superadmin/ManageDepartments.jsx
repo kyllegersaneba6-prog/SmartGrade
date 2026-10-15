@@ -141,6 +141,9 @@ const ManageDepartments = () => {
       const res = await api(`http://localhost:5000/api/departments/${editDept.id}`, { method: 'PATCH', body: JSON.stringify({ name: editDeptName.trim(), abbr: editDeptAbbreviation.trim() }) });
       if (res.ok) {
         await fetchDepartments();
+        // Admin/teacher accounts carry the department as a name snapshot —
+        // the backend cascades the rename, so refresh any user lists too.
+        window.dispatchEvent(new CustomEvent('app:reload'));
         setEditDeptOpen(false);
         setEditDept(null);
       } else {

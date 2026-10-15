@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Filter, Download, Share2, FileText, Table2, BookOpen, ChevronLeft, ChevronRight, Info, Check } from 'lucide-react';
+import { Filter, Download, Share2, FileText, Table2, BookOpen, ChevronLeft, ChevronRight, Info, Check, RefreshCw } from 'lucide-react';
 import api from '../../utils/api';
+import { splitUpdateDescription } from '../../utils/auditText';
 import { SkeletonTable } from '../../components/common/Skeleton';
 
 const outputFormats = [
@@ -16,12 +17,15 @@ const SecurityAudit = () => {
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState('ALL');
   const [filterOpen, setFilterOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const ACTION_FILTERS = [
     { value: 'ALL', label: 'ALL ACTIVITIES' },
     { value: 'CREATED', label: 'CREATED' },
     { value: 'UPDATED', label: 'UPDATED' },
     { value: 'DELETED', label: 'DELETED' },
+    { value: 'FAILED', label: 'FAILED LOGINS' },
+    { value: 'SUCCESSFUL', label: 'SUCCESSFUL LOGINS' },
   ];
 
 
@@ -44,7 +48,42 @@ const SecurityAudit = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  // Silent background refresh — updates the trail when new logs exist
+  // without flashing the skeleton or resetting pagination.
+  const refreshQuiet = async () => {
+    try {
+      const [activityRes, usersRes] = await Promise.all([
+        api('http://localhost:5000/api/activity'),
+        api('http://localhost:5000/api/users')
+      ]);
+      if (activityRes.ok) {
+        const activityData = await activityRes.json();
+        setLogs((prev) => {
+          if (prev.length === activityData.length && prev[0]?.id === activityData[0]?.id
+            && prev[0]?.created_at === activityData[0]?.created_at) return prev;
+          return activityData;
+        });
+      }
+      if (usersRes.ok) setUsers(await usersRes.json());
+    } catch (err) {
+      console.error("Failed to refresh audit data", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    // Auto-refresh the trail every 10s while the tab is visible.
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') refreshQuiet();
+    }, 10000);
+    // Immediate refresh when other pages broadcast changes.
+    const handler = async () => { await refreshQuiet(); window.dispatchEvent(new CustomEvent('app:reload-done')); };
+    window.addEventListener('app:reload', handler);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('app:reload', handler);
+    };
+  }, []);
 
   const getRoleInfo = (userName) => {
     const user = users.find(u => u.username === userName || u.full_name === userName);
@@ -68,11 +107,14 @@ const SecurityAudit = () => {
   };
 
   const dynamicRows = logs.map(log => {
+    const actionLower = String(log.action || '').toLowerCase();
+    // Login rows (failed + successful) show a dash for User and Role.
+    const isLoginRow = actionLower.includes('failed login') || actionLower.includes('successful login');
     const roleInfo = getRoleInfo(log.user_name);
     const critical = isCritical(log.action, log.details);
     const dateObj = new Date(log.created_at);
     const ts = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}\n${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
-    return { id: log.id, ts, user: roleInfo.name, role: roleInfo.role, roleColor: roleInfo.color, action: formatAction(log.action), desc: log.details || 'No description provided', count: 1, critical };
+    return { id: log.id, ts, user: isLoginRow ? '-' : roleInfo.name, role: isLoginRow ? '-' : roleInfo.role, roleColor: isLoginRow ? '' : roleInfo.color, action: formatAction(log.action), desc: log.details || 'No description provided', split: actionLower.includes('updat') ? splitUpdateDescription(log.details) : null, critical };
   });
 
   const criticalCount = dynamicRows.filter(r => r.critical).length;
@@ -86,7 +128,7 @@ const SecurityAudit = () => {
   const ROWS_PER_PAGE = 10;
   const filteredRows = actionFilter === 'ALL'
     ? dynamicRows
-    : dynamicRows.filter(r => r.action.includes(actionFilter === 'CREATED' ? 'CREAT' : actionFilter === 'UPDATED' ? 'UPDAT' : 'DELET'));
+    : dynamicRows.filter(r => r.action.includes(actionFilter === 'CREATED' ? 'CREAT' : actionFilter === 'UPDATED' ? 'UPDAT' : actionFilter === 'DELETED' ? 'DELET' : actionFilter === 'SUCCESSFUL' ? 'SUCCESS' : 'FAIL'));
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / ROWS_PER_PAGE));
   const paginatedRows = filteredRows.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
 
@@ -133,6 +175,9 @@ const SecurityAudit = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2"><span className="text-lg">🔄</span><h2 className="text-[16px] font-bold text-gray-900">Institutional System Audit Trail (Root Access)</h2></div>
               <div className="flex gap-2">
+                <button onClick={async () => { setRefreshing(true); try { await refreshQuiet(); } finally { setRefreshing(false); } }} disabled={refreshing} className="p-1.5 rounded text-black hover:text-[#0c1925] disabled:opacity-50" title="Refresh audit trail">
+                  <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+                </button>
                 <div className="relative">
                   <button onClick={() => setFilterOpen(o => !o)} className="p-1.5 rounded flex items-center gap-1" title="Filter by action">
                     <Filter size={16} className={actionFilter === 'ALL' ? 'text-black' : 'text-[#0c1925]'} />
@@ -158,19 +203,28 @@ const SecurityAudit = () => {
               </div>
             </div>
             <div className="table-responsive"><table className="w-full text-[12px] min-w-[800px]">
-              <thead><tr className="border-b" style={{ borderColor: '#f0ede6' }}>{['Timestamp', 'User', 'Role', 'Action', 'Description', '#'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[12px] uppercase tracking-wide">{h}</th>))}</tr></thead>
+              <thead><tr className="border-b" style={{ borderColor: '#f0ede6' }}>{['Timestamp', 'User', 'Role', 'Action', 'Description'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[12px] uppercase tracking-wide">{h}</th>))}</tr></thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="6" className="py-4"><div aria-busy="true"><SkeletonTable cols={6} rows={6} /></div></td></tr>
-                ) : paginatedRows.length === 0 ? (<tr><td colSpan="6" className="py-8 text-center text-gray-500">No activity recorded yet.</td></tr>
+                  <tr><td colSpan="5" className="py-4"><div aria-busy="true"><SkeletonTable cols={5} rows={6} /></div></td></tr>
+                ) : paginatedRows.length === 0 ? (<tr><td colSpan="5" className="py-8 text-center text-gray-500">No activity recorded yet.</td></tr>
                 ) : paginatedRows.map((row, i) => (
                   <tr key={row.id || i} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
                     <td className="py-3 pr-3 whitespace-pre font-mono text-[12px]" style={{ color: '#0c1925' }}>{row.ts}</td>
-                    <td className="py-3 pr-3 font-bold text-gray-800 text-[12px]">{row.user}</td>
-                    <td className="py-3 pr-3"><span className={`px-2 py-0.5 rounded text-[12px] font-bold ${row.role === 'admin' ? 'text-black' : 'text-white'}`} style={{ background: row.roleColor }}>{row.role}</span></td>
-                    <td className="py-3 pr-3 font-mono font-bold text-[12px]" style={{ color: row.action.includes('DELET') ? '#dc2626' : row.action.includes('UPDAT') ? '#2563eb' : row.action.includes('CREAT') ? '#16a34a' : '#4b5563' }}>{row.action}</td>
-                    <td className="py-3 pr-3 text-gray-700 max-w-[300px] truncate text-[12px]" title={row.desc}>{row.desc}</td>
-                    <td className="py-3 text-gray-400 font-semibold text-[12px]">{row.count}</td>
+                    <td className="py-3 pr-3 font-bold text-gray-800 text-[12px]">{row.user === '-' ? <span className="text-gray-900">-</span> : row.user}</td>
+                    <td className="py-3 pr-3">{row.role === '-' ? <span className="text-gray-900 font-semibold text-[12px]">-</span> : <span className={`px-2 py-0.5 rounded text-[12px] font-bold ${!row.role ? '' : row.role === 'admin' ? 'text-black' : 'text-white'}`} style={row.role ? { background: row.roleColor } : undefined}>{row.role}</span>}</td>
+                    <td className="py-3 pr-3 font-mono font-bold text-[12px]" style={{ color: row.action.includes('DELET') || row.action.includes('FAIL') ? '#dc2626' : row.action.includes('UPDAT') ? '#2563eb' : row.action.includes('CREAT') || row.action.includes('SUCCESS') ? '#16a34a' : '#4b5563' }}>{row.action}</td>
+                    <td className="py-3 pr-3 text-gray-700 max-w-[300px] text-[12px]" title={row.desc}>
+                      {row.split ? (
+                        <span className="block break-words whitespace-normal">
+                          {row.split.head}
+                          <br />
+                          <span>{row.split.label} {row.split.tail}</span>
+                        </span>
+                      ) : (
+                        <span className="block truncate">{row.desc}</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

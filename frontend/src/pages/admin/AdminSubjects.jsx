@@ -14,10 +14,9 @@ const AdminSubjects = () => {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [codeError, setCodeError] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [selectedYear, setSelectedYear] = useState('');
-  const [addCourseId, setAddCourseId] = useState('');
-  const [addSemester, setAddSemester] = useState('');
   const [courses, setCourses] = useState([]);
   const [selectedCourseId, setSelectedCourseId] = useState('');
   const [semesterFilter, setSemesterFilter] = useState(currentTerm?.semester || '1st Semester');
@@ -79,23 +78,28 @@ const AdminSubjects = () => {
 
   const addSubjects = async () => {
     if (adding) return;
+    if (!selectedCourseId) {
+      setError('Please select a specific course before adding a subject.');
+      return;
+    }
     const rows = subjectRows.filter((r) => r.name.trim());
     if (rows.length === 0) return;
     for (const { code } of rows) {
       if (code && !/^[A-Z]{4}\d{4}$/.test(code)) {
-        setError(`Invalid code format "${code}". Must be 4 letters followed by 4 digits (e.g. MATH1001).`);
+        setCodeError(`Invalid code format "${code}". Must be 4 letters followed by 4 digits (e.g. MATH1001).`);
         return;
       }
     }
     setAdding(true);
     setError('');
+    setCodeError('');
     const errors = [];
     const added = [];
     for (const { code, name } of rows) {
       try {
         const res = await api('http://localhost:5000/api/subjects', {
           method: 'POST',
-          body: JSON.stringify({ name: name.trim(), code: code.trim() || null, year_level: selectedYear, semester: addSemester, course_id: addCourseId })
+          body: JSON.stringify({ name: name.trim(), code: code.trim() || null, year_level: selectedYear, semester: semesterFilter, course_id: selectedCourseId })
         });
         if (res.ok) {
           added.push(await res.json());
@@ -108,6 +112,7 @@ const AdminSubjects = () => {
     if (added.length > 0) {
       setSubjects((prev) => [...prev, ...added].sort((a, b) => a.name.localeCompare(b.name)));
       setSubjectRows([{ code: '', name: '' }]);
+      setCodeError('');
       setShowAdd(false);
     }
     if (errors.length > 0) setError(errors.join('\n'));
@@ -140,57 +145,58 @@ const AdminSubjects = () => {
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Manage Subjects</h1>
           <p className="text-xs sm:text-sm mt-0.5 text-amber-400">Add and organize subjects per year level.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative group inline-block">
-            <button
-              onClick={() => { if (!isArchiveMode) { setSelectedYear('1st'); setAddCourseId(''); setAddSemester(''); setShowAdd(true); setSubjectRows([{ code: '', name: '' }]); setError(''); } }}
-              disabled={isArchiveMode}
-              className={`px-4 py-2 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
-                isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-              }`}
-              style={{ background: '#0c1925' }}
-            >
-              Add Subject
-            </button>
-            {isArchiveMode && (
-              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                Cannot modify while viewing archives
-              </div>
-            )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        {courses.length > 0 && (
+          <div className="w-[400px] max-w-full">
+            <CustomDropdown
+              value={selectedCourseId}
+              onChange={setSelectedCourseId}
+              options={[
+                { value: '', label: 'All Courses', sublabel: 'Show every course' },
+                ...courses.map((c) => ({
+                  value: c.id,
+                  label: c.abbreviation ? `${c.abbreviation} — ${c.name}` : c.name,
+                  sublabel: c.abbreviation ? c.name : undefined,
+                })),
+              ]}
+              placeholder="Select course"
+              icon={GraduationCap}
+              searchable={courses.length > 5}
+              searchPlaceholder="Search courses…"
+              emptyMessage="No courses found."
+            />
           </div>
-            <div className="w-44 sm:w-52">
-              <CustomDropdown
-                value={semesterFilter}
-                onChange={setSemesterFilter}
-                options={[
-                  { value: '1st Semester', label: '1st Semester' },
-                  { value: '2nd Semester', label: '2nd Semester' },
-                  { value: 'Summer', label: 'Summer' },
-                ]}
-                placeholder="Select semester"
-                icon={CalendarDays}
-                emptyMessage="No semesters found."
-              />
-            </div>
-          {courses.length > 0 && (
-            <div className="w-52 sm:w-64">
-              <CustomDropdown
-                value={selectedCourseId}
-                onChange={setSelectedCourseId}
-                options={[
-                  { value: '', label: 'All Courses', sublabel: 'Show every course' },
-                  ...courses.map((c) => ({
-                    value: c.id,
-                    label: c.abbreviation ? `${c.abbreviation} — ${c.name}` : c.name,
-                    sublabel: c.abbreviation ? c.name : undefined,
-                  })),
-                ]}
-                placeholder="Select course"
-                icon={GraduationCap}
-                searchable={courses.length > 5}
-                searchPlaceholder="Search courses…"
-                emptyMessage="No courses found."
-              />
+        )}
+        <div className="w-[400px] max-w-full">
+          <CustomDropdown
+            value={semesterFilter}
+            onChange={setSemesterFilter}
+            options={[
+              { value: '1st Semester', label: '1st Semester' },
+              { value: '2nd Semester', label: '2nd Semester' },
+              { value: 'Summer', label: 'Summer' },
+            ]}
+            placeholder="Select semester"
+            icon={CalendarDays}
+            emptyMessage="No semesters found."
+          />
+        </div>
+        <div className="relative group inline-block sm:shrink-0">
+          <button
+            onClick={() => { if (isArchiveMode) return; if (!selectedCourseId) { setError('Please select a specific course before adding a subject.'); return; } setSelectedYear('1st'); setShowAdd(true); setSubjectRows([{ code: '', name: '' }]); setError(''); setCodeError(''); }}
+            disabled={isArchiveMode}
+            className={`w-full sm:w-auto h-full px-4 py-2 text-xs font-bold text-white rounded-lg shadow-sm flex items-center justify-center transition-transform ${
+              isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+            }`}
+            style={{ background: '#0c1925' }}
+          >
+            Add Subject
+          </button>
+          {isArchiveMode && (
+            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Cannot modify while viewing archives
             </div>
           )}
         </div>
@@ -253,18 +259,10 @@ const AdminSubjects = () => {
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Add Subjects</h3>
-              <button onClick={() => { setShowAdd(false); setSubjectRows([{ code: '', name: '' }]); setError(''); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <button onClick={() => { setShowAdd(false); setSubjectRows([{ code: '', name: '' }]); setError(''); setCodeError(''); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <div className="mb-4">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Course</label>
-              <select
-                value={addCourseId}
-                onChange={(e) => setAddCourseId(e.target.value)}
-                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm"
-              >
-                <option value="" disabled>-- Select Course --</option>
-                {courses.map(c => <option key={c.id} value={c.id}>{c.abbreviation} — {c.name}</option>)}
-              </select>
+            <div className="mb-4 px-3 py-2 rounded-lg bg-gray-100 text-xs text-gray-700">
+              Adding to <strong>{selectedCourseId ? (courses.find(c => c.id === selectedCourseId)?.abbreviation || courses.find(c => c.id === selectedCourseId)?.name || 'Selected course') : 'All Courses'}</strong> • <strong>{semesterFilter || '—'}</strong>
             </div>
             <div className="mb-4">
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Year Level</label>
@@ -275,19 +273,6 @@ const AdminSubjects = () => {
               >
                 <option value="" disabled>-- Select Year Level --</option>
                 {yearLevels.map((y) => <option key={y} value={y}>{yearLabels[y]}</option>)}
-              </select>
-            </div>
-            <div className="mb-4">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Semester</label>
-              <select
-                value={addSemester}
-                onChange={(e) => setAddSemester(e.target.value)}
-                className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm"
-              >
-                <option value="" disabled>-- Select Semester --</option>
-                <option value="1st Semester">1st Semester</option>
-                <option value="2nd Semester">2nd Semester</option>
-                <option value="Summer">Summer</option>
               </select>
             </div>
             <div className="space-y-2 mb-4 max-h-64 overflow-y-auto p-0.5">
@@ -304,6 +289,7 @@ const AdminSubjects = () => {
                       const next = [...subjectRows];
                       next[i] = { ...next[i], code: letters + digits };
                       setSubjectRows(next);
+                      setCodeError('');
                     }}
                     placeholder="e.g. MATH1001"
                     className="w-28 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm font-mono"
@@ -317,6 +303,7 @@ const AdminSubjects = () => {
                       const next = [...subjectRows];
                       next[i] = { ...next[i], name: e.target.value };
                       setSubjectRows(next);
+                      setCodeError('');
                     }}
                     placeholder="e.g. Mathematics 1"
                     className="flex-1 px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm"
@@ -324,7 +311,7 @@ const AdminSubjects = () => {
                   />
                   {subjectRows.length > 1 && (
                     <button
-                      onClick={() => setSubjectRows(subjectRows.filter((_, j) => j !== i))}
+                      onClick={() => { setSubjectRows(subjectRows.filter((_, j) => j !== i)); setCodeError(''); }}
                       className="text-gray-300 hover:text-red-500 transition-colors"
                     >
                       <X size={16} />
@@ -332,6 +319,7 @@ const AdminSubjects = () => {
                   )}
                 </div>
               ))}
+              {codeError && <p className="text-xs font-semibold text-red-500 pt-1">{codeError}</p>}
             </div>
             <div className="flex items-center justify-between">
               <button
@@ -342,8 +330,8 @@ const AdminSubjects = () => {
                 Add More Subjects
               </button>
               <div className="flex gap-3">
-                <button onClick={() => { setShowAdd(false); setSubjectRows([{ code: '', name: '' }]); setError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-                <button onClick={addSubjects} disabled={adding || !selectedYear || !addSemester || !addCourseId} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#0c1925' }}>{adding ? 'Adding...' : 'Add'}</button>
+                <button onClick={() => { setShowAdd(false); setSubjectRows([{ code: '', name: '' }]); setError(''); setCodeError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                <button onClick={addSubjects} disabled={adding || !selectedYear || !semesterFilter || !selectedCourseId} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50" style={{ background: '#0c1925' }}>{adding ? 'Adding...' : 'Add'}</button>
               </div>
             </div>
           </div>

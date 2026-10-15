@@ -132,3 +132,41 @@
   animation: dropdown-pop 150ms ease-out;
 }
 
+/* Login autofill: Chrome/Edge/Safari force a light background on
+   autofilled inputs. Keep the autofilled text readable (black) and
+   turn the field icons black as well via :has(). */
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover,
+.login-input:-webkit-autofill:focus,
+.login-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #000 !important;
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  caret-color: #000;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.login-input:autofill {
+  color: #000 !important;
+  caret-color: #000;
+}
+
+.login-field:has(.login-input:-webkit-autofill) .login-icon,
+.login-field:has(.login-input:autofill) .login-icon {
+  color: #000 !important;
+}
+
+/* Login hero (right side) stroked text: dark outline for legibility
+   over the blurred campus photo background. */
+.stroke-text {
+  -webkit-text-stroke: 0.7px #000;
+  paint-order: stroke fill;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.stroke-text-sm {
+  -webkit-text-stroke: 0.45px #000;
+  paint-order: stroke fill;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+

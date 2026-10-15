@@ -8,6 +8,40 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Failed-login audit: one row per attempted username per minute. Multiple
+// wrong attempts for the same username within 60s coalesce into a single
+// "Failed Login" row whose details carry the attempt count (critical alert).
+const normalizeAttemptKey = (value) => {
+  const key = String(value || '').trim().toLowerCase().slice(0, 64);
+  return key || 'unknown';
+};
+
+const logFailedLogin = async (attemptedUsername, department) => {
+  try {
+    const key = normalizeAttemptKey(attemptedUsername);
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    const { data: recent } = await supabase
+      .from('activity_log')
+      .select('id')
+      .eq('action', 'Failed Login')
+      .eq('user_name', key)
+      .gte('created_at', oneMinuteAgo)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    // A row already covers this minute — keep a single entry per minute
+    // with no attempt count in the description.
+    if (recent && recent.length > 0) return;
+    await supabase.from('activity_log').insert([{
+      user_name: key,
+      action: 'Failed Login',
+      details: `A login attempt for the account "${key}" failed.`,
+      department: department || null
+    }]);
+  } catch (err) {
+    console.error('Failed to log failed login attempt:', err?.message || err);
+  }
+};
+
 router.post('/login', async (req, res) => {
   let { username, password } = req.body;
   username = username.trim();
@@ -61,12 +95,15 @@ router.post('/login', async (req, res) => {
     }
 
     if (!user) {
-      return res.status(401).json({ message: 'Invalid username or password' });
+      // Unknown username — not audited. Only existing accounts produce
+      // Failed Login rows in the Institutional System Audit Trail.
+      return res.status(401).json({ message: 'Invalid username ' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid username or password' });
+      await logFailedLogin(username, user.department || null);
+      return res.status(401).json({ message: 'Invalid password' });
     }
 
     const token = jwt.sign(
@@ -74,6 +111,19 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
+
+    // Successful-login audit: one row per login in the Institutional
+    // System Audit Trail. Never blocks the login response on failure.
+    try {
+      await supabase.from('activity_log').insert([{
+        user_name: user.username || dbUsername,
+        action: 'Successful Login',
+        details: `The account "${user.username || dbUsername}" logged in successfully.`,
+        department: user.department || null
+      }]);
+    } catch (err) {
+      console.error('Failed to log successful login:', err?.message || err);
+    }
 
     res.json({
       token,

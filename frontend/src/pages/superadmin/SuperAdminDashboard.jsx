@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-import { ArrowRight, FileText, Cpu, Network, Shield, Users, UserGroup, GraduationCap, BookOpen, ShieldCheck, ShieldUser, Clock, Activity, CheckCircle, Trash2, Megaphone, Send, AlertTriangle, RefreshCw, User, Equal } from 'lucide-react';
+import { ArrowRight, FileText, Cpu, Network, Shield, Users, UserGroup, GraduationCap, BookOpen, ShieldCheck, ShieldUser, Clock, Activity, CheckCircle, Trash2, Megaphone, Send, AlertTriangle, RefreshCw, User, UserRoundCheck, UserRoundX, Equal } from 'lucide-react';
 import api from '../../utils/api';
+import { splitUpdateDescription } from '../../utils/auditText';
 import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../components/common/Skeleton';
 
 const MetricCard = ({ title, value, icon: Icon, color, subtitle }) => (
@@ -180,10 +181,12 @@ const SuperAdminDashboard = () => {
               activityLog.slice(0, 5).map((log) => {
                 const isCreate = log.action.toLowerCase().includes('created');
                 const isDelete = log.action.toLowerCase().includes('deleted');
+                const isFailed = log.action.toLowerCase().includes('failed login');
+                const isSuccess = log.action.toLowerCase().includes('successful login');
                 const isUpdate = log.action.toLowerCase().includes('updated');
-                const Icon = isCreate ? CheckCircle : isDelete ? Trash2 : isUpdate ? RefreshCw : Activity;
-                const iconColor = isCreate ? '#22c55e' : isDelete ? '#ef4444' : isUpdate ? '#142a3f' : '#142a3f';
-                const bg = isCreate ? '#f0fdf4' : isDelete ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
+                const Icon = isCreate ? CheckCircle : isDelete ? Trash2 : isFailed ? UserRoundX : isSuccess ? UserRoundCheck : isUpdate ? RefreshCw : Activity;
+                const iconColor = isCreate || isSuccess ? '#22c55e' : isDelete || isFailed ? '#ef4444' : isUpdate ? '#142a3f' : '#142a3f';
+                const bg = isCreate || isSuccess ? '#f0fdf4' : isDelete || isFailed ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
                 const timeAgo = (() => {
                   const diff = Date.now() - new Date(log.created_at).getTime();
                   const mins = Math.floor(diff / 60000);
@@ -206,7 +209,20 @@ const SuperAdminDashboard = () => {
                         <span className="font-semibold text-gray-800 text-xs sm:text-sm">{log.action}</span>
                         <span className="flex items-center gap-1 text-[10px] text-gray-900 whitespace-nowrap"><Clock size={10} /> {timeAgo}</span>
                       </div>
-                      <p className="text-xs text-gray-900 truncate mb-1" title={log.details}>{log.details}</p>
+                      <p className="text-xs text-gray-900 mb-1 break-words whitespace-normal" title={log.details}>
+                        {(() => {
+                          const split = log.action.toLowerCase().includes('updated') ? splitUpdateDescription(log.details) : null;
+                          return split ? (
+                            <>
+                              {split.head}
+                              <br />
+                              <span>{split.label} {split.tail}</span>
+                            </>
+                          ) : (
+                            <span className="block truncate">{log.details}</span>
+                          );
+                        })()}
+                      </p>
                       <p className="text-[10px] font-medium tracking-widest text-gray-600 uppercase">BY {actorLabel}</p>
                     </div>
                   </div>

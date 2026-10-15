@@ -60,7 +60,16 @@ const Login = () => {
       else if (data.user.role === 'admin') navigate('/admin');
       else navigate('/superadmin');
     } catch (err) {
-      setError(err.message);
+      // The backend being unreachable surfaces as a raw browser error
+      // ("Failed to fetch") — swap it for something users understand.
+      const raw = String(err?.message || '').toLowerCase();
+      const isNetwork = err instanceof TypeError
+        || raw.includes('failed to fetch')
+        || raw.includes('networkerror')
+        || raw.includes('load failed');
+      setError(isNetwork
+        ? 'Cannot connect to the server. Please check your connection and try again.'
+        : (err.message || 'Login failed'));
     } finally {
       setLoading(false);
     }
@@ -102,16 +111,16 @@ const Login = () => {
               <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
                 Username
               </label>
-              <div className="relative">
+              <div className="relative login-field">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <User className="w-5 h-5 text-white" />
+                  <User className="w-5 h-5 text-white login-icon" />
                 </div>
                 <input
                   type="text"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-sm font-medium text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-gold/50 focus:border-gold/50 transition-all outline-none"
+                  className="login-input block w-full pl-11 pr-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-sm font-medium text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-gold/50 focus:border-gold/50 transition-all outline-none"
                   placeholder="Enter your username"
                 />
               </div>
@@ -121,22 +130,22 @@ const Login = () => {
               <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
                 Password
               </label>
-              <div className="relative">
+              <div className="relative login-field">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <Lock className="w-5 h-5 text-white" />
+                  <Lock className="w-5 h-5 text-white login-icon" />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-11 pr-11 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-sm font-medium text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-gold/50 focus:border-gold/50 transition-all outline-none"
+                  className="login-input block w-full pl-11 pr-11 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-sm font-medium text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-gold/50 focus:border-gold/50 transition-all outline-none"
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors login-icon"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -148,7 +157,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gold hover:bg-gold-hover text-slate-900 font-bold py-3 px-4 rounded-xl transition-all transform active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-gold/25"
+              className="w-full bg-amber-400 hover:bg-amber-500 text-black font-bold py-3 px-4 rounded-xl transition-all transform active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-gold/25"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
@@ -179,7 +188,7 @@ const Login = () => {
             backgroundImage: "url('/src/assets/STI_Background.png')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'blur(10px)',
+            filter: 'blur(2px)',
             transform: 'scale(1.05)',
           }}
         />
@@ -192,12 +201,12 @@ const Login = () => {
           <div className="flex items-center gap-4 mb-8">
             <img src="/src/assets/logo.png" className="w-16 h-16 object-contain" alt="SmartGrade Logo" />
             <div>
-              <h2 className="text-3xl font-extrabold text-white tracking-wide">SmartGrade</h2>
-              <p className="text-slate-400 text-sm">Academic Management Platform</p>
+              <h2 className="text-3xl font-extrabold text-white tracking-wide stroke-text">SmartGrade</h2>
+              <p className="text-white text-sm stroke-text-sm">Academic Management Platform</p>
             </div>
           </div>
 
-          <p className="text-base text-slate-300 leading-relaxed mb-10">
+          <p className="text-base text-white leading-relaxed mb-10 stroke-text-sm">
             SmartGrade unifies grade computation, attendance tracking, and
             behavioral analytics in one academic platform — with AI-powered
             insights that help teachers understand every learner.
@@ -207,20 +216,20 @@ const Login = () => {
           <div className="space-y-5">
             {features.map((feature, i) => (
               <div key={i} className="flex items-start gap-4 group">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gold/20 to-yellow-600/10 border border-gold/20 flex items-center justify-center shrink-0 group-hover:border-gold/40 group-hover:from-gold/30 group-hover:to-yellow-600/20 transition-all">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400/20 to-amber-600/10 border border-amber-400/20 flex items-center justify-center shrink-0 group-hover:border-amber-400/40 group-hover:from-amber-400/30 group-hover:to-amber-600/20 transition-all">
                   {feature.icon}
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold text-sm">{feature.title}</h3>
-                  <p className="text-slate-400 text-xs mt-0.5">{feature.desc}</p>
+                  <h3 className="text-white font-semibold text-sm stroke-text-sm">{feature.title}</h3>
+                  <p className="text-gray-300 text-xs mt-0.5 stroke-text-sm">{feature.desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Footer */}
-          <div className="mt-12 pt-6 border-t border-slate-700/50">
-            <p className="text-slate-500 text-xs">
+          <div className="mt-12 pt-6 border-t border-gray-500">
+            <p className="text-white text-xs stroke-text-sm">
               &copy; 2026 SmartGrade Educational Systems. All rights reserved.
             </p>
           </div>

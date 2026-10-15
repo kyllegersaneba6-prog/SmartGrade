@@ -50,7 +50,7 @@ router.post('/', authorizeRole('superadmin'), async (req, res) => {
     await supabase.from('activity_log').insert([{
       user_name: req.user.username || 'System',
       action: 'Course Created',
-      details: `Created course "${data.name}"${abbrSuffix}`,
+      details: `The course "${data.name}"${abbrSuffix} was created.`,
       department: req.user.department || null
     }]);
     res.status(201).json(data);
@@ -93,7 +93,7 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
       await supabase.from('activity_log').insert([{
         user_name: req.user.username || 'System',
         action: 'Course Updated',
-        details: `Updated course "${data.name}" — changed: ${changes.join(', ')}`,
+        details: `The course "${data.name}" was updated. Changes made: ${changes.join(', ')}.`,
         department: req.user.department || null
       }]);
     }
@@ -146,7 +146,7 @@ router.delete('/:id', authorizeRole('superadmin'), async (req, res) => {
     await supabase.from('activity_log').insert([{
       user_name: req.user.username || 'System',
       action: 'Course Deleted',
-      details: `Deleted course "${course.name}"${abbrSuffix}`,
+      details: `The course "${course.name}"${abbrSuffix} was deleted.`,
       department: req.user.department || null
     }]);
     res.json({ message: 'Course deleted' });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Trash2, X, UserPlus, Layers, Upload, FileSpreadsheet } from 'lucide-react';
+import { Plus, Trash2, X, UserPlus, Layers, Upload, FileSpreadsheet, CheckCircle } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import Pagination from '../../components/common/Pagination';
 import CustomDropdown from '../../components/common/CustomDropdown';
@@ -36,6 +36,9 @@ const AdminSections = () => {
   const [studentError, setStudentError] = useState('');
   const [studentRows, setStudentRows] = useState([{ id: '', first_name: '', last_name: '', mi: '', gender: '' }]);
   const [addingStudents, setAddingStudents] = useState(false);
+  const [addedStudents, setAddedStudents] = useState([]);
+  const [showAddComplete, setShowAddComplete] = useState(false);
+  const [addCompleteErrors, setAddCompleteErrors] = useState([]);
   const [error, setError] = useState('');
   const [courses, setCourses] = useState([]);
   const [selectedCourseId, setSelectedCourseId] = useState('');
@@ -60,7 +63,7 @@ const AdminSections = () => {
   const [courseMissing, setCourseMissing] = useState(false);
   const [sectionLetterMissing, setSectionLetterMissing] = useState(false);
   const EXCEL_HEADERS = useMemo(() => ['firstname', 'lastname', 'middle initial', 'student id', 'gender'], []);
-  const excelEmptyRow = () => ({ firstname: '', lastname: '', 'middle initial': '', 'student id': '', gender: '' });
+  const excelEmptyRow = () => ({ firstname: '', lastname: '', 'middle initial': '', 'student id': '', gender: 'Male' });
   const buildExcelRows = (n) => Array.from({ length: n }, () => excelEmptyRow());
   const EXCEL_PAGE_SIZE = 10;
   const excelLabel = (h) => {
@@ -351,7 +354,10 @@ const AdminSections = () => {
   };
 
   const updateExcelCell = (i, field, val) => {
-    setExcelRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [field]: val } : r)));
+    // Auto-format student IDs as they're typed (00-0000-000),
+    // matching the single Add Student form.
+    const nextVal = field === 'student id' ? formatStudentId(val) : val;
+    setExcelRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [field]: nextVal } : r)));
     setExcelError('');
   };
   const loadMoreExcelRows = () => setExcelRows((prev) => [...prev, ...buildExcelRows(EXCEL_PAGE_SIZE)]);
@@ -368,13 +374,11 @@ const AdminSections = () => {
     if (!selectedSection) return;
     const filled = excelRows.filter((r) => EXCEL_HEADERS.some((h) => String(r[h] || '').trim() !== ''));
     if (filled.length === 0) { setExcelError('Enter at least one student row.'); return; }
-    for (let i = 0; i < filled.length; i++) {
-      const r = filled[i];
-      if (!String(r['student id']).trim() || !String(r.firstname).trim() || !String(r.lastname).trim()) {
-        setExcelError(`Row ${excelRows.indexOf(r) + 1}: firstname, lastname, and student id are required.`);
-        return;
-      }
-    }
+    // Only complete rows (firstname + lastname + student id) can be added —
+    // partially filled rows are carried into the preview unchecked instead of
+    // blocking the complete ones.
+    const complete = filled.filter((r) => String(r['student id']).trim() && String(r.firstname).trim() && String(r.lastname).trim());
+    if (complete.length === 0) { setExcelError('Enter at least one complete row: firstname, lastname, and student id are required.'); return; }
     let existingIds = new Set();
     try {
       const res = await api(`http://localhost:5000/api/sections/${selectedSection.id}/students`);
@@ -446,9 +450,14 @@ const AdminSections = () => {
     if (added.length > 0) {
       setStudents((prev) => [...prev, ...added].sort((a, b) => a.student_name.localeCompare(b.student_name)));
       setStudentRows([{ id: '', first_name: '', last_name: '', mi: '', gender: '' }]);
+      setStudentError('');
       setShowAddStudent(false);
+      setAddedStudents(added);
+      setAddCompleteErrors(errors);
+      setShowAddComplete(true);
+    } else if (errors.length > 0) {
+      setStudentError(errors.join('\n'));
     }
-    if (errors.length > 0) setStudentError(errors.join('\n'));
     setAddingStudents(false);
   };
 
@@ -866,6 +875,36 @@ const AdminSections = () => {
         </div>
       )}
 
+      {showAddComplete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100 text-center max-h-[85vh] overflow-y-auto">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 mb-4">
+              <CheckCircle size={28} className="text-emerald-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Add Complete</h3>
+            <p className="text-sm text-emerald-600 font-semibold mb-4">{addedStudents.length} student(s) added.</p>
+            {addedStudents.length > 0 && (
+              <div className="text-left max-h-40 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 mb-3">
+                {addedStudents.map((s, i) => (
+                  <p key={s.id || i} className="text-xs text-gray-700 py-1 border-b last:border-0 border-gray-100">
+                    <span className="font-mono text-gray-900">{s.student_id}</span> — <span className="font-semibold">{s.student_name}</span>
+                  </p>
+                ))}
+              </div>
+            )}
+            {addCompleteErrors.length > 0 && (
+              <div className="text-left rounded-lg border border-red-200 bg-red-50 px-3 py-2 mb-3">
+                <p className="text-xs font-bold text-red-600 mb-1">Not added:</p>
+                {addCompleteErrors.map((e, i) => (
+                  <p key={i} className="text-xs text-red-500">{e}</p>
+                ))}
+              </div>
+            )}
+            <button onClick={() => { setShowAddComplete(false); setAddedStudents([]); setAddCompleteErrors([]); }} className="mt-2 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#142a3f' }}>Done</button>
+          </div>
+        </div>
+      )}
+
       {showImport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-xl modal-surface p-6 max-w-2xl w-full mx-4 border border-gray-100 max-h-[85vh] flex flex-col">
@@ -900,15 +939,15 @@ const AdminSections = () => {
                     ))}
                   </div>
                 )}
-                <button onClick={() => { setShowImport(false); setImportRows([]); setImportSkipped([]); setImportResult(null); }} className="mt-6 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#22c55e' }}>Done</button>
+                <button onClick={() => { setShowImport(false); setImportRows([]); setImportSkipped([]); setImportResult(null); }} className="mt-6 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#142a3f' }}>Done</button>
               </div>
             ) : (
               <>
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                  <p className="text-xs text-gray-500">
-                    <span className="font-semibold text-green-600">{importRows.filter((r) => r.included).length}</span> selected
-                    <span className="ml-2 text-gray-400">{importRows.filter((r) => r.duplicateInFile).length} duplicate in file</span>
-                    <span className="ml-2 text-gray-400">{importRows.filter((r) => r.duplicateInSystem).length} already in section</span>
+                  <p className="text-xs text-gray-900">
+                    <span className="font-semibold text-green-900">{importRows.filter((r) => r.included).length}</span> selected
+                    <span className="ml-2 text-gray-900">{importRows.filter((r) => r.duplicateInFile).length} duplicate in file</span>
+                    <span className="ml-2 text-gray-900">{importRows.filter((r) => r.duplicateInSystem).length} already in section</span>
                     {importRows.some((r) => r.missingFields) && (
                       <span className="ml-2 text-red-500">{importRows.filter((r) => r.missingFields).length} incomplete</span>
                     )}
@@ -924,12 +963,12 @@ const AdminSections = () => {
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b bg-gray-50" style={{ borderColor: '#f0ede6' }}>
-                          <th className="px-3 py-2 text-left font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Include</th>
-                          <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">#</th>
-                          <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Student ID</th>
-                          <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">First Name</th>
-                          <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Last Name</th>
-                          <th className="text-left px-3 py-2 font-semibold text-gray-400 text-[10px] uppercase tracking-wide">Status</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Include</th>
+                          <th className="text-left px-3 py-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">#</th>
+                          <th className="text-left px-3 py-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Student ID</th>
+                          <th className="text-left px-3 py-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">First Name</th>
+                          <th className="text-left px-3 py-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Last Name</th>
+                          <th className="text-left px-3 py-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Status</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -940,10 +979,10 @@ const AdminSections = () => {
                               <td className="px-3 py-1.5">
                                 <input type="checkbox" checked={!!row.included} onChange={() => toggleImportRow(row.rowNum)} className="h-3.5 w-3.5 accent-blue-600" />
                               </td>
-                              <td className="px-3 py-1.5 text-gray-400">{row.rowNum - 1}</td>
-                              <td className="px-3 py-1.5 font-mono text-gray-700">{row.student_id || '—'}</td>
-                              <td className="px-3 py-1.5 text-gray-700">{row.first_name || '—'}</td>
-                              <td className="px-3 py-1.5 text-gray-700">{row.last_name || '—'}</td>
+                              <td className="px-3 py-1.5 text-gray-900">{row.rowNum - 1}</td>
+                              <td className="px-3 py-1.5 font-mono text-gray-900">{row.student_id || '—'}</td>
+                              <td className="px-3 py-1.5 text-gray-900">{row.first_name || '—'}</td>
+                              <td className="px-3 py-1.5 text-gray-900">{row.last_name || '—'}</td>
                               <td className="px-3 py-1.5">
                                 <span className="flex flex-wrap gap-1">
                                   {!flagged && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-green-100 text-green-700">Ready</span>}
@@ -958,7 +997,7 @@ const AdminSections = () => {
                       </tbody>
                     </table>
                   </div>
-                  <p className="mt-2 text-[11px] text-gray-500">Uncheck any row to exclude it. Only checked rows are imported after you confirm.</p>
+                  <p className="mt-2 text-[11px] text-gray-900">Uncheck any row to exclude it. Only checked rows are imported after you confirm.</p>
                 </div>
                 <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-100">
                   <button onClick={() => { setShowImport(false); setImportRows([]); setImportSkipped([]); setImportHeaderError(''); setImportError(''); setImportResult(null); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
@@ -979,18 +1018,18 @@ const AdminSections = () => {
           <div className="bg-white rounded-xl modal-surface p-6 w-full mx-4 border border-gray-100 max-w-4xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <FileSpreadsheet size={18} /> Add Multiple Students — Excel
+                <FileSpreadsheet size={18} /> Add Multiple Students
               </h3>
               <button onClick={() => { setShowExcelModal(false); setExcelError(''); }} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
-            <p className="text-xs text-gray-500 mb-3">
-              Section: <strong className="text-gray-800">{selectedSection?.name || '—'}</strong> — enter rows directly. Columns: {EXCEL_HEADERS.join(', ')}.
+            <p className="text-xs text-gray-900 mb-3">
+              Section: <strong className="text-gray-900">{selectedSection?.name || '—'}</strong> — enter rows directly. Columns: {EXCEL_HEADERS.join(', ')}.
             </p>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs text-gray-500">{excelRows.length} rows</p>
-              <button onClick={clearAllExcelRows} className="px-3 py-1.5 text-xs font-semibold text-gray-600 rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
+              <p className="text-xs text-gray-900">{excelRows.length} rows</p>
+              <button onClick={clearAllExcelRows} className="px-3 py-1.5 text-xs font-semibold text-gray-900 rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
                 Clear All
               </button>
             </div>
@@ -1012,13 +1051,25 @@ const AdminSections = () => {
                       <td className="px-2 py-1 border border-gray-200 text-gray-400 text-center">{i + 1}</td>
                       {EXCEL_HEADERS.map((h) => (
                         <td key={h} className="p-0 border border-gray-200">
-                          <input
-                            value={row[h] || ''}
-                            onChange={(e) => updateExcelCell(i, h, e.target.value)}
-                            placeholder={excelPlaceholder(h)}
-                            aria-label={excelLabel(h)}
-                            className="w-full px-2 py-1.5 text-xs placeholder:text-gray-400 placeholder:italic focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#f5a623] bg-transparent"
-                          />
+                          {h === 'gender' ? (
+                            <select
+                              value={row[h] || ''}
+                              onChange={(e) => updateExcelCell(i, h, e.target.value)}
+                              aria-label={excelLabel(h)}
+                              className="w-full px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#f5a623] bg-transparent"
+                            >
+                              <option value="Male">Male</option>
+                              <option value="Female">Female</option>
+                            </select>
+                          ) : (
+                            <input
+                              value={row[h] || ''}
+                              onChange={(e) => updateExcelCell(i, h, e.target.value)}
+                              placeholder={excelPlaceholder(h)}
+                              aria-label={excelLabel(h)}
+                              className="w-full px-2 py-1.5 text-xs placeholder:text-gray-400 placeholder:italic focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#f5a623] bg-transparent"
+                            />
+                          )}
                         </td>
                       ))}
                       <td className="px-2 py-1 border border-gray-200 text-center">
@@ -1034,11 +1085,11 @@ const AdminSections = () => {
             <button onClick={loadMoreExcelRows} className="mt-2 w-full px-3 py-2 text-xs font-bold text-gray-700 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100">
               Load More (+{EXCEL_PAGE_SIZE})
             </button>
-            <p className="mt-2 text-[11px] text-gray-500">Saving opens a preview that flags duplicates (in file and already in section). Duplicates are shown and left unchecked — only confirmed rows are imported.</p>
+            <p className="mt-2 text-[11px] text-gray-900">Saving opens a preview that flags duplicates (in file and already in section). Duplicates are shown and left unchecked — only confirmed rows are imported.</p>
             <div className="flex justify-end gap-3 mt-3 pt-3 border-t border-gray-100">
               <button onClick={() => { setShowExcelModal(false); setExcelError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200">Close</button>
               <button onClick={previewExcelRows} className="flex items-center gap-1 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#0c1925' }}>
-                <Upload size={14} /> Save
+                <UserPlus size={14} /> Add
               </button>
             </div>
           </div>
@@ -1049,12 +1100,12 @@ const AdminSections = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Section</h3>
-            <p className="text-sm text-gray-500 mb-4">Are you sure you want to delete <strong>{sectionToDelete?.name}</strong>? This will also delete all enrolled students.</p>
-            <div className="mb-4"><label className="block text-xs font-bold text-gray-700 mb-1">Type <strong>Confirm</strong> to delete</label>
+            <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{sectionToDelete?.name}</strong>? This will also delete all enrolled students.</p>
+            <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
               <input type="text" value={confirmSectionText} onChange={(e) => setConfirmSectionText(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
             </div>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setDeleteSectionOpen(false); setSectionToDelete(null); setConfirmSectionText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deletingSection}>Cancel</button>
+              <button onClick={() => { setDeleteSectionOpen(false); setSectionToDelete(null); setConfirmSectionText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deletingSection}>Cancel</button>
               <button onClick={async () => { if (!sectionToDelete) return; setDeletingSection(true); try { const res = await api(`http://localhost:5000/api/sections/${sectionToDelete.id}`, { method: 'DELETE' }); if (res.ok) { setSections((prev) => prev.filter((s) => s.id !== sectionToDelete.id)); if (selectedSection?.id === sectionToDelete.id) setSelectedSection(null); } else { const d = await res.json(); setError(d.message || 'Failed to delete'); } } catch (err) { console.error(err); } finally { setDeletingSection(false); setDeleteSectionOpen(false); setSectionToDelete(null); setConfirmSectionText(''); } }} disabled={confirmSectionText !== 'Confirm' || deletingSection} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmSectionText === 'Confirm' && !deletingSection ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deletingSection ? 'Deleting...' : 'Delete'}</button>
             </div>
           </div>
@@ -1065,12 +1116,12 @@ const AdminSections = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Remove Student</h3>
-            <p className="text-sm text-gray-500 mb-4">Are you sure you want to remove <strong>{studentToDelete?.student_name}</strong> ({studentToDelete?.student_id})?</p>
-            <div className="mb-4"><label className="block text-xs font-bold text-gray-700 mb-1">Type <strong>Confirm</strong> to delete</label>
+            <p className="text-sm text-gray-900 mb-4">Are you sure you want to remove <strong>{studentToDelete?.student_name}</strong> ({studentToDelete?.student_id})?</p>
+            <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
               <input type="text" value={confirmStudentText} onChange={(e) => setConfirmStudentText(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
             </div>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setDeleteStudentOpen(false); setStudentToDelete(null); setConfirmStudentText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deletingStudent}>Cancel</button>
+              <button onClick={() => { setDeleteStudentOpen(false); setStudentToDelete(null); setConfirmStudentText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deletingStudent}>Cancel</button>
               <button onClick={async () => { if (!studentToDelete) return; setDeletingStudent(true); try { const res = await api(`http://localhost:5000/api/sections/students/${studentToDelete.id}`, { method: 'DELETE' }); if (res.ok) setStudents((prev) => prev.filter((s) => s.id !== studentToDelete.id)); else { const d = await res.json(); setError(d.message || 'Failed to remove'); } } catch (err) { console.error(err); } finally { setDeletingStudent(false); setDeleteStudentOpen(false); setStudentToDelete(null); setConfirmStudentText(''); } }} disabled={confirmStudentText !== 'Confirm' || deletingStudent} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmStudentText === 'Confirm' && !deletingStudent ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deletingStudent ? 'Deleting...' : 'Delete'}</button>
             </div>
           </div>
@@ -1081,5 +1132,4 @@ const AdminSections = () => {
 };
 
 export default AdminSections;
-
 

@@ -5,7 +5,16 @@ import * as XLSX from 'xlsx';
 
 const TEMPLATE_HEADERS = ['firstname', 'lastname', 'middle initial', 'student id', 'gender'];
 
-const emptyRow = () => ({ firstname: '', lastname: '', 'middle initial': '', 'student id': '', gender: '' });
+// Auto-formats raw input into the 00-0000-000 student ID pattern
+// (same rule as the Add Student form in admin/sections).
+const formatStudentId = (value) => {
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 9);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+};
+
+const emptyRow = () => ({ firstname: '', lastname: '', 'middle initial': '', 'student id': '', gender: 'Male' });
 
 const BulkStudentImport = () => {
   const [searchParams] = useSearchParams();
@@ -50,7 +59,7 @@ const BulkStudentImport = () => {
   }, [downloadTemplate]);
 
   const updateRow = (i, field, val) =>
-    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [field]: val } : r)));
+    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [field]: field === 'student id' ? formatStudentId(val) : val } : r)));
   const addRow = () => setRows((prev) => [...prev, emptyRow()]);
   const removeRow = (i) => setRows((prev) => (prev.length === 1 ? [emptyRow()] : prev.filter((_, idx) => idx !== i)));
 
@@ -122,12 +131,23 @@ const BulkStudentImport = () => {
                         <td className="px-3 py-2 text-gray-400">{i + 1}</td>
                         {TEMPLATE_HEADERS.map((h) => (
                           <td key={h} className="px-3 py-2">
-                            <input
-                              value={r[h]}
-                              onChange={(e) => updateRow(i, h, e.target.value)}
-                              placeholder={h}
-                              className="w-28 px-2 py-1 text-xs border border-[#e5e0d5] rounded-md focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1]"
-                            />
+                            {h === 'gender' ? (
+                              <select
+                                value={r[h]}
+                                onChange={(e) => updateRow(i, h, e.target.value)}
+                                className="w-28 px-2 py-1 text-xs border border-[#e5e0d5] rounded-md focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-gray-700"
+                              >
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                              </select>
+                            ) : (
+                              <input
+                                value={r[h]}
+                                onChange={(e) => updateRow(i, h, e.target.value)}
+                                placeholder={h}
+                                className="w-28 px-2 py-1 text-xs border border-[#e5e0d5] rounded-md focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1]"
+                              />
+                            )}
                           </td>
                         ))}
                         <td className="px-3 py-2">
