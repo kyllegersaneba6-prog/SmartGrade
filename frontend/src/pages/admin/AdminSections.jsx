@@ -1132,4 +1132,3 @@ const AdminSections = () => {
 };
 
 export default AdminSections;
-
