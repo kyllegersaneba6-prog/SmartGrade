@@ -640,7 +640,23 @@ const BehavioralAnalytics = () => {
 
   return (
     <div className="space-y-6">
-      <AssignmentSelector />
+      <div className="flex flex-wrap items-center gap-3">
+        <AssignmentSelector />
+        <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
+          {TERMS.map((t) => (
+            <button
+              key={t}
+              onClick={() => { if (t !== selectedTerm) { setSelectedTerm(t); } }}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                selectedTerm === t ? 'bg-sidebar text-white shadow-sm' : 'text-text-muted hover:text-sidebar'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+          {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
+        </div>
+      </div>
       {/* Header */}
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
@@ -656,20 +672,6 @@ const BehavioralAnalytics = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-          <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
-            {TERMS.map((t) => (
-              <button
-                key={t}
-                onClick={() => { if (t !== selectedTerm) { setSelectedTerm(t); } }}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                  selectedTerm === t ? 'bg-sidebar text-white shadow-sm' : 'text-text-muted hover:text-sidebar'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-            {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
-          </div>
           {hasComponents && (
             <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
           )}
@@ -753,10 +755,7 @@ const BehavioralAnalytics = () => {
                       </th>
                     )
                   ))}
-                  <th className="bg-[#0f172a] border-b-2 border-[#0f172a] p-3 text-white text-center font-bold text-sm uppercase tracking-wider min-w-[100px] relative z-0">FINAL</th>
-                  <th className="bg-[#0f172a] border-b-2 border-[#0f172a] p-3 text-white text-center font-bold text-xs uppercase tracking-wider min-w-[90px] relative z-0">Sub%</th>
-                  <th className="bg-[#0f172a] border-b-2 border-[#0f172a] p-3 text-white text-center font-bold text-xs uppercase tracking-wider min-w-[90px] relative z-0">Att.%</th>
-                  <th className="bg-[#0f172a] border-b-2 border-[#0f172a] p-3 text-white text-center font-bold text-xs uppercase tracking-wider min-w-[100px] relative z-0">PERFORMANCE</th>
+                  <th colSpan={4} className="bg-amber-400 border-b-2 border-amber-400 p-3 text-[#0c1925] text-center font-bold text-sm uppercase tracking-wider relative z-0">TOTAL</th>
                 </tr>
                 <tr className="bg-gray-50 border-b border-border text-center font-semibold text-sidebar">
                   <th className="px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20 w-10" style={{ left: 0 }}>#</th>
@@ -771,10 +770,10 @@ const BehavioralAnalytics = () => {
                       </React.Fragment>
                     )
                   ))}
-                  <th className="px-3 py-2.5 bg-[#0f172a] text-white font-extrabold text-sm w-[75px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('finalGrade')}>FINAL {sortIcon('finalGrade')}</th>
-                  <th className="px-3 py-2.5 bg-[#0f172a] text-white font-extrabold text-xs w-[65px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('subRate')}>SUB% {sortIcon('subRate')}</th>
-                  <th className="px-3 py-2.5 bg-[#0f172a] text-white font-extrabold text-xs w-[65px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('attRate')}>ATT% {sortIcon('attRate')}</th>
-                  <th className="px-3 py-2.5 bg-[#0f172a] text-white font-extrabold text-xs w-[90px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('performance')}>PERFORMANCE {sortIcon('performance')}</th>
+                  <th className="px-3 py-2.5 bg-gray-100/50 text-sidebar font-extrabold text-sm w-[75px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('finalGrade')}>FINAL {sortIcon('finalGrade')}</th>
+                  <th className="px-3 py-2.5 bg-gray-100/50 text-sidebar font-extrabold text-xs w-[65px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('subRate')}>SUB% {sortIcon('subRate')}</th>
+                  <th className="px-3 py-2.5 bg-gray-100/50 text-sidebar font-extrabold text-xs w-[65px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('attRate')}>ATT% {sortIcon('attRate')}</th>
+                  <th className="px-3 py-2.5 bg-gray-100/50 text-sidebar font-extrabold text-xs w-[90px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('performance')}>PERFORMANCE {sortIcon('performance')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -845,47 +844,43 @@ const BehavioralAnalytics = () => {
 
       {/* Detail Modal */}
       {detailStudent && (
-        <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center" onClick={() => setSelectedStudent(null)}>
-          <div className="bg-white rounded-xl modal-surface p-6 w-full max-w-3xl mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white z-10 pb-3 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-bold text-gray-800">{detailStudent.student.student_name}</h3>
-                <p className="text-xs text-gray-400">{detailStudent.student.student_id}</p>
+        <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4" onClick={() => setSelectedStudent(null)}>
+          <div className="bg-white rounded-xl modal-surface w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-100 bg-white">
+              <div className="min-w-0">
+                <h3 className="text-xl font-bold text-gray-800 truncate">{detailStudent.student.student_name}</h3>
+                <p className="text-sm text-gray-500 mt-0.5">{detailStudent.student.student_id}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`px-3 py-1.5 rounded-lg text-sm font-extrabold ${detailStudent.finalGrade < 75 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-800'}`}>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className={`px-3 py-1.5 rounded-lg text-base font-extrabold ${detailStudent.finalGrade < 75 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-800'}`}>
                   Final {detailStudent.finalGrade.toFixed(2)}
                 </span>
-                <button onClick={() => setSelectedStudent(null)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
-                  <X size={18} />
+                <button onClick={() => setSelectedStudent(null)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close">
+                  <X size={20} />
                 </button>
               </div>
             </div>
 
-            <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-              <div className="grid grid-cols-4 gap-4 text-center">
-                <div>
-                  <div className="text-[10px] font-bold text-gray-400 uppercase">Final Grade</div>
-                  <div className={`text-lg font-extrabold ${detailStudent.finalGrade < 75 ? 'text-red-600' : 'text-green-700'}`}>{detailStudent.finalGrade.toFixed(2)}</div>
-                  <div className="text-[10px] text-gray-400">weighted grade</div>
+            <div className="overflow-y-auto px-6 py-5 space-y-5">
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Final Grade</div>
+                <div className={`mt-1 text-2xl font-extrabold ${detailStudent.finalGrade < 75 ? 'text-red-600' : 'text-green-700'}`}>{detailStudent.finalGrade.toFixed(2)}</div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Performance</div>
+                <div className={`mt-1 text-2xl font-extrabold ${detailStudent.overallPerformance >= 75 ? 'text-green-700' : detailStudent.overallPerformance >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                  {detailStudent.overallPerformance.toFixed(1)}%
                 </div>
-                <div>
-                  <div className="text-[10px] font-bold text-gray-400 uppercase">Performance</div>
-                  <div className={`text-lg font-extrabold ${detailStudent.overallPerformance >= 75 ? 'text-green-700' : detailStudent.overallPerformance >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
-                    {detailStudent.overallPerformance.toFixed(1)}%
-                  </div>
-                  <div className="text-[10px] text-gray-400">points earned</div>
-                </div>
-                <div>
-                  <div className="text-[10px] font-bold text-gray-400 uppercase">Attendance</div>
-                  <div className="text-lg font-extrabold text-cyan-700">{(detailStudent.attendanceRate * 100).toFixed(1)}%</div>
-                  <div className="text-[10px] text-gray-400">sessions attended</div>
-                </div>
-                <div>
-                  <div className="text-[10px] font-bold text-gray-400 uppercase">Submitted</div>
-                  <div className="text-lg font-extrabold text-purple-700">{(detailStudent.overallSubRate * 100).toFixed(1)}%</div>
-                  <div className="text-[10px] text-gray-400">work turned in</div>
-                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Attendance</div>
+                <div className="mt-1 text-2xl font-extrabold text-cyan-700">{(detailStudent.attendanceRate * 100).toFixed(1)}%</div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Submitted</div>
+                <div className="mt-1 text-2xl font-extrabold text-purple-700">{(detailStudent.overallSubRate * 100).toFixed(1)}%</div>
               </div>
             </div>
 
@@ -896,23 +891,34 @@ const BehavioralAnalytics = () => {
                 const statusBorder = cd.equiv >= 75 ? 'border-l-4 border-l-green-500' : cd.equiv >= 50 ? 'border-l-4 border-l-amber-500' : 'border-l-4 border-l-red-500';
                 return (
                   <div key={comp.id} className={`border border-gray-200 rounded-xl p-4 ${statusBorder}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-extrabold text-sidebar">{comp.name}</span>
-                        <span className="text-[10px] text-gray-400">({comp.weight}%)</span>
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <span className="text-base font-bold text-sidebar">{comp.name}</span>
+                      <span className="text-sm text-gray-500">Weight {comp.weight}%</span>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="rounded-lg bg-gray-50 px-3 py-2">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Weighted Total</div>
+                        <div className="mt-0.5 text-base font-bold text-yellow-700">{cd.weighted.toFixed(2)}</div>
                       </div>
-                      <div className="flex items-center gap-3 text-xs font-bold">
-                        <span className="text-yellow-700">W_TOTAL: {cd.weighted.toFixed(2)}</span>
-                        <span className={`${cd.equiv < 75 ? 'text-red-600' : 'text-green-700'}`}>EQUIV: {cd.equiv.toFixed(2)}</span>
-                        <span className="text-blue-600">Performance: {cd.performance.toFixed(1)}%</span>
-                        <span className="text-gray-500">Sub: {(cd.submissionRate * 100).toFixed(0)}%</span>
+                      <div className="rounded-lg bg-gray-50 px-3 py-2">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Equivalent</div>
+                        <div className={`mt-0.5 text-base font-bold ${cd.equiv < 75 ? 'text-red-600' : 'text-green-700'}`}>{cd.equiv.toFixed(2)}</div>
+                      </div>
+                      <div className="rounded-lg bg-gray-50 px-3 py-2">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Performance</div>
+                        <div className="mt-0.5 text-base font-bold text-blue-600">{cd.performance.toFixed(1)}%</div>
+                      </div>
+                      <div className="rounded-lg bg-gray-50 px-3 py-2">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Submitted</div>
+                        <div className="mt-0.5 text-base font-bold text-gray-600">{(cd.submissionRate * 100).toFixed(0)}%</div>
                       </div>
                     </div>
 
                     {cd.is_attendance ? (
-                      <div className="flex items-center gap-3 text-xs">
-                        <span className="w-32 font-semibold text-gray-700 truncate">Sessions</span>
-                        <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                      <div className="mt-3 flex items-center gap-3 text-sm">
+                        <span className="w-32 shrink-0 font-semibold text-gray-700 truncate">Sessions</span>
+                        <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all"
                             style={{
@@ -921,31 +927,31 @@ const BehavioralAnalytics = () => {
                             }}
                           />
                         </div>
-                        <span className="w-24 text-right font-mono text-gray-600">{cd.total} / {cd.maxTotal}</span>
+                        <span className="w-24 shrink-0 text-right font-mono text-gray-600">{cd.total} / {cd.maxTotal}</span>
                         <span
-                          className="w-12 text-right font-bold"
+                          className="w-12 shrink-0 text-right font-bold"
                           style={{ color: cd.performance >= 75 ? '#16a34a' : cd.performance >= 50 ? '#f59e0b' : '#ef4444' }}
                         >
                           {cd.performance.toFixed(0)}%
                         </span>
                       </div>
                     ) : (
-                      <div className="space-y-1">
-                        {cd.activities.map((act, i) => {
+                      <div className="mt-3 space-y-2">
+                        {cd.activities.map((act) => {
                           const pct = act.activity.max_score ? (act.score / act.activity.max_score) * 100 : 0;
                           return (
-                            <div key={act.activity.id} className="flex items-center gap-3 text-xs">
-                              <span className="w-32 font-semibold text-gray-700 truncate">{act.activity.name}</span>
-                              <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                            <div key={act.activity.id} className="flex items-center gap-3 text-sm">
+                              <span className="w-36 shrink-0 font-semibold text-gray-700 truncate">{act.activity.name}</span>
+                              <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
                                 <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: pct >= 75 ? '#16a34a' : pct >= 50 ? '#f59e0b' : '#ef4444' }} />
                               </div>
-                              <span className="w-24 text-right font-mono text-gray-600">{act.score} / {act.activity.max_score}</span>
-                              <span className="w-12 text-right font-bold" style={{ color: pct >= 75 ? '#16a34a' : pct >= 50 ? '#f59e0b' : '#ef4444' }}>{pct.toFixed(0)}%</span>
+                              <span className="w-24 shrink-0 text-right font-mono text-gray-600">{act.score} / {act.activity.max_score}</span>
+                              <span className="w-12 shrink-0 text-right font-bold" style={{ color: pct >= 75 ? '#16a34a' : pct >= 50 ? '#f59e0b' : '#ef4444' }}>{pct.toFixed(0)}%</span>
                             </div>
                           );
                         })}
                         {cd.activities.length >= 2 && (
-                          <div className={`flex items-center gap-2 text-xs font-bold mt-2 pt-2 border-t border-gray-100 ${
+                          <div className={`flex items-center gap-2 text-sm font-bold mt-2 pt-2 border-t border-gray-100 ${
                             cd.trend === 'improving' ? 'text-green-700' : cd.trend === 'declining' ? 'text-red-600' : 'text-gray-600'
                           }`}>
                             <span className={`p-1 rounded-full ${
@@ -965,35 +971,35 @@ const BehavioralAnalytics = () => {
               {/* AI Summary */}
               <div className="border border-gray-200 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="text-sm font-extrabold text-gray-800">AI Student Summary</div>
+                  <div className="text-base font-bold text-gray-800">AI Student Summary</div>
                   <button
                     onClick={handleSummarizeWithAI}
                     disabled={aiLoading}
-                    className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    {aiLoading ? <Loader size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {aiLoading ? <Loader size={16} className="animate-spin" /> : <Sparkles size={16} />}
                     {aiLoading ? 'Analyzing student performance...' : 'Summarize Student Behaviour with AI'}
                   </button>
                 </div>
 
                 {aiError && (
-                  <div className="mt-3 flex items-start gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
-                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                  <div className="mt-3 flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
+                    <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                     <span>{aiError}</span>
                   </div>
                 )}
 
                 {aiReport && (
-                  <div className="mt-3 space-y-3 text-xs">
+                  <div className="mt-4 space-y-4 text-sm">
                     {aiReport.summary && (
                       <div>
-                        <div className="font-bold text-gray-700 uppercase text-[10px] mb-1">Overall</div>
+                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Overall</div>
                         <p className="text-gray-600 leading-relaxed">{aiReport.summary}</p>
                       </div>
                     )}
                     {Array.isArray(aiReport.strengths) && aiReport.strengths.length > 0 && (
                       <div>
-                        <div className="font-bold text-gray-700 uppercase text-[10px] mb-1">Strengths</div>
+                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Strengths</div>
                         <ul className="space-y-1">
                           {aiReport.strengths.map((s, i) => (
                             <li key={i} className="text-green-700">✓ {s}</li>
@@ -1003,12 +1009,12 @@ const BehavioralAnalytics = () => {
                     )}
                     {Array.isArray(aiReport.areas_of_attention) && aiReport.areas_of_attention.length > 0 && (
                       <div>
-                        <div className="font-bold text-gray-700 uppercase text-[10px] mb-1">Areas to Monitor</div>
+                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Areas to Monitor</div>
                         <ul className="space-y-1">
                           {aiReport.areas_of_attention.map((a, i) => (
                             <li key={i} className="text-gray-600">
                               <span className="font-bold text-amber-700">⚠ {a.area}</span>
-                              {a.priority && <span className="ml-1 text-[10px] text-gray-400">({a.priority})</span>}
+                              {a.priority && <span className="ml-1 text-xs text-gray-400">({a.priority})</span>}
                               <span className="block text-gray-500">{a.observation}</span>
                             </li>
                           ))}
@@ -1017,7 +1023,7 @@ const BehavioralAnalytics = () => {
                     )}
                     {Array.isArray(aiReport.suggested_actions) && aiReport.suggested_actions.length > 0 && (
                       <div>
-                        <div className="font-bold text-gray-700 uppercase text-[10px] mb-1">Suggested Actions</div>
+                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Suggested Actions</div>
                         <ol className="list-decimal ml-4 space-y-1 text-gray-600">
                           {aiReport.suggested_actions.map((s, i) => <li key={i}>{s}</li>)}
                         </ol>
@@ -1025,18 +1031,19 @@ const BehavioralAnalytics = () => {
                     )}
                     {Array.isArray(aiReport.follow_up) && aiReport.follow_up.length > 0 && (
                       <div>
-                        <div className="font-bold text-gray-700 uppercase text-[10px] mb-1">Follow-up</div>
+                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Follow-up</div>
                         <ul className="list-disc ml-4 space-y-1 text-gray-600">
                           {aiReport.follow_up.map((s, i) => <li key={i}>{s}</li>)}
                         </ul>
                       </div>
                     )}
-                    <p className="text-[10px] text-gray-400 pt-2 border-t border-gray-100">
+                    <p className="text-xs text-gray-400 pt-2 border-t border-gray-100">
                       AI-generated analysis based on the student's available academic records.
                     </p>
                   </div>
                 )}
               </div>
+            </div>
             </div>
           </div>
         </div>

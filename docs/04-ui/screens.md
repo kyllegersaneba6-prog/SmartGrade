@@ -2,43 +2,64 @@
 
 ## Login (`/login`)
 
-Dark mode 2-column layout. Left column: login form card (logo, username/password fields, "Remember Me", forgot password link, show/hide password toggle, Sign In button). Right column (hidden below 1024px): hero section with abstract geometric decorations (gradient circles, grid overlay, diagonal SVG lines), brand header, tagline, feature list with icons, and compact copyright footer. Role-based redirect after login.
+Public. Two-column split:
+
+- **Left (form):** logo, "SmartGrade", "Academic Management System", username (`User` icon), password (`Lock` icon + show/hide), amber **Sign In**, "Institutional Access Only".
+- **Right (hero, `lg+` only):** blurred `STI_Background.png`, brand lockup, four feature blocks (Grade Computation & Analytics, Attendance Tracking, Class & Teacher Management, Performance Reports), "© 2026 SmartGrade Educational Systems."
+- Network failures show "Cannot connect to the server. Please check your connection and try again."
+- Redirect: teacher → `/teacher/dashboard`, admin → `/admin`, superadmin → `/superadmin`.
 
 ## Superadmin Pages
 
-| Route | Screen | Description |
+| Route | Component | Description |
 |---|---|---|
-| `/superadmin` | GlobalAnalytics | Metric cards (accounts, faculty, admins, logs), department overview table, system activity feed, broadcast notification form |
-| `/superadmin/security` | SecurityAudit | Metric cards (critical alerts, system accesses, data exports), paginated audit log table |
-| `/superadmin/users` | SuperAdminUsers | Admin list with CRUD, pagination, Excel export |
-| `/superadmin/users/create` | CreateSuperAdminUser | Create new admin form |
-| `/superadmin/departments` | ManageDepartments | Department CRUD + nested course CRUD |
-| `/superadmin/settings` | SuperAdminSettings | Create academic term, end active term |
+| `/superadmin` | `SuperAdminDashboard` | Four metrics (Total Accounts, Faculty Members, Admin Accounts, Audit logs), Department User Overview table, recent activity feed, Broadcast Notification form (not wired) |
+| `/superadmin/security` | `SecurityAudit` | Critical alerts / total events, filterable audit trail (All, Created, Updated, Deleted, Failed Logins, Successful Logins), 10 per page, 10 s auto-refresh |
+| `/superadmin/users` | `SuperAdminUsers` | Admin accounts table, add/edit/delete (typed `Confirm`), Excel export, "No Active Term" gate before creating |
+| `/superadmin/users/create` | `CreateSuperAdminUser` | Full-screen create-admin form: staff ID, names, department (departments with an admin are disabled), read-only username |
+| `/superadmin/departments` | `ManageDepartments` | Department accordions with nested course CRUD, abbreviation editing, typed-confirm deletes |
+| `/superadmin/settings` | `SuperAdminSettings` | Term lifecycle (Create Term, End Semester) + `BackupRestore` panel |
 
 ## Admin Pages
 
-| Route | Screen | Description |
+| Route | Component | Description |
 |---|---|---|
-| `/admin` | AdminDashboard | Welcome banner, active term, stat cards, teacher overview, recent activity (role-scoped — admin sees department-only, own actions prefixed with "You...") — consumes `AdminContext` for `currentTerm` and `isArchiveMode` |
-| `/admin/teachers` | AdminTeachers | Teacher list with CRUD, assignment management (additive — never overwrites), "Assigned Course" column filtered to `currentTerm` only, View modal filters assignments to `currentTerm` with Active/Historical badges referencing `activeTerm`, pagination, Excel export — Assign button disabled in archive mode with tooltip; consumes `AdminContext` |
-| `/admin/teachers/create` | CreateAdminTeacher | Create teacher form |
-| `/admin/sections` | AdminSections | Year-level tabs, course filter, section/student CRUD (structured: Student ID, First Name, Last Name, MI, Gender), Gender column in table, import students from Excel with duplicate detection/preview, seed, archiving |
-| `/admin/subjects` | AdminSubjects | Semester filter dropdown, course filter, semester selector in add modal, subjects persist across school years, add/delete subjects, view assignments — add/delete buttons disabled in archive mode; consumes `AdminContext` |
-| `/admin/settings` | AdminSettings | Active term display (read-only), no term management |
+| `/admin` | `AdminDashboard` | Welcome header, Total Teachers / Courses / Activity metrics, Teacher Overview with subject counts, Recent Activities feed |
+| `/admin/teachers` | `AdminTeachers` | Teacher table (ID, Name, Username, Assigned Course, Actions); Add Teacher, Export, row menu (Assign, View Assigned, Edit, Delete); assignment modals with Active/Historical grouping |
+| `/admin/teachers/create` | `CreateAdminTeacher` | Full-screen create-teacher form with auto-generated username preview |
+| `/admin/sections` | `AdminSections` | Course + year filters; sections panel (add/delete); roster panel (Add Student, Add Multiple, Import, pagination); Excel import preview |
+| `/admin/subjects` | `AdminSubjects` | Course + semester filters; four year-level columns; add multiple subjects; assigned-subjects modal; delete |
+| `/admin/bulk-students` | `BulkStudentImport` | Excel-template builder (`firstname`, `lastname`, `middle initial`, `student id`, `gender`); downloads blank or filled `.xlsx` |
+| `/admin/settings` | `AdminSettings` | Active term card, term history, archive entry/exit with confirmation modal |
+
+Notes:
+- `/admin/bulk-students` is not linked from the UI and the header title falls back to "Settings".
+- Create-account pages reached by URL cannot be cancelled (their `onClose` prop is undefined).
 
 ## Teacher Pages
 
-| Route                    | Screen              | Description                                                                                                                  |
-| ------------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `/teacher/dashboard`     | Dashboard           | Welcome banner, displays current term, AssignmentSelector (no archive entry), assigned classes by year level                           |
-| `/teacher/attendance`    | Attendance          | Attendance matrix with date columns, student rows, 0/1/2 inputs, auto-save, read-only when term closed, paginated (15 per page)                       |
-| `/teacher/class-record`  | ClassRecord         | Full class record with term tabs, component cards, score entry table, computations, Excel export, read-only when term closed, paginated (15 per page) |
-| `/teacher/analytics`     | BehavioralAnalytics | Student performance charts, trends, detail panel, paginated (15 per page)                                                                             |
-| `/teacher/grade-summary` | GradeSummary        | Per-term grade table, grade-point conversion with classification remarks (Excellent, Very Good, etc.), final average, grade point scale legend table, Excel export, paginated (15 per page) |
-| `/teacher/settings`      | TeacherSettings     | Active term display, term history list, archive mode entry/exit with confirmation modal                                      |
+| Route | Component | Description |
+|---|---|---|
+| `/teacher`, `/teacher/dashboard` | `TeacherDashboard` | Welcome header, assigned classes grouped by year level, archive chip + Exit Archive when browsing |
+| `/teacher/attendance` | `Attendance` | Term tabs, Add Date (date + AM/PM + LEC/LAB), attendance matrix, 0/1/2 entry, autosave, delete column, Excel export |
+| `/teacher/class-record` | `ClassRecord` | Term tabs, component builder (presets, weights, attendance component, activities, drag reorder), wide score matrix with TOTAL / EQUIV / W_TOTAL / final grade, Excel + PDF export |
+| `/teacher/analytics` | `BehavioralAnalytics` | Four KPI cards, sortable student table (per-component EQUIV, performance, submission %, final grade, attendance, trend), student modal with AI summary, Excel + PDF export |
+| `/teacher/grade-summary` | `GradeSummary` | Per-term grade + G.P., semestral grade/G.P./remarks, grade-point legend, Excel + PDF export |
+| `/teacher/settings` | `TeacherSettings` | Active term card, term history, archive confirmation modal, Exit Archive |
 
-All teacher pages include:
-- **Floating Assignment Selector** — dropdown at the top for switching subjects/sections, lists filtered assignments from `TeacherContext` — no term-selection, confirmation modal, or archive entry/exit features.
-- **Amber archive badge** when viewing a past term, plus "Exit Archive" capability.
-- **Amber archive banner** in TeacherLayout showing "Viewing: {term} — Read Only" with Exit Archive button.
-- **Read-only mode** for closed terms — inputs disabled, add/delete buttons hidden, amber banner displayed.
+Shared teacher-page elements:
+- **Floating Assignment Selector** — assignment switching only; no term selection or archive entry.
+- **Term tabs** — PRELIMS / MIDTERMS / PRE-FINALS / FINALS.
+- **Read-only state** for closed terms: inputs disabled, mutate buttons hidden, banner "This term is closed. Viewing only."
+- **Amber archive banner** from `TeacherLayout` when a past term is being viewed.
+
+## Screen States
+
+| State | Where |
+|---|---|
+| Skeleton loading (header/metrics/table/list/grid) | Dashboards, sections, settings, users |
+| Empty state with icon at 30% opacity | Tables, feeds, assigned-classes grids |
+| Typed confirmation (`Confirm` / `CONFIRM` / `FULL RESTORE`) | Deletes, end semester, restore |
+| Amber clamp warning (3 s) | Attendance and Class Record score/weight inputs |
+| Success banner | Create-account pages, broadcast form (local only) |
+| No active term | Settings pages, teacher dashboard, Add Admin gate |

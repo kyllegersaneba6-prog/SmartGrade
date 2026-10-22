@@ -13,6 +13,10 @@ import { exportTablePdf } from '../../utils/exportPdf';
 
 const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
 
+// Standard grading-component names offered in the name dropdown. Anything else
+// is treated as a custom name and shown as a free-text input.
+const COMPONENT_NAME_PRESETS = ['Assignment', 'Activity', 'Quiz', 'Performance Task', 'Exam'];
+
 const COMPONENT_COLORS = [
   { bg: '#0f172a', border: '#0f172a', light: '#eef2f6', headerBg: '#0f172a', headerBorder: '#0f172a' },
   { bg: '#0f172a', border: '#0f172a', light: '#eef2f6', headerBg: '#0f172a', headerBorder: '#0f172a' },
@@ -41,6 +45,7 @@ const ClassRecord = () => {
   const [addCompOpen, setAddCompOpen] = useState(false);
   const [addingComp, setAddingComp] = useState(null);
   const [addingActivityId, setAddingActivityId] = useState(null);
+  const [customNameIds, setCustomNameIds] = useState({});
   const [copyingPrelims, setCopyingPrelims] = useState(false);
   const [error, setError] = useState('');
   const [clampWarnings, setClampWarnings] = useState({});
@@ -251,6 +256,30 @@ const ClassRecord = () => {
     }
   };
 
+  // Set a standard name from the dropdown and persist it immediately.
+  const applyComponentPreset = (comp, name) => {
+    setComponents(prev => prev.map(c => c.id === comp.id ? { ...c, name } : c));
+    updateComponent(comp.id, { name });
+  };
+
+  // "+ Add" turns the dropdown into a free-text input so a custom name can be
+  // typed. The input's ref callback focuses and selects the existing text.
+  const enableCustomComponentName = (comp) => {
+    setCustomNameIds(prev => ({ ...prev, [comp.id]: true }));
+    focusCompIdRef.current = comp.id;
+  };
+
+  // Back arrow in custom mode returns the field to the preset dropdown. The
+  // typed name is kept and shown as a selectable option.
+  const exitCustomComponentName = (comp) => {
+    setCustomNameIds(prev => {
+      const next = { ...prev };
+      delete next[comp.id];
+      return next;
+    });
+    focusCompIdRef.current = comp.id;
+  };
+
   // Delete component
   const deleteComponent = async (id) => {
     try {
@@ -302,8 +331,9 @@ const ClassRecord = () => {
   // Add activity
   const addActivity = async (componentId) => {
     if (addingActivityId) return;
-    setAddingActivityId(componentId);
     const parent = components.find(c => c.id === componentId);
+    if (!parent || !isTableReady(parent)) return;
+    setAddingActivityId(componentId);
     const autoName = nextActivityName(parent);
     try {
       const res = await api('http://localhost:5000/api/component-activities', {
@@ -885,7 +915,25 @@ const ClassRecord = () => {
 
   return (
     <div className="space-y-6">
-      <AssignmentSelector />
+      <div className="flex flex-wrap items-center gap-3">
+        <AssignmentSelector />
+        <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
+          {TERMS.map((t) => (
+            <button
+              key={t}
+              onClick={() => setSelectedTerm(t)}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                selectedTerm === t
+                  ? 'bg-sidebar text-white shadow-sm'
+                  : 'text-text-muted hover:text-sidebar'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+          {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
+        </div>
+      </div>
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-100 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
@@ -900,23 +948,6 @@ const ClassRecord = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-          <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
-            {TERMS.map((t) => (
-              <button
-                key={t}
-                onClick={() => setSelectedTerm(t)}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                  selectedTerm === t
-                    ? 'bg-sidebar text-white shadow-sm'
-                    : 'text-text-muted hover:text-sidebar'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-            {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
-          </div>
-
           <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
         </div>
       </div>
@@ -984,6 +1015,12 @@ const ClassRecord = () => {
                     (comp?.is_attendance || String(comp?.name || '').trim() !== '') ? null : 'a name',
                     parseFloat(comp?.weight) > 0 ? null : 'a percentage',
                   ].filter(Boolean);
+                  const isCustomName = !!customNameIds[comp.id];
+                  // Keep a previously typed custom name selectable when the
+                  // back arrow returns the field to the dropdown.
+                  const savedCustomName = String(comp?.name || '').trim() !== '' && !COMPONENT_NAME_PRESETS.includes(comp.name)
+                    ? comp.name
+                    : null;
                   return (
                     <div key={comp.id} className={`group w-full rounded-xl border card-hover shadow-sm overflow-visible hover:shadow-md transition-shadow bg-gray-200 relative ${needsSetup && !isReadOnly ? 'border-red-300 ring-1 ring-red-300' : 'border-gray-200'}`}>
                       {needsSetup && !isReadOnly && (
@@ -996,17 +1033,48 @@ const ClassRecord = () => {
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           {comp.is_attendance ? (
                             <span className="text-sm font-extrabold text-sidebar px-1 py-0.5">Attendance</span>
+                          ) : isCustomName ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => exitCustomComponentName(comp)}
+                                title="Back to the list"
+                                disabled={isReadOnly}
+                                className="shrink-0 -ml-1 p-0.5 text-sidebar/60 hover:text-sidebar transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <ArrowLeft size={13} />
+                              </button>
+                              <input
+                                type="text"
+                                value={comp.name}
+                                onChange={(e) => setComponents(prev => prev.map(c => c.id === comp.id ? { ...c, name: e.target.value } : c))}
+                                onBlur={() => updateComponent(comp.id, { name: comp.name })}
+                                ref={(el) => { if (el && focusCompIdRef.current === comp.id) { focusCompIdRef.current = null; el.focus(); el.select(); } }}
+                                className="text-sm font-extrabold text-sidebar bg-gray-200 border-b border-transparent hover:border-sidebar/20 focus:border-gold focus:outline-none px-1 py-0.5 flex-1 min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                placeholder="Assessment"
+                                disabled={isReadOnly}
+                              />
+                            </>
                           ) : (
-                            <input
-                              type="text"
-                              value={comp.name}
-                              onChange={(e) => setComponents(prev => prev.map(c => c.id === comp.id ? { ...c, name: e.target.value } : c))}
-                              onBlur={() => updateComponent(comp.id, { name: comp.name })}
-                              ref={(el) => { if (el && focusCompIdRef.current === comp.id) { focusCompIdRef.current = null; el.focus(); el.select(); } }}
-                              className="text-sm font-extrabold text-sidebar bg-transparent border-b border-transparent hover:border-sidebar/20 focus:border-gold focus:outline-none px-1 py-0.5 flex-1 min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                              placeholder="Assessment"
+                            <select
+                              value={String(comp.name || '')}
+                              onChange={(e) => {
+                                if (e.target.value === '__custom__') enableCustomComponentName(comp);
+                                else applyComponentPreset(comp, e.target.value);
+                              }}
+                              ref={(el) => { if (el && focusCompIdRef.current === comp.id) { focusCompIdRef.current = null; el.focus(); } }}
+                              className="text-sm font-extrabold text-sidebar bg-gray-200 border-b border-transparent hover:border-sidebar/20 focus:border-gold focus:outline-none px-1 py-0.5 flex-1 min-w-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                               disabled={isReadOnly}
-                            />
+                            >
+                              <option value=""></option>
+                              {COMPONENT_NAME_PRESETS.map((preset) => (
+                                <option key={preset} value={preset}>{preset}</option>
+                              ))}
+                              {savedCustomName && (
+                                <option value={savedCustomName}>{savedCustomName}</option>
+                              )}
+                              <option value="__custom__">+ Add</option>
+                            </select>
                           )}
                           {needsSetup && !isReadOnly && (
                             <span title={`This component needs ${missing.join(' and ')}`} className="shrink-0 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-extrabold flex items-center justify-center cursor-help">
@@ -1087,7 +1155,8 @@ const ClassRecord = () => {
                         {!comp.is_attendance && !isReadOnly && (
                             <button
                               onClick={() => addActivity(comp.id)}
-                              disabled={addingActivityId === comp.id}
+                              disabled={addingActivityId === comp.id || needsSetup}
+                              title={needsSetup ? 'Set the assessment name and percentage before adding activities' : undefined}
                               className="w-full text-[10px] font-bold text-white flex items-center justify-center gap-1 py-1.5 rounded-lg border border-transparent hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                               style={{ backgroundColor: '#0c1925' }}
                             >
@@ -1246,7 +1315,7 @@ const ClassRecord = () => {
                       </th>
                     );
                   })}
-                  <th className="bg-gold border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-base uppercase tracking-wider min-w-[120px] relative z-0">
+                  <th className="bg-amber-400 border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-base uppercase tracking-wider min-w-[120px] relative z-0">
                     {selectedTerm === 'PRELIMS' ? 'PRE' : selectedTerm === 'MIDTERMS' ? 'MID' : selectedTerm === 'PRE-FINALS' ? 'P-F' : 'FIN'} GRADE
                   </th>
                 </tr>

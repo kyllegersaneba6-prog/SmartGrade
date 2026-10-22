@@ -1,5 +1,9 @@
 # Grade Point System
 
+> **Implementation status:** the numeric scale below is implemented in
+> `frontend/src/utils/gradeCalculations.js` (`GRADE_RANGES`). The special marks
+> DRP / P / F are **not implemented** — the app only accepts numeric grades.
+
 | Grade | Equivalence         | Description                                                            |
 | ----- | ------------------- | ---------------------------------------------------------------------- |
 | 1.00  | 98.00 - 100.00      | Excellent                                                              |

@@ -1,7 +1,5 @@
 -- SmartGrade Database Schema
 -- Run this in your Supabase SQL Editor
--- opencode -s ses_18afc202fffen3Qt6YBJmaj0xj --Rency
--- opencode -s ses_185088859ffePdj6pfZwQm0xJe --Rency
 
 -- 1. Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

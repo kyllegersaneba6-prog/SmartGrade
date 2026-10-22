@@ -35,5 +35,8 @@
     "globals": "^17.5.0",
     "stream-browserify": "^3.0.0",
     "vite": "^8.0.10"
+  },
+  "allowScripts": {
+    "core-js@3.50.0": true
   }
 }

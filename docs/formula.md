@@ -6,7 +6,7 @@ This document traces the full path from a student's raw activity scores to their
 
 ## Step 1: Attendance Scoring
 
-Each attendance date creates two rows (AM/PM session), each scored:
+Each attendance column is one **date + session (AM/PM) + type (Lecture/Laboratory)** combination, and every student gets one mark per column:
 
 | Input | Value | Meaning |
 |-------|-------|---------|
@@ -15,9 +15,9 @@ Each attendance date creates two rows (AM/PM session), each scored:
 | Attendance mark | 2 | Present |
 
 ```
-Per-student Attendance Total = sum of all attendance marks across all dates
+Per-student Attendance Total = sum of all attendance marks across all columns
 
-Max Attendance Total = (number of unique date+session+type rows) × 2
+Max Attendance Total = (number of unique date+session+type columns) × 2
 ```
 
 **Example:**
@@ -157,13 +157,12 @@ Otherwise, scan GRADE_RANGES from top to bottom:
   If numeric grade >= threshold, return that grade point and description.
 ```
 
-**Continuing the example (overall = 91.94):**
+**Continuing the example (overall = 92.15):**
 ```
 Scan GRADE_RANGES:
-  91.94 >= 98?  No
-  91.94 >= 95?  No
-  91.94 >= 92?  No
-  91.94 >= 89?  Yes → Grade Point = 1.75, Description = "Very Good"
+  92.15 >= 98?  No
+  92.15 >= 95?  No
+  92.15 >= 92?  Yes → Grade Point = 1.50, Description = "Very Good"
 ```
 
 ### Full Grade Point Scale
@@ -328,9 +327,11 @@ Overall Performance = (144 / 160) × 100 = 90.00%
 
 ---
 
-## Special Marks (Non-Numeric)
+## Special Marks (Non-Numeric) — Not Implemented
 
-Some courses use non-numeric grades. These bypass all computation:
+> ⚠️ The current build has no support for non-numeric marks. Every grade is numeric. The table below is a future specification only.
+
+Some courses use non-numeric grades. These would bypass all computation:
 
 | Mark | Meaning |
 |------|---------|

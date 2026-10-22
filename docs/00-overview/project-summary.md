@@ -6,49 +6,69 @@ SmartGrade is a full-stack academic grading and classroom management web applica
 
 ## Main Purpose
 
-Replace paper-based or spreadsheet-based grading with a centralized, role-based web platform. Teachers record attendance and compute grades; admins manage sections, subjects, and teacher assignments; superadmins oversee the entire institution.
+Replace paper-based or spreadsheet-based grading with a centralized, role-based web platform. Teachers record attendance and compute grades; admins manage sections, subjects, and teacher assignments; superadmins oversee the entire institution and own academic-term control.
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Backend | Node.js (v20+), Express.js 5 |
-| Database | PostgreSQL (Supabase) |
-| Auth | bcryptjs + JWT |
+| Database | PostgreSQL (Supabase), accessed with `@supabase/supabase-js` service-role key |
+| Auth | bcryptjs + JWT (`expiresIn: '1d'`) |
 | Frontend | React 19, Vite 8, Tailwind CSS 4 |
+| Routing | React Router DOM 7 |
 | Charts | Recharts |
 | Icons | Lucide React |
-| Excel Export | xlsx / xlsx-js-style |
-| Routing | React Router DOM 7 |
+| Export | `xlsx` / `xlsx-js-style` (Excel), `jspdf` + `jspdf-autotable` (PDF) — all client-side |
+| AI | OmniRoute gateway (OpenAI-compatible HTTP) via `backend/services/` |
+
+## Roles
+
+| Role | Scope |
+|---|---|
+| Superadmin | Institution-wide. Departments, courses, admin accounts, academic terms, audit trail, backup/restore. |
+| Admin | One department. Teachers, sections, students, subjects, teacher assignments. No grading writes. |
+| Teacher | Own assignments only. Attendance, grading components, scores, analytics, grade summary. No structural writes. |
 
 ## Main Features
 
-- Three roles: Superadmin, Admin, Teacher
-- Role-based dashboards and navigation
-- Department, course, section, subject, and user management
-- Student management with structured details (First Name, Last Name, MI, Gender)
-- Import students from Excel with duplicate ID detection and preview
-- Teacher assignment to sections/subjects
-- Superadmin-only academic term management (create/end terms, no auto-detection)
-- Subjects persist across school years with semester-scoping (1st/2nd Semester, Summer, All)
-- Attendance recording with date columns, AM/PM sessions, 0/1/2 scoring
-- Class record with weighted grading components, activities, score entry, auto-computed equivalents and final grades
-- Grade summary across 4 terms (PRELIMS, MIDTERMS, PRE-FINALS, FINALS)
-- Grade-point scale conversion (1.00 = 98–100%, ..., 5.00 = below 75%) with classification remarks (Excellent, Very Good, Satisfactory, Fair, Failed)
-- Behavioral analytics with charts
-- Excel export for class records and grade summaries
-- Activity/audit logging — role-scoped: superadmin sees all, admin sees department users only, superadmins excluded
-- Global assignment selector (persists across teacher pages via React Context + localStorage)
-- AdminContext: shared term/archive state across admin pages (React Context + localStorage)
-- Read-only mode for closed terms (backend 403 + frontend disabled controls)
-- Archive mode browsing — teachers can view past terms in read-only mode via TeacherSettings (only entry point)
-- Teacher Settings page for browsing term history and managing archive mode entry/exit
-- Confirmation modal before entering archive mode (shown in TeacherSettings only)
-- TeacherLayout inner component pattern with archive mode amber banner
-- Sidebar Settings nav item for teachers (gear icon, links to `/teacher/settings`)
-- Department-wide subjects (course_id = null)
-- One admin per department — enforced on POST and PATCH /api/users
+**Organization & people**
+- Department + course management with abbreviations
+- Admin accounts (one per department, enforced in app code)
+- Teacher accounts with 9-digit staff ID and auto-generated username
+- Section auto-naming (`<course abbr> <year>-<section letter>`) with duplicate checks
+- Student records with structured fields (First Name, Last Name, MI, Gender)
+- Excel student import with duplicate detection and preview
+
+**Terms & access**
+- Superadmin-only academic term create/end (no date auto-detection)
+- Role-scoped dashboards and navigation
+- Read-only enforcement for closed terms (backend 403 + disabled controls)
+- Archive mode: teachers and admins browse past terms read-only
+- Failed-login audit entries (deduped per username per 60 s)
+
+**Teaching & grading**
+- Subjects persist across school years, semester-scoped (1st/2nd/Summer/All)
+- Teacher assignment to section + subject per term (additive, never overwrites)
+- Attendance: date columns with AM/PM session and Lecture/Laboratory type, 0/1/2 scoring
+- Class record: weighted components, sub-activities, per-activity scores, drag-drop reorder, copy-from-PRELIMS
+- Auto-computed totals, 50-base transmutation, weighted equivalents, final term grade
+- Grade summary across 4 terms with 20/20/20/40 weighting and grade-point remarks
+- Behavioral analytics (component performance, submission rate, attendance, linear-regression trend)
+- AI student narrative summary (read-only; AI never computes grades)
+
+**Data & operations**
+- Activity/audit logging, role-scoped (superadmin all; admin department-only; teacher empty)
+- Backup/restore (`.backup.sg`), checksummed, optional AES-256-GCM encryption, merge/replace/full modes
+- Excel and PDF export for class records, summaries, attendance, analytics, and account lists
 
 ## Current Status
 
-Functional MVP. Core grading, attendance, and user management are working. Teacher and admin contexts shared globally via React Context (`TeacherContext`, `AdminContext`). Closed terms are read-only enforced on both ends. Archive mode lets teachers and admins browse past terms. No tests, no TypeScript, no centralized API client.
+Functional MVP. Core grading, attendance, and user management work end to end.
+
+Known gaps (see `05-development/notes.md`):
+- No tests, no TypeScript, no centralized API client (frontend hardcodes `http://localhost:5000`).
+- Superadmin "Broadcast Notification" UI is not wired to an API.
+- No 404 page and no catch-all route.
+- No backend 404/error middleware — unmatched routes return Express HTML.
+- Grade computation, grade-point conversion, and all Excel/PDF work live in the frontend, not the backend.

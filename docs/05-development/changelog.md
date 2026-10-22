@@ -1,5 +1,54 @@
 # Changelog
 
+## 2026-10-22
+
+### Changed: Teacher pages — term tabs moved beside the assignment/term dropdown
+
+- Attendance, Class Record, and Behavioral Analytics: the `PRELIMS / MIDTERMS / PRE-FINALS / FINALS` tab strip moved out of the title card's right-side action group. It now sits in the same row as the assignment/term dropdown, above the title card.
+- Grade Summary has no term tab strip because it displays all terms at once, so only its assignment/term dropdown row applies (unchanged).
+- Export buttons remain on the right side of the title card; Attendance's Add Date control also stays there.
+
+### Changed: Analytics table header — merged TOTAL group
+
+- In the Behavioral Analytics table, the upper header row now shows a single centered **TOTAL** header spanning the FINAL, SUB%, ATT%, and PERFORMANCE columns instead of repeating each label. The header uses `bg-amber-400` with `text-[#0c1925]` and an amber bottom border (no dark line).
+- The lower header row keeps the sortable FINAL / SUB% / ATT% / PERFORMANCE labels, so sorting is unchanged. These labels now use the same `bg-gray-100/50` + `text-sidebar` styling as the per-component EQUIV / Performance / Sub% row.
+
+### Changed: Behavioral Analytics student modal — cleaner layout, larger text
+
+- Rebuilt the detail modal as a fixed-height panel: static header (student name, ID, final-grade badge) plus a separately scrolling body, wider (`max-w-4xl`) and taller (`85vh`).
+- Replaced the cramped inline `W_TOTAL / EQUIV / Sub` metrics with four labeled tiles: **Weighted Total**, **Equivalent**, **Performance**, **Submitted**.
+- Removed all 10px labels. Stat values, component names, activity rows, and the AI summary now use `text-sm` / `text-base` / `text-2xl`.
+- KPI grid is 2 columns on small screens and 4 on `sm+`; activity names are wider and progress bars slightly taller.
+- No data or behavior changes. `npm run build` passes.
+
+### Chore: OpenCode V2 project config + SQL comment cleanup
+
+Development tooling only — no application code changed.
+
+- Added `.opencode/opencode.json` with `"instructions": ["docs/AGENTS.md"]` so the docs-system rules load automatically in OpenCode V2. V2 only auto-discovers `AGENTS.md` at the project root/ancestors, and this file lives under `docs/`.
+- Removed two stale `opencode -s ses_...` session comments from the header of `backend/sql/schema.sql`. No SQL statements were changed.
+- Audit result: no `CLAUDE.md`, no V1 plugins, and no OpenCode server API/client imports existed in the project, so no other V2 migration was required.
+
+### Docs: full code-vs-docs audit and correction
+
+Documentation only — no source files were changed.
+
+- Rewrote `03-api/api-routes.md` with all **57 endpoints**, exact paths, and role guards. Added the previously undocumented `/api/ai` and `/api/backup` groups and `POST /api/grading-components/reorder`.
+- Removed the nonexistent `POST /api/sections/seed` route; documented the real `GET /api/sections/seed/preview`.
+- Corrected auth semantics: missing token → 401, invalid token → 403, JWT lifetime **1 day** (was "unspecified").
+- Corrected error bodies: routes return `{ message }` or `{ error }`, not only `{ error }`.
+- Corrected account provisioning: usernames are server-generated (`lastname.NNNN@sg`); `staff_id` is required and must be 9 digits.
+- Corrected section creation: `name` is the section letter; the server builds `"<abbr> <year>-<letter>"`.
+- Corrected attendance autosave from "2-second debounce" to **800 ms**, and documented the 30 s retry plus term-aware `localStorage` keys.
+- Documented grade-summary weighting as `Σ(grade × weight) / Σ(weight)` — missing terms are renormalized, not treated as zero.
+- Documented Excel/PDF export, AI student summary, and backup/restore, all of which were missing from the docs.
+- Corrected stale UI names: `GlobalAnalytics` → `SuperAdminDashboard`; removed the header Reload button, "Remember Me", and "Forgot password".
+- Added `/admin/bulk-students` to the routing tree and screen list.
+- Corrected the design system: navy/gold palette and white page background (not `blue-600` / pearl `#F0EAD6`), Inter typography.
+- Added database details: `departments.abbr`, `staff_users.staff_id`, indexes, the one-admin-per-department caveat, the attendance unique-constraint ambiguity, and the undefined legacy `admin_users` table.
+- Added a known-gaps list in `05-development/notes.md` and new entries in `06-decisions/decisions.md`.
+- Fixed `formula.md`: attendance columns are date+session+type (not always AM/PM pairs), the Step 7 example value, and marked DRP/P/F marks as not implemented.
+
 ## 2026-06-16
 
 ### Added: Pagination (15 per page) across all teacher data tables

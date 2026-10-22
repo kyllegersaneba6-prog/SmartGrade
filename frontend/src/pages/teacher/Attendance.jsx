@@ -471,7 +471,25 @@ const Attendance = () => {
 
   return (
     <div className="space-y-6">
-      <AssignmentSelector />
+      <div className="flex flex-wrap items-center gap-3">
+        <AssignmentSelector />
+        <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
+          {TERMS.map((t) => (
+              <button
+                key={t}
+                onClick={() => { if (t !== selectedTerm) { setSelectedTerm(t); setColumns([]); setAttendanceMap({}); } }}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  selectedTerm === t
+                    ? 'bg-[#0c1925] text-white shadow-sm'
+                    : 'text-text-muted hover:text-[#0c1925]'
+                }`}
+              >
+              {t}
+            </button>
+          ))}
+          {loading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
+        </div>
+      </div>
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-200 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
@@ -486,22 +504,6 @@ const Attendance = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-          <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
-            {TERMS.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => { if (t !== selectedTerm) { setSelectedTerm(t); setColumns([]); setAttendanceMap({}); } }}
-                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                    selectedTerm === t
-                      ? 'bg-[#0c1925] text-white shadow-sm'
-                      : 'text-text-muted hover:text-[#0c1925]'
-                  }`}
-                >
-                {t}
-              </button>
-            ))}
-            {loading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
-          </div>
           <div className="relative" ref={datePickerRef}>
             <button onClick={() => { setAddDateOpen(!addDateOpen); setNewDate(todayStr()); setNewSession('AM'); setNewType('Lecture'); setError(''); }} disabled={isReadOnly} className="flex items-center gap-1.5 px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
               <Plus size={16} /> Add Date
