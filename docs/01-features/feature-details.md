@@ -21,6 +21,7 @@ Notes:
 - Superadmin gets **403** on section, subject, and assignment writes (admin-only routes).
 - Admin/superadmin get **403** on every grading, score, and attendance write (teacher-only routes).
 - `GET /api/users` is scoped per role, not role-gated.
+- **401 vs 403:** an expired/invalid token returns **401**, which makes `frontend/src/utils/api.js` clear the session and redirect to `/login`. A valid session that lacks permission (wrong role, closed term, another teacher's data) returns **403**, which keeps the user signed in and lets the page show the error. A 403 must never end the session.
 
 ## Account Provisioning
 
@@ -38,7 +39,7 @@ Notes:
 - `GET /api/terms/active` returns **404** when no term is active; every role handles that gracefully.
 - Ending a term sets `is_active = false`, `is_closed = true`, then upserts the chosen next term as active.
 - Closed terms are read-only: mutations that touch that term return **403 "This term is closed. No modifications allowed."**
-- Term-lock checks are duplicated across `sections`, `assignments`, `gradingComponents`, `componentActivities`, `componentScores`, and `attendance` (no shared middleware).
+- Term locks use the shared `backend/middleware/termLock.js` (`assertActiveTerm`). `sections`, `subjects`, `assignments`, `grading-components`, `component-activities`, `component-scores`, and `attendance` reject writes for any non-active term. A global `rejectArchivedWrites` guard also blocks writes made while an archived term is selected (see Archive Mode).
 
 ## Archive Mode
 
@@ -48,7 +49,8 @@ Notes:
   - teachers → `localStorage.teacher_view_term`
   - admins → `localStorage.admin_view_term`
 - Layouts render an amber banner: `Viewing: {school_year} — {semester} — Read Only` with an **Exit Archive** button.
-- Archive mode is a frontend concept only. The backend has no archive flag; safety comes from the term lock plus disabled UI.
+- Archive mode is enforced on both ends. The UI disables mutations, and `frontend/src/utils/api.js` attaches `X-View-Term-School-Year` / `X-View-Term-Semester` whenever a term is being viewed. The backend `rejectArchivedWrites` guard returns **403** when those headers do not match the active term, which also covers term-less tables (`staff_users`, `departments`, `courses`).
+- Leaving archive mode removes the key; both sidebar logout and the 401 handler clear `teacher_view_term` / `admin_view_term` so a stale archive selection cannot block a later session.
 - In archive mode, mutate buttons are disabled with the tooltip "Cannot modify while viewing archives".
 
 ## Attendance
@@ -66,11 +68,11 @@ Notes:
 
 - Terms: `PRELIMS`, `MIDTERMS`, `PRE-FINALS`, `FINALS`.
 - Components have a name, percentage weight, and optional `is_attendance` flag.
-- The UI requires weights to total **100%** before score entry is considered valid; the backend does not enforce the sum.
+- The UI requires weights to total **100%** before score entry is considered valid; the backend caps each weight at `0..100` and the term total at 100, but does not require exactly 100 (so weights can be edited incrementally).
 - Each component holds sub-activities with a `max_score` (default 100).
 - Formula: `equiv = (total / max_total) × 50 + 50`; `weighted = equiv × weight / 100`; term grade = sum of weighted values.
 - Components can be reordered (drag-drop → `POST /api/grading-components/reorder`) and copied from PRELIMS (activities are **not** copied; target term must be empty).
-- Score saves are debounced **800 ms** and bulk-posted to `POST /api/component-scores/bulk`.
+- Score saves are debounced **800 ms** and bulk-posted to `POST /api/component-scores/bulk`. The backend resolves every activity → component → assignment, rejects the whole batch if any row is out of scope or the term is closed, and validates every score against the activity's `max_score`.
 - Typing a value above `max_score` clamps it and shows an amber border + dot for 3 seconds.
 - Keyboard navigation: arrows, Enter, Tab/Shift+Tab across score cells.
 - Closed terms: inputs disabled, add/delete hidden, amber banner.
@@ -126,7 +128,7 @@ Notes:
 - Subjects persist across school years; `school_year` is retained but no longer used for filtering.
 - Semester is required on create (`1st Semester`, `2nd Semester`, `Summer`). The DB column allows NULL, but the route rejects it.
 - Manage Subjects has a semester filter and a four-column year-level board.
-- In archive mode, add/delete are disabled.
+- Create and delete are term-locked: `POST` compares the requested semester, `DELETE` compares the subject's semester, and both return **403** when it is not the active term. In archive mode, add/delete are also disabled in the UI.
 
 ## Students
 
@@ -178,7 +180,7 @@ Shared UI: `frontend/src/components/teacher/ExportButtons.jsx` (per-format spinn
   - **Admin** — only usernames belonging to their department; superadmin usernames explicitly excluded.
   - **Teacher** — forced empty result.
 - Logged events include logins (success/failure), user CRUD, department/course CRUD, and backup export/restore.
-- `POST /api/activity` accepts any authenticated caller and trusts the supplied `user_name`/`department` (spoofable — see notes).
+- `POST /api/activity` derives `user_name` and `department` from the verified JWT; any client-supplied values are ignored, so audit rows cannot be attributed to another user.
 - `SecurityAudit.jsx` filters by action type, paginates 10 rows, and auto-refreshes every 10 s while the tab is visible.
 
 ## Notifications

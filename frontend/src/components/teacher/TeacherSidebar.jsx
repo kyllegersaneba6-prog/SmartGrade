@@ -27,6 +27,7 @@ const TeacherSidebar = ({ isOpen, onClose }) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('teacher_view_term');
     window.location.href = '/login';
   };
 

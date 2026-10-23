@@ -1,6 +1,7 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { sendServerError } = require('../middleware/errors');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -31,7 +32,7 @@ router.get('/', async (req, res) => {
     if (semester) query = query.eq('semester', semester);
 
     const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -75,7 +76,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
       .single();
     if (error) {
       if (error.code === '23505') return res.status(400).json({ message: 'This teacher is already assigned to this section and subject in this school year and semester.' });
-      return res.status(500).json({ error: error.message });
+      return sendServerError(res, error);
     }
     res.status(201).json(data);
   } catch (err) {
@@ -99,7 +100,7 @@ router.delete('/:id', authorizeRole('admin'), async (req, res) => {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
     const { error } = await supabase.from('teacher_assignments').delete().eq('id', req.params.id);
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json({ message: 'Assignment removed' });
   } catch (err) {
     console.error(err);

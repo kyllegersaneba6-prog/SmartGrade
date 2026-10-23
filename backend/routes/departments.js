@@ -1,6 +1,7 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { sendServerError } = require('../middleware/errors');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -16,7 +17,7 @@ router.get('/', async (req, res) => {
       .from('departments')
       .select('*')
       .order('name', { ascending: true });
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -38,7 +39,7 @@ router.post('/', authorizeRole('superadmin'), async (req, res) => {
       .insert([payload])
       .select()
       .single();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     const abbrSuffix = data.abbr ? ` (${data.abbr})` : '';
     await supabase.from('activity_log').insert([{
       user_name: req.user.username || 'System',
@@ -75,7 +76,7 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
       .eq('id', req.params.id)
       .select()
       .single();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     // staff_users.department is a plain name snapshot (no FK), so a rename
     // must cascade manually — otherwise admin/teacher accounts keep showing
     // the old department name.
@@ -84,7 +85,7 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
         .from('staff_users')
         .update({ department: data.name })
         .eq('department', oldDept.name);
-      if (cascadeError) return res.status(500).json({ error: cascadeError.message });
+      if (cascadeError) return sendServerError(res, cascadeError);
     }
     const changes = [];
     if (oldDept && oldDept.name !== data.name) {
@@ -135,13 +136,13 @@ router.delete('/:id', authorizeRole('superadmin'), async (req, res) => {
       .from('staff_users')
       .update({ department: null })
       .eq('department', dept.name);
-    if (clearError) return res.status(500).json({ error: clearError.message });
+    if (clearError) return sendServerError(res, clearError);
     const abbrSuffix = dept.abbr ? ` (${dept.abbr})` : '';
     const { error } = await supabase
       .from('departments')
       .delete()
       .eq('id', req.params.id);
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     await supabase.from('activity_log').insert([{
       user_name: req.user.username || 'System',
       action: 'Department Deleted',

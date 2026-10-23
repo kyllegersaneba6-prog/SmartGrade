@@ -3,11 +3,34 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { sendServerError } = require('../middleware/errors');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Columns safe to send to the client. `password` (a bcrypt hash) must never
+// be selected or returned by this router.
+const USER_PUBLIC_COLUMNS = [
+  'id',
+  'first_name',
+  'last_name',
+  'full_name',
+  'username',
+  'staff_id',
+  'department',
+  'course_id',
+  'system_role',
+  'created_by',
+  'created_at'
+].join(', ');
+
+const omitPassword = (row) => {
+  if (!row) return row;
+  const { password, ...safe } = row;
+  return safe;
+};
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -17,7 +40,10 @@ router.get('/', async (req, res) => {
   try {
     const { role, id: userId } = req.user;
 
-    let query = supabase.from('staff_users').select('*, courses(name)').order('created_at', { ascending: false });
+    let query = supabase
+      .from('staff_users')
+      .select(`${USER_PUBLIC_COLUMNS}, courses(name)`)
+      .order('created_at', { ascending: false });
 
     // Superadmin sees admins + teachers; admin sees teachers in their department; teacher sees only self
     if (role === 'superadmin') {
@@ -37,10 +63,10 @@ router.get('/', async (req, res) => {
     const { data: users, error } = await query;
 
     if (error) {
-      return res.status(500).json({ error: error.message });
+      return sendServerError(res, error);
     }
 
-    res.json(users);
+    res.json((users || []).map(omitPassword));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -197,10 +223,14 @@ router.post('/', async (req, res) => {
     const { data: newUser, error } = await supabase
       .from('staff_users')
       .insert([insertData])
-      .select()
+      .select(USER_PUBLIC_COLUMNS)
       .single();
 
     if (error) {
+      const dbMessage = `${error.message || ''} ${error.details || ''} ${error.hint || ''}`;
+      if (error.code === '23505' && /one_admin_per_department/i.test(dbMessage)) {
+        return res.status(400).json({ message: 'An admin already exists in this department.' });
+      }
       // 23503 on created_by = stale admin session (creator row gone);
       // surface it as session-expired instead of a raw FK error.
       if (error.code === '23503' && /created_by/i.test(error.message)) {
@@ -209,7 +239,7 @@ router.post('/', async (req, res) => {
       if (error.code === '23503') {
         return res.status(400).json({ message: 'Invalid reference (course or creator). Please refresh and try again.' });
       }
-      return res.status(500).json({ error: error.message });
+      return sendServerError(res, error);
     }
 
     const actingUser = req.user.username || 'System';
@@ -220,7 +250,7 @@ router.post('/', async (req, res) => {
       department: req.user.department || null
     }]);
 
-    res.status(201).json(newUser);
+    res.status(201).json(omitPassword(newUser));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -372,11 +402,15 @@ router.patch('/:id', async (req, res) => {
       .from('staff_users')
       .update(updates)
       .eq('id', id)
-      .select()
+      .select(USER_PUBLIC_COLUMNS)
       .single();
 
     if (error) {
-      return res.status(500).json({ error: error.message });
+      const dbMessage = `${error.message || ''} ${error.details || ''} ${error.hint || ''}`;
+      if (error.code === '23505' && /one_admin_per_department/i.test(dbMessage)) {
+        return res.status(400).json({ message: 'An admin already exists in this department.' });
+      }
+      return sendServerError(res, error);
     }
 
     const actingUser = req.user.username || 'System';
@@ -422,7 +456,7 @@ router.patch('/:id', async (req, res) => {
       }]);
     }
 
-    res.json(updatedUser);
+    res.json(omitPassword(updatedUser));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -485,7 +519,7 @@ router.delete('/:id', async (req, res) => {
       .eq('id', id);
 
     if (error) {
-      return res.status(500).json({ error: error.message });
+      return sendServerError(res, error);
     }
 
     const actingUser = req.user.username || 'System';

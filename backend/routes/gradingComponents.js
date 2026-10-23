@@ -1,6 +1,8 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { sendServerError } = require('../middleware/errors');
+const { canAccessAssignment } = require('../middleware/access');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -28,19 +30,12 @@ async function checkTermClosed(teacherAssignmentId) {
 router.get('/', async (req, res) => {
   try {
     const { assignment_id, term } = req.query;
-    const { role, id } = req.user;
     if (!assignment_id || !term) {
       return res.status(400).json({ message: 'assignment_id and term are required' });
     }
 
-    if (role === 'teacher') {
-      const { data: assign } = await supabase
-        .from('teacher_assignments')
-        .select('id')
-        .eq('id', assignment_id)
-        .eq('teacher_id', id)
-        .maybeSingle();
-      if (!assign) return res.status(403).json({ message: 'Access denied.' });
+    if (!(await canAccessAssignment(assignment_id, req.user))) {
+      return res.status(403).json({ message: 'Access denied.' });
     }
 
     const { data: components, error: compError } = await supabase
@@ -49,7 +44,7 @@ router.get('/', async (req, res) => {
       .eq('teacher_assignment_id', assignment_id)
       .eq('term', term)
       .order('sort_order', { ascending: true });
-    if (compError) return res.status(500).json({ error: compError.message });
+    if (compError) return sendServerError(res, compError);
 
     if (components && components.length > 0) {
       const compIds = components.map(c => c.id);
@@ -58,7 +53,7 @@ router.get('/', async (req, res) => {
         .select('*')
         .in('component_id', compIds)
         .order('sort_order', { ascending: true });
-      if (actError) return res.status(500).json({ error: actError.message });
+      if (actError) return sendServerError(res, actError);
 
       const actMap = {};
       (activities || []).forEach(a => {
@@ -83,13 +78,17 @@ router.get('/', async (req, res) => {
 // POST /api/grading-components — create a component
 router.post('/', authorizeRole('teacher'), async (req, res) => {
   const { teacher_assignment_id, term, name, weight, is_attendance } = req.body;
-  if (!teacher_assignment_id || !term || !name || weight === undefined) {
+  if (!teacher_assignment_id || !term || !name || weight === undefined || weight === null) {
     return res.status(400).json({ message: 'teacher_assignment_id, term, name, and weight are required' });
   }
+  const weightValue = Number(weight);
+  if (!Number.isFinite(weightValue) || weightValue < 0 || weightValue > 100) {
+    return res.status(400).json({ message: 'Weight must be between 0 and 100.' });
+  }
   try {
-    // One batch: assignment lookup (ownership + term data), active term, and
-    // max sort_order are independent — run in parallel, not sequentially.
-    const [assignRes, termRes, maxOrderRes] = await Promise.all([
+    // One batch: assignment lookup (ownership + term data), active term,
+    // max sort_order, and the current weight total are independent.
+    const [assignRes, termRes, maxOrderRes, weightsRes] = await Promise.all([
       supabase
         .from('teacher_assignments')
         .select('id, teacher_id, school_year, semester')
@@ -108,6 +107,11 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
         .order('sort_order', { ascending: false })
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from('grading_components')
+        .select('weight')
+        .eq('teacher_assignment_id', teacher_assignment_id)
+        .eq('term', term),
     ]);
 
     const assign = assignRes.data;
@@ -116,17 +120,27 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
     if (assign.teacher_id !== req.user.id) return res.status(403).json({ message: 'Access denied.' });
+    if (weightsRes.error) return sendServerError(res, weightsRes.error);
+
+    const currentWeight = (weightsRes.data || []).reduce((sum, c) => sum + Number(c.weight || 0), 0);
+    const nextWeight = Math.round((currentWeight + weightValue) * 100) / 100;
+    if (nextWeight > 100) {
+      return res.status(400).json({
+        message: `Total weight for this term cannot exceed 100%. Current total: ${currentWeight}%.`,
+      });
+    }
 
     const sort_order = (maxOrderRes.data?.sort_order ?? -1) + 1;
 
     const { data, error } = await supabase
       .from('grading_components')
-      .insert([{ teacher_assignment_id, term, name, weight, sort_order, is_attendance: is_attendance || false }])
+      .insert([{ teacher_assignment_id, term, name, weight: weightValue, sort_order, is_attendance: is_attendance || false }])
       .select()
       .single();
     if (error) {
       if (error.code === '23505') return res.status(400).json({ message: 'A component with this name already exists for this term.' });
-      return res.status(500).json({ error: error.message });
+      if (error.code === '23514') return res.status(400).json({ message: 'Weight must be between 0 and 100, and the term total cannot exceed 100%.' });
+      return sendServerError(res, error);
     }
     res.status(201).json(data);
   } catch (err) {
@@ -190,7 +204,7 @@ router.put('/:id', authorizeRole('teacher'), async (req, res) => {
   try {
     const { data: comp } = await supabase
       .from('grading_components')
-      .select('id, teacher_assignment_id')
+      .select('id, teacher_assignment_id, term')
       .eq('id', req.params.id)
       .single();
     if (!comp) return res.status(404).json({ message: 'Component not found' });
@@ -209,7 +223,29 @@ router.put('/:id', authorizeRole('teacher'), async (req, res) => {
 
     const updates = {};
     if (name !== undefined) updates.name = name;
-    if (weight !== undefined) updates.weight = weight;
+    if (weight !== undefined) {
+      const weightValue = Number(weight);
+      if (weight === null || !Number.isFinite(weightValue) || weightValue < 0 || weightValue > 100) {
+        return res.status(400).json({ message: 'Weight must be between 0 and 100.' });
+      }
+
+      const { data: otherWeights, error: weightsError } = await supabase
+        .from('grading_components')
+        .select('weight')
+        .eq('teacher_assignment_id', comp.teacher_assignment_id)
+        .eq('term', comp.term)
+        .neq('id', comp.id);
+      if (weightsError) return sendServerError(res, weightsError);
+
+      const otherTotal = (otherWeights || []).reduce((sum, c) => sum + Number(c.weight || 0), 0);
+      const nextWeight = Math.round((otherTotal + weightValue) * 100) / 100;
+      if (nextWeight > 100) {
+        return res.status(400).json({
+          message: `Total weight for this term cannot exceed 100%. Other components total: ${otherTotal}%.`,
+        });
+      }
+      updates.weight = weightValue;
+    }
 
     const { data, error } = await supabase
       .from('grading_components')
@@ -217,7 +253,11 @@ router.put('/:id', authorizeRole('teacher'), async (req, res) => {
       .eq('id', req.params.id)
       .select()
       .single();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) {
+      if (error.code === '23505') return res.status(400).json({ message: 'A component with this name already exists for this term.' });
+      if (error.code === '23514') return res.status(400).json({ message: 'Weight must be between 0 and 100, and the term total cannot exceed 100%.' });
+      return sendServerError(res, error);
+    }
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -281,6 +321,11 @@ router.post('/copy-from-prelims', authorizeRole('teacher'), async (req, res) => 
       is_attendance: c.is_attendance || false,
     }));
 
+    const copiedWeight = newCompsData.reduce((sum, c) => sum + Number(c.weight || 0), 0);
+    if (Math.round(copiedWeight * 100) / 100 > 100) {
+      return res.status(400).json({ message: 'Copied components exceed 100% total weight.' });
+    }
+
     const { data: insertedComps, error: insertError } = await supabase
       .from('grading_components')
       .insert(newCompsData)
@@ -288,7 +333,8 @@ router.post('/copy-from-prelims', authorizeRole('teacher'), async (req, res) => 
 
     if (insertError) {
       if (insertError.code === '23505') return res.status(400).json({ message: 'A component with this name already exists for this term.' });
-      return res.status(500).json({ error: insertError.message });
+      if (insertError.code === '23514') return res.status(400).json({ message: 'Copied components exceed 100% total weight or contain invalid weights.' });
+      return sendServerError(res, insertError);
     }
 
     const result = insertedComps.map(c => ({ ...c, activities: [] }));
@@ -322,7 +368,7 @@ router.delete('/:id', authorizeRole('teacher'), async (req, res) => {
     if (!assign) return res.status(403).json({ message: 'Access denied.' });
 
     const { error } = await supabase.from('grading_components').delete().eq('id', req.params.id);
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json({ message: 'Component deleted' });
   } catch (err) {
     console.error(err);

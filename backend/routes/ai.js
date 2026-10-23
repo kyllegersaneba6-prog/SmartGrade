@@ -28,7 +28,10 @@ router.post('/summarize-student', authorizeRole('teacher'), async (req, res) => 
       return res.status(status).json({ message: 'Unable to generate the AI summary right now. Please try again.'});
     }
     console.error('AI summarize error:', e.message);
-    res.status(status === 400 ? 400 : 500).json({ message: e.message || 'Server error' });
+    if (status === 400 && e.message) {
+      return res.status(400).json({ message: e.message });
+    }
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

@@ -16,15 +16,9 @@
 ## Engineering
 
 - Centralized API client with a configurable base URL (currently hardcoded `localhost:5000`)
-- 404 page + backend 404/JSON error middleware
-- Centralize term-lock and ownership checks into shared middleware/services
-- Harden authorization:
-  - Scope attendance/activity/student reads to the caller
-  - Verify ownership for every row in a bulk score upsert
-  - Stop trusting client-supplied `user_name`/`department` on `POST /api/activity`
+- Frontend 404 page + catch-all route in `App.jsx` (backend now returns JSON 404s)
+- Centralize write-side ownership checks into shared middleware/services (read helpers live in `backend/middleware/access.js`; term locks now live in `backend/middleware/termLock.js`)
 - Restrict CORS to known origins
-- Add DB-level constraints (single active term, score ranges, component weight total)
-- Resolve the attendance unique-constraint conflict between SQL files
 - Link `/admin/bulk-students` from Manage Sections and fix its header title
 - Automated / scheduled backups (manual export/restore exists)
 - AI: persist summaries, add a batch/class-level view, add prompt/version tracking

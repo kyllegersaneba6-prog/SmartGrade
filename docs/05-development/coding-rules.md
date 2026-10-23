@@ -5,13 +5,13 @@
 - No TypeScript — plain JavaScript throughout.
 - No tests — do not add test files.
 - No state management library — React hooks only (`useState`, `useEffect`, `useCallback`, `useMemo`, `useContext`, `createContext`).
-- No centralized API client library. `frontend/src/utils/api.js` is a thin fetch wrapper that adds the bearer token and logs out on 403; each page still passes an absolute `http://localhost:5000/api/...` URL.
+- No centralized API client library. `frontend/src/utils/api.js` is a thin fetch wrapper that adds the bearer token, forwards the viewed term as `X-View-Term-School-Year` / `X-View-Term-Semester`, and logs out only on 401; each page still passes an absolute `http://localhost:5000/api/...` URL. A 403 keeps the session and is shown by the page.
 - Shared state lives in `frontend/src/contexts/` as React Context providers.
 - Teacher assignment/term state: `TeacherContext` (`useTeacher()`).
 - Admin term/archive state: `AdminContext` (`useAdmin()`).
 - `currentTerm` means `viewTerm || activeTerm` in both contexts.
 - Assignment selection persists in `localStorage.teacher_selected_assignment`.
-- Archive term persists in `localStorage.teacher_view_term` / `localStorage.admin_view_term`.
+- Archive term persists in `localStorage.teacher_view_term` / `localStorage.admin_view_term`; both are cleared on logout and on a 401.
 - Attendance pending writes persist in `localStorage.pending_attendance_<assignmentId>_<term>`.
 - Data refresh pattern: `window.dispatchEvent(new CustomEvent('app:reload'))`.
 - Grade math lives in `frontend/src/utils/gradeCalculations.js` (`TERMS`, `TERM_WEIGHTS`, `GRADE_RANGES`, `gradeToPoint`, `getComponentTotal/MaxTotal/Equiv/Weighted`, `getFinalGrade`). Do not duplicate it in pages.
@@ -20,15 +20,17 @@
 
 - CommonJS (`require`, `module.exports`).
 - One router per file in `backend/routes/`, mounted in `backend/index.js` under `/api/<name>`.
-- Auth middleware in `backend/middleware/auth.js`: `authenticateToken` + `authorizeRole(...)`.
+- Auth middleware in `backend/middleware/auth.js`: `authenticateToken` + `authorizeRole(...)`. Read scoping helpers live in `backend/middleware/access.js` (`canAccessAssignment`, `canAccessComponent`, `canAccessSection`). Term locks live in `backend/middleware/termLock.js` (`assertActiveTerm`, `rejectArchivedWrites`).
 - Role strings are exactly `superadmin`, `admin`, `teacher`.
 - Every router calls `router.use(authenticateToken)` except `/api/auth` (login is public).
-- Currently there are **no shared authorization or term-lock middlewares**. Term-lock checks (`checkTermClosed*`) are local helpers duplicated in each route file. Keep the existing pattern unless a refactor is explicitly requested.
+- Use the shared term lock for new mutating routes: `await assertActiveTerm(res, { schoolYear, semester })` and return early when it yields `false`. The global `rejectArchivedWrites` middleware already covers every write made from an archived-term view.
 - All queries use raw Supabase JS (`.select()`, `.insert()`, `.update()`, `.upsert()`, `.delete()`), not SQL strings.
-- The Supabase client uses the **service-role key**; RLS does not protect anything. Authorization must be enforced in route code.
-- Error responses are inconsistent: prefer `{ message }` for validation/permission errors; do not add new `{ error: error.message }` leaks.
+- The Supabase client uses the **service-role key**, which has `BYPASSRLS`. RLS is enabled on all tables with no policies, so the backend is the only supported data path. Authorization must be enforced in route code; never expose the service-role key to the browser.
+- Error responses use one shape: `{ message }`. Log the underlying DB/provider error server-side and return a generic message; never send `err.message` to the client.
 - Mutating endpoints that touch a term must verify the row's `school_year`/`semester` matches the active term and return 403 otherwise.
-- Ownership rule: teachers must own the `teacher_assignment`; admins must be the `created_by` of the row.
+- Ownership rule: teachers must own the `teacher_assignment` (or teach the section); admins must be the `created_by` of the row; superadmin bypasses. Read helpers enforce this and fail closed.
+- Bulk writes must validate **every** row before the first write (activity → component → assignment). Never treat `scores[0]` as representative; reject the whole batch on any out-of-scope row.
+- Never trust identity fields (`user_name`, `department`, `role`, `created_by`) from the request body. Derive them from `req.user` or a DB lookup keyed by `req.user.id`.
 
 ## AI (`/api/ai`)
 
@@ -60,6 +62,7 @@
 
 ## Database
 
-- Schema changes go in `backend/sql/` as `create_*.sql`, `alter_*.sql`, or `migrate_*.sql` files. They are **not numbered** and there is no runner — naming and apply order are manual.
+- Schema changes go in `backend/sql/` as `create_*.sql`, `alter_*.sql`, `migrate_*.sql`, or `add_*.sql` files. They are **not numbered** and there is no runner — naming and apply order are manual.
 - Tables use UUID primary keys and `TIMESTAMPTZ` timestamps.
-- Assume no DB constraint exists for business rules; enforce them in route code.
+- Enforce business rules in route code even when a DB constraint exists; the DB is the backstop, routes return the user-facing 400.
+- Keep RLS enabled on every `public` table. New tables must run `alter table ... enable row level security;` (see `enable_row_level_security.sql`). Do not add browser-side Supabase clients unless policies and grants are designed first.

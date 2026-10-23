@@ -1,27 +1,32 @@
 # API Routes
 
-Base URL: `http://localhost:5000`. All responses are JSON except unmatched routes (Express default HTML).
+Base URL: `http://localhost:5000`. All responses are JSON, including unmatched routes and unhandled errors.
 
 ## Authentication & Authorization
 
 - Header: `Authorization: Bearer <jwt>`.
 - Every router calls `router.use(authenticateToken)` **except** `/api/auth` (login is public) and `GET /`.
 - Missing token → **401** `{ "message": "Access denied. No token provided." }`
-- Invalid/expired token → **403** `{ "message": "Invalid or expired token." }`
+- Invalid/expired token → **401** `{ "message": "Invalid or expired token. Please log in again." }`
 - Wrong role → **403** `{ "message": "Access denied. Insufficient permissions." }`
+- Convention: **401** means *not authenticated* (client clears the session and returns to login); **403** means *authenticated but not allowed* (client keeps the session and shows the message).
 - JWT payload: `{ id, username, role, department }`, `expiresIn: '1d'`.
 - Role strings: `superadmin`, `admin`, `teacher`.
 - Closed/past term mutation → **403** `{ "message": "This term is closed. No modifications allowed." }`
-- Ownership checks (teacher owns assignment / admin created the row) also return **403**.
-- Error bodies are inconsistent: some routes return `{ message }`, others `{ error }`.
+- Archive guard: while an archived term is selected, the frontend sends `X-View-Term-School-Year` and `X-View-Term-Semester`. Any `POST`/`PUT`/`PATCH`/`DELETE` whose headers do not match the active term gets **403** from the global `rejectArchivedWrites` middleware, covering tables with no term column (`staff_users`, `departments`, `courses`).
+- Ownership checks on reads and writes (teacher owns assignment/section; admin created the row) return **403**. The shared read helpers live in `backend/middleware/access.js`.
+- Unknown route → **404** `{ "message": "Route not found" }`.
+- Malformed JSON body → **400** `{ "message": "Invalid JSON body." }`.
+- Unhandled server/database error → **500** `{ "message": "Server error" }`; details are logged server-side only.
+- Error responses use one shape: `{ message }`. Backup validation is the exception, returning `{ ok: false, errors: [...] }`.
 
 ## Auth
 
 | Method | Route | Auth | Notes |
 |---|---|---|---|
-| POST | `/api/auth/login` | Public | `{ username, password }` → `{ token, user }`; logs success/failure |
+| POST | `/api/auth/login` | Public | `{ username, password }` → `{ token, user }`; logs success/failure. Returns **503** with an offline message when Supabase is unreachable |
 
-Login lookup order: `staff_users` → legacy `admin_users` → `USR-` + UUID-prefix match.
+Login lookup order: `staff_users` → legacy `admin_users` → `USR-` + UUID-prefix match. A dropped connection returns **503** instead of the `401` "Invalid username" response.
 
 ## Users
 
@@ -29,9 +34,9 @@ Router guarded by `authenticateToken` only; per-route role logic is inline.
 
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
-| GET | `/api/users` | Any auth | Superadmin: all. Admin: teachers in own department. Teacher: self. |
-| POST | `/api/users` | Superadmin → admin only; Admin → teacher only | Requires 9-digit `staff_id`; username auto-generated; enforces one-admin-per-department |
-| PATCH | `/api/users/:id` | Superadmin (admins); Admin (teachers they created) | Partial update; re-derives username; re-checks one-admin-per-department |
+| GET | `/api/users` | Any auth | Superadmin: all. Admin: teachers in own department. Teacher: self. Responses never include `password` |
+| POST | `/api/users` | Superadmin → admin only; Admin → teacher only | Requires 9-digit `staff_id`; username auto-generated; enforces one-admin-per-department; response never includes `password` |
+| PATCH | `/api/users/:id` | Superadmin (admins); Admin (teachers they created) | Partial update; re-derives username; re-checks one-admin-per-department; response never includes `password` |
 | DELETE | `/api/users/:id` | Superadmin (admins); Admin (teachers they created) | Nulls `created_by` references, then deletes |
 
 ## Departments
@@ -58,9 +63,9 @@ Router guarded by `authenticateToken` only; per-route role logic is inline.
 |---|---|---|---|
 | GET | `/api/sections/seed/preview` | Any auth | Preview auto-generated names for `course_id` + `year_level` |
 | GET | `/api/sections` | Any auth | Admin scoped to `created_by`; filters `year`, `course_id`, `school_year`, `semester` |
-| POST | `/api/sections` | Admin | `name` is the section letter; server builds `"<abbr> <year>-<letter>"` |
+| POST | `/api/sections` | Admin | `name` is the section letter; server builds `"<abbr> <year>-<letter>"`; term-locked (`school_year` + `semester`) |
 | DELETE | `/api/sections/:id` | Admin | Owner-only; term-locked; cascades students |
-| GET | `/api/sections/:sectionId/students` | Any auth | Roster (no ownership check) |
+| GET | `/api/sections/:sectionId/students` | Any auth | Roster; superadmin: all; admin: sections they created; teacher: sections they teach |
 | POST | `/api/sections/:sectionId/students` | Admin | One student; term-locked |
 | DELETE | `/api/sections/students/:id` | Admin | Term-locked |
 | POST | `/api/sections/:sectionId/students/bulk` | Admin | `{ students: [...] }` → `{ added, skipped[] }`; term-locked |
@@ -72,8 +77,8 @@ There is **no** `POST /api/sections/seed` route (only the preview).
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
 | GET | `/api/subjects` | Any auth | Admin scoped to `created_by`; filters `year`, `semester`, `course_id` (matches course or NULL) |
-| POST | `/api/subjects` | Admin | Requires `name`, `year_level`, `semester`; duplicate name-per-course check |
-| DELETE | `/api/subjects/:id` | Admin | Owner-only; **not** term-locked |
+| POST | `/api/subjects` | Admin | Requires `name`, `year_level`, `semester`; duplicate name-per-course check; term-locked |
+| DELETE | `/api/subjects/:id` | Admin | Owner-only; term-locked against the subject's semester |
 
 ## Teacher Assignments
 
@@ -96,7 +101,7 @@ There is **no** `POST /api/sections/seed` route (only the preview).
 
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
-| GET | `/api/grading-components` | Any auth (teacher must own the assignment) | `?assignment_id=&term=`; nests activities |
+| GET | `/api/grading-components` | Any auth | `?assignment_id=&term=`; superadmin: all; admin: own assignments; teacher: own; nests activities |
 | POST | `/api/grading-components` | Teacher | `{ teacher_assignment_id, term, name, weight, is_attendance? }`; term-locked |
 | POST | `/api/grading-components/reorder` | Teacher | `{ teacher_assignment_id, term, ordered_ids[] }`; must match the term's full set |
 | PUT | `/api/grading-components/:id` | Teacher | Update `name`/`weight`; term-locked |
@@ -107,7 +112,7 @@ There is **no** `POST /api/sections/seed` route (only the preview).
 
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
-| GET | `/api/component-activities` | Any auth | `?component_id=`; no ownership check |
+| GET | `/api/component-activities` | Any auth | `?component_id=`; superadmin: all; admin: own assignments; teacher: own |
 | POST | `/api/component-activities` | Teacher | `{ component_id, name, max_score? }`; term-locked |
 | PUT | `/api/component-activities/:id` | Teacher | `name`/`max_score`; term-locked |
 | DELETE | `/api/component-activities/:id` | Teacher | Cascades scores; term-locked |
@@ -116,18 +121,16 @@ There is **no** `POST /api/sections/seed` route (only the preview).
 
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
-| GET | `/api/component-scores` | Any auth (teacher must own the assignment) | `?assignment_id=&term=` |
-| POST | `/api/component-scores/bulk` | Teacher | `{ scores: [{ activity_id, student_id, score }] }`; upsert; term-locked |
-
-⚠ Ownership for the bulk upsert is verified only for `scores[0]`.
+| GET | `/api/component-scores` | Any auth | `?assignment_id=&term=`; superadmin: all; admin: own assignments; teacher: own |
+| POST | `/api/component-scores/bulk` | Teacher | `{ scores: [{ activity_id, student_id, score }] }`; verifies every row's assignment + term before writing; term-locked |
 
 ## Attendance
 
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
-| GET | `/api/attendance` | Any auth | `?teacher_assignment_id=&date=&term=`; no ownership check |
-| GET | `/api/attendance/dates` | Any auth | Distinct date columns; no ownership check |
-| GET | `/api/attendance/computed-scores` | Any auth (ownership enforced) | `{ max_total, scores }`; `max_total = distinct(date\|session\|type) × 2` |
+| GET | `/api/attendance` | Any auth | `?teacher_assignment_id=&date=&term=`; superadmin: all; admin: own assignments; teacher: own |
+| GET | `/api/attendance/dates` | Any auth | Distinct date columns; same assignment scoping as `GET /api/attendance` |
+| GET | `/api/attendance/computed-scores` | Any auth | `{ max_total, scores }`; same assignment scoping; `max_total = distinct(date\|session\|type) × 2` |
 | POST | `/api/attendance/bulk` | Teacher | `{ teacher_assignment_id, date, records[], session, type, term }`; term-locked |
 | DELETE | `/api/attendance/date` | Teacher | Filters sent in the **body**, not the URL; term-locked |
 
@@ -138,7 +141,7 @@ Router guarded by `authenticateToken` only; no role checks.
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
 | GET | `/api/activity` | Any auth | Superadmin: all; Admin: department usernames (superadmins excluded); Teacher: empty |
-| POST | `/api/activity` | Any auth | Inserts a client-supplied row (trusts `user_name`/`department`) |
+| POST | `/api/activity` | Any auth | `{ action, details? }`; `user_name`/`department` are derived from the JWT and any body values are ignored |
 
 ## AI
 

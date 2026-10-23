@@ -1,6 +1,9 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { sendServerError } = require('../middleware/errors');
+const { canAccessSection } = require('../middleware/access');
+const { assertActiveTerm } = require('../middleware/termLock');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -46,7 +49,7 @@ router.get('/', async (req, res) => {
     if (school_year) query = query.eq('school_year', school_year);
     if (semester) query = query.eq('semester', semester);
     const { data, error } = await query;
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -67,6 +70,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
     return res.status(400).json({ message: 'Invalid year level' });
   }
   try {
+    if (!(await assertActiveTerm(res, { schoolYear: school_year, semester }))) return;
     let resolvedName = name;
     if (course_id) {
       const { data: course } = await supabase
@@ -99,7 +103,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
       .insert([{ name: resolvedName, year_level, course_id: course_id || null, school_year, semester, created_by: req.user.id }])
       .select()
       .single();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.status(201).json(data);
   } catch (err) {
     console.error(err);
@@ -122,7 +126,7 @@ router.delete('/:id', authorizeRole('admin'), async (req, res) => {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
     const { error } = await supabase.from('sections').delete().eq('id', req.params.id);
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json({ message: 'Section deleted' });
   } catch (err) {
     console.error(err);
@@ -133,12 +137,15 @@ router.delete('/:id', authorizeRole('admin'), async (req, res) => {
 // GET /api/sections/:sectionId/students — get students for a section
 router.get('/:sectionId/students', async (req, res) => {
   try {
+    if (!(await canAccessSection(req.params.sectionId, req.user))) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
     const { data, error } = await supabase
       .from('students')
       .select('*')
       .eq('section_id', req.params.sectionId)
       .order('student_name', { ascending: true });
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -183,7 +190,7 @@ router.post('/:sectionId/students', authorizeRole('admin'), async (req, res) => 
       .insert([{ student_id, student_name, first_name, last_name, mi, gender, section_id: req.params.sectionId }])
       .select()
       .single();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.status(201).json(data);
   } catch (err) {
     console.error(err);
@@ -216,7 +223,7 @@ router.delete('/students/:id', authorizeRole('admin'), async (req, res) => {
       }
     }
     const { error } = await supabase.from('students').delete().eq('id', req.params.id);
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json({ message: 'Student removed' });
   } catch (err) {
     console.error(err);

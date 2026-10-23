@@ -1,6 +1,7 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { sendServerError } = require('../middleware/errors');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -19,7 +20,7 @@ router.get('/', async (req, res) => {
       .order('name', { ascending: true });
     if (department_id) query = query.eq('department_id', department_id);
     const { data, error } = await query;
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -45,7 +46,7 @@ router.post('/', authorizeRole('superadmin'), async (req, res) => {
       .insert([{ name: name.trim(), abbreviation: abbreviation.trim().toUpperCase(), department_id }])
       .select()
       .single();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     const abbrSuffix = data.abbreviation ? ` (${data.abbreviation})` : '';
     await supabase.from('activity_log').insert([{
       user_name: req.user.username || 'System',
@@ -80,7 +81,7 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
       .eq('id', req.params.id)
       .select()
       .single();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     const changes = [];
     if (oldCourse && oldCourse.name !== data.name) {
       changes.push(`name ("${oldCourse.name}" → "${data.name}")`);
@@ -140,7 +141,7 @@ router.delete('/:id', authorizeRole('superadmin'), async (req, res) => {
       if (error.code === '23503') {
         return res.status(400).json({ message: 'Cannot delete course because it is still referenced by other records.' });
       }
-      return res.status(500).json({ error: error.message });
+      return sendServerError(res, error);
     }
     const abbrSuffix = course.abbreviation ? ` (${course.abbreviation})` : '';
     await supabase.from('activity_log').insert([{

@@ -1,6 +1,8 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { sendServerError } = require('../middleware/errors');
+const { canAccessAssignment } = require('../middleware/access');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -41,6 +43,9 @@ router.get('/', async (req, res) => {
     if (!teacher_assignment_id) {
       return res.status(400).json({ message: 'teacher_assignment_id is required' });
     }
+    if (!(await canAccessAssignment(teacher_assignment_id, req.user))) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
     let query = supabase
       .from('attendance')
       .select('*, students(student_id, student_name)')
@@ -48,7 +53,7 @@ router.get('/', async (req, res) => {
     if (date) query = query.eq('date', date);
     if (term) query = query.eq('term', term);
     const { data, error } = await query;
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -63,6 +68,9 @@ router.get('/dates', async (req, res) => {
     if (!teacher_assignment_id) {
       return res.status(400).json({ message: 'teacher_assignment_id is required' });
     }
+    if (!(await canAccessAssignment(teacher_assignment_id, req.user))) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
     let query = supabase
       .from('attendance')
       .select('date')
@@ -70,7 +78,7 @@ router.get('/dates', async (req, res) => {
       .order('date', { ascending: true });
     if (term) query = query.eq('term', term);
     const { data, error } = await query;
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     const unique = [...new Set(data.map(r => r.date))];
     res.json(unique.map(d => ({ date: d })));
   } catch (err) {
@@ -87,6 +95,14 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
       return res.status(400).json({ message: 'teacher_assignment_id, date, and records[] are required' });
     }
 
+    const invalidScore = records.some((r) => {
+      const score = Number(r.score ?? 0);
+      return !Number.isFinite(score) || score < 0 || score > 2;
+    });
+    if (invalidScore) {
+      return res.status(400).json({ message: 'Attendance score must be between 0 and 2.' });
+    }
+
     if (await checkTermClosedByAssignment(teacher_assignment_id)) {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
@@ -98,7 +114,7 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
       teacher_assignment_id,
       student_id: r.student_id,
       date,
-      score: r.score ?? 0,
+      score: Number(r.score ?? 0),
       session: session || null,
       type: type || null,
       term: term || null,
@@ -108,7 +124,12 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
       .from('attendance')
       .upsert(rows, { onConflict: 'teacher_assignment_id,student_id,date,session,type,term', ignoreDuplicates: false })
       .select();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) {
+      if (error.code === '23514') {
+        return res.status(400).json({ message: 'Attendance score must be between 0 and 2.' });
+      }
+      return sendServerError(res, error);
+    }
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -124,7 +145,7 @@ router.get('/computed-scores', async (req, res) => {
       return res.status(400).json({ message: 'teacher_assignment_id is required' });
     }
 
-    const owned = await verifyAssignmentOwnership(teacher_assignment_id, req.user.id);
+    const owned = await canAccessAssignment(teacher_assignment_id, req.user);
     if (!owned) return res.status(403).json({ message: 'Access denied.' });
 
     let query = supabase
@@ -133,7 +154,7 @@ router.get('/computed-scores', async (req, res) => {
       .eq('teacher_assignment_id', teacher_assignment_id);
     if (term) query = query.eq('term', term);
     const { data, error } = await query;
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
 
     const dateKeys = new Set();
     const scores = {};
@@ -175,7 +196,7 @@ router.delete('/date', authorizeRole('teacher'), async (req, res) => {
     if (type) query = query.eq('type', type);
     if (term) query = query.eq('term', term);
     const { error } = await query;
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json({ message: 'Attendance records deleted' });
   } catch (err) {
     console.error(err);

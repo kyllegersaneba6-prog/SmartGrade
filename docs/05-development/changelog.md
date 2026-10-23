@@ -1,6 +1,109 @@
 # Changelog
 
+## 2026-10-23
+
+### Database: canonical SQL recorded as baseline migrations
+
+- The live project now lists `baseline_attendance_final` and `baseline_db_constraints` in its Supabase migration history alongside the four original entries and `enable_row_level_security`.
+- Both baselines were applied by re-running the existing idempotent files (`migrate_attendance_final.sql`, `add_db_constraints.sql`) after pre-flight checks confirmed 1 active term, 0 duplicate admins, 0 duplicate attendance keys, and no score/weight violations.
+- Fixed `migrate_attendance_final.sql` idempotency: Postgres truncates the 6-column unique constraint name to 63 characters (`..._session_type_t`), so the drop loop was matching and dropping the final constraint on every run. Both the full and truncated names are now protected.
+- Verified after applying: 26 attendance rows unchanged, exactly one attendance unique constraint, all CHECK constraints and 3 triggers present, both partial unique indexes present.
+- Docs updated: `00-overview/setup-guide.md`, `02-database/database-schema.md`, `05-development/notes.md`, `05-development/bug-fixes.md`.
+
+### Security: term lock now covers every write path
+
+- Added `backend/middleware/termLock.js` with `getActiveTerm`, `assertActiveTerm`, and `rejectArchivedWrites`; the shared message is `This term is closed. No modifications allowed.`
+- `POST /api/sections` now rejects a `school_year`/`semester` that is not the active term (previously only `DELETE` checked).
+- `POST /api/subjects` rejects a non-active `semester`, and `DELETE /api/subjects/:id` compares the subject's stored semester.
+- Mounted `rejectArchivedWrites` globally in `backend/index.js` after `express.json`. When the client declares a viewed term via `X-View-Term-School-Year` / `X-View-Term-Semester`, any `POST`/`PUT`/`PATCH`/`DELETE` for a different term returns **403**. This covers `staff_users`, `departments`, and `courses`, which have no term column.
+- `frontend/src/utils/api.js` now forwards the viewed term (`teacher_view_term` / `admin_view_term`) as those headers, and clears both keys on 401. Admin and teacher sidebar logout also clear the corresponding key, so a stale archive selection cannot block a later session.
+- Verified live with an admin JWT: closed-term section POST → **403**; archive-header section POST → **403**; active-term section POST → **201** then DELETE → **200**; closed-semester subject POST → **403**; active subject POST → **201**, archive-header DELETE → **403**, normal DELETE → **200**; archive-header user PATCH → **403**; archive-header GET → **200**; active-header section POST → **201**.
+- `npm run build` passes.
+- Docs updated: `00-overview/project-summary.md`, `01-features/feature-list.md`, `01-features/feature-details.md`, `03-api/api-routes.md`, `03-api/request-response.md`, `05-development/notes.md`, `05-development/coding-rules.md`, `06-decisions/decisions.md`, `05-development/bug-fixes.md`.
+
+### Security: Row Level Security enabled (deny-all) on every table
+
+- Added `backend/sql/enable_row_level_security.sql` (idempotent) and applied it to the live project as migration `enable_row_level_security`.
+- All 13 `public` tables now have `relrowsecurity = true`: `departments`, `courses`, `staff_users`, `sections`, `students`, `subjects`, `teacher_assignments`, `activity_log`, `academic_terms`, `grading_components`, `component_activities`, `component_scores`, `attendance`.
+- No policies are defined, so `anon`/`authenticated` get no rows and no writes. `anon`/`authenticated` also have **no table grants** on these tables.
+- Backend unaffected: `service_role` has `rolbypassrls = true`. Verified `GET /api/users`, `/api/terms`, `/api/attendance`, and `/api/grading-components` all return **200**.
+- Verified direct PostgREST access with the legacy anon key and the publishable key → **401** `permission denied for table students`.
+- Supabase security advisor now reports only INFO `RLS Enabled No Policy` (×13) plus the pre-existing WARN `function_search_path_mutable` (×3, not changed here).
+- Docs updated: `00-overview/setup-guide.md`, `02-database/database-schema.md`, `05-development/coding-rules.md`, `05-development/notes.md`, `06-decisions/decisions.md`, `05-development/bug-fixes.md`.
+
+### Fixed: 403 responses no longer log the user out
+
+- `backend/middleware/auth.js`: a missing, expired, or tampered JWT now returns **401** `{ "message": "Invalid or expired token. Please log in again." }` instead of 403. `authorizeRole` permission denials stay **403**.
+- `frontend/src/utils/api.js`: replaced `handle403` with `handle401`. Only a 401 clears `token`/`user` and redirects to `/login`; 403 responses are returned to the page so it can show the message (closed term, wrong role, cross-scope access).
+- The Authorization header is now omitted entirely when no token exists instead of sending `Bearer null`.
+- Verified live with the backend running: no token → **401**, bad token → **401**, valid superadmin token → **200**, superadmin calling teacher-only `POST /api/grading-components` → **403** with the session intact.
+- Docs updated: `01-features/feature-details.md`, `03-api/api-routes.md`, `03-api/request-response.md`, `05-development/bug-fixes.md`.
+
+### Security: user APIs no longer return password hashes
+
+- `backend/routes/users.js`: `GET /api/users` now selects an explicit `USER_PUBLIC_COLUMNS` list instead of `select('*')`, dropping the bcrypt `password` field.
+- `POST /api/users` and `PATCH /api/users/:id` now select the same public list and pass the row through `omitPassword` before responding.
+- `GET /api/users` keeps the `courses(name)` embed; all other fields used by the admin/superadmin UIs are unchanged.
+- Verified live: minted a superadmin JWT, called `GET /api/users` → `200`, 3 rows, no `"password"` key, expected keys plus `courses`.
+- Docs updated: `03-api/api-routes.md`, `03-api/request-response.md`, `05-development/bug-fixes.md`.
+
 ## 2026-10-22
+
+### Added: DB-level constraints
+
+- Added `backend/sql/add_db_constraints.sql` as the canonical, idempotent constraint migration.
+- Pre-flight checks abort with a list if existing rows already violate a rule; the migration never rewrites grades, weights, or terms.
+- Added `idx_academic_terms_one_active` (at most one active term) and `idx_staff_users_one_admin_per_department` (case/trim-insensitive, one admin per department).
+- Added CHECKs: attendance `score 0..2`, component `weight 0..100`, activity `max_score > 0`, component score `>= 0`.
+- Added triggers: component score `<= activity.max_score`, `max_score` cannot drop below existing scores, and a deferred trigger caps component weight totals at 100 per assignment + term.
+- Backend routes now validate first and return **400**: attendance score range, bulk score against `max_score`, component weight/total, activity `max_score`, plus friendly 23505 mappings for duplicate admin/active term.
+- SQL was syntax-reviewed only; run it in the Supabase SQL editor to apply it to the live database.
+
+### Fixed: Attendance unique-constraint conflict
+
+- Added `backend/sql/migrate_attendance_final.sql` as the canonical, idempotent attendance migration. It adds `score`/`session`/`type`/`term`, relaxes the legacy `status` column, preserves the `AM/PM` and `Lecture/Laboratory` checks, drops every older 3-column and 5-column unique constraint regardless of its name, and ensures the final 6-column constraint exists.
+- Updated `backend/sql/create_attendance_table.sql` to create the final v2 shape directly (including the 6-column unique constraint) on a fresh database.
+- Deprecated `alter_attendance_unique.sql`, `alter_attendance_session_type.sql`, `alter_attendance_term.sql`, and `migrate_attendance_v2.sql` — each is now a notice-only file pointing at the canonical migration, so applying them in any order can no longer reintroduce the 5-column constraint.
+- No backend route change was needed: `POST /api/attendance/bulk` already targets `ON CONFLICT (teacher_assignment_id, student_id, date, session, type, term)`.
+- SQL was syntax-reviewed only; run `migrate_attendance_final.sql` in the Supabase SQL editor to apply it to the live database.
+
+### Fixed: JSON 404 + centralized backend error handling
+
+- Added a catch-all in `backend/index.js`: unknown routes now return **404** `{ "message": "Route not found" }` instead of Express HTML.
+- Added a 4-argument error middleware: malformed JSON → **400** `{ "message": "Invalid JSON body." }`, oversized body → **413** `{ "message": "Request body too large." }`, anything else → **500** `{ "message": "Server error" }` with details logged server-side.
+- Added `backend/middleware/errors.js` with `sendServerError(res, err)`.
+- Replaced all **49** `{ error: ...message }` database responses across 12 route files with `sendServerError`, so raw Supabase/Postgres text is never returned to the client.
+- `POST /api/backup/export`, `POST /api/backup/restore`, and unexpected AI failures no longer echo `err.message`; AI 400 validation messages are preserved.
+- `node --check` passes for `backend/index.js`, `backend/middleware/errors.js`, and every file in `backend/routes/`.
+
+### Security: activity log identity is derived from the JWT
+
+- `POST /api/activity` no longer reads `user_name` or `department` from the request body. Both values now come from the verified JWT (`req.user.username` / `req.user.department`), so an authenticated caller cannot forge another user's audit entry.
+- The route now only requires `action`; `details` is optional and stored as `null` when omitted.
+- Insert errors log server-side and return `{ "message": "Server error" }` instead of leaking raw database text.
+- `node --check` passes for `backend/routes/activity.js`.
+
+### Security: bulk score upsert validates every row
+
+- `POST /api/component-scores/bulk` now resolves every distinct activity → component → assignment **before** writing. If any row points at another teacher's assignment, the whole batch returns `403 { "message": "Access denied." }` and nothing is saved.
+- Term lock is now checked for every distinct assignment in the batch, not just `scores[0]`. A mixed-term payload is rejected with `403 "This term is closed..."`.
+- Empty `scores` returns `[]`; rows missing `activity_id` or `student_id` return `400`.
+- Removed the now-unused `checkTermClosedByScore` helper.
+- `node --check` passes for `backend/routes/componentScores.js`.
+
+### Security: read endpoints scoped to the caller
+
+- Added `backend/middleware/access.js` with `canAccessAssignment`, `canAccessComponent`, and `canAccessSection`. Helpers fail closed and apply one policy: superadmin sees all, admin is limited to rows they created, teacher to their own assignments.
+- Enforced the helpers on `GET /api/attendance`, `GET /api/attendance/dates`, `GET /api/attendance/computed-scores`, `GET /api/grading-components`, `GET /api/component-activities`, `GET /api/component-scores`, and `GET /api/sections/:sectionId/students`.
+- Cross-scope requests now return `403 { "message": "Access denied." }` instead of leaking another section's data.
+- Teacher-only writes are unchanged; `POST /api/attendance/bulk`, `DELETE /api/attendance/date`, and the score/activity mutations still use inline ownership checks.
+- `node --check` passes on all changed backend files.
+
+### Fixed: Login offline handling
+
+- `backend/routes/auth.js`: detects Supabase connectivity failures (fetch/network/`ENOTFOUND`/`ECONNREFUSED`/timeout) and returns **503** with an offline message instead of falling through to `401 "Invalid username"`.
+- `frontend/src/pages/Login.jsx`: blocks submission when `navigator.onLine` is false and shows **"You are currently offline. Please check your Wi-Fi or ethernet connection and try again."** Network failures while offline show the same message.
+- A local backend that is down while the device is online still shows the existing "Cannot connect to the server..." message.
 
 ### Changed: Teacher pages — term tabs moved beside the assignment/term dropdown
 

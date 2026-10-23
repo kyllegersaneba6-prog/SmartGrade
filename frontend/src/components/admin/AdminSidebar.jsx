@@ -18,6 +18,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('admin_view_term');
     window.location.href = '/login';
   };
 

@@ -34,7 +34,7 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 
 **Organization & people**
 - Department + course management with abbreviations
-- Admin accounts (one per department, enforced in app code)
+- Admin accounts (one per department, enforced in app code + DB unique index)
 - Teacher accounts with 9-digit staff ID and auto-generated username
 - Section auto-naming (`<course abbr> <year>-<section letter>`) with duplicate checks
 - Student records with structured fields (First Name, Last Name, MI, Gender)
@@ -44,7 +44,7 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 - Superadmin-only academic term create/end (no date auto-detection)
 - Role-scoped dashboards and navigation
 - Read-only enforcement for closed terms (backend 403 + disabled controls)
-- Archive mode: teachers and admins browse past terms read-only
+- Archive mode: teachers and admins browse past terms read-only; writes are also blocked server-side
 - Failed-login audit entries (deduped per username per 60 s)
 
 **Teaching & grading**
@@ -64,11 +64,10 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 
 ## Current Status
 
-Functional MVP. Core grading, attendance, and user management work end to end.
+Functional MVP. Core grading, attendance, and user management work end to end. Database access is locked down: RLS is enabled on all 13 public tables with no policies, and only the backend's service-role key can read or write.
 
 Known gaps (see `05-development/notes.md`):
 - No tests, no TypeScript, no centralized API client (frontend hardcodes `http://localhost:5000`).
 - Superadmin "Broadcast Notification" UI is not wired to an API.
 - No 404 page and no catch-all route.
-- No backend 404/error middleware — unmatched routes return Express HTML.
 - Grade computation, grade-point conversion, and all Excel/PDF work live in the frontend, not the backend.

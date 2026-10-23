@@ -40,7 +40,7 @@ Constraint legend: PK primary key · FK foreign key · UQ unique · NN not null
 | created_by | UUID | FK → `staff_users(id)` ON DELETE SET NULL |
 | created_at | TIMESTAMPTZ | |
 
-**Indexes:** `idx_staff_users_username`, `idx_staff_users_role`, unique `idx_staff_users_staff_id`
+**Indexes:** `idx_staff_users_username`, `idx_staff_users_role`, unique `idx_staff_users_staff_id`, unique partial `idx_staff_users_one_admin_per_department` on `lower(trim(department))` where `system_role = 'admin'`
 
 ## sections
 
@@ -84,7 +84,7 @@ Constraint legend: PK primary key · FK foreign key · UQ unique · NN not null
 | is_closed | BOOLEAN | Default `false` |
 | created_at | TIMESTAMPTZ | |
 
-**Constraints:** `UNIQUE(school_year, semester)` — no DB guarantee of a single active row
+**Constraints:** `UNIQUE(school_year, semester)` · unique partial `idx_academic_terms_one_active` on `((is_active)) WHERE is_active = true`
 
 ## subjects
 
@@ -125,12 +125,12 @@ Constraint legend: PK primary key · FK foreign key · UQ unique · NN not null
 | teacher_assignment_id | UUID | NN, FK → `teacher_assignments(id)` ON DELETE CASCADE |
 | term | TEXT | NN, no CHECK; values `PRELIMS`, `MIDTERMS`, `PRE-FINALS`, `FINALS` |
 | name | TEXT | NN, e.g. `Quizzes`, `Exams`, `Attendance` |
-| weight | DECIMAL | NN, percentage; sum = 100 enforced only in UI |
+| weight | DECIMAL | NN, percentage; CHECK `0..100`; total per assignment + term is capped at 100 (deferred trigger) |
 | sort_order | INT | Default 0; drag-drop order |
 | is_attendance | BOOLEAN | Default `false`; uses computed attendance instead of activities |
 | created_at | TIMESTAMPTZ | |
 
-**Constraints:** `UNIQUE(teacher_assignment_id, term, name)`
+**Constraints:** `UNIQUE(teacher_assignment_id, term, name)` · CHECK `grading_components_weight_range` · trigger `trg_grading_components_weight_total`
 
 ## component_activities
 
@@ -139,9 +139,11 @@ Constraint legend: PK primary key · FK foreign key · UQ unique · NN not null
 | id | UUID | PK |
 | component_id | UUID | NN, FK → `grading_components(id)` ON DELETE CASCADE |
 | name | TEXT | NN |
-| max_score | DECIMAL | NN, default 100 |
+| max_score | DECIMAL | NN, default 100, CHECK `> 0`; cannot be lowered below an existing score |
 | sort_order | INT | Default 0 |
 | created_at | TIMESTAMPTZ | |
+
+**Constraints:** CHECK `component_activities_max_score_positive` · trigger `trg_component_activities_max_score`
 
 ## component_scores
 
@@ -150,10 +152,10 @@ Constraint legend: PK primary key · FK foreign key · UQ unique · NN not null
 | id | UUID | PK |
 | activity_id | UUID | NN, FK → `component_activities(id)` ON DELETE CASCADE |
 | student_id | UUID | NN, FK → `students(id)` ON DELETE CASCADE |
-| score | DECIMAL | Nullable; no 0..max_score CHECK |
+| score | DECIMAL | Nullable; CHECK `>= 0`; trigger enforces `<= component_activities.max_score` |
 | created_at | TIMESTAMPTZ | |
 
-**Constraints:** `UNIQUE(activity_id, student_id)` — upsert target
+**Constraints:** `UNIQUE(activity_id, student_id)` — upsert target · CHECK `component_scores_score_nonnegative` · trigger `trg_component_scores_range`
 
 ## attendance
 
@@ -163,7 +165,7 @@ Constraint legend: PK primary key · FK foreign key · UQ unique · NN not null
 | teacher_assignment_id | UUID | NN, FK → `teacher_assignments(id)` ON DELETE CASCADE |
 | student_id | UUID | NN, FK → `students(id)` ON DELETE CASCADE |
 | date | DATE | NN |
-| score | DECIMAL | Default 0; 0 Absent, 1 Late, 2 Present |
+| score | DECIMAL | Default 0, CHECK `0..2`; 0 Absent, 1 Late, 2 Present |
 | session | TEXT | Nullable, CHECK `('AM','PM')` |
 | type | TEXT | Nullable, CHECK `('Lecture','Laboratory')` |
 | term | TEXT | Nullable; term name |
@@ -172,7 +174,7 @@ Constraint legend: PK primary key · FK foreign key · UQ unique · NN not null
 
 **Indexes:** `idx_attendance_assignment_date(teacher_assignment_id, date)`, `idx_attendance_student(student_id)`
 
-**Unique constraint (⚠ verify live):** intended `(teacher_assignment_id, student_id, date, session, type, term)`. `alter_attendance_unique.sql` re-adds a 5-column variant without `term`, so the deployed constraint depends on file order.
+**Unique constraint:** `UNIQUE(teacher_assignment_id, student_id, date, session, type, term)` — created by `create_attendance_table.sql` on a fresh database and guaranteed by `migrate_attendance_final.sql` on an existing one. NULL `session`/`type`/`term` values still make rows distinct in Postgres, so always send the term.
 
 ## activity_log
 

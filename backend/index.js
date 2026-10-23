@@ -12,6 +12,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json({ limit: '55mb' }));
 
+const { rejectArchivedWrites } = require('./middleware/termLock');
+app.use(rejectArchivedWrites);
+
 const usersRoutes = require('./routes/users');
 const activityRoutes = require('./routes/activity');
 const sectionsRoutes = require('./routes/sections');
@@ -72,6 +75,27 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 app.get('/', (req, res) => {
   res.send('SmartGrade Backend is running...');
+});
+
+// 404 — unknown routes return JSON instead of Express HTML.
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
+});
+
+// Central error handler — malformed JSON, oversized bodies, and any error
+// passed to next(). Never exposes stack traces or database text.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ message: 'Invalid JSON body.' });
+  }
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ message: 'Request body too large.' });
+  }
+
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({ message: 'Server error' });
 });
 
 app.listen(PORT, '0.0.0.0', () => {

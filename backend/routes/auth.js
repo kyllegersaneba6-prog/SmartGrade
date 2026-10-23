@@ -8,6 +8,29 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+const OFFLINE_MESSAGE = 'You are currently offline. Please check your Wi-Fi or ethernet connection and try again.';
+
+// Supabase is remote, so a dropped internet connection surfaces as a fetch /
+// network error while the local API server itself stays reachable. Detect it so
+// login reports "offline" instead of falling through to "Invalid username".
+const isOfflineError = (error) => {
+  if (!error) return false;
+  const message = String(error.message || error).toLowerCase();
+  const code = String(error.code || '').toUpperCase();
+  return (
+    code === 'ENOTFOUND' ||
+    code === 'ECONNREFUSED' ||
+    code === 'ETIMEDOUT' ||
+    message.includes('fetch failed') ||
+    message.includes('failed to fetch') ||
+    message.includes('network') ||
+    message.includes('enotfound') ||
+    message.includes('econnrefused') ||
+    message.includes('timed out') ||
+    message.includes('timeout')
+  );
+};
+
 // Failed-login audit: one row per attempted username per minute. Multiple
 // wrong attempts for the same username within 60s coalesce into a single
 // "Failed Login" row whose details carry the attempt count (critical alert).
@@ -52,11 +75,15 @@ router.post('/login', async (req, res) => {
     let dbUsername = username;
 
     // 1. Check staff_users table for all roles (superadmin, admin, teacher)
-    const { data: staffUser } = await supabase
+    const { data: staffUser, error: staffError } = await supabase
       .from('staff_users')
       .select('*, courses(name)')
       .eq('username', username)
       .single();
+
+    if (isOfflineError(staffError)) {
+      return res.status(503).json({ message: OFFLINE_MESSAGE });
+    }
 
     if (staffUser) {
       user = staffUser;
@@ -64,11 +91,15 @@ router.post('/login', async (req, res) => {
       dbUsername = username;
     } else {
       // 2. Fallback to admin_users table (legacy superadmin)
-      const { data: adminUser } = await supabase
+      const { data: adminUser, error: adminError } = await supabase
         .from('admin_users')
         .select('*')
         .eq('username', username)
         .single();
+
+      if (isOfflineError(adminError)) {
+        return res.status(503).json({ message: OFFLINE_MESSAGE });
+      }
 
       if (adminUser) {
         user = adminUser;
@@ -77,9 +108,13 @@ router.post('/login', async (req, res) => {
       } else if (username.toUpperCase().startsWith('USR-')) {
         // 3. Fallback: match staff_users by ID prefix
         const shortId = username.substring(4).toLowerCase();
-        const { data: staffUsers } = await supabase
+        const { data: staffUsers, error: staffListError } = await supabase
           .from('staff_users')
           .select('*');
+
+        if (isOfflineError(staffListError)) {
+          return res.status(503).json({ message: OFFLINE_MESSAGE });
+        }
 
         if (staffUsers && staffUsers.length > 0) {
           const matched = staffUsers.find(u =>
@@ -142,6 +177,9 @@ router.post('/login', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+    if (isOfflineError(err)) {
+      return res.status(503).json({ message: OFFLINE_MESSAGE });
+    }
     res.status(500).json({ message: 'Server error' });
   }
 });

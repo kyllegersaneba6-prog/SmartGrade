@@ -47,7 +47,7 @@ router.post('/export', async (req, res) => {
     res.json({ filename, file, summary: file.manifest });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.message || 'Export failed.' });
+    res.status(500).json({ message: 'Export failed.' });
   }
 });
 
@@ -116,7 +116,7 @@ router.post('/restore', sizeGuard, async (req, res) => {
     res.json({ ok: true, mode: m, outcome, manifest: file.manifest });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.message || 'Restore failed.' });
+    res.status(500).json({ message: 'Restore failed.' });
   } finally {
     restoreInProgress = false;
   }

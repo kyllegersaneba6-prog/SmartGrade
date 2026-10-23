@@ -1,6 +1,8 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { sendServerError } = require('../middleware/errors');
+const { canAccessComponent } = require('../middleware/access');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -62,12 +64,15 @@ router.get('/', async (req, res) => {
   try {
     const { component_id } = req.query;
     if (!component_id) return res.status(400).json({ message: 'component_id is required' });
+    if (!(await canAccessComponent(component_id, req.user))) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
     const { data, error } = await supabase
       .from('component_activities')
       .select('*')
       .eq('component_id', component_id)
       .order('sort_order', { ascending: true });
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -80,6 +85,10 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
   const { component_id, name, max_score } = req.body;
   if (!component_id || !name) {
     return res.status(400).json({ message: 'component_id and name are required' });
+  }
+  const maxScore = max_score === undefined ? 100 : Number(max_score);
+  if (!Number.isFinite(maxScore) || maxScore <= 0) {
+    return res.status(400).json({ message: 'Max score must be greater than 0.' });
   }
   try {
     // One batch: component lookup, active term, and max sort_order are
@@ -125,10 +134,13 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
 
     const { data, error } = await supabase
       .from('component_activities')
-      .insert([{ component_id, name, max_score: max_score || 100, sort_order }])
+      .insert([{ component_id, name, max_score: maxScore, sort_order }])
       .select()
       .single();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) {
+      if (error.code === '23514') return res.status(400).json({ message: 'Max score must be greater than 0.' });
+      return sendServerError(res, error);
+    }
     res.status(201).json(data);
   } catch (err) {
     console.error(err);
@@ -156,7 +168,25 @@ router.put('/:id', authorizeRole('teacher'), async (req, res) => {
 
     const updates = {};
     if (name !== undefined) updates.name = name;
-    if (max_score !== undefined) updates.max_score = max_score;
+    if (max_score !== undefined) {
+      const maxScore = Number(max_score);
+      if (!Number.isFinite(maxScore) || maxScore <= 0) {
+        return res.status(400).json({ message: 'Max score must be greater than 0.' });
+      }
+
+      const { count, error: countError } = await supabase
+        .from('component_scores')
+        .select('id', { count: 'exact', head: true })
+        .eq('activity_id', req.params.id)
+        .gt('score', maxScore);
+      if (countError) return sendServerError(res, countError);
+      if (count > 0) {
+        return res.status(400).json({
+          message: `Cannot set max score to ${maxScore}: ${count} existing score(s) exceed it.`,
+        });
+      }
+      updates.max_score = maxScore;
+    }
 
     const { data, error } = await supabase
       .from('component_activities')
@@ -164,7 +194,10 @@ router.put('/:id', authorizeRole('teacher'), async (req, res) => {
       .eq('id', req.params.id)
       .select()
       .single();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) {
+      if (error.code === '23514') return res.status(400).json({ message: 'Max score must be greater than 0 and cannot be lower than existing scores.' });
+      return sendServerError(res, error);
+    }
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -190,7 +223,7 @@ router.delete('/:id', authorizeRole('teacher'), async (req, res) => {
     if (!comp) return res.status(403).json({ message: 'Access denied.' });
 
     const { error } = await supabase.from('component_activities').delete().eq('id', req.params.id);
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json({ message: 'Activity deleted' });
   } catch (err) {
     console.error(err);

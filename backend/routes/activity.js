@@ -1,6 +1,7 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken } = require('../middleware/auth');
+const { sendServerError } = require('../middleware/errors');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -51,7 +52,7 @@ router.get('/', async (req, res) => {
     const { data, error } = await query;
 
     if (error) {
-      return res.status(500).json({ error: error.message });
+      return sendServerError(res, error);
     }
 
     res.json(data);
@@ -62,21 +63,30 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { user_name, action, details, department } = req.body;
+  // Identity is taken from the verified JWT, never from the request body.
+  // Any user_name/department sent by the client is ignored so an
+  // authenticated caller cannot forge another user's audit entry.
+  const { action, details } = req.body;
 
-  if (!user_name || !action) {
-    return res.status(400).json({ message: 'user_name and action are required' });
+  if (!action) {
+    return res.status(400).json({ message: 'action is required' });
   }
 
   try {
     const { data, error } = await supabase
       .from('activity_log')
-      .insert([{ user_name, action, details, department: department || null }])
+      .insert([{
+        user_name: req.user.username || 'System',
+        action,
+        details: details || null,
+        department: req.user.department || null
+      }])
       .select()
       .single();
 
     if (error) {
-      return res.status(500).json({ error: error.message });
+      console.error('Activity insert failed:', error.message);
+      return res.status(500).json({ message: 'Server error' });
     }
 
     res.status(201).json(data);

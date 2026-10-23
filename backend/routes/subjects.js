@@ -1,6 +1,8 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { sendServerError } = require('../middleware/errors');
+const { assertActiveTerm } = require('../middleware/termLock');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -22,7 +24,7 @@ router.get('/', async (req, res) => {
     if (semester) query = query.eq('semester', semester);
     if (course_id) query = query.or(`course_id.eq.${course_id},course_id.is.null`);
     const { data, error } = await query;
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -44,6 +46,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
     return res.status(400).json({ message: 'Semester is required (1st Semester, 2nd Semester, or Summer)' });
   }
   try {
+    if (!(await assertActiveTerm(res, { semester }))) return;
     let dupQuery = supabase.from('subjects').select('id').eq('name', name);
     if (course_id) {
       dupQuery = dupQuery.eq('course_id', course_id);
@@ -60,7 +63,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
       .insert([{ name, code: code || null, year_level, semester, course_id, created_by: req.user.id }])
       .select()
       .single();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.status(201).json(data);
   } catch (err) {
     console.error(err);
@@ -71,11 +74,12 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
 // DELETE /api/subjects/:id — delete a subject
 router.delete('/:id', authorizeRole('admin'), async (req, res) => {
   try {
-    const { data: subject } = await supabase.from('subjects').select('created_by').eq('id', req.params.id).single();
+    const { data: subject } = await supabase.from('subjects').select('created_by, semester').eq('id', req.params.id).single();
     if (!subject) return res.status(404).json({ message: 'Subject not found' });
     if (subject.created_by !== req.user.id) return res.status(403).json({ message: 'You can only delete your own subjects.' });
+    if (!(await assertActiveTerm(res, { semester: subject.semester }))) return;
     const { error } = await supabase.from('subjects').delete().eq('id', req.params.id);
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json({ message: 'Subject deleted' });
   } catch (err) {
     console.error(err);

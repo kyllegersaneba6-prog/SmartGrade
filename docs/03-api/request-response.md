@@ -9,6 +9,18 @@ Content-Type: application/json
 
 Tokens are issued at login and expire after **1 day**.
 
+Status convention: **401** = no/expired/invalid session (the frontend `utils/api.js` clears the token and redirects to `/login`); **403** = valid session but the action is not allowed (closed term, wrong role, cross-scope). A 403 leaves the user signed in so the page can display the message.
+
+## Archive Write Guard
+
+While browsing an archived term, the client sends `X-View-Term-School-Year` and `X-View-Term-Semester` on every request. Any mutating method (`POST`, `PUT`, `PATCH`, `DELETE`) whose headers differ from the active term returns:
+
+```json
+403: { "message": "This term is closed. No modifications allowed." }
+```
+
+Reads are unaffected. Requests without the headers (normal, non-archive use) are unaffected.
+
 ## Login
 
 ```
@@ -36,8 +48,9 @@ Body: { "username": "admin", "password": "admin123" }
 Failures:
 - Unknown username → `401 { "message": "Invalid username " }` (trailing space is in the source)
 - Wrong password → `401 { "message": "Invalid password" }`
+- Supabase unreachable (no internet) → `503 { "message": "You are currently offline. Please check your Wi-Fi or ethernet connection and try again." }`
 
-Only an existing account's failed attempt is written to the audit log.
+Login lookup errors caused by a dropped connection are detected explicitly, so an offline attempt never reports "Invalid username". Only an existing account's failed password attempt is written to the audit log.
 
 ## Create Teacher (Admin)
 
@@ -58,6 +71,12 @@ Body:
 
 201: { "id": "uuid", "full_name": "John Santos", "username": "santos.4512@sg", ... }
 ```
+
+`password` is write-only. `GET`, `POST`, and `PATCH /api/users` select an explicit
+public column list and strip the field before responding, so a bcrypt hash is
+never sent to the browser. Required response columns: `id`, `first_name`,
+`last_name`, `full_name`, `username`, `staff_id`, `department`, `course_id`,
+`system_role`, `created_by`, `created_at` (list also embeds `courses(name)`).
 
 `department` is inherited from the calling admin. Superadmin must supply `department` when creating an admin.
 400 cases: duplicate full name, invalid staff ID, missing fields, admin already exists in the department.
@@ -129,6 +148,19 @@ Body: { "component_id": "uuid", "name": "Quiz 1", "max_score": 20 }
 201: { "id": "uuid", "name": "Quiz 1", "max_score": 20, "sort_order": 0 }
 ```
 
+## Constraint / validation errors
+
+The DB constraints in `add_db_constraints.sql` are a backstop. Routes validate first and return **400** with `{ "message": "..." }`:
+
+| Request | Condition | Example message |
+|---|---|---|
+| `POST /api/attendance/bulk` | any `score` outside `0..2` | `Attendance score must be between 0 and 2.` |
+| `POST /api/component-scores/bulk` | `score` outside `0..activity.max_score` | `Score for Quiz 1 must be between 0 and 20.` |
+| `POST/PUT /api/grading-components` | `weight` outside `0..100` or term total over 100 | `Total weight for this term cannot exceed 100%. Current total: 90%.` |
+| `POST/PUT /api/component-activities` | `max_score <= 0` or below an existing score | `Cannot set max score to 10: 2 existing score(s) exceed it.` |
+| `POST/PATCH /api/users` | second admin in the same department | `An admin already exists in this department.` |
+| `POST /api/terms/create` | an active term already exists | `An active term already exists. End it first.` |
+
 ## Reorder Components
 
 ```
@@ -156,7 +188,7 @@ Body:
 }
 ```
 
-Upserts on `(activity_id, student_id)`. Ownership is checked only for the first row.
+Upserts on `(activity_id, student_id)`. Every distinct activity is resolved through component → assignment before anything is written; if any row belongs to another teacher or a closed term, the whole batch is rejected with `403` and nothing is saved.
 
 ## Bulk Save Attendance
 
@@ -242,11 +274,52 @@ Auth: admin
 
 Cascades `component_scores` and `attendance` rows.
 
+## Scoped Read Access
+
+Assignment-level and section-level reads are scoped to the caller:
+
+- **superadmin** — every record
+- **admin** — records created by that admin (`created_by`)
+- **teacher** — only their own assignments (`teacher_id`) and sections they teach
+
+```
+GET /api/attendance?teacher_assignment_id=uuid
+Auth: teacher (must own the assignment)
+
+403: { "message": "Access denied." }
+```
+
+The same rule applies to `/api/attendance/dates`, `/api/attendance/computed-scores`, `/api/grading-components`, `/api/component-activities`, `/api/component-scores`, and `/api/sections/:sectionId/students`.
+
+## Log Activity
+
+`user_name` and `department` are **not accepted** from the client — they are read from the verified JWT.
+
+```
+POST /api/activity
+Auth: any authenticated user
+Body: {
+  "action": "Course Created",
+  "details": "The course \"BSIT\" (BSIT) was created."
+}
+
+201: {
+  "id": "uuid",
+  "user_name": "santos.4512@sg",
+  "action": "Course Created",
+  "details": "The course \"BSIT\" (BSIT) was created.",
+  "department": "College of Information and Communication Technology (CICT)",
+  "created_at": "2026-10-22T..."
+}
+```
+
+Missing `action` → `400 { "message": "action is required" }`. Any `user_name`/`department` values in the body are ignored.
+
 ## Attendance Computed Scores
 
 ```
 GET /api/attendance/computed-scores?teacher_assignment_id=uuid&term=PRELIMS
-Auth: teacher (must own the assignment)
+Auth: any authenticated caller within the scoped read policy
 
 200: {
   "max_total": 20,
@@ -337,28 +410,32 @@ Auth: any
 
 ## Error Bodies
 
-Two shapes are in use:
+All error responses use a single shape:
 
 ```json
 { "message": "This term is closed. No modifications allowed." }
 ```
 
+Server-side failures return a generic message and are logged with full details on the backend:
+
 ```json
-{ "error": "duplicate key value violates unique constraint ..." }
+{ "message": "Server error" }
 ```
 
-`{ message }` is used for validation/permission errors; `{ error }` usually leaks raw database or server messages.
+Unknown routes return `{ "message": "Route not found" }`; malformed JSON returns `{ "message": "Invalid JSON body." }`.
+
+The only exception is backup validation, which returns `{ "ok": false, "errors": [...] }` so the UI can list every problem in the uploaded file.
 
 ## Status Codes
 
 | Code | Meaning |
 |---|---|
 | 200 / 201 | Success |
-| 400 | Validation or business rule failure (duplicates, missing fields) |
+| 400 | Validation/business rule failure, malformed JSON, or backup validation errors |
 | 401 | No token provided |
-| 403 | Invalid token, wrong role, not an owner, or closed term |
-| 404 | Missing resource (e.g. no active term) |
+| 403 | Invalid token, wrong role, not an owner, closed term, or read/write outside the caller's scope (`{ "message": "Access denied." }`) |
+| 404 | Unknown route, or a missing resource (e.g. no active term) |
 | 409 | Restore already running |
 | 413 | Backup file/request over 50 MB |
-| 500 | Server/database error |
+| 500 | Server/database error (details logged server-side only) |
 | 502 / 504 | AI provider returned invalid output / timed out |

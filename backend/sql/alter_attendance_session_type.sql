@@ -1,6 +1,12 @@
--- Add session (AM/PM) and type (Lecture/Laboratory) columns, then update UNIQUE constraint
-ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS session TEXT CHECK (session IN ('AM', 'PM'));
-ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS type TEXT CHECK (type IN ('Lecture', 'Laboratory'));
-
-ALTER TABLE public.attendance DROP CONSTRAINT IF EXISTS attendance_teacher_assignment_id_student_id_date_key;
-ALTER TABLE public.attendance ADD CONSTRAINT attendance_teacher_assignment_id_student_id_date_session_type_key UNIQUE (teacher_assignment_id, student_id, date, session, type);
+-- DEPRECATED - superseded by migrate_attendance_final.sql.
+--
+-- This file used to add `session`/`type` and a 5-column UNIQUE constraint
+-- (teacher_assignment_id, student_id, date, session, type). That conflicts with
+-- the 6-column constraint that includes `term` and is required by the upsert in
+-- routes/attendance.js.
+--
+-- Run migrate_attendance_final.sql instead. It adds the same columns, keeps the
+-- AM/PM and Lecture/Laboratory checks, and creates only the final constraint.
+--
+-- Kept only so existing instructions do not break.
+SELECT 'Deprecated: run migrate_attendance_final.sql instead.' AS notice;

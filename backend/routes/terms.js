@@ -1,6 +1,7 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { sendServerError } = require('../middleware/errors');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -17,7 +18,7 @@ router.get('/active', async (req, res) => {
       .select('*')
       .eq('is_active', true)
       .maybeSingle();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     if (!data) return res.status(404).json({ message: 'No active term. Contact superadmin.' });
     res.json(data);
   } catch (err) {
@@ -48,7 +49,16 @@ router.post('/create', authorizeRole('superadmin'), async (req, res) => {
       .insert([{ school_year, semester, is_active: true, is_closed: false }])
       .select()
       .single();
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) {
+      const dbMessage = `${error.message || ''} ${error.details || ''} ${error.hint || ''}`;
+      if (error.code === '23505') {
+        if (/one_active/i.test(dbMessage)) {
+          return res.status(400).json({ message: 'An active term already exists. End it first.' });
+        }
+        return res.status(400).json({ message: 'A term with this school year and semester already exists.' });
+      }
+      return sendServerError(res, error);
+    }
     res.status(201).json(data);
   } catch (err) {
     console.error(err);
@@ -64,7 +74,7 @@ router.post('/end', authorizeRole('superadmin'), async (req, res) => {
       .select('*')
       .eq('is_active', true)
       .maybeSingle();
-    if (fetchError) return res.status(500).json({ error: fetchError.message });
+    if (fetchError) return sendServerError(res, fetchError);
     if (!active) return res.status(400).json({ message: 'No active term found.' });
 
     const nextSy = req.body.next_school_year;
@@ -77,7 +87,7 @@ router.post('/end', authorizeRole('superadmin'), async (req, res) => {
       .from('academic_terms')
       .update({ is_active: false, is_closed: true })
       .eq('id', active.id);
-    if (closeError) return res.status(500).json({ error: closeError.message });
+    if (closeError) return sendServerError(res, closeError);
 
     const { data: nextRow, error: upsertError } = await supabase
       .from('academic_terms')
@@ -87,7 +97,13 @@ router.post('/end', authorizeRole('superadmin'), async (req, res) => {
       )
       .select()
       .single();
-    if (upsertError) return res.status(500).json({ error: upsertError.message });
+    if (upsertError) {
+      const dbMessage = `${upsertError.message || ''} ${upsertError.details || ''} ${upsertError.hint || ''}`;
+      if (upsertError.code === '23505' && /one_active/i.test(dbMessage)) {
+        return res.status(400).json({ message: 'Another term is already active. Refresh and try again.' });
+      }
+      return sendServerError(res, upsertError);
+    }
 
     res.json({ closed: active, next: nextRow });
   } catch (err) {
@@ -104,7 +120,7 @@ router.get('/', async (req, res) => {
       .select('*')
       .order('school_year', { ascending: false })
       .order('semester', { ascending: false });
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return sendServerError(res, error);
     res.json(data);
   } catch (err) {
     console.error(err);

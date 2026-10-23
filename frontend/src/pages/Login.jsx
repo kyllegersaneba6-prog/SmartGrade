@@ -12,6 +12,8 @@ const features = [
   { icon: <TrendingUp className="w-5 h-5 text-amber-400" />, title: 'Performance Reports', desc: 'Generate grade summaries with grade-point conversion' },
 ];
 
+const OFFLINE_MESSAGE = 'You are currently offline. Please check your Wi-Fi or ethernet connection and try again.';
+
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -38,6 +40,14 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // No internet — don't even attempt the request, so the user never sees an
+    // "Invalid username" response caused by a failed database lookup.
+    if (!navigator.onLine) {
+      setError(OFFLINE_MESSAGE);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -67,9 +77,13 @@ const Login = () => {
         || raw.includes('failed to fetch')
         || raw.includes('networkerror')
         || raw.includes('load failed');
-      setError(isNetwork
-        ? 'Cannot connect to the server. Please check your connection and try again.'
-        : (err.message || 'Login failed'));
+      if (!navigator.onLine) {
+        setError(OFFLINE_MESSAGE);
+      } else if (isNetwork) {
+        setError('Cannot connect to the server. Please check your connection and try again.');
+      } else {
+        setError(err.message || 'Login failed');
+      }
     } finally {
       setLoading(false);
     }

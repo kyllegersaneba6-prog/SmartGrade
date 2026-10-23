@@ -7,10 +7,10 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Feature | Status | Notes |
 |---|---|---|
 | Login / JWT authentication | Done | 1-day tokens; bcrypt |
-| Role-based access control (Superadmin/Admin/Teacher) | Done | `authorizeRole` + inline checks |
+| Role-based access control (Superadmin/Admin/Teacher) | Done | `authorizeRole`, shared read scoping (`middleware/access.js`), inline write checks |
 | Account provisioning with 9-digit staff ID | Done | `staff_id` validated `^[0-9]{9}$`, unique |
 | Auto-generated username | Done | `lastname.<digits 3–7 of staff ID>@sg` |
-| One admin per department | Done | Enforced in `POST`/`PATCH /api/users`, no DB constraint |
+| One admin per department | Done | Enforced in `POST`/`PATCH /api/users` and by unique partial index `idx_staff_users_one_admin_per_department` |
 | Failed-login audit (deduped 60 s) | Done | Unknown usernames are not logged |
 
 ## Organization
@@ -32,7 +32,7 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Read-only locked term | Done | Backend 403 on mutations + disabled UI |
 | Archive mode browsing (teacher) | Done | Entry only from `/teacher/settings` |
 | Archive mode browsing (admin) | Done | Entry only from `/admin/settings` |
-| Term-lock coverage | In Progress | Not applied to section create, subject create/delete, user create, department/course writes |
+| Term-lock coverage | Done | Sections, subjects, assignments, grading, and attendance reject non-active terms; a global archive-header guard blocks every write while an archived term is viewed (including users/departments/courses) |
 
 ## Attendance & Grading
 
@@ -60,7 +60,7 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 
 | Feature | Status | Notes |
 |---|---|---|
-| Activity / audit logging | Done | Role-scoped reads |
+| Activity / audit logging | Done | Role-scoped reads; write identity derived from JWT |
 | Security audit page (superadmin) | Done | Filterable, 10 s auto-refresh |
 | Backup export | Done | `.backup.sg`, categories, optional encryption |
 | Backup validate / preview | Done | Checksums, per-table counts, conflict preview |

@@ -13,7 +13,10 @@ const authenticateToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(403).json({ message: 'Invalid or expired token.' });
+    // Missing, expired, or tampered tokens are an authentication failure
+    // (401), not an authorization failure (403). The client logs out on 401
+    // and shows the message for 403, so this distinction matters.
+    return res.status(401).json({ message: 'Invalid or expired token. Please log in again.' });
   }
 };
 
