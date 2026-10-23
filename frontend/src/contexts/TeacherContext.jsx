@@ -19,11 +19,11 @@ export const TeacherProvider = ({ children }) => {
   const [viewTerm, setViewTermState] = useState(parseViewTerm);
 
   useEffect(() => {
-    api('http://localhost:5000/api/terms/active')
+    api('/api/terms/active')
       .then(r => r.ok ? r.json() : null)
       .then(d => setActiveTerm(d))
       .catch(() => {});
-    api('http://localhost:5000/api/terms')
+    api('/api/terms')
       .then(r => r.ok ? r.json() : [])
       .then(d => setAllTerms(d))
       .catch(() => {});
@@ -32,7 +32,7 @@ export const TeacherProvider = ({ children }) => {
   const fetchAssignments = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api('http://localhost:5000/api/assignments');
+      const res = await api('/api/assignments');
       if (res.ok) {
         const data = await res.json();
         setAssignments(data);

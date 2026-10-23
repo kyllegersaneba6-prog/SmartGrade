@@ -18,19 +18,19 @@ const AdminDashboard = () => {
       await Promise.all([
         (async () => {
           try {
-            const res = await api('http://localhost:5000/api/users');
+            const res = await api('/api/users');
             if (res.ok) { const data = await res.json(); setTeachers(data); }
           } catch (err) { console.error(err); }
         })(),
         (async () => {
           try {
-            const res = await api('http://localhost:5000/api/activity');
+            const res = await api('/api/activity');
             if (res.ok) { const data = await res.json(); setActivityLog(data); }
           } catch (err) { console.error(err); }
         })(),
         (async () => {
           try {
-            const res = await api('http://localhost:5000/api/assignments');
+            const res = await api('/api/assignments');
             if (res.ok) {
               const data = await res.json();
               const counts = {};
@@ -42,12 +42,12 @@ const AdminDashboard = () => {
         (async () => {
           try {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const deptRes = await api('http://localhost:5000/api/departments');
+            const deptRes = await api('/api/departments');
             if (deptRes.ok) {
               const depts = await deptRes.json();
               const match = depts.find(d => d.name === user.department);
               if (match) {
-                const coursesRes = await api(`http://localhost:5000/api/courses?department_id=${match.id}`);
+                const coursesRes = await api(`/api/courses?department_id=${match.id}`);
                 if (coursesRes.ok) {
                   const courses = await coursesRes.json();
                   setCoursesCount(courses.length);

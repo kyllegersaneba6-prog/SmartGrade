@@ -67,7 +67,6 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 Functional MVP. Core grading, attendance, and user management work end to end. Database access is locked down: RLS is enabled on all 13 public tables with no policies, and only the backend's service-role key can read or write.
 
 Known gaps (see `05-development/notes.md`):
-- No tests, no TypeScript, no centralized API client (frontend hardcodes `http://localhost:5000`).
+- No tests, no TypeScript, no centralized API client (pages call a thin `utils/api.js` wrapper with relative `/api/...` paths and a configurable base URL).
 - Superadmin "Broadcast Notification" UI is not wired to an API.
-- No 404 page and no catch-all route.
 - Grade computation, grade-point conversion, and all Excel/PDF work live in the frontend, not the backend.

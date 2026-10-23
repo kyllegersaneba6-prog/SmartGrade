@@ -65,6 +65,8 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Backup export | Done | `.backup.sg`, categories, optional encryption |
 | Backup validate / preview | Done | Checksums, per-table counts, conflict preview |
 | Backup restore (merge / replace / full) | Done | Typed `CONFIRM` / `FULL RESTORE`; restore lock |
+| Configurable API base URL | Done | `VITE_API_BASE_URL` (default `http://<hostname>:5000`); pages pass relative `/api/...` paths |
+| 404 page + catch-all route | Done | `NotFound` page for any unknown URL; links to the role dashboard or login |
 | Student Excel template builder | In Progress | `/admin/bulk-students` exists but is not linked from Manage Sections; header title falls back to "Settings" |
 | Broadcast notification | Not Wired | Forms + success banner only; no API call |
 | Student portal / self-service | Planned | |

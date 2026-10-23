@@ -5,7 +5,7 @@
 - No TypeScript — plain JavaScript throughout.
 - No tests — do not add test files.
 - No state management library — React hooks only (`useState`, `useEffect`, `useCallback`, `useMemo`, `useContext`, `createContext`).
-- No centralized API client library. `frontend/src/utils/api.js` is a thin fetch wrapper that adds the bearer token, forwards the viewed term as `X-View-Term-School-Year` / `X-View-Term-Semester`, and logs out only on 401; each page still passes an absolute `http://localhost:5000/api/...` URL. A 403 keeps the session and is shown by the page.
+- No centralized API client library. `frontend/src/utils/api.js` is a thin fetch wrapper that resolves relative `/api/...` paths against `API_BASE` (`VITE_API_BASE_URL`, default `http://<current-hostname>:5000`), adds the bearer token, forwards the viewed term as `X-View-Term-School-Year` / `X-View-Term-Semester`, and logs out only on 401. A 403 keeps the session and is shown by the page. Pass relative paths; do not hardcode `localhost:5000`.
 - Shared state lives in `frontend/src/contexts/` as React Context providers.
 - Teacher assignment/term state: `TeacherContext` (`useTeacher()`).
 - Admin term/archive state: `AdminContext` (`useAdmin()`).

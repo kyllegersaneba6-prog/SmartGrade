@@ -34,8 +34,8 @@ const SecurityAudit = () => {
     setLoading(true);
     try {
       const [activityRes, usersRes] = await Promise.all([
-        api('http://localhost:5000/api/activity'),
-        api('http://localhost:5000/api/users')
+        api('/api/activity'),
+        api('/api/users')
       ]);
       const activityData = activityRes.ok ? await activityRes.json() : [];
       const usersData = usersRes.ok ? await usersRes.json() : [];
@@ -53,8 +53,8 @@ const SecurityAudit = () => {
   const refreshQuiet = async () => {
     try {
       const [activityRes, usersRes] = await Promise.all([
-        api('http://localhost:5000/api/activity'),
-        api('http://localhost:5000/api/users')
+        api('/api/activity'),
+        api('/api/users')
       ]);
       if (activityRes.ok) {
         const activityData = await activityRes.json();

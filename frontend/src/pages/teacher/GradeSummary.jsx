@@ -34,7 +34,7 @@ const GradeSummary = () => {
     if (!currentAssignment) return;
     const fetchStudents = async () => {
       try {
-        const res = await api(`http://localhost:5000/api/sections/${currentAssignment.section_id}/students`);
+        const res = await api(`/api/sections/${currentAssignment.section_id}/students`);
         if (res.ok) setStudents(await res.json());
       } catch (err) { console.error(err); }
     };
@@ -49,9 +49,9 @@ const GradeSummary = () => {
       try {
         const fetches = TERMS.map(async (term) => {
           const [compRes, scoresRes, attRes] = await Promise.all([
-            api(`http://localhost:5000/api/grading-components?assignment_id=${selectedAssignment}&term=${term}`),
-            api(`http://localhost:5000/api/component-scores?assignment_id=${selectedAssignment}&term=${term}`),
-            api(`http://localhost:5000/api/attendance/computed-scores?teacher_assignment_id=${selectedAssignment}&term=${term}`),
+            api(`/api/grading-components?assignment_id=${selectedAssignment}&term=${term}`),
+            api(`/api/component-scores?assignment_id=${selectedAssignment}&term=${term}`),
+            api(`/api/attendance/computed-scores?teacher_assignment_id=${selectedAssignment}&term=${term}`),
           ]);
           const components = compRes.ok ? await compRes.json() : [];
           let scores = {};

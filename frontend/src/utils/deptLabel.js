@@ -27,7 +27,7 @@ export const useDeptLabel = () => {
   const [departments, setDepartments] = useState([]);
   useEffect(() => {
     let alive = true;
-    api('http://localhost:5000/api/departments')
+    api('/api/departments')
       .then(async (res) => {
         if (res.ok && alive) setDepartments(await res.json());
       })

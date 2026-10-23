@@ -1,3 +1,12 @@
+const DEFAULT_API_BASE = `http://${window.location.hostname}:5000`;
+
+// Deployments that serve the API elsewhere set VITE_API_BASE_URL
+// (see frontend/.env.example). The default matches the local/LAN setup.
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE).replace(/\/+$/, '');
+
+// Pages call api('/api/...'); absolute URLs still pass through unchanged.
+const resolveUrl = (url) => (url.startsWith('/') ? `${API_BASE}${url}` : url);
+
 const getToken = () => localStorage.getItem('token');
 
 // The term currently being viewed, if the user has switched to an archived
@@ -31,7 +40,7 @@ const handle401 = () => {
 const api = async (url, options = {}) => {
   const token = getToken();
   const viewTerm = getViewTerm();
-  const res = await fetch(url, {
+  const res = await fetch(resolveUrl(url), {
     ...options,
     headers: {
       ...options.headers,

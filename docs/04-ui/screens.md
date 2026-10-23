@@ -9,6 +9,13 @@ Public. Two-column split:
 - Network failures show "Cannot connect to the server. Please check your connection and try again."
 - Redirect: teacher → `/teacher/dashboard`, admin → `/admin`, superadmin → `/superadmin`.
 
+## Not Found (`*`)
+
+Standalone dark page (no app shell) rendered for any unmatched URL, including unknown child routes such as `/admin/typo`.
+
+- Logo, search-off icon, large `404`, "Page not found", and the attempted path (pathname + query).
+- Primary button ("Go to dashboard" / "Go to login") chooses the destination from the stored role; secondary "Go back" returns through history and falls back to the primary destination.
+
 ## Superadmin Pages
 
 | Route | Component | Description |
@@ -19,6 +26,8 @@ Public. Two-column split:
 | `/superadmin/users/create` | `CreateSuperAdminUser` | Full-screen create-admin form: staff ID, names, department (departments with an admin are disabled), read-only username |
 | `/superadmin/departments` | `ManageDepartments` | Department accordions with nested course CRUD, abbreviation editing, typed-confirm deletes |
 | `/superadmin/settings` | `SuperAdminSettings` | Term lifecycle (Create Term, End Semester) + `BackupRestore` panel |
+
+`CreateSuperAdminUser` is also used as a modal from `/superadmin/users`; when opened as a direct route, Cancel and Done navigate back to `/superadmin/users`.
 
 ## Admin Pages
 
@@ -34,7 +43,7 @@ Public. Two-column split:
 
 Notes:
 - `/admin/bulk-students` is not linked from the UI and the header title falls back to "Settings".
-- Create-account pages reached by URL cannot be cancelled (their `onClose` prop is undefined).
+- `CreateAdminTeacher` is also used as a modal from `/admin/teachers`; when opened as a direct route, Cancel and Done navigate back to `/admin/teachers`.
 
 ## Teacher Pages
 

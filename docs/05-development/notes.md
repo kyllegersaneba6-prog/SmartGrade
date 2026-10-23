@@ -9,14 +9,12 @@ Miscellaneous technical notes, known gaps, and follow-ups.
 | CORS | `app.use(cors())` allows every origin | Fine for local demo; lock down before deployment |
 | Notifications | Broadcast form only logs to the console | Feature appears to work but sends nothing |
 | Bulk import page | `/admin/bulk-students` is unlinked and its header title falls back to "Settings" | Discoverability bug |
-| Create-account routes | `/admin/teachers/create` and `/superadmin/users/create` render an uncloseable full-screen modal | User cannot cancel when navigated directly |
-| 404 route | No catch-all in `App.jsx` | Blank page on unknown URLs |
-| API host | Hardcoded `http://localhost:5000` in every page | Deployment requires code edits |
 | Legacy table | `admin_users` is queried by login but undefined in `sql/` | Login fallback shape is unverifiable |
 
 ## Architecture Notes
 
 - **Grade computation lives in the frontend.** `frontend/src/utils/gradeCalculations.js` is the single source of truth; the backend has no grade endpoint.
+- **API base is configurable.** `frontend/src/utils/api.js` exports `API_BASE`: `import.meta.env.VITE_API_BASE_URL` if set at build time, otherwise `http://<current-hostname>:5000`. Pages and contexts pass relative `/api/...` paths; `Login.jsx` reuses `API_BASE` for its raw login fetch. `frontend/.env.example` documents the variable.
 - **Archive mode state lives in the frontend, enforcement is shared.** `TeacherContext` / `AdminContext` hold `viewTerm` and persist it in `localStorage`; `frontend/src/utils/api.js` forwards the viewed term as `X-View-Term-School-Year` / `X-View-Term-Semester`. `backend/middleware/termLock.js` rejects writes to any other term (`rejectArchivedWrites`) and exposes `assertActiveTerm` for entity-level checks.
 - **Department scoping is manual.** `staff_users.department` is a text snapshot; no generic middleware exists. Read access uses `backend/middleware/access.js`: superadmin sees all, admin is scoped to `created_by`, teacher to their own `teacher_id` / assignments. Writes still use inline ownership checks.
 - **Teacher-only writes.** Grading, scores, and attendance mutations are `authorizeRole('teacher')`; admins and superadmins get 403.

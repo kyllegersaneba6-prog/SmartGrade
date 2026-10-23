@@ -26,6 +26,7 @@ import AdminSubjects from './pages/admin/AdminSubjects';
 import AdminSettings from './pages/admin/AdminSettings';
 
 import Login from './pages/Login';
+import NotFound from './pages/NotFound';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem('token');
@@ -133,6 +134,9 @@ function App() {
           <Route path="grade-summary" element={<GradeSummary />} />
           <Route path="settings" element={<TeacherSettings />} />
         </Route>
+
+        {/* Unknown URLs (including unknown child routes) */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

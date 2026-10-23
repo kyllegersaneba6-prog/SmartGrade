@@ -113,8 +113,8 @@ const AdminTeachers = () => {
   const fetchTeachers = async () => {
     try {
       const [response, assignRes] = await Promise.all([
-        api('http://localhost:5000/api/users'),
-        api('http://localhost:5000/api/assignments'),
+        api('/api/users'),
+        api('/api/assignments'),
       ]);
       if (response.ok) {
         const data = await response.json();
@@ -187,7 +187,7 @@ const AdminTeachers = () => {
     setEditError('');
     try {
       const body = { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`, staff_id: staffIdToDigits(editForm.staff_id) };
-      const res = await api(`http://localhost:5000/api/users/${teacherToEdit.rawId}`, {
+      const res = await api(`/api/users/${teacherToEdit.rawId}`, {
         method: 'PATCH',
         body: JSON.stringify(editForm.password.trim() ? { ...body, password: editForm.password } : body)
       });
@@ -209,7 +209,7 @@ const AdminTeachers = () => {
     if (confirmText !== 'Confirm' || !teacherToDelete) return;
     setDeleting(true);
     try {
-      const response = await api(`http://localhost:5000/api/users/${teacherToDelete.rawId}`, { method: 'DELETE' });
+      const response = await api(`/api/users/${teacherToDelete.rawId}`, { method: 'DELETE' });
       if (response.ok) setTeachers(teachers.filter(u => u.rawId !== teacherToDelete.rawId));
     } catch (err) { console.error(err); }
     finally { setDeleting(false); setDeleteModalOpen(false); setTeacherToDelete(null); setConfirmText(''); }
@@ -220,7 +220,7 @@ const AdminTeachers = () => {
     setViewModalOpen(true);
     setViewLoading(true);
     try {
-      const res = await api(`http://localhost:5000/api/assignments?teacher_id=${teacher.rawId}`);
+      const res = await api(`/api/assignments?teacher_id=${teacher.rawId}`);
       if (res.ok) {
         const data = await res.json();
         if (currentTerm) {
@@ -249,7 +249,7 @@ const AdminTeachers = () => {
       const adminDept = JSON.parse(localStorage.getItem('user') || '{}')?.department;
       let deptId = '';
       if (adminDept) {
-        const deptRes = await api('http://localhost:5000/api/departments');
+        const deptRes = await api('/api/departments');
         if (deptRes.ok) {
           const depts = await deptRes.json();
           const match = depts.find(d => d.name === adminDept);
@@ -257,9 +257,9 @@ const AdminTeachers = () => {
         }
       }
       const [secRes, subRes, courseRes] = await Promise.all([
-        api(`http://localhost:5000/api/sections${termParams}`),
-        api(`http://localhost:5000/api/subjects${currentTerm ? `?semester=${currentTerm.semester}` : ''}`),
-        deptId ? api(`http://localhost:5000/api/courses?department_id=${deptId}`) : api('http://localhost:5000/api/courses'),
+        api(`/api/sections${termParams}`),
+        api(`/api/subjects${currentTerm ? `?semester=${currentTerm.semester}` : ''}`),
+        deptId ? api(`/api/courses?department_id=${deptId}`) : api('/api/courses'),
       ]);
       if (secRes.ok) setSectionsList(await secRes.json());
       if (subRes.ok) setSubjectsList(await subRes.json());
@@ -275,7 +275,7 @@ const AdminTeachers = () => {
     setAssignLoading(true);
     setAssignError('');
     try {
-      const res = await api('http://localhost:5000/api/assignments', {
+      const res = await api('/api/assignments', {
         method: 'POST',
         body: JSON.stringify({
           teacher_id: teacherToAssign.rawId,
@@ -649,7 +649,7 @@ const AdminTeachers = () => {
             </div>
             <div className="flex gap-3 justify-end">
               <button onClick={() => { setRemoveAssignOpen(false); setAssignmentToRemove(null); setConfirmAssignText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={removingAssignment}>Cancel</button>
-              <button onClick={async () => { if (!assignmentToRemove) return; setRemovingAssignment(true); try { const res = await api(`http://localhost:5000/api/assignments/${assignmentToRemove.id}`, { method: 'DELETE' }); if (res.ok) setTeacherAssignments((prev) => prev.filter((a) => a.id !== assignmentToRemove.id)); } catch (err) { console.error(err); } finally { setRemovingAssignment(false); setRemoveAssignOpen(false); setAssignmentToRemove(null); setConfirmAssignText(''); } }} disabled={confirmAssignText !== 'Confirm' || removingAssignment} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmAssignText === 'Confirm' && !removingAssignment ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{removingAssignment ? 'Removing...' : 'Remove'}</button>
+              <button onClick={async () => { if (!assignmentToRemove) return; setRemovingAssignment(true); try { const res = await api(`/api/assignments/${assignmentToRemove.id}`, { method: 'DELETE' }); if (res.ok) setTeacherAssignments((prev) => prev.filter((a) => a.id !== assignmentToRemove.id)); } catch (err) { console.error(err); } finally { setRemovingAssignment(false); setRemoveAssignOpen(false); setAssignmentToRemove(null); setConfirmAssignText(''); } }} disabled={confirmAssignText !== 'Confirm' || removingAssignment} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmAssignText === 'Confirm' && !removingAssignment ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{removingAssignment ? 'Removing...' : 'Remove'}</button>
             </div>
           </div>
         </div>

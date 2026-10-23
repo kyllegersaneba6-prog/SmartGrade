@@ -152,8 +152,8 @@ const Attendance = () => {
         const sectionId = currentAssignment?.section_id;
         if (!sectionId) return;
         const [studentsRes, attendanceRes] = await Promise.all([
-          api(`http://localhost:5000/api/sections/${sectionId}/students`),
-          api(`http://localhost:5000/api/attendance?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`),
+          api(`/api/sections/${sectionId}/students`),
+          api(`/api/attendance?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`),
         ]);
         if (studentsRes.ok) setStudents(await studentsRes.json());
         if (attendanceRes.ok) {
@@ -205,7 +205,7 @@ const Attendance = () => {
           score: pending[key]?.[s.id] ?? 0,
         }));
         try {
-          const res = await api('http://localhost:5000/api/attendance/bulk', {
+          const res = await api('/api/attendance/bulk', {
             method: 'POST',
             body: JSON.stringify({ teacher_assignment_id: selectedAssignment, date, records, session, type, term: selectedTerm }),
           });
@@ -231,7 +231,7 @@ const Attendance = () => {
           score: pending[key]?.[s.id] ?? 0,
         }));
         try {
-          const res = await api('http://localhost:5000/api/attendance/bulk', {
+          const res = await api('/api/attendance/bulk', {
             method: 'POST',
             body: JSON.stringify({ teacher_assignment_id: selectedAssignment, date, records, session, type, term: selectedTerm }),
           });
@@ -287,7 +287,7 @@ const Attendance = () => {
     setRemoving(true);
     const { date, session, type } = parseKey(confirmRemoveKey);
     try {
-      const res = await api('http://localhost:5000/api/attendance/date', {
+      const res = await api('/api/attendance/date', {
         method: 'DELETE',
         body: JSON.stringify({ teacher_assignment_id: selectedAssignment, date, session, type, term: selectedTerm }),
       });
@@ -339,7 +339,7 @@ const Attendance = () => {
           student_id: s.id,
           score: map[key]?.[s.id] ?? 0,
         }));
-        const res = await api('http://localhost:5000/api/attendance/bulk', {
+        const res = await api('/api/attendance/bulk', {
           method: 'POST',
           body: JSON.stringify({ teacher_assignment_id: assignId, date, records, session, type, term: currentTerm }),
         });

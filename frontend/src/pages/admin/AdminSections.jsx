@@ -94,7 +94,7 @@ const AdminSections = () => {
       if (schoolYear) params.set('school_year', schoolYear);
       if (semester) params.set('semester', semester);
       if (selectedCourseId) params.set('course_id', selectedCourseId);
-      const res = await api(`http://localhost:5000/api/sections?${params.toString()}`);
+      const res = await api(`/api/sections?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setSections(data);
@@ -117,7 +117,7 @@ const AdminSections = () => {
   const fetchStudents = useCallback(async (sectionId) => {
     setLoadingStudents(true);
     try {
-      const res = await api(`http://localhost:5000/api/sections/${sectionId}/students`);
+      const res = await api(`/api/sections/${sectionId}/students`);
       if (res.ok) setStudents(await res.json());
     } catch (err) {
       console.error(err);
@@ -145,12 +145,12 @@ const AdminSections = () => {
     if (adminDept) {
       const fetchCourses = async () => {
         try {
-          const deptRes = await api('http://localhost:5000/api/departments');
+          const deptRes = await api('/api/departments');
           if (deptRes.ok) {
             const depts = await deptRes.json();
             const match = depts.find(d => d.name === adminDept);
             if (match) {
-              const coursesRes = await api(`http://localhost:5000/api/courses?department_id=${match.id}`);
+              const coursesRes = await api(`/api/courses?department_id=${match.id}`);
               if (coursesRes.ok) setCourses(await coursesRes.json());
             }
           }
@@ -198,7 +198,7 @@ const AdminSections = () => {
     if (!previewName) return;
     setSectionError('');
     try {
-      const res = await api('http://localhost:5000/api/sections', {
+      const res = await api('/api/sections', {
         method: 'POST',
         body: JSON.stringify({ name: letter, year_level: year, course_id: selectedCourseId, school_year: currentTerm?.school_year, semester: currentTerm?.semester })
       });
@@ -276,7 +276,7 @@ const AdminSections = () => {
         let existingIds = new Set();
         if (selectedSection) {
           try {
-            const res = await api(`http://localhost:5000/api/sections/${selectedSection.id}/students`);
+            const res = await api(`/api/sections/${selectedSection.id}/students`);
             if (res.ok) {
               const existing = await res.json();
               existingIds = new Set(existing.map((s) => s.student_id));
@@ -320,7 +320,7 @@ const AdminSections = () => {
       const payload = selected.map(({ student_id, first_name, last_name, mi, gender }) => ({
         student_id, first_name, last_name, mi, gender
       }));
-      const res = await api(`http://localhost:5000/api/sections/${selectedSection.id}/students/bulk`, {
+      const res = await api(`/api/sections/${selectedSection.id}/students/bulk`, {
         method: 'POST',
         body: JSON.stringify({ students: payload })
       });
@@ -381,7 +381,7 @@ const AdminSections = () => {
     if (complete.length === 0) { setExcelError('Enter at least one complete row: firstname, lastname, and student id are required.'); return; }
     let existingIds = new Set();
     try {
-      const res = await api(`http://localhost:5000/api/sections/${selectedSection.id}/students`);
+      const res = await api(`/api/sections/${selectedSection.id}/students`);
       if (res.ok) {
         const existing = await res.json();
         existingIds = new Set(existing.map((s) => s.student_id));
@@ -433,7 +433,7 @@ const AdminSections = () => {
     const added = [];
     for (const { id, first_name, last_name, mi, gender } of rows) {
       try {
-        const res = await api(`http://localhost:5000/api/sections/${selectedSection.id}/students`, {
+        const res = await api(`/api/sections/${selectedSection.id}/students`, {
           method: 'POST',
           body: JSON.stringify({ student_id: id.trim(), first_name: first_name.trim(), last_name: last_name.trim(), mi: mi.trim(), gender: gender.trim() })
         });
@@ -1106,7 +1106,7 @@ const AdminSections = () => {
             </div>
             <div className="flex gap-3 justify-end">
               <button onClick={() => { setDeleteSectionOpen(false); setSectionToDelete(null); setConfirmSectionText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deletingSection}>Cancel</button>
-              <button onClick={async () => { if (!sectionToDelete) return; setDeletingSection(true); try { const res = await api(`http://localhost:5000/api/sections/${sectionToDelete.id}`, { method: 'DELETE' }); if (res.ok) { setSections((prev) => prev.filter((s) => s.id !== sectionToDelete.id)); if (selectedSection?.id === sectionToDelete.id) setSelectedSection(null); } else { const d = await res.json(); setError(d.message || 'Failed to delete'); } } catch (err) { console.error(err); } finally { setDeletingSection(false); setDeleteSectionOpen(false); setSectionToDelete(null); setConfirmSectionText(''); } }} disabled={confirmSectionText !== 'Confirm' || deletingSection} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmSectionText === 'Confirm' && !deletingSection ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deletingSection ? 'Deleting...' : 'Delete'}</button>
+              <button onClick={async () => { if (!sectionToDelete) return; setDeletingSection(true); try { const res = await api(`/api/sections/${sectionToDelete.id}`, { method: 'DELETE' }); if (res.ok) { setSections((prev) => prev.filter((s) => s.id !== sectionToDelete.id)); if (selectedSection?.id === sectionToDelete.id) setSelectedSection(null); } else { const d = await res.json(); setError(d.message || 'Failed to delete'); } } catch (err) { console.error(err); } finally { setDeletingSection(false); setDeleteSectionOpen(false); setSectionToDelete(null); setConfirmSectionText(''); } }} disabled={confirmSectionText !== 'Confirm' || deletingSection} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmSectionText === 'Confirm' && !deletingSection ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deletingSection ? 'Deleting...' : 'Delete'}</button>
             </div>
           </div>
         </div>
@@ -1122,7 +1122,7 @@ const AdminSections = () => {
             </div>
             <div className="flex gap-3 justify-end">
               <button onClick={() => { setDeleteStudentOpen(false); setStudentToDelete(null); setConfirmStudentText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deletingStudent}>Cancel</button>
-              <button onClick={async () => { if (!studentToDelete) return; setDeletingStudent(true); try { const res = await api(`http://localhost:5000/api/sections/students/${studentToDelete.id}`, { method: 'DELETE' }); if (res.ok) setStudents((prev) => prev.filter((s) => s.id !== studentToDelete.id)); else { const d = await res.json(); setError(d.message || 'Failed to remove'); } } catch (err) { console.error(err); } finally { setDeletingStudent(false); setDeleteStudentOpen(false); setStudentToDelete(null); setConfirmStudentText(''); } }} disabled={confirmStudentText !== 'Confirm' || deletingStudent} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmStudentText === 'Confirm' && !deletingStudent ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deletingStudent ? 'Deleting...' : 'Delete'}</button>
+              <button onClick={async () => { if (!studentToDelete) return; setDeletingStudent(true); try { const res = await api(`/api/sections/students/${studentToDelete.id}`, { method: 'DELETE' }); if (res.ok) setStudents((prev) => prev.filter((s) => s.id !== studentToDelete.id)); else { const d = await res.json(); setError(d.message || 'Failed to remove'); } } catch (err) { console.error(err); } finally { setDeletingStudent(false); setDeleteStudentOpen(false); setStudentToDelete(null); setConfirmStudentText(''); } }} disabled={confirmStudentText !== 'Confirm' || deletingStudent} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmStudentText === 'Confirm' && !deletingStudent ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deletingStudent ? 'Deleting...' : 'Delete'}</button>
             </div>
           </div>
         </div>

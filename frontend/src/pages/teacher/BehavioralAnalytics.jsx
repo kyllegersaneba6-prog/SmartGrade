@@ -44,7 +44,7 @@ const BehavioralAnalytics = () => {
     if (!currentAssignment) return;
     const fetchStudents = async () => {
       try {
-        const res = await api(`http://localhost:5000/api/sections/${currentAssignment.section_id}/students`);
+        const res = await api(`/api/sections/${currentAssignment.section_id}/students`);
         if (res.ok) setStudents(await res.json());
       } catch (err) { console.error(err); }
     };
@@ -56,9 +56,9 @@ const BehavioralAnalytics = () => {
     setDataLoading(true);
     try {
       const [compRes, scoresRes, attRes] = await Promise.all([
-        api(`http://localhost:5000/api/grading-components?assignment_id=${selectedAssignment}&term=${selectedTerm}`),
-        api(`http://localhost:5000/api/component-scores?assignment_id=${selectedAssignment}&term=${selectedTerm}`),
-        api(`http://localhost:5000/api/attendance/computed-scores?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`),
+        api(`/api/grading-components?assignment_id=${selectedAssignment}&term=${selectedTerm}`),
+        api(`/api/component-scores?assignment_id=${selectedAssignment}&term=${selectedTerm}`),
+        api(`/api/attendance/computed-scores?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`),
       ]);
       if (compRes.ok) setComponents(await compRes.json());
       if (scoresRes.ok) {
@@ -600,7 +600,7 @@ const BehavioralAnalytics = () => {
         categories,
         meta: { assignment_id: selectedAssignment, term: selectedTerm },
       };
-      const res = await api('http://localhost:5000/api/ai/summarize-student', {
+      const res = await api('/api/ai/summarize-student', {
         method: 'POST',
         body: JSON.stringify(payload),
       });

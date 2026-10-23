@@ -2,6 +2,29 @@
 
 ## 2026-10-23
 
+### Fixed: create-account pages can be cancelled when opened by URL
+
+- `CreateAdminTeacher.jsx` and `CreateSuperAdminUser.jsx` now use `useNavigate` as a fallback when rendered as routes (no `onClose`/`onSuccess` props): **Cancel** returns to `/admin/teachers` / `/superadmin/users`, and **Done** on the success screen does the same. Modal usage from the list pages is unchanged.
+- **Cancel** is disabled while the create request is in flight, so navigating away cannot hide a successfully created account's credentials.
+- Verified: `npx eslint` on both files reports only pre-existing unused-`React`/unused-`err` errors; `npm run build` passes.
+- Docs updated: `04-ui/screens.md`, `05-development/notes.md`, `05-development/bug-fixes.md`.
+
+### Added: frontend 404 page + catch-all route
+
+- Added `frontend/src/pages/NotFound.jsx`: standalone dark page with the remote path, "Page not found", a primary button to the role dashboard (or login for guests), and a "Go back" fallback.
+- `App.jsx` now ends with `<Route path="*" element={<NotFound />} />`, so unknown top-level and child URLs no longer render a blank page.
+- Verified: `npx eslint src/pages/NotFound.jsx` passes; `npm run build` passes.
+- Docs updated: `00-overview/project-summary.md`, `01-features/feature-list.md`, `04-ui/screens.md`, `04-ui/navigation.md`, `05-development/notes.md`, `06-decisions/future-plans.md`, `05-development/bug-fixes.md`.
+
+### Changed: configurable frontend API base URL
+
+- `frontend/src/utils/api.js` now exports `API_BASE` = `import.meta.env.VITE_API_BASE_URL` (trailing slashes stripped) or `http://<current-hostname>:5000`. `api()` resolves any URL starting with `/`, while absolute URLs still pass through.
+- Replaced all **97** hardcoded `http://localhost:5000` URLs across 19 files with relative `/api/...` paths, including the inline delete handlers in `AdminSections.jsx` / `AdminSubjects.jsx` / `AdminTeachers.jsx`.
+- `Login.jsx` now uses `API_BASE` for its raw login fetch instead of constructing `http://<hostname>:5000` itself.
+- Added `frontend/.env.example` documenting `VITE_API_BASE_URL`; the variable is optional and defaults to the current hostname.
+- Verified: `npm run build` passes; a build with `VITE_API_BASE_URL=https://api.example.test` inlines that host in `dist/`, and the default build inlines the hostname fallback.
+- Docs updated: `00-overview/setup-guide.md`, `00-overview/project-summary.md`, `01-features/feature-list.md`, `05-development/coding-rules.md`, `05-development/notes.md`, `06-decisions/future-plans.md`, `05-development/bug-fixes.md`.
+
 ### Database: canonical SQL recorded as baseline migrations
 
 - The live project now lists `baseline_attendance_final` and `baseline_db_constraints` in its Supabase migration history alongside the four original entries and `enable_row_level_security`.

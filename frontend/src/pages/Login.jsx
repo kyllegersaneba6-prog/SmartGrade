@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE } from '../utils/api';
 import {
   User, Lock, AlertCircle, ArrowRight,
   Eye, EyeOff, ShieldCheck, BarChart3, ClipboardCheck, Users, TrendingUp
@@ -51,7 +52,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`http://${window.location.hostname}:5000/api/auth/login`, {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),

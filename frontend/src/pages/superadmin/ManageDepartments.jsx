@@ -57,7 +57,7 @@ const ManageDepartments = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await api('http://localhost:5000/api/departments');
+      const res = await api('/api/departments');
       if (res.ok) setDepartments(await res.json());
     } catch (err) { console.error(err); }
   };
@@ -68,7 +68,7 @@ const ManageDepartments = () => {
   // Independent from expand/collapse: loads every department's total up front on page load.
   const fetchCourseCounts = async () => {
     try {
-      const res = await api('http://localhost:5000/api/courses');
+      const res = await api('/api/courses');
       if (res.ok) {
         const all = await res.json();
         const counts = {};
@@ -84,7 +84,7 @@ const ManageDepartments = () => {
   const fetchDeptCourses = async (deptId) => {
     setCoursesLoadingByDept((prev) => ({ ...prev, [deptId]: true }));
     try {
-      const res = await api(`http://localhost:5000/api/courses?department_id=${deptId}`);
+      const res = await api(`/api/courses?department_id=${deptId}`);
       if (res.ok) {
         const data = await res.json();
         setCoursesByDept((prev) => ({ ...prev, [deptId]: data }));
@@ -119,7 +119,7 @@ const ManageDepartments = () => {
     setAddDeptLoading(true);
     setError('');
     try {
-      const res = await api('http://localhost:5000/api/departments', { method: 'POST', body: JSON.stringify({ name: deptName.trim(), abbr: deptAbbreviation.trim() }) });
+      const res = await api('/api/departments', { method: 'POST', body: JSON.stringify({ name: deptName.trim(), abbr: deptAbbreviation.trim() }) });
       if (res.ok) {
         await fetchDepartments();
         setAddDeptOpen(false);
@@ -138,7 +138,7 @@ const ManageDepartments = () => {
     setEditDeptLoading(true);
     setError('');
     try {
-      const res = await api(`http://localhost:5000/api/departments/${editDept.id}`, { method: 'PATCH', body: JSON.stringify({ name: editDeptName.trim(), abbr: editDeptAbbreviation.trim() }) });
+      const res = await api(`/api/departments/${editDept.id}`, { method: 'PATCH', body: JSON.stringify({ name: editDeptName.trim(), abbr: editDeptAbbreviation.trim() }) });
       if (res.ok) {
         await fetchDepartments();
         // Admin/teacher accounts carry the department as a name snapshot —
@@ -159,7 +159,7 @@ const ManageDepartments = () => {
     setDeleteDeptLoading(true);
     setError('');
     try {
-      const res = await api(`http://localhost:5000/api/departments/${deleteDept.id}`, { method: 'DELETE' });
+      const res = await api(`/api/departments/${deleteDept.id}`, { method: 'DELETE' });
       if (res.ok) {
         const removedId = deleteDept.id;
         await fetchDepartments();
@@ -200,7 +200,7 @@ const ManageDepartments = () => {
     setAddCourseLoading(true);
     setError('');
     try {
-      const res = await api('http://localhost:5000/api/courses', { method: 'POST', body: JSON.stringify({ name: courseName.trim(), abbreviation: courseAbbreviation.trim(), department_id: manageCoursesDept.id }) });
+      const res = await api('/api/courses', { method: 'POST', body: JSON.stringify({ name: courseName.trim(), abbreviation: courseAbbreviation.trim(), department_id: manageCoursesDept.id }) });
       if (res.ok) {
         await Promise.all([fetchDeptCourses(manageCoursesDept.id), fetchCourseCounts()]);
         setAddCourseOpen(false);
@@ -221,7 +221,7 @@ const ManageDepartments = () => {
     try {
       const body = { name: editCourseName.trim() };
       if (editCourseAbbreviation.trim()) body.abbreviation = editCourseAbbreviation.trim();
-      const res = await api(`http://localhost:5000/api/courses/${editCourse.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      const res = await api(`/api/courses/${editCourse.id}`, { method: 'PATCH', body: JSON.stringify(body) });
       if (res.ok) {
         await Promise.all([fetchDeptCourses(manageCoursesDept.id), fetchCourseCounts()]);
         setEditCourseOpen(false);
@@ -239,7 +239,7 @@ const ManageDepartments = () => {
     setDeleteCourseLoading(true);
     setError('');
     try {
-      const res = await api(`http://localhost:5000/api/courses/${deleteCourse.id}`, { method: 'DELETE' });
+      const res = await api(`/api/courses/${deleteCourse.id}`, { method: 'DELETE' });
       if (res.ok) {
         await Promise.all([fetchDeptCourses(manageCoursesDept.id), fetchCourseCounts()]);
         setDeleteCourseOpen(false);

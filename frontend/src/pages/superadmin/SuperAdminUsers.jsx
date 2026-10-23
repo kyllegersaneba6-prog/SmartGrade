@@ -60,7 +60,7 @@ const SuperAdminUsers = () => {
   const handleAddAdminClick = async () => {
     setCheckingTerm(true);
     try {
-      const res = await api('http://localhost:5000/api/terms/active');
+      const res = await api('/api/terms/active');
       if (res.ok) {
         const term = await res.json();
         if (term) {
@@ -78,7 +78,7 @@ const SuperAdminUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await api('http://localhost:5000/api/users');
+      const response = await api('/api/users');
       if (response.ok) {
         const data = await response.json();
         const dbUsers = data.filter(u => u.system_role === 'admin').map((u) => ({
@@ -102,7 +102,7 @@ const SuperAdminUsers = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await api('http://localhost:5000/api/departments');
+      const res = await api('/api/departments');
       if (res.ok) setDepartments(await res.json());
     } catch (err) { console.error(err); }
   };
@@ -180,7 +180,7 @@ const SuperAdminUsers = () => {
       }
       const body = { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`, staff_id: staffIdToDigits(editForm.staff_id), department: editForm.department };
 
-      const res = await api(`http://localhost:5000/api/users/${userToEdit.rawId}`, {
+      const res = await api(`/api/users/${userToEdit.rawId}`, {
         method: 'PATCH',
         body: JSON.stringify(editForm.password.trim() ? { ...body, password: editForm.password } : body)
       });
@@ -203,7 +203,7 @@ const SuperAdminUsers = () => {
     setDeleting(true);
     setDeleteError('');
     try {
-      const response = await api(`http://localhost:5000/api/users/${userToDelete.rawId}`, { method: 'DELETE' });
+      const response = await api(`/api/users/${userToDelete.rawId}`, { method: 'DELETE' });
       if (response.ok) {
         setUsersList(usersList.filter(u => u.rawId !== userToDelete.rawId));
         setDeleteModalOpen(false);

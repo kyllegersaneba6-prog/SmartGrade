@@ -93,7 +93,7 @@ Defined in `frontend/src/App.jsx`:
 
 Root `/` uses `localStorage.token` presence before computing the redirect target.
 
-**No catch-all route exists** — unmatched URLs render a blank outlet inside the layout.
+Unmatched URLs are handled by the top-level `*` route and render `NotFound` without a layout (see Unknown Routes below).
 
 ## Header Title Mapping
 
@@ -128,9 +128,12 @@ Viewing: {school_year} — {semester} — Read Only        [Exit Archive]
 
 Amber (`bg-amber-600/90`), full width, above the page content. Exiting calls `setViewTerm(null)`, clearing the persisted local-storage key.
 
+## Unknown Routes
+
+`App.jsx` ends with `<Route path="*" element={<NotFound />} />`. The 404 page renders without a layout, so unknown URLs (including unknown child paths) are handled even when a token is present.
+
 ## Removed / Not Present
 
 - Reload button in the header (removed).
 - Term selection inside `FloatingAssignmentSelector`.
 - "Remember me" / "Forgot password" on login.
-- 404 page.

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, UserPlus, CheckCircle, Copy, Check } from 'lucide-react';
 import api from '../../utils/api';
 import { formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
@@ -8,6 +9,7 @@ import { formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAnd
 const previewUsername = (lastName, staffId) => usernameFromLastNameAndId(lastName, staffId);
 
 const CreateAdminTeacher = ({ onClose, onSuccess }) => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -49,7 +51,7 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
     const fullName = `${firstName.trim()} ${lastName.trim()}`;
 
     try {
-      const response = await api('http://localhost:5000/api/users', {
+      const response = await api('/api/users', {
         method: 'POST',
         body: JSON.stringify({
           first_name: firstName.trim(),
@@ -77,6 +79,12 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
   const handleClose = () => {
     if (createdUsername && onSuccess) onSuccess();
     if (onClose) onClose();
+    else navigate('/admin/teachers');
+  };
+
+  const handleCancel = () => {
+    if (onClose) onClose();
+    else navigate('/admin/teachers');
   };
 
   if (createdUsername) {
@@ -156,7 +164,7 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
         {error && <div className="mt-4 text-red-500 text-sm font-semibold">{error}</div>}
 
         <div className="flex items-center justify-end gap-3 mt-6">
-          <button type="button" onClick={() => onClose && onClose()} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+          <button type="button" onClick={handleCancel} disabled={loading} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50">Cancel</button>
           <button type="button" onClick={handleSubmit} disabled={loading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50 flex items-center gap-2" style={{ background: '#0c1925' }}><UserPlus size={16} />{loading ? 'Creating...' : 'Create Teacher'}</button>
         </div>
       </div>

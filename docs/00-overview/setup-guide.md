@@ -43,7 +43,15 @@ Optional AI settings (required only for the AI summary feature):
 | `AI_TEMPERATURE` | `0.2` | Sampling temperature |
 | `AI_MAX_TOKENS` | `1500` | Max response tokens |
 
-The frontend has **no `.env`**. Every page calls `http://localhost:5000/api/...` directly; `Login.jsx` uses `http://${window.location.hostname}:5000`.
+The frontend reads one optional variable at build time. It defaults to the backend on the current hostname, so no config is needed locally.
+
+Create `frontend/.env` (or copy `frontend/.env.example`) when the API lives elsewhere:
+
+```env
+VITE_API_BASE_URL=http://192.168.1.10:5000
+```
+
+Pages call `api('/api/...')`; `frontend/src/utils/api.js` prefixes `API_BASE` (`VITE_API_BASE_URL` or `http://<current-hostname>:5000`). `Login.jsx` uses the same constant.
 
 ## Database Setup
 
@@ -89,5 +97,5 @@ npm run dev
 | 403 "Insufficient permissions" | Wrong role for the endpoint (e.g. admin calling a teacher-only grading write). The session stays active |
 | `permission denied for table ...` when using the Supabase anon/publishable key | Expected: RLS is enabled with no policies. All data access must go through the Express backend (service-role key), not directly from the browser |
 | AI summary always fails | `OMNIROUTE_API_KEY` unset or gateway down — check `GET /api/ai/status` |
-| Frontend requests fail after deploying | API host is hardcoded to `localhost:5000`; serve the backend on the same hostname/port or change the URLs |
+| Frontend requests fail after deploying | Set `VITE_API_BASE_URL` in `frontend/.env` to the reachable backend origin, then rebuild. Without it, the frontend targets `http://<current-hostname>:5000` |
 | Login works, all else 403 | Admin/teacher deleted or restored from backup while a stale token is still in `localStorage` |

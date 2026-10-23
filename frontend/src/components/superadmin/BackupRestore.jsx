@@ -3,7 +3,7 @@ import { Database, Download, Upload, ShieldCheck, X, CheckCircle2, AlertTriangle
 import api from '../../utils/api';
 import { downloadBackupFile, readBackupFile, estimateSize, BACKUP_EXT } from '../../utils/backup';
 
-const API = 'http://localhost:5000/api/backup';
+const API = '/api/backup';
 
 export default function BackupRestore() {
   const [cats, setCats] = useState([]);

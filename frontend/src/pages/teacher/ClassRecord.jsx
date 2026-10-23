@@ -72,7 +72,7 @@ const ClassRecord = () => {
     if (!currentAssignment) return;
     const fetchStudents = async () => {
       try {
-        const res = await api(`http://localhost:5000/api/sections/${currentAssignment.section_id}/students`);
+        const res = await api(`/api/sections/${currentAssignment.section_id}/students`);
         if (res.ok) setStudents(await res.json());
       } catch (err) { console.error(err); }
     };
@@ -84,14 +84,14 @@ const ClassRecord = () => {
     if (!selectedAssignment) return;
     setDataLoading(true);
     try {
-      const compRes = await api(`http://localhost:5000/api/grading-components?assignment_id=${selectedAssignment}&term=${selectedTerm}`);
+      const compRes = await api(`/api/grading-components?assignment_id=${selectedAssignment}&term=${selectedTerm}`);
       let comps = [];
       if (compRes.ok) {
         comps = await compRes.json();
         setComponents(comps);
       }
 
-      const scoresRes = await api(`http://localhost:5000/api/component-scores?assignment_id=${selectedAssignment}&term=${selectedTerm}`);
+      const scoresRes = await api(`/api/component-scores?assignment_id=${selectedAssignment}&term=${selectedTerm}`);
       if (scoresRes.ok) {
         const scoreList = await scoresRes.json();
         const scoreMap = {};
@@ -102,7 +102,7 @@ const ClassRecord = () => {
         setScores(scoreMap);
       }
 
-      const attRes = await api(`http://localhost:5000/api/attendance/computed-scores?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`);
+      const attRes = await api(`/api/attendance/computed-scores?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`);
       if (attRes.ok) {
         setAttendanceScores(await attRes.json());
       } else {
@@ -135,7 +135,7 @@ const ClassRecord = () => {
         });
       });
       if (payload.length > 0) {
-        await api('http://localhost:5000/api/component-scores/bulk', {
+        await api('/api/component-scores/bulk', {
           method: 'POST',
           body: JSON.stringify({ scores: payload })
         });
@@ -180,7 +180,7 @@ const ClassRecord = () => {
     const kind = isAttendance ? 'attendance' : 'regular';
     setAddingComp(kind);
     try {
-      const res = await api('http://localhost:5000/api/grading-components', {
+      const res = await api('/api/grading-components', {
         method: 'POST',
         body: JSON.stringify({
           teacher_assignment_id: selectedAssignment,
@@ -216,7 +216,7 @@ const ClassRecord = () => {
     if (!selectedAssignment) return;
     setCopyingPrelims(true);
     try {
-      const res = await api('http://localhost:5000/api/grading-components/copy-from-prelims', {
+      const res = await api('/api/grading-components/copy-from-prelims', {
         method: 'POST',
         body: JSON.stringify({ teacher_assignment_id: selectedAssignment, target_term: selectedTerm })
       });
@@ -238,7 +238,7 @@ const ClassRecord = () => {
   // field's save can never overwrite another field's unsaved local edits.
   const updateComponent = async (id, updates) => {
     try {
-      const res = await api(`http://localhost:5000/api/grading-components/${id}`, {
+      const res = await api(`/api/grading-components/${id}`, {
         method: 'PUT',
         body: JSON.stringify(updates)
       });
@@ -283,7 +283,7 @@ const ClassRecord = () => {
   // Delete component
   const deleteComponent = async (id) => {
     try {
-      const res = await api(`http://localhost:5000/api/grading-components/${id}`, { method: 'DELETE' });
+      const res = await api(`/api/grading-components/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setComponents(prev => prev.filter(c => c.id !== id));
         setScores(prev => {
@@ -336,7 +336,7 @@ const ClassRecord = () => {
     setAddingActivityId(componentId);
     const autoName = nextActivityName(parent);
     try {
-      const res = await api('http://localhost:5000/api/component-activities', {
+      const res = await api('/api/component-activities', {
         method: 'POST',
         body: JSON.stringify({ component_id: componentId, name: autoName || 'Activity', max_score: 100 })
       });
@@ -366,7 +366,7 @@ const ClassRecord = () => {
   // Update activity
   const updateActivity = async (id, updates) => {
     try {
-      const res = await api(`http://localhost:5000/api/component-activities/${id}`, {
+      const res = await api(`/api/component-activities/${id}`, {
         method: 'PUT',
         body: JSON.stringify(updates)
       });
@@ -376,7 +376,7 @@ const ClassRecord = () => {
   // Delete activity
   const deleteActivity = async (componentId, activityId) => {
     try {
-      const res = await api(`http://localhost:5000/api/component-activities/${activityId}`, { method: 'DELETE' });
+      const res = await api(`/api/component-activities/${activityId}`, { method: 'DELETE' });
       if (res.ok) {
         setComponents(prev => prev.map(c =>
           c.id === componentId ? { ...c, activities: c.activities.filter(a => a.id !== activityId) } : c
@@ -422,7 +422,7 @@ const ClassRecord = () => {
     const prev = components;
     setComponents(ordered);
     try {
-      const res = await api('http://localhost:5000/api/grading-components/reorder', {
+      const res = await api('/api/grading-components/reorder', {
         method: 'POST',
         body: JSON.stringify({
           teacher_assignment_id: selectedAssignment,

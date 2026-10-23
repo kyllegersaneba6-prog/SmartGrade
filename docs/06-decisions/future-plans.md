@@ -15,8 +15,8 @@
 
 ## Engineering
 
-- Centralized API client with a configurable base URL (currently hardcoded `localhost:5000`)
-- Frontend 404 page + catch-all route in `App.jsx` (backend now returns JSON 404s)
+- Finish centralizing API calls (base URL is now configurable via `VITE_API_BASE_URL`; pages still call the thin `utils/api.js` wrapper directly)
+- Frontend error boundary for unexpected render failures (backend returns JSON 404s; unknown routes now render the 404 page)
 - Centralize write-side ownership checks into shared middleware/services (read helpers live in `backend/middleware/access.js`; term locks now live in `backend/middleware/termLock.js`)
 - Restrict CORS to known origins
 - Link `/admin/bulk-students` from Manage Sections and fix its header title

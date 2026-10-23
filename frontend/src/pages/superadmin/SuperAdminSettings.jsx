@@ -59,8 +59,8 @@ const SuperAdminSettings = () => {
   const loadData = useCallback(async () => {
     setNoActiveTerm(false);
     const [activeRes, allRes] = await Promise.all([
-      api('http://localhost:5000/api/terms/active'),
-      api('http://localhost:5000/api/terms'),
+      api('/api/terms/active'),
+      api('/api/terms'),
     ]);
     if (activeRes.ok) {
       const term = await activeRes.json();
@@ -92,7 +92,7 @@ const SuperAdminSettings = () => {
     setEndingSemester(true);
     setEndSemesterError('');
     try {
-      const res = await api('http://localhost:5000/api/terms/end', {
+      const res = await api('/api/terms/end', {
         method: 'POST',
         body: JSON.stringify({ next_school_year: nextSchoolYear, next_semester: nextSemester }),
       });
@@ -120,7 +120,7 @@ const SuperAdminSettings = () => {
     setCreatingTerm(true);
     setCreateTermError('');
     try {
-      const res = await api('http://localhost:5000/api/terms/create', {
+      const res = await api('/api/terms/create', {
         method: 'POST',
         body: JSON.stringify({ school_year: newSchoolYear, semester: newSemester }),
       });

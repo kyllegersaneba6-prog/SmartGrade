@@ -40,12 +40,12 @@ const AdminSubjects = () => {
     if (adminDept) {
       const fetchCourses = async () => {
         try {
-          const deptRes = await api('http://localhost:5000/api/departments');
+          const deptRes = await api('/api/departments');
           if (deptRes.ok) {
             const depts = await deptRes.json();
             const match = depts.find(d => d.name === adminDept);
             if (match) {
-              const coursesRes = await api(`http://localhost:5000/api/courses?department_id=${match.id}`);
+              const coursesRes = await api(`/api/courses?department_id=${match.id}`);
               if (coursesRes.ok) setCourses(await coursesRes.json());
             }
           }
@@ -61,7 +61,7 @@ const AdminSubjects = () => {
       const params = new URLSearchParams();
       if (semesterFilter) params.set('semester', semesterFilter);
       if (selectedCourseId) params.set('course_id', selectedCourseId);
-      const res = await api(`http://localhost:5000/api/subjects?${params.toString()}`);
+      const res = await api(`/api/subjects?${params.toString()}`);
       if (res.ok) setSubjects(await res.json());
       else setSubjects([]);
     } catch (err) { console.error(err); }
@@ -97,7 +97,7 @@ const AdminSubjects = () => {
     const added = [];
     for (const { code, name } of rows) {
       try {
-        const res = await api('http://localhost:5000/api/subjects', {
+        const res = await api('/api/subjects', {
           method: 'POST',
           body: JSON.stringify({ name: name.trim(), code: code.trim() || null, year_level: selectedYear, semester: semesterFilter, course_id: selectedCourseId })
         });
@@ -124,7 +124,7 @@ const AdminSubjects = () => {
     setAssignModalOpen(true);
     setAssignLoading(true);
     try {
-      const res = await api(`http://localhost:5000/api/assignments?subject_id=${subject.id}`);
+      const res = await api(`/api/assignments?subject_id=${subject.id}`);
       if (res.ok) setSubjectAssignments(await res.json());
       else setSubjectAssignments([]);
     } catch { setSubjectAssignments([]); }
@@ -397,7 +397,7 @@ const AdminSubjects = () => {
             </div>
             <div className="flex gap-3 justify-end">
               <button onClick={() => { setDeleteModalOpen(false); setSubjectToDelete(null); setConfirmText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deleting}>Cancel</button>
-              <button onClick={async () => { if (!subjectToDelete) return; setDeleting(true); try { const res = await api(`http://localhost:5000/api/subjects/${subjectToDelete.id}`, { method: 'DELETE' }); if (res.ok) setSubjects((prev) => prev.filter((s) => s.id !== subjectToDelete.id)); } catch (err) { console.error(err); } finally { setDeleting(false); setDeleteModalOpen(false); setSubjectToDelete(null); setConfirmText(''); } }} disabled={confirmText !== 'Confirm' || deleting} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmText === 'Confirm' && !deleting ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deleting ? 'Deleting...' : 'Delete'}</button>
+              <button onClick={async () => { if (!subjectToDelete) return; setDeleting(true); try { const res = await api(`/api/subjects/${subjectToDelete.id}`, { method: 'DELETE' }); if (res.ok) setSubjects((prev) => prev.filter((s) => s.id !== subjectToDelete.id)); } catch (err) { console.error(err); } finally { setDeleting(false); setDeleteModalOpen(false); setSubjectToDelete(null); setConfirmText(''); } }} disabled={confirmText !== 'Confirm' || deleting} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmText === 'Confirm' && !deleting ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deleting ? 'Deleting...' : 'Delete'}</button>
             </div>
           </div>
         </div>

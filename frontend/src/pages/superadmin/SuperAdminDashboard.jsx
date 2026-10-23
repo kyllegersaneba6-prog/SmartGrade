@@ -35,19 +35,19 @@ const SuperAdminDashboard = () => {
       await Promise.all([
         (async () => {
           try {
-            const res = await api('http://localhost:5000/api/users');
+            const res = await api('/api/users');
             if (res.ok) { const data = await res.json(); setStaffUsers(data); }
           } catch (err) { console.error(err); }
         })(),
         (async () => {
           try {
-            const res = await api('http://localhost:5000/api/activity');
+            const res = await api('/api/activity');
             if (res.ok) { const data = await res.json(); setActivityLog(data); }
           } catch (err) { console.error(err); }
         })(),
         (async () => {
           try {
-            const res = await api('http://localhost:5000/api/departments');
+            const res = await api('/api/departments');
             if (res.ok) {
               const data = await res.json();
               setLiveDeptNames(new Set(data.map((d) => String(d.name || '').trim().toLowerCase())));

@@ -17,8 +17,8 @@ export const AdminProvider = ({ children }) => {
 
   useEffect(() => {
     Promise.all([
-      api('http://localhost:5000/api/terms/active').then(r => r.ok ? r.json() : null),
-      api('http://localhost:5000/api/terms').then(r => r.ok ? r.json() : []),
+      api('/api/terms/active').then(r => r.ok ? r.json() : null),
+      api('/api/terms').then(r => r.ok ? r.json() : []),
     ]).then(([active, all]) => {
       setActiveTerm(active);
       setAllTerms(all);
