@@ -178,7 +178,7 @@ const SuperAdminDashboard = () => {
             {activityLog.length === 0 ? (
               <p className="text-sm text-gray-500 italic py-6 text-center">No recent activities found.</p>
             ) : (
-              activityLog.slice(0, 5).map((log) => {
+              activityLog.slice(0, 10).map((log) => {
                 const isCreate = log.action.toLowerCase().includes('created');
                 const isDelete = log.action.toLowerCase().includes('deleted');
                 const isFailed = log.action.toLowerCase().includes('failed login');

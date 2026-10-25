@@ -125,7 +125,6 @@ const SecurityAudit = () => {
     { label: 'TOTAL LOGGED EVENTS', value: totalEvents.toLocaleString(), color: '#0c1925', bg: '#fbbf24', icon: '↗', tooltip: 'Total events recorded in the institutional audit trail.' },
   ];
 
-  const ROWS_PER_PAGE = 10;
   const matchesActionFilter = (row) => {
     switch (actionFilter) {
       case 'CREATED': return row.action.includes('CREAT');
@@ -137,15 +136,6 @@ const SecurityAudit = () => {
     }
   };
   const filteredRows = dynamicRows.filter(matchesActionFilter);
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / ROWS_PER_PAGE));
-  const paginatedRows = filteredRows.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
-
-  const getPageNumbers = () => {
-    let pages = [];
-    if (totalPages <= 3) { for (let i = 1; i <= totalPages; i++) pages.push(i); }
-    else { if (page === 1) pages = [1, 2, 3]; else if (page === totalPages) pages = [totalPages - 2, totalPages - 1, totalPages]; else pages = [page - 1, page, page + 1]; }
-    return pages;
-  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -210,13 +200,13 @@ const SecurityAudit = () => {
                 </div>
               </div>
             </div>
-            <div className="table-responsive"><table className="w-full text-[12px] min-w-[800px]">
-              <thead><tr className="border-b" style={{ borderColor: '#f0ede6' }}>{['Timestamp', 'User', 'Role', 'Action', 'Description'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[12px] uppercase tracking-wide">{h}</th>))}</tr></thead>
+            <div className="table-responsive max-h-[500px] overflow-y-auto pr-1"><table className="w-full text-[12px] min-w-[800px]">
+              <thead className="sticky top-0 bg-white z-10"><tr className="border-b" style={{ borderColor: '#f0ede6' }}>{['Timestamp', 'User', 'Role', 'Action', 'Description'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[12px] uppercase tracking-wide">{h}</th>))}</tr></thead>
               <tbody>
                 {loading ? (
                   <tr><td colSpan="5" className="py-4"><div aria-busy="true"><SkeletonTable cols={5} rows={6} /></div></td></tr>
-                ) : paginatedRows.length === 0 ? (<tr><td colSpan="5" className="py-8 text-center text-gray-500">No activity recorded yet.</td></tr>
-                ) : paginatedRows.map((row, i) => (
+                ) : filteredRows.length === 0 ? (<tr><td colSpan="5" className="py-8 text-center text-gray-500">No activity recorded yet.</td></tr>
+                ) : filteredRows.map((row, i) => (
                   <tr key={row.id || i} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
                     <td className="py-3 pr-3 whitespace-pre font-mono text-[12px]" style={{ color: '#0c1925' }}>{row.ts}</td>
                     <td className="py-3 pr-3 font-bold text-gray-800 text-[12px]">{row.user === '-' ? <span className="text-gray-900">-</span> : row.user}</td>
@@ -238,12 +228,7 @@ const SecurityAudit = () => {
               </tbody>
             </table></div>
             <div className="flex items-center justify-between mt-4 pt-4 border-t text-[12px]" style={{ borderColor: '#f0ede6' }}>
-              <span className="text-gray-900 text-[12px]">Showing {Math.min((page - 1) * ROWS_PER_PAGE + 1, filteredRows.length)} to {Math.min(page * ROWS_PER_PAGE, filteredRows.length)} of {filteredRows.length.toLocaleString()} entries</span>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 rounded border text-gray-500 disabled:opacity-50" style={{ borderColor: '#e5e0d5' }}>Previous</button>
-                {getPageNumbers().map((p) => (<button key={p} onClick={() => setPage(p)} className="w-7 h-7 rounded font-semibold" style={page === p ? { background: '#0c1925', color: '#fff' } : { background: '#f0ede6', color: '#6b7280' }}>{p}</button>))}
-                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || totalPages === 0} className="px-3 py-1 rounded border text-gray-500 disabled:opacity-50" style={{ borderColor: '#e5e0d5' }}>Next</button>
-              </div>
+              <span className="text-gray-900 text-[12px]">Total entries: {filteredRows.length.toLocaleString()}</span>
             </div>
           </div>
         </div>

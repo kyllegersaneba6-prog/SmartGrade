@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { BookOpen, Activity, Clock, CheckCircle, Trash2, RefreshCw, UsersRound, GraduationCap, UserRoundCheck, UserRoundX } from 'lucide-react';
+import { BookOpen, Activity, Clock, CheckCircle, Trash2, RefreshCw, UsersRound, GraduationCap, UserRoundCheck, UserRoundX, Filter, Check } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
 import { splitUpdateDescription, isSentenceDescription } from '../../utils/auditText';
@@ -68,14 +68,30 @@ const AdminDashboard = () => {
     return () => window.removeEventListener('app:reload', handler);
   }, [loadData]);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4;
-  const totalPages = Math.ceil(activityLog.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const displayActivity = activityLog.slice(startIndex, startIndex + itemsPerPage);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [actionFilter, setActionFilter] = useState('ALL');
 
-  const handleNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const ACTION_FILTERS = [
+    { value: 'ALL', label: 'ALL ACTIVITIES' },
+    { value: 'CREATED', label: 'CREATED' },
+    { value: 'UPDATED', label: 'UPDATED' },
+    { value: 'DELETED', label: 'DELETED' },
+    { value: 'FAILED', label: 'FAILED LOGINS' },
+    { value: 'SUCCESSFUL', label: 'SUCCESSFUL LOGINS' },
+  ];
+
+  const filteredActivities = activityLog.filter(log => {
+    switch (actionFilter) {
+      case 'CREATED': return log.action.toLowerCase().includes('created');
+      case 'UPDATED': return log.action.toLowerCase().includes('updated');
+      case 'DELETED': return log.action.toLowerCase().includes('deleted');
+      case 'FAILED': return log.action.toLowerCase().includes('failed login');
+      case 'SUCCESSFUL': return log.action.toLowerCase().includes('successful login');
+      default: return true;
+    }
+  });
+
+  const activityLogToDisplay = filteredActivities;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pt-0">
@@ -125,29 +141,29 @@ const AdminDashboard = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {initialLoading ? (
           <>
-            <div aria-busy="true"><SkeletonTable cols={2} rows={5} /></div>
-            <div aria-busy="true"><SkeletonList rows={4} avatar /></div>
+            <div className="lg:col-span-4" aria-busy="true"><SkeletonTable cols={2} rows={5} /></div>
+            <div className="lg:col-span-8" aria-busy="true"><SkeletonList rows={4} avatar /></div>
           </>
         ) : (
         <>
-        <div className="rounded-xl p-5 shadow-sm self-start border border-gray-50 card-hover" style={{ background: '#fff' }}>
+        <div className="lg:col-span-4 rounded-xl p-5 shadow-sm self-start border border-gray-50 card-hover" style={{ background: '#fff' }}>
           <h2 className="text-base font-bold mb-4" style={{ color: '#0c1925' }}>Teacher Overview</h2>
           {teachers.length === 0 ? (
             <p className="text-sm text-gray-500 italic py-6 text-center">No teachers registered yet.</p>
           ) : (
-            <div className="table-responsive">
-              <table className="w-full text-xs min-w-[400px]">
+            <div className="max-h-[380px] overflow-y-auto pr-1">
+              <table className="w-full text-xs min-w-[300px]">
                 <thead>
-                  <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
+                  <tr className="border-b sticky top-0 bg-white z-10" style={{ borderColor: '#f0ede6' }}>
                     <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Name</th>
                     <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Subjects Assigned</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {teachers.slice(0, 8).map((t) => (
+                  {teachers.map((t) => (
                     <tr key={t.id} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
                       <td className="py-3 pr-3 font-bold text-gray-900">{t.full_name}</td>
                       <td className="py-3 pr-3">
@@ -163,44 +179,54 @@ const AdminDashboard = () => {
               </table>
             </div>
           )}
-          {teachers.length > 8 && <p className="text-xs text-gray-400 mt-2">Showing 8 of {teachers.length} teachers</p>}
+          {teachers.length > 0 && <p className="text-xs text-gray-400 mt-3">Total: {teachers.length} teachers</p>}
         </div>
 
-        <div className="rounded-xl p-5 shadow-sm border border-gray-50 card-hover" style={{ background: '#fff' }}>
+        <div className="lg:col-span-8 rounded-xl p-5 shadow-sm border border-gray-50 card-hover" style={{ background: '#fff' }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Recent Activities</h2>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePrevPage}
-                  disabled={currentPage === 1}
-                  className="px-2 py-1 text-[10px] bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
-                >
-                  Prev
-                </button>
-                <span className="text-[10px] font-bold text-gray-600">
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={handleNextPage}
-                  disabled={currentPage === totalPages}
-                  className="px-2 py-1 text-[10px] bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-            )}
+            <div className="relative">
+              <button onClick={() => setFilterOpen(o => !o)} className="p-1.5 rounded flex items-center gap-1" title="Filter by action">
+                <Filter size={16} className={actionFilter === 'ALL' ? 'text-black' : 'text-[#0c1925]'} />
+              </button>
+              {filterOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
+                  <div className="absolute right-0 mt-1 w-44 rounded-lg border border-gray-100 bg-white shadow-xl z-20 py-1">
+                    {ACTION_FILTERS.map((f) => (
+                      <button
+                        key={f.value}
+                        onClick={() => { setActionFilter(f.value); setFilterOpen(false); }}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-[11px] font-bold tracking-wide hover:bg-gray-50 ${actionFilter === f.value ? 'text-[#0c1925]' : 'text-gray-500'}`}
+                      >
+                        {f.label}
+                        {actionFilter === f.value && <Check size={12} />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-          {displayActivity.length === 0 ? (
-            <p className="text-sm text-gray-500 italic py-6 text-center">No recent activities.</p>
+          {activityLogToDisplay.length === 0 ? (
+            <p className="text-sm text-gray-500 italic py-6 text-center">No recent activities found.</p>
           ) : (
-            <div className="flex flex-col gap-3">
-              {displayActivity.map((log) => {
+            <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-1">
+              {activityLogToDisplay.map((log) => {
                 const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
                 const isOwn = log.user_name === currentUser?.username;
                 const diff = Date.now() - new Date(log.created_at).getTime();
-                const mins = Math.floor(diff / 60000);
-                const timeAgo = mins < 1 ? 'Just now' : mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`;
+                const minutes = Math.floor(diff / 60000);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+                const weeks = Math.floor(days / 7);
+
+                let timeAgo;
+                if (minutes < 1) timeAgo = 'Just now';
+                else if (minutes < 60) timeAgo = `${minutes}m ago`;
+                else if (hours < 24) timeAgo = `${hours}h ago`;
+                else if (days < 7) timeAgo = `${days}d ago`;
+                else timeAgo = `${weeks}w ago`;
                 const isCreate = log.action.toLowerCase().includes('created');
                 const isDelete = log.action.toLowerCase().includes('deleted');
                 const isFailed = log.action.toLowerCase().includes('failed login');

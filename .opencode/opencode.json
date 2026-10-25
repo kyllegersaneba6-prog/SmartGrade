@@ -1,8 +1,23 @@
+
 {
-  "$schema": "https://opencode.ai/config.json",
+  "$schema": "https://opencode.ai",
+  "provider": {
+    "omniroute": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "OmniRoute",
+      "options": {
+        "baseURL": "http://localhost:20128/v1"
+      },
+      "models": {
+        "my-combo": {
+          "name": "my-combo"
+        }
+      }
+    }
+  },
+  "model": "omniroute/my-combo",
   "instructions": ["docs/AGENTS.md"],
-  "plugin": [ "opencode-omniroute-auth" ],
-   "compaction": {
-     "auto": false
-   }
+  "compaction": {
+    "auto": false
+  }
 }
