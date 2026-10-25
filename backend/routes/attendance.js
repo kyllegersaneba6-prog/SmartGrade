@@ -96,7 +96,8 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
     }
 
     const invalidScore = records.some((r) => {
-      const score = Number(r.score ?? 0);
+      if (r.score === null || r.score === undefined || r.score === '') return false;
+      const score = Number(r.score);
       return !Number.isFinite(score) || score < 0 || score > 2;
     });
     if (invalidScore) {
@@ -114,7 +115,7 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
       teacher_assignment_id,
       student_id: r.student_id,
       date,
-      score: Number(r.score ?? 0),
+      score: r.score === null || r.score === undefined || r.score === '' ? null : Number(r.score),
       session: session || null,
       type: type || null,
       term: term || null,

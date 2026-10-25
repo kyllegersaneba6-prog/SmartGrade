@@ -15,7 +15,7 @@ const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
 
 // Standard grading-component names offered in the name dropdown. Anything else
 // is treated as a custom name and shown as a free-text input.
-const COMPONENT_NAME_PRESETS = ['Assignment', 'Activity', 'Quiz', 'Performance Task', 'Exam'];
+const COMPONENT_NAME_PRESETS = ['Quiz', 'Performance Task', 'Exam'];
 
 const COMPONENT_COLORS = [
   { bg: '#0f172a', border: '#0f172a', light: '#eef2f6', headerBg: '#0f172a', headerBorder: '#0f172a' },
@@ -30,10 +30,17 @@ const ClassRecord = () => {
   const navigate = useNavigate();
   const saveTimerRef = useRef(null);
 
-  const { selectedAssignment, currentAssignment, isReadOnly, loading: ctxLoading, refreshAssignments } = useTeacher();
+  const {
+    selectedAssignment,
+    currentAssignment,
+    isReadOnly,
+    loading: ctxLoading,
+    refreshAssignments,
+    gradingTerm: selectedTerm,
+    setGradingTerm,
+  } = useTeacher();
 
   const [students, setStudents] = useState([]);
-  const [selectedTerm, setSelectedTerm] = useState('PRELIMS');
 
   const [components, setComponents] = useState([]);
   const [scores, setScores] = useState({});
@@ -50,6 +57,7 @@ const ClassRecord = () => {
   const [error, setError] = useState('');
   const [clampWarnings, setClampWarnings] = useState({});
   const [deleteModal, setDeleteModal] = useState(null);
+  const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [dragCompId, setDragCompId] = useState(null);
   const [dropCompId, setDropCompId] = useState(null);
@@ -401,13 +409,16 @@ const ClassRecord = () => {
   };
 
   const handleConfirmDelete = async () => {
-    if (!deleteModal || deleting) return;
+    if (!deleteModal || deleting || confirmText !== 'Confirm') return;
     setDeleting(true);
     try {
       const ok = deleteModal.type === 'component'
         ? await deleteComponent(deleteModal.id)
         : await deleteActivity(deleteModal.componentId, deleteModal.id);
-      if (ok) setDeleteModal(null);
+      if (ok) {
+        setDeleteModal(null);
+        setConfirmText('');
+      }
     } finally {
       setDeleting(false);
     }
@@ -921,7 +932,7 @@ const ClassRecord = () => {
           {TERMS.map((t) => (
             <button
               key={t}
-              onClick={() => setSelectedTerm(t)}
+              onClick={() => setGradingTerm(t)}
               className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 selectedTerm === t
                   ? 'bg-sidebar text-white shadow-sm'
@@ -934,17 +945,12 @@ const ClassRecord = () => {
           {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
         </div>
       </div>
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-100 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <div className="text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1 font-sans">
-              SmartGrade — Class Record
-            </div>
-            <span className="text-sm font-bold text-gray-900">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-5 rounded-2xl shadow-sm border border-gray-50 card-hover text-white" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+        <div>
+          <div className="text-[12px] font-bold text-white uppercase tracking-wider mb-1 font-sans">
+            SmartGrade — Class Record
           </div>
+          <span className="text-sm font-bold text-amber-400">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
@@ -1007,7 +1013,7 @@ const ClassRecord = () => {
             </div>
           ) : (
             <>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {components.map((comp, idx) => {
                   const color = getColor(idx);
                   const needsSetup = !isTableReady(comp);
@@ -1102,13 +1108,12 @@ const ClassRecord = () => {
                                 onBlur={() => updateComponent(comp.id, { weight: comp.weight })}
                                 className={`w-12 text-center text-xs font-extrabold text-sidebar bg-transparent focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed ${clampWarnings[`weight-${comp.id}`] ? 'text-amber-600' : ''}`}
                                 min="0" max="100"
-                                placeholder="0"
                                 disabled={isReadOnly}
                               />
                             <span className="text-[10px] font-bold" style={{ color: color.bg }}>%</span>
                           </div>
                           {!isReadOnly && (
-                            <button onClick={() => setDeleteModal({ type: 'component', id: comp.id })} className="text-gray-900 hover:text-red-500 transition-colors p-1">
+                            <button onClick={() => { setConfirmText(''); setDeleteModal({ type: 'component', id: comp.id }); }} className="text-gray-900 hover:text-red-500 transition-colors p-1">
                               <Trash2 size={14} />
                             </button>
                           )}
@@ -1139,13 +1144,12 @@ const ClassRecord = () => {
                                   onBlur={() => updateActivity(act.id, { max_score: act.max_score })}
                                   className="w-12 text-center text-[10px] font-extrabold text-sidebar bg-transparent focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                   min="0"
-                                  placeholder="0"
                                   disabled={isReadOnly}
                                 />
                               <span className="text-[9px] font-bold" style={{ color: color.bg }}>max</span>
                             </div>
                             {!isReadOnly && (
-                              <button onClick={() => setDeleteModal({ type: 'activity', id: act.id, componentId: comp.id })} className="text-gray-900 hover:text-red-500 transition-colors shrink-0 p-0.5">
+                              <button onClick={() => { setConfirmText(''); setDeleteModal({ type: 'activity', id: act.id, componentId: comp.id }); }} className="text-gray-900 hover:text-red-500 transition-colors shrink-0 p-0.5">
                                 <Trash2 size={11} />
                               </button>
                             )}
@@ -1426,7 +1430,7 @@ const ClassRecord = () => {
                             return (
                               <td key={act.id} className={`p-0.5 border-r border-b border-gray-200 ${isSelected ? 'bg-green-200' : 'bg-[#f3f4f6]'}`}>
                                 <div className="relative">
-                                  <input type="number" step="any" placeholder="0" value={inputVal === '' ? '' : inputVal}
+                                  <input type="number" step="any" value={inputVal === '' ? '' : inputVal}
                                     ref={el => { if (el) inputRefs.current[`${student.id}:${act.id}`] = el; }}
                                     disabled={totalWeight !== 100 || isReadOnly || actLocked}
                                     title={actLocked && !isReadOnly && totalWeight === 100 ? 'Set the activity name and max score first' : undefined}
@@ -1471,10 +1475,20 @@ const ClassRecord = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Delete</h3>
-            <p className="text-sm text-gray-900 mb-6">Are you sure you want to delete this {deleteModal.type}? This action cannot be undone.</p>
+            <p className="text-sm text-gray-900 mb-3">Are you sure you want to delete this {deleteModal.type}? This action cannot be undone.</p>
+            <div className="mb-4">
+              <label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
+              <input
+                type="text"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                placeholder="Confirm"
+              />
+            </div>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setDeleteModal(null)} disabled={deleting} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
-              <button onClick={handleConfirmDelete} disabled={deleting} className="px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" style={{ background: '#ef4444' }}>
+              <button onClick={() => { setDeleteModal(null); setConfirmText(''); }} disabled={deleting} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
+              <button onClick={handleConfirmDelete} disabled={confirmText !== 'Confirm' || deleting} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md transition-colors ${confirmText === 'Confirm' && !deleting ? 'bg-red-600 hover:bg-red-700' : 'bg-red-300 cursor-not-allowed'} flex items-center gap-2`}>
                 {deleting && <Loader size={14} className="animate-spin" />}
                 {deleting ? 'Deleting...' : 'Delete'}
               </button>

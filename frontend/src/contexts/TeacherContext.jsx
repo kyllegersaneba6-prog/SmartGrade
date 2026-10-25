@@ -1,13 +1,20 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
+import { TERMS } from '../utils/gradeCalculations';
 
 const LS_KEY = 'teacher_selected_assignment';
 const VIEW_TERM_KEY = 'teacher_view_term';
+const GRADING_TERM_KEY = 'teacher_grading_term';
 
 const TeacherContext = createContext(null);
 
 const parseViewTerm = () => {
   try { return JSON.parse(localStorage.getItem(VIEW_TERM_KEY)); } catch { return null; }
+};
+
+const parseGradingTerm = () => {
+  const saved = localStorage.getItem(GRADING_TERM_KEY);
+  return TERMS.includes(saved) ? saved : 'PRELIMS';
 };
 
 export const TeacherProvider = ({ children }) => {
@@ -17,6 +24,7 @@ export const TeacherProvider = ({ children }) => {
   const [activeTerm, setActiveTerm] = useState(null);
   const [allTerms, setAllTerms] = useState([]);
   const [viewTerm, setViewTermState] = useState(parseViewTerm);
+  const [gradingTerm, setGradingTermState] = useState(parseGradingTerm);
 
   useEffect(() => {
     api('/api/terms/active')
@@ -74,6 +82,12 @@ export const TeacherProvider = ({ children }) => {
     else localStorage.removeItem(VIEW_TERM_KEY);
   }, []);
 
+  const setGradingTerm = useCallback((term) => {
+    if (!TERMS.includes(term)) return;
+    setGradingTermState(term);
+    localStorage.setItem(GRADING_TERM_KEY, term);
+  }, []);
+
   const setSelectedAssignment = useCallback((id) => {
     setSelectedAssignmentState(id);
     localStorage.setItem(LS_KEY, String(id));
@@ -96,6 +110,8 @@ export const TeacherProvider = ({ children }) => {
       allTerms,
       viewTerm,
       setViewTerm,
+      gradingTerm,
+      setGradingTerm,
       isArchiveMode,
       isReadOnly,
       currentTerm,

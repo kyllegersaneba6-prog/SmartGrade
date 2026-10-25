@@ -28,6 +28,7 @@ const TeacherSidebar = ({ isOpen, onClose }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('teacher_view_term');
+    localStorage.removeItem('teacher_grading_term');
     window.location.href = '/login';
   };
 

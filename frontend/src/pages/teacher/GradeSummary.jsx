@@ -93,11 +93,12 @@ const GradeSummary = () => {
         };
         termGrades.push(grade);
       });
-      if (termGrades.length > 0) {
+      const finalsGrade = row['FINALS']?.grade;
+      if (finalsGrade !== null && finalsGrade !== undefined) {
         let weightedSum = 0, totalWeight = 0;
         TERMS.forEach(term => {
           const g = row[term]?.grade;
-          if (g !== null) {
+          if (g !== null && g !== undefined) {
             weightedSum += g * TERM_WEIGHTS[term];
             totalWeight += TERM_WEIGHTS[term];
           }
@@ -374,19 +375,14 @@ const GradeSummary = () => {
     <div className="space-y-6">
       <AssignmentSelector />
       {/* Header */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-100 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1 font-sans">
-              SmartGrade — Grade Summary
-            </div>
-            <span className="text-sm font-bold text-gray-900">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-5 rounded-2xl shadow-sm border border-gray-50 card-hover text-white" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+        <div>
+          <div className="text-[12px] font-bold text-white uppercase tracking-wider mb-1 font-sans">
+            SmartGrade — Grade Summary
           </div>
+          <span className="text-sm font-bold text-amber-400">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
         </div>
-        {dataLoading && <Loader size={18} className="animate-spin text-sidebar/40" />}
+        {dataLoading && <Loader size={18} className="animate-spin text-white/40" />}
         {hasAnyData && !dataLoading && (
           <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
         )}
@@ -462,7 +458,7 @@ const GradeSummary = () => {
                         r.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())
                       )
                     : studentRows;
-                  const paginatedRows = filtered.slice((page - 1) * 15, page * 15);
+                   const paginatedRows = filtered.slice((page - 1) * 10, page * 10);
                   return students.length === 0 ? (
                     <tr>
                       <td colSpan={3 + TERMS.length * 2 + 3} className="px-6 py-10 text-center text-gray-500 italic">
@@ -478,7 +474,7 @@ const GradeSummary = () => {
                   ) : (
                     paginatedRows.map((row, index) => (
                     <tr key={row.student.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50/30 transition-colors ${highlightedRowId === row.student.id ? '!bg-green-200' : ''}`}>
-                      <td className={`px-1 py-1.5 text-center sticky border-r border-b border-gray-200 z-30 w-10 text-gray-400 text-[10px] align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: 0 }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{(page - 1) * 15 + index + 1}</td>
+                       <td className={`px-1 py-1.5 text-center sticky border-r border-b border-gray-200 z-30 w-10 text-gray-400 text-[10px] align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: 0 }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{(page - 1) * 10 + index + 1}</td>
                       <td className={`px-2 py-1.5 sticky border-r border-b border-gray-200 z-20 w-[110px] text-xs font-mono font-semibold text-sidebar align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: '40px' }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{row.student.student_id}</td>
                       <td className={`px-2 py-1.5 sticky border-r-2 border-b border-border z-20 w-[180px] text-xs font-medium text-sidebar truncate align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: '150px' }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{row.student.student_name}</td>
                       {TERMS.map(term => {
@@ -513,10 +509,10 @@ const GradeSummary = () => {
         {hasAnyData && (
           <Pagination
             currentPage={page}
-            totalPages={Math.ceil((searchQuery ? studentRows.filter(r => r.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || r.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : studentRows.length) / 15)}
+            totalPages={Math.ceil((searchQuery ? studentRows.filter(r => r.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || r.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : studentRows.length) / 10)}
             onPageChange={setPage}
             totalItems={searchQuery ? studentRows.filter(r => r.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || r.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : studentRows.length}
-            rowsPerPage={15}
+            rowsPerPage={10}
           />
         )}
       </div>

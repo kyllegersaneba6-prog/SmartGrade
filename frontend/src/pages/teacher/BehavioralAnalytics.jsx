@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart3, Loader, ArrowLeft, TrendingUp, TrendingDown, Minus, X, Sparkles, AlertTriangle } from 'lucide-react';
+import { BarChart3, Loader, ArrowLeft, TrendingUp, TrendingDown, Minus, X, Sparkles, AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
@@ -17,16 +17,26 @@ import {
 
 const avg = (arr) => arr.length === 0 ? 0 : arr.reduce((s, v) => s + v, 0) / arr.length;
 
+const formatAiTimestamp = (value) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleString();
+};
+
 const BehavioralAnalytics = () => {
   const navigate = useNavigate();
 
-  const { selectedAssignment, currentAssignment, loading: ctxLoading } = useTeacher();
+  const {
+    selectedAssignment,
+    currentAssignment,
+    loading: ctxLoading,
+    gradingTerm: selectedTerm,
+    setGradingTerm,
+  } = useTeacher();
 
   const [students, setStudents] = useState([]);
   const [components, setComponents] = useState([]);
   const [scores, setScores] = useState({});
   const [attendanceScores, setAttendanceScores] = useState({ max_total: 0, scores: {} });
-  const [selectedTerm, setSelectedTerm] = useState('PRELIMS');
   const [dataLoading, setDataLoading] = useState(false);
   const [sortKey, setSortKey] = useState('finalGrade');
   const [sortDir, setSortDir] = useState('desc');
@@ -37,6 +47,10 @@ const BehavioralAnalytics = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiReport, setAiReport] = useState(null);
   const [aiError, setAiError] = useState(null);
+  const [aiNotice, setAiNotice] = useState(null);
+  const [aiSource, setAiSource] = useState(null);
+  const [aiGeneratedAt, setAiGeneratedAt] = useState(null);
+  const [aiCacheStatus, setAiCacheStatus] = useState(null);
   const [exporting, setExporting] = useState(null);
   const [exportError, setExportError] = useState('');
 
@@ -559,18 +573,43 @@ const BehavioralAnalytics = () => {
 
   // --- Detail Modal ---
   const detailStudent = selectedStudent ? studentAnalytics[selectedStudent] : null;
+  const aiGeneratedLabel = aiGeneratedAt ? formatAiTimestamp(aiGeneratedAt) : null;
+  const showRetryLabel = Boolean(aiError) || (Boolean(aiReport) && aiSource !== 'ai');
 
-  // Reset AI panel when switching students/terms
-  useEffect(() => {
+  const resetAiPanel = () => {
     setAiReport(null);
     setAiError(null);
+    setAiNotice(null);
+    setAiSource(null);
+    setAiGeneratedAt(null);
+    setAiCacheStatus(null);
     setAiLoading(false);
-  }, [selectedStudent, selectedTerm]);
+  };
+
+  const openStudent = (id) => {
+    resetAiPanel();
+    setSelectedStudent(id);
+  };
+
+  const closeStudent = () => {
+    resetAiPanel();
+    setSelectedStudent(null);
+  };
+
+  const changeTerm = (term) => {
+    if (term === selectedTerm) return;
+    resetAiPanel();
+    setGradingTerm(term);
+  };
 
   const handleSummarizeWithAI = async () => {
     if (!detailStudent || aiLoading) return;
     setAiLoading(true);
     setAiError(null);
+    setAiNotice(null);
+    setAiSource(null);
+    setAiGeneratedAt(null);
+    setAiCacheStatus(null);
     setAiReport(null);
     try {
       const categories = Object.values(detailStudent.components || {}).map((cd) => ({
@@ -607,6 +646,10 @@ const BehavioralAnalytics = () => {
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.message || 'AI request failed');
       setAiReport(data?.report || data);
+      setAiNotice(data?.notice || null);
+      setAiSource(data?.source || null);
+      setAiGeneratedAt(data?.generated_at || null);
+      setAiCacheStatus(data?.cache_status || null);
     } catch (err) {
       console.error(err);
       setAiError('Unable to generate the AI summary right now. Please try again.');
@@ -646,7 +689,7 @@ const BehavioralAnalytics = () => {
           {TERMS.map((t) => (
             <button
               key={t}
-              onClick={() => { if (t !== selectedTerm) { setSelectedTerm(t); } }}
+              onClick={() => changeTerm(t)}
               className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 selectedTerm === t ? 'bg-sidebar text-white shadow-sm' : 'text-text-muted hover:text-sidebar'
               }`}
@@ -658,17 +701,12 @@ const BehavioralAnalytics = () => {
         </div>
       </div>
       {/* Header */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-100 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <div className="text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1 font-sans">
-              SmartGrade — Behavioral Analytics
-            </div>
-            <span className="text-sm font-bold text-gray-900">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-5 rounded-2xl shadow-sm border border-gray-50 card-hover text-white" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+        <div>
+          <div className="text-[12px] font-bold text-white uppercase tracking-wider mb-1 font-sans">
+            SmartGrade — Behavioral Analytics
           </div>
+          <span className="text-sm font-bold text-amber-400">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
@@ -784,7 +822,7 @@ const BehavioralAnalytics = () => {
                         s.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())
                       )
                     : sortedStudents;
-                  const paginatedStudents = filtered.slice((page - 1) * 15, page * 15);
+                   const paginatedStudents = filtered.slice((page - 1) * 10, page * 10);
                   return students.length === 0 ? (
                     <tr>
                       <td colSpan={3 + components.filter(c => c.is_attendance || c.activities?.length > 0).length * 3 + 4} className="px-6 py-10 text-center text-gray-500 italic">
@@ -802,8 +840,8 @@ const BehavioralAnalytics = () => {
                     const isLowPerforming = entry.overallPerformance < 60;
                     const rowBg = isLowPerforming ? 'bg-red-50/60' : (index % 2 === 0 ? 'bg-white' : 'bg-gray-50');
                     return (
-                      <tr key={entry.student.id} className={`${rowBg} hover:bg-blue-50/30 cursor-pointer transition-colors ${highlightedRowId === entry.student.id ? '!bg-green-200' : ''}`} onClick={() => setSelectedStudent(entry.student.id)}>
-                        <td className={`px-1 py-1.5 text-center sticky border-r border-b border-gray-200 z-30 w-10 text-gray-400 text-[10px] align-middle ${highlightedRowId === entry.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: 0 }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === entry.student.id ? null : entry.student.id); }}>{(page - 1) * 15 + index + 1}</td>
+                      <tr key={entry.student.id} className={`${rowBg} hover:bg-blue-50/30 cursor-pointer transition-colors ${highlightedRowId === entry.student.id ? '!bg-green-200' : ''}`} onClick={() => openStudent(entry.student.id)}>
+                        <td className={`px-1 py-1.5 text-center sticky border-r border-b border-gray-200 z-30 w-10 text-gray-400 text-[10px] align-middle ${highlightedRowId === entry.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: 0 }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === entry.student.id ? null : entry.student.id); }}>{(page - 1) * 10 + index + 1}</td>
                         <td className={`px-2 py-1.5 sticky border-r border-b border-gray-200 z-20 w-[110px] text-xs font-mono font-semibold text-sidebar align-middle ${highlightedRowId === entry.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: '40px' }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === entry.student.id ? null : entry.student.id); }}>{entry.student.student_id}</td>
                         <td className={`px-2 py-1.5 sticky border-r-2 border-b border-border z-20 w-[180px] text-xs font-medium text-sidebar truncate align-middle ${highlightedRowId === entry.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: '150px' }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === entry.student.id ? null : entry.student.id); }}>{entry.student.student_name}</td>
                         {components.map((comp) => {
@@ -834,17 +872,17 @@ const BehavioralAnalytics = () => {
         {hasComponents && (
           <Pagination
             currentPage={page}
-            totalPages={Math.ceil((searchQuery ? sortedStudents.filter(s => s.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : sortedStudents.length) / 15)}
+            totalPages={Math.ceil((searchQuery ? sortedStudents.filter(s => s.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : sortedStudents.length) / 10)}
             onPageChange={setPage}
             totalItems={searchQuery ? sortedStudents.filter(s => s.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : sortedStudents.length}
-            rowsPerPage={15}
+            rowsPerPage={10}
           />
         )}
       </div>
 
       {/* Detail Modal */}
       {detailStudent && (
-        <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4" onClick={() => setSelectedStudent(null)}>
+        <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4" onClick={() => closeStudent()}>
           <div className="bg-white rounded-xl modal-surface w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-100 bg-white">
               <div className="min-w-0">
@@ -855,13 +893,118 @@ const BehavioralAnalytics = () => {
                 <span className={`px-3 py-1.5 rounded-lg text-base font-extrabold ${detailStudent.finalGrade < 75 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-800'}`}>
                   Final {detailStudent.finalGrade.toFixed(2)}
                 </span>
-                <button onClick={() => setSelectedStudent(null)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close">
+                <button onClick={() => closeStudent()} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close">
                   <X size={20} />
                 </button>
               </div>
             </div>
 
             <div className="overflow-y-auto px-6 py-5 space-y-5">
+
+              {/* AI Summary */}
+              <div className="border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="text-base font-bold text-gray-800">AI Student Summary</div>
+                    {aiReport && aiSource === 'cache' && (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">Cached</span>
+                    )}
+                    {aiReport && aiSource === 'local' && (
+                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-bold">Rule-based</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleSummarizeWithAI}
+                    disabled={aiLoading}
+                    className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {aiLoading ? (
+                      <Loader size={16} className="animate-spin" />
+                    ) : showRetryLabel ? (
+                      <RefreshCw size={16} />
+                    ) : (
+                      <Sparkles size={16} />
+                    )}
+                    {aiLoading ? 'Analyzing student performance...' : showRetryLabel ? 'Retry AI Summary' : 'Summarize Student Behaviour with AI'}
+                  </button>
+                </div>
+
+                {aiError && (
+                  <div className="mt-3 flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
+                    <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                    <span>{aiError}</span>
+                  </div>
+                )}
+
+                {aiNotice && (
+                  <div className="mt-3 flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3">
+                    {aiSource === 'cache' ? (
+                      <Clock size={16} className="mt-0.5 shrink-0" />
+                    ) : (
+                      <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                    )}
+                    <span>{aiNotice}</span>
+                  </div>
+                )}
+
+                {aiReport && (
+                  <div className="mt-4 space-y-4 text-sm">
+                    {aiReport.summary && (
+                      <div>
+                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Overall</div>
+                        <p className="text-gray-600 leading-relaxed">{aiReport.summary}</p>
+                      </div>
+                    )}
+                    {Array.isArray(aiReport.strengths) && aiReport.strengths.length > 0 && (
+                      <div>
+                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Strengths</div>
+                        <ul className="space-y-1">
+                          {aiReport.strengths.map((s, i) => (
+                            <li key={i} className="text-green-700">✓ {s}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {Array.isArray(aiReport.areas_of_attention) && aiReport.areas_of_attention.length > 0 && (
+                      <div>
+                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Areas to Monitor</div>
+                        <ul className="space-y-1">
+                          {aiReport.areas_of_attention.map((a, i) => (
+                            <li key={i} className="text-gray-600">
+                              <span className="font-bold text-amber-700">⚠ {a.area}</span>
+                              {a.priority && <span className="ml-1 text-xs text-gray-400">({a.priority})</span>}
+                              <span className="block text-gray-500">{a.observation}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {Array.isArray(aiReport.suggested_actions) && aiReport.suggested_actions.length > 0 && (
+                      <div>
+                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Suggested Actions</div>
+                        <ol className="list-decimal ml-4 space-y-1 text-gray-600">
+                          {aiReport.suggested_actions.map((s, i) => <li key={i}>{s}</li>)}
+                        </ol>
+                      </div>
+                    )}
+                    {Array.isArray(aiReport.follow_up) && aiReport.follow_up.length > 0 && (
+                      <div>
+                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Follow-up</div>
+                        <ul className="list-disc ml-4 space-y-1 text-gray-600">
+                          {aiReport.follow_up.map((s, i) => <li key={i}>{s}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-400 pt-2 border-t border-gray-100">
+                      {aiSource === 'cache'
+                        ? `Cached AI-generated analysis${aiGeneratedLabel ? ` originally generated ${aiGeneratedLabel}` : ''}. ${aiCacheStatus === 'stale' ? 'This cached summary is older than the freshness window and may be outdated.' : 'Reused because the student, term, and recorded data match.'}`
+                        : aiSource === 'local'
+                          ? 'Rule-based summary generated locally from the student\'s recorded academic data. This is not an AI-generated analysis.'
+                          : 'AI-generated analysis based on the student\'s available academic records.'}
+                    </p>
+                  </div>
+                )}
+              </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
@@ -967,82 +1110,6 @@ const BehavioralAnalytics = () => {
                   </div>
                 );
               })}
-
-              {/* AI Summary */}
-              <div className="border border-gray-200 rounded-xl p-4">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="text-base font-bold text-gray-800">AI Student Summary</div>
-                  <button
-                    onClick={handleSummarizeWithAI}
-                    disabled={aiLoading}
-                    className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    {aiLoading ? <Loader size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                    {aiLoading ? 'Analyzing student performance...' : 'Summarize Student Behaviour with AI'}
-                  </button>
-                </div>
-
-                {aiError && (
-                  <div className="mt-3 flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
-                    <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                    <span>{aiError}</span>
-                  </div>
-                )}
-
-                {aiReport && (
-                  <div className="mt-4 space-y-4 text-sm">
-                    {aiReport.summary && (
-                      <div>
-                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Overall</div>
-                        <p className="text-gray-600 leading-relaxed">{aiReport.summary}</p>
-                      </div>
-                    )}
-                    {Array.isArray(aiReport.strengths) && aiReport.strengths.length > 0 && (
-                      <div>
-                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Strengths</div>
-                        <ul className="space-y-1">
-                          {aiReport.strengths.map((s, i) => (
-                            <li key={i} className="text-green-700">✓ {s}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {Array.isArray(aiReport.areas_of_attention) && aiReport.areas_of_attention.length > 0 && (
-                      <div>
-                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Areas to Monitor</div>
-                        <ul className="space-y-1">
-                          {aiReport.areas_of_attention.map((a, i) => (
-                            <li key={i} className="text-gray-600">
-                              <span className="font-bold text-amber-700">⚠ {a.area}</span>
-                              {a.priority && <span className="ml-1 text-xs text-gray-400">({a.priority})</span>}
-                              <span className="block text-gray-500">{a.observation}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {Array.isArray(aiReport.suggested_actions) && aiReport.suggested_actions.length > 0 && (
-                      <div>
-                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Suggested Actions</div>
-                        <ol className="list-decimal ml-4 space-y-1 text-gray-600">
-                          {aiReport.suggested_actions.map((s, i) => <li key={i}>{s}</li>)}
-                        </ol>
-                      </div>
-                    )}
-                    {Array.isArray(aiReport.follow_up) && aiReport.follow_up.length > 0 && (
-                      <div>
-                        <div className="font-bold text-gray-500 uppercase text-xs tracking-wide mb-1">Follow-up</div>
-                        <ul className="list-disc ml-4 space-y-1 text-gray-600">
-                          {aiReport.follow_up.map((s, i) => <li key={i}>{s}</li>)}
-                        </ul>
-                      </div>
-                    )}
-                    <p className="text-xs text-gray-400 pt-2 border-t border-gray-100">
-                      AI-generated analysis based on the student's available academic records.
-                    </p>
-                  </div>
-                )}
-              </div>
             </div>
             </div>
           </div>

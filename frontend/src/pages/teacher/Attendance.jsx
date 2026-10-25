@@ -70,12 +70,19 @@ const formatDate = (key) => {
 const Attendance = () => {
   const navigate = useNavigate();
 
-  const { selectedAssignment, currentAssignment, isReadOnly, loading: ctxLoading, refreshAssignments } = useTeacher();
+  const {
+    selectedAssignment,
+    currentAssignment,
+    isReadOnly,
+    loading: ctxLoading,
+    refreshAssignments,
+    gradingTerm: selectedTerm,
+    setGradingTerm,
+  } = useTeacher();
 
   const [students, setStudents] = useState([]);
   const [columns, setColumns] = useState([]);
   const [attendanceMap, setAttendanceMap] = useState({});
-  const [selectedTerm, setSelectedTerm] = useState('PRELIMS');
   const [loading, setLoading] = useState(true);
   const [addDateOpen, setAddDateOpen] = useState(false);
   const [newDate, setNewDate] = useState(todayStr());
@@ -163,7 +170,7 @@ const Attendance = () => {
           records.forEach((r) => {
             const key = makeKey(r.date, r.session || 'AM', r.type || 'Lecture');
             if (!map[key]) map[key] = {};
-            map[key][r.student_id] = r.score ?? 0;
+            map[key][r.student_id] = r.score ?? null;
             keySet.add(key);
           });
           setAttendanceMap(map);
@@ -202,7 +209,7 @@ const Attendance = () => {
         const { date, session, type } = parseKey(key);
         const records = students.map((s) => ({
           student_id: s.id,
-          score: pending[key]?.[s.id] ?? 0,
+          score: pending[key]?.[s.id] ?? null,
         }));
         try {
           const res = await api('/api/attendance/bulk', {
@@ -228,7 +235,7 @@ const Attendance = () => {
         const { date, session, type } = parseKey(key);
         const records = students.map((s) => ({
           student_id: s.id,
-          score: pending[key]?.[s.id] ?? 0,
+          score: pending[key]?.[s.id] ?? null,
         }));
         try {
           const res = await api('/api/attendance/bulk', {
@@ -276,14 +283,14 @@ const Attendance = () => {
     }
     setColumns((prev) => [...prev, key].sort());
     const defaults = {};
-    students.forEach((s) => { defaults[s.id] = 0; });
+    students.forEach((s) => { defaults[s.id] = null; });
     setAttendanceMap((prev) => ({ ...prev, [key]: defaults }));
     setAddDateOpen(false);
     setError('');
   };
 
   const removeColumn = async () => {
-    if (!confirmRemoveKey || confirmText !== 'CONFIRM') return;
+    if (!confirmRemoveKey || confirmText !== 'Confirm') return;
     setRemoving(true);
     const { date, session, type } = parseKey(confirmRemoveKey);
     try {
@@ -309,7 +316,7 @@ const Attendance = () => {
 
   const handleScoreChange = (key, studentId, value) => {
     const raw = value === '' ? null : parseInt(value, 10);
-    const clamped = value === '' ? 0 : Math.max(0, Math.min(2, raw || 0));
+    const clamped = value === '' ? null : Math.max(0, Math.min(2, raw || 0));
     if (raw !== null && raw !== clamped) {
       const ck = `${key}-${studentId}`;
       setClampWarnings(prev => ({ ...prev, [ck]: true }));
@@ -337,7 +344,7 @@ const Attendance = () => {
         const { date, session, type } = parseKey(key);
         const records = studs.map((s) => ({
           student_id: s.id,
-          score: map[key]?.[s.id] ?? 0,
+          score: map[key]?.[s.id] ?? null,
         }));
         const res = await api('/api/attendance/bulk', {
           method: 'POST',
@@ -388,7 +395,7 @@ const Attendance = () => {
       const dataRows = filtered.map((s) => [
         String(s.student_id ?? ''),
         s.student_name ?? '',
-        ...columns.map((k) => attendanceMap[k]?.[s.id] ?? 0),
+        ...columns.map((k) => attendanceMap[k]?.[s.id] ?? ''),
         getStudentTotal(s.id),
       ]);
       const titleRow = Array(subHeader.length).fill('');
@@ -435,7 +442,7 @@ const Attendance = () => {
           i + 1,
           String(s.student_id ?? ''),
           s.student_name ?? '',
-          ...columns.map((k) => attendanceMap[k]?.[s.id] ?? 0),
+          ...columns.map((k) => attendanceMap[k]?.[s.id] ?? ''),
           getStudentTotal(s.id),
         ]),
         landscape: true,
@@ -477,7 +484,7 @@ const Attendance = () => {
           {TERMS.map((t) => (
               <button
                 key={t}
-                onClick={() => { if (t !== selectedTerm) { setSelectedTerm(t); setColumns([]); setAttendanceMap({}); } }}
+                onClick={() => { if (t !== selectedTerm) { setGradingTerm(t); setColumns([]); setAttendanceMap({}); } }}
                 className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
                   selectedTerm === t
                     ? 'bg-[#0c1925] text-white shadow-sm'
@@ -490,32 +497,55 @@ const Attendance = () => {
           {loading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
         </div>
       </div>
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/teacher/dashboard')} className="p-2 rounded-lg hover:bg-gray-200 text-sidebar transition-colors cursor-pointer" title="Back to Dashboard">
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <div className="text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1 font-sans">
-              SmartGrade — Attendance
-            </div>
-            <span className="text-sm font-bold text-gray-900">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-5 rounded-2xl shadow-sm border border-gray-50 card-hover text-white" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+        <div>
+          <div className="text-[12px] font-bold text-white uppercase tracking-wider mb-1 font-sans">
+            SmartGrade — Attendance
           </div>
+          <span className="text-sm font-bold text-amber-400">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+          {columns.length > 0 && (
+            <ExportButtons onExcel={handleExportExcel} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
+          )}
+        </div>
+      </div>
+
+      {isReadOnly && (
+        <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs font-bold">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10m9.364-9.364a9 9 0 11-12.728 0 9 9 0 0112.728 0z" /></svg>
+          <span>This term is closed. Viewing only.</span>
+        </div>
+      )}
+      <div className="flex items-center gap-4 text-sm font-bold px-4 py-2 border border-gray-50 rounded-xl text-amber-900">
+        <span>Attendance Key:</span>
+        <span className="px-2 py-0.5 rounded bg-green-100 text-green-900 border border-green-200">2 = Present</span>
+        <span className="px-2 py-0.5 rounded bg-yellow-100 text-yellow-900 border border-yellow-200">1 = Late</span>
+        <span className="px-2 py-0.5 rounded bg-red-100 text-red-900 border border-red-200">0 = Absent</span>
+        {syncing && (
+          <span className="ml-auto flex items-center gap-1.5 text-blue-700 bg-blue-100 border border-blue-200 px-3 py-0.5 rounded">
+            <Cloud size={13} className="animate-pulse" />
+            Syncing unsaved data…
+          </span>
+        )}
+      </div>
+
+      <div className="mb-2 px-1 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-bold text-gray-900">{currentAssignment?.subjects?.name} — {currentAssignment?.sections?.name}</span>
           <div className="relative" ref={datePickerRef}>
-            <button onClick={() => { setAddDateOpen(!addDateOpen); setNewDate(todayStr()); setNewSession('AM'); setNewType('Lecture'); setError(''); }} disabled={isReadOnly} className="flex items-center gap-1.5 px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-              <Plus size={16} /> Add Date
+            <button onClick={() => { setAddDateOpen(!addDateOpen); setNewDate(todayStr()); setNewSession('AM'); setNewType('Lecture'); setError(''); }} disabled={isReadOnly} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0c1925] text-white rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+              <Plus size={14} /> Add Date
             </button>
             {addDateOpen && (
-              <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-gray-200 p-4 z-50 min-w-[240px]">
+              <div className="absolute left-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-gray-200 p-4 z-50 min-w-[240px]">
                 <label className="text-[11px] font-bold text-gray-900 uppercase tracking-wider block mb-1.5">Select Date</label>
                 <input
                   type="date"
                   value={newDate}
                   onChange={(e) => setNewDate(e.target.value)}
-                  className="w-full text-sm px-3 py-2 rounded-lg border border-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0c1925] 0 mb-3"
+                  className="w-full text-sm px-3 py-2 rounded-lg border border-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0c1925] mb-3"
                 />
                 {error && <div className="text-xs text-red-500 font-semibold mb-2">{error}</div>}
                 <div className="flex gap-2 mb-3">
@@ -554,33 +584,7 @@ const Attendance = () => {
               </div>
             )}
           </div>
-          {columns.length > 0 && (
-            <ExportButtons onExcel={handleExportExcel} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
-          )}
         </div>
-      </div>
-
-      {isReadOnly && (
-        <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs font-bold">
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10m9.364-9.364a9 9 0 11-12.728 0 9 9 0 0112.728 0z" /></svg>
-          <span>This term is closed. Viewing only.</span>
-        </div>
-      )}
-      <div className="flex items-center gap-4 text-sm font-bold px-4 py-2 border border-gray-50 rounded-xl text-amber-900">
-        <span>Attendance Key:</span>
-        <span className="px-2 py-0.5 rounded bg-green-100 text-green-900 border border-green-200">2 = Present</span>
-        <span className="px-2 py-0.5 rounded bg-yellow-100 text-yellow-900 border border-yellow-200">1 = Late</span>
-        <span className="px-2 py-0.5 rounded bg-red-100 text-red-900 border border-red-200">0 = Absent</span>
-        {syncing && (
-          <span className="ml-auto flex items-center gap-1.5 text-blue-700 bg-blue-100 border border-blue-200 px-3 py-0.5 rounded">
-            <Cloud size={13} className="animate-pulse" />
-            Syncing unsaved data…
-          </span>
-        )}
-      </div>
-
-      <div className="mb-2 px-1 flex items-center justify-between">
-        <span className="text-sm font-bold text-gray-900">{currentAssignment?.subjects?.name} — {currentAssignment?.sections?.name}</span>
         <div className="relative">
           <input
             type="text"
@@ -685,7 +689,7 @@ const Attendance = () => {
                         s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())
                       )
                     : students;
-                  const paginatedStudents = filtered.slice((page - 1) * 15, page * 15);
+                  const paginatedStudents = filtered.slice((page - 1) * 10, page * 10);
                   return students.length === 0 ? (
                     <tr>
                       <td colSpan={3 + columns.length + 1} className="px-6 py-10 text-center text-gray-500 italic">
@@ -703,7 +707,7 @@ const Attendance = () => {
                     const studentTotal = getStudentTotal(student.id);
                     return (
                       <tr key={student.id} className={`transition-colors ${selectedRow === student.id ? 'bg-green-200' : 'hover:bg-green-50/10'}`}>
-                        <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-[#0c1925] text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 15 + index + 1}</td>
+                        <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-[#0c1925] text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 10 + index + 1}</td>
                         <td className={`px-2 py-1 sticky border-r border-b border-gray-200 z-20 w-28 text-xs font-mono font-semibold text-[#0c1925] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '48px' }} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
                         <td className={`px-2 py-1 sticky border-r-2 border-b border-border z-20 min-w-[180px] text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '160px' }} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
                         {columns.map((key) => {
@@ -715,13 +719,13 @@ const Attendance = () => {
                               <div className="relative">
                                 <input type="text" inputMode="numeric"
                                   ref={el => { if (el) inputRefs.current[`${student.id}:${key}`] = el; }}
-                                  value={attendanceMap[key]?.[student.id] ?? 0}
+                                  value={attendanceMap[key]?.[student.id] ?? ''}
                                   onFocus={(e) => e.target.select()}
                                   onClick={(e) => e.target.select()}
                                   onChange={(e) => {
                                     if (isReadOnly) return;
                                     const raw = e.target.value;
-                                    if (raw === '') { handleScoreChange(key, student.id, 0); return; }
+                                    if (raw === '') { handleScoreChange(key, student.id, ''); return; }
                                     if (/^[0-2]$/.test(raw)) {
                                       handleScoreChange(key, student.id, parseInt(raw, 10));
                                     }
@@ -751,10 +755,10 @@ const Attendance = () => {
         {columns.length > 0 && (
           <Pagination
             currentPage={page}
-            totalPages={Math.ceil((searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length) / 15)}
+            totalPages={Math.ceil((searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length) / 10)}
             onPageChange={setPage}
             totalItems={searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length}
-            rowsPerPage={15}
+            rowsPerPage={10}
           />
         )}
       </div>
@@ -763,19 +767,19 @@ const Attendance = () => {
         <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center">
           <div className="bg-white rounded-xl modal-surface p-6 w-full max-w-sm mx-4">
             <h3 className="text-base font-bold text-gray-800 mb-2">Remove Date</h3>
-            <p className="text-sm text-gray-700 mb-1">
+            <p className="text-sm text-gray-900 mb-1">
               This will delete all attendance records for <strong>{confirmRemoveKey}</strong>.
             </p>
-            <p className="text-xs text-gray-600 mb-4">Type <strong>Confirm</strong> to proceed.</p>
+            <p className="text-xs text-gray-900 mb-4">Type <strong>Confirm</strong> to proceed.</p>
             <input
               type="text"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder="Type Confirm"
-              className="w-full text-sm px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-400/40 mb-4 text-gray-900 font-semibold"
+              className="w-full text-sm px-3 py-2 rounded-lg border border-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400 mb-4 text-gray-900 font-semibold"
             />
             <div className="flex gap-2 justify-end">
-              <button onClick={() => { setConfirmRemoveKey(null); setConfirmText(''); }} className="text-xs font-bold px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+              <button onClick={() => { setConfirmRemoveKey(null); setConfirmText(''); }} className="text-xs font-bold px-4 py-2 rounded-lg border border-gray-200 text-gray-900 hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
               <button onClick={removeColumn} disabled={confirmText !== 'Confirm' || removing} className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg text-white transition-colors disabled:opacity-50" style={{ background: '#ef4444' }}>

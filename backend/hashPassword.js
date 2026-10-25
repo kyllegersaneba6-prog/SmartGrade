@@ -10,6 +10,6 @@ if (!password) {
 bcrypt.hash(password, 10, (err, hash) => {
   if (err) throw err;
   console.log('Hashed Password:', hash);
-  console.log('\nSQL to insert admin:');
-  console.log(`INSERT INTO admin_users (username, password) VALUES ('admin', '${hash}');`);
+  console.log('\nSQL to insert superadmin:');
+  console.log(`INSERT INTO staff_users (full_name, username, system_role, password) VALUES ('Super Admin', 'admin', 'superadmin', '${hash}');`);
 });

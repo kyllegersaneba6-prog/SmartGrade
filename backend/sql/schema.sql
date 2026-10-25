@@ -181,6 +181,16 @@ CREATE TABLE IF NOT EXISTS public.component_scores (
   UNIQUE(activity_id, student_id)
 );
 
+-- 14. Activity Log
+CREATE TABLE IF NOT EXISTS public.activity_log (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_name TEXT NOT NULL,
+  action TEXT NOT NULL,
+  details TEXT,
+  department TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- ============================================================
 -- SEED DATA
 -- ============================================================

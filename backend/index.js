@@ -5,11 +5,20 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const authRoutes = require('./routes/auth');
+const { createCorsOptions } = require('./middleware/cors');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// Login rate limiting keys off req.ip. Only trust X-Forwarded-For when the
+// deployment actually sits behind a reverse proxy / load balancer, otherwise a
+// client could spoof the header and bypass the per-IP window.
+if (process.env.TRUST_PROXY) {
+  const trustProxy = process.env.TRUST_PROXY;
+  app.set('trust proxy', trustProxy === 'true' ? true : Number(trustProxy) || trustProxy);
+}
+
+app.use(cors(createCorsOptions(PORT)));
 app.use(express.json({ limit: '55mb' }));
 
 const { rejectArchivedWrites } = require('./middleware/termLock');
@@ -46,32 +55,6 @@ app.use('/api/component-scores', componentScoresRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/backup', backupRoutes);
-
-// One-time setup: create activity_log table if it doesn't exist
-const { createClient } = require('@supabase/supabase-js');
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-
-(async () => {
-  try {
-    const { error } = await supabase.rpc('exec_sql', {
-      query: `CREATE TABLE IF NOT EXISTS public.activity_log (
-        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-        user_name TEXT NOT NULL,
-        action TEXT NOT NULL,
-        details TEXT,
-        department TEXT,
-        created_at TIMESTAMPTZ DEFAULT now()
-      );`
-    });
-    // If rpc doesn't exist, try direct insert to test the table
-    if (error) {
-      // Table may already exist — just test it
-      await supabase.from('activity_log').select('id').limit(1);
-    }
-  } catch (e) {
-    console.log('activity_log table setup: table may need to be created manually in Supabase dashboard.');
-  }
-})();
 
 app.get('/', (req, res) => {
   res.send('SmartGrade Backend is running...');

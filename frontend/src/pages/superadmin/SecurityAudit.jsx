@@ -103,13 +103,13 @@ const SecurityAudit = () => {
 
   const isCritical = (actionStr, descStr) => {
     const combined = (actionStr + ' ' + descStr).toLowerCase();
-    return combined.includes('delete') || combined.includes('fail') || combined.includes('error') || combined.includes('critical');
+    return combined.includes('delete') || combined.includes('fail') || combined.includes('error') || combined.includes('critical') || combined.includes('rate limit');
   };
 
   const dynamicRows = logs.map(log => {
     const actionLower = String(log.action || '').toLowerCase();
-    // Login rows (failed + successful) show a dash for User and Role.
-    const isLoginRow = actionLower.includes('failed login') || actionLower.includes('successful login');
+    // Login rows (failed, rate-limited, successful) show a dash for User and Role.
+    const isLoginRow = actionLower.includes('failed login') || actionLower.includes('rate limited') || actionLower.includes('successful login');
     const roleInfo = getRoleInfo(log.user_name);
     const critical = isCritical(log.action, log.details);
     const dateObj = new Date(log.created_at);
@@ -126,9 +126,17 @@ const SecurityAudit = () => {
   ];
 
   const ROWS_PER_PAGE = 10;
-  const filteredRows = actionFilter === 'ALL'
-    ? dynamicRows
-    : dynamicRows.filter(r => r.action.includes(actionFilter === 'CREATED' ? 'CREAT' : actionFilter === 'UPDATED' ? 'UPDAT' : actionFilter === 'DELETED' ? 'DELET' : actionFilter === 'SUCCESSFUL' ? 'SUCCESS' : 'FAIL'));
+  const matchesActionFilter = (row) => {
+    switch (actionFilter) {
+      case 'CREATED': return row.action.includes('CREAT');
+      case 'UPDATED': return row.action.includes('UPDAT');
+      case 'DELETED': return row.action.includes('DELET');
+      case 'SUCCESSFUL': return row.action.includes('SUCCESS');
+      case 'FAILED': return row.action.includes('FAIL') || row.action.includes('RATE');
+      default: return true;
+    }
+  };
+  const filteredRows = dynamicRows.filter(matchesActionFilter);
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / ROWS_PER_PAGE));
   const paginatedRows = filteredRows.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
 
