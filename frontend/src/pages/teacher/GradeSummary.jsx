@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart3, Loader, ArrowLeft, Summary } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx-js-style';
+import { BarChart3, Loader, Summary } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTableImport from 'jspdf-autotable';
+import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
 import ExportButtons from '../../components/teacher/ExportButtons';
@@ -9,16 +10,89 @@ import { SkeletonHeaderCard, SkeletonTable } from '../../components/common/Skele
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
 import { buildTeacherFilename } from '../../utils/exportFilenames';
-import { exportTablePdf } from '../../utils/exportPdf';
 import {
   TERMS, TERM_PCTS, TERM_WEIGHTS, GRADE_RANGES,
-  gradeToPoint, getComponentTotal, getComponentMaxTotal,
-  getComponentEquiv, getComponentWeighted, getFinalGrade
+  gradeToPoint, getFinalGrade
 } from '../../utils/gradeCalculations';
 
-const GradeSummary = () => {
-  const navigate = useNavigate();
+const autoTable = typeof autoTableImport === 'function' ? autoTableImport : autoTableImport.default;
 
+const SEMESTER_TEMPLATE_PATH = `${import.meta.env.BASE_URL}templates/grade-summary-semester-template.xlsx`;
+const SEMESTER_TEMPLATE_FIRST_ROW = 23;
+const SEMESTER_TEMPLATE_LAST_ROW = 63;
+
+const escapeXml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&apos;');
+
+const imageBytesToDataUrl = (bytes, mimeType) => {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return `data:${mimeType};base64,${btoa(binary)}`;
+};
+
+const replaceCellValue = (rowXml, cellRef, value) => {
+  let replaced = false;
+  const nextRow = rowXml.replace(/<c\b[^>]*\/>|<c\b[^>]*>[\s\S]*?<\/c>/g, (cellXml) => {
+    if (cellXml.match(/\br="([A-Z]+\d+)"/)?.[1] !== cellRef) return cellXml;
+    replaced = true;
+    const attrs = (cellXml.match(/^<c\b([^>]*?)(?:\/>|>)/)?.[1] || '')
+      .replace(/\s+t="[^"]*"/, '');
+    if (typeof value === 'string') {
+      return `<c${attrs} t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`;
+    }
+    const safeValue = Number.isFinite(Number(value)) ? String(Math.round(Number(value) * 100) / 100) : '0';
+    return `<c${attrs}><v>${safeValue}</v></c>`;
+  });
+  if (!replaced) throw new Error(`Missing template cell ${cellRef}`);
+  return nextRow;
+};
+
+const updateWorksheetCell = (sheetXml, cellRef, value) => {
+  const targetRow = Number(cellRef.match(/\d+$/)?.[0]);
+  let replaced = false;
+  const nextSheet = sheetXml.replace(/<row\b[^>]*\br="(\d+)"[^>]*>[\s\S]*?<\/row>/g, (rowXml, rowNumber) => {
+    if (Number(rowNumber) !== targetRow) return rowXml;
+    replaced = true;
+    return replaceCellValue(rowXml, cellRef, value);
+  });
+  if (!replaced) throw new Error(`Missing template row ${targetRow}`);
+  return nextSheet;
+};
+
+const extendSemesterRows = (sheetXml, studentCount) => {
+  const baseStudentCapacity = SEMESTER_TEMPLATE_LAST_ROW - SEMESTER_TEMPLATE_FIRST_ROW + 1;
+  const extraRows = Math.max(0, studentCount - baseStudentCapacity);
+  if (!extraRows) return { sheetXml, extraRows: 0 };
+
+  let shiftedSheet = sheetXml.replace(/<row\b[^>]*\br="(\d+)"[^>]*>[\s\S]*?<\/row>/g, (rowXml, rowNumber) => {
+    if (Number(rowNumber) < SEMESTER_TEMPLATE_LAST_ROW + 1) return rowXml;
+    return rowXml.replace(/\br="([A-Z]*)(\d+)"/g, (attribute, column, referenceRow) => (
+      Number(referenceRow) >= SEMESTER_TEMPLATE_LAST_ROW + 1
+        ? `r="${column}${Number(referenceRow) + extraRows}"`
+        : attribute
+    ));
+  });
+
+  const baseRowMatch = shiftedSheet.match(/<row\b[^>]*\br="63"[^>]*>[\s\S]*?<\/row>/);
+  if (!baseRowMatch) throw new Error('Semester template is missing a row style to extend.');
+  const newRows = Array.from({ length: extraRows }, (_, index) => {
+    const newRowNumber = SEMESTER_TEMPLATE_LAST_ROW + index + 1;
+    return baseRowMatch[0].replace(/\br="([A-Z]*)(\d+)"/g, (attribute, column, referenceRow) => (
+      Number(referenceRow) === SEMESTER_TEMPLATE_LAST_ROW ? `r="${column}${newRowNumber}"` : attribute
+    ));
+  }).join('');
+  shiftedSheet = shiftedSheet.replace(baseRowMatch[0], `${baseRowMatch[0]}${newRows}`);
+  shiftedSheet = shiftedSheet.replace(/<dimension\b([^>]*?)ref="A10:L(\d+)"/, (match, attrs, lastRow) => (
+    `<dimension${attrs}ref="A10:L${Number(lastRow) + extraRows}"`
+  ));
+  return { sheetXml: shiftedSheet, extraRows };
+};
+
+const GradeSummary = () => {
   const { selectedAssignment, currentAssignment, loading: ctxLoading } = useTeacher();
 
   const [students, setStudents] = useState([]);
@@ -77,52 +151,36 @@ const GradeSummary = () => {
     if (!students.length || !Object.keys(termData).length) return [];
     return students.map(s => {
       const row = { student: s };
-      const termGrades = [];
+      const termWeightedScores = [];
       TERMS.forEach(term => {
         const td = termData[term];
-        if (!td || !td.components.length) {
-          row[term] = { grade: null, gp: null };
-          return;
-        }
-        const grade = getFinalGrade(s.id, td.components, td.scores, td.attendanceScores);
-        const pt = gradeToPoint(grade);
+        const hasRecordedScore = td?.components?.some(c => {
+          if (c.is_attendance) {
+            return Object.prototype.hasOwnProperty.call(td.attendanceScores?.scores || {}, s.id);
+          }
+          return (c.activities || []).some(activity => {
+            const score = td.scores?.[activity.id]?.[s.id];
+            return score !== null && score !== undefined;
+          });
+        });
+        const grade = hasRecordedScore
+          ? getFinalGrade(s.id, td.components, td.scores, td.attendanceScores)
+          : 50;
+        const weightedScore = grade * TERM_WEIGHTS[term];
         row[term] = {
           grade: grade,
-          gp: pt.gp,
-          desc: pt.desc,
+          weightedScore,
         };
-        termGrades.push(grade);
+        termWeightedScores.push(weightedScore);
       });
-      const finalsGrade = row['FINALS']?.grade;
-      if (finalsGrade !== null && finalsGrade !== undefined) {
-        let weightedSum = 0, totalWeight = 0;
-        TERMS.forEach(term => {
-          const g = row[term]?.grade;
-          if (g !== null && g !== undefined) {
-            weightedSum += g * TERM_WEIGHTS[term];
-            totalWeight += TERM_WEIGHTS[term];
-          }
-        });
-        const avg = totalWeight > 0 ? weightedSum / totalWeight : 0;
-        row.finalGrade = avg;
-        const fpt = gradeToPoint(avg);
-        row.finalGp = fpt.gp;
-        row.remarks = fpt.desc;
-      } else {
-        row.finalGrade = null;
-        row.finalGp = null;
-        row.remarks = null;
-      }
+      const finalGrade = termWeightedScores.reduce((sum, score) => sum + score, 0);
+      row.finalGrade = finalGrade;
+      const fpt = gradeToPoint(finalGrade);
+      row.finalGp = fpt.gp;
+      row.remarks = fpt.desc;
       return row;
     });
   }, [students, termData]);
-
-  const availableTerms = useMemo(() => {
-    return TERMS.filter(term => {
-      const td = termData[term];
-      return td?.components?.some(c => c.is_attendance || c.activities?.length > 0);
-    });
-  }, [termData]);
 
   const hasAnyData = Object.values(termData).some(td => td?.components?.some(c => c.is_attendance || c.activities?.length > 0));
 
@@ -155,187 +213,191 @@ const GradeSummary = () => {
     );
   };
 
-  const handleExportExcel = () => {
-    const subHeaders = ['#', 'Stud ID', 'Student Name'];
-    TERMS.forEach(t => { subHeaders.push('Grade', 'G.P.'); });
-    subHeaders.push('FINAL Grade', 'FINAL G.P.', 'Remarks');
+  const handleExportExcel = async () => {
+    const filtered = getSummaryFiltered();
+    const response = await fetch(SEMESTER_TEMPLATE_PATH);
+    if (!response.ok) throw new Error('Semester export template could not be loaded.');
+    const parts = unzipSync(new Uint8Array(await response.arrayBuffer()));
+    const worksheetPath = 'xl/worksheets/sheet5.xml';
+    const extended = extendSemesterRows(strFromU8(parts[worksheetPath]), filtered.length);
+    let sheetXml = extended.sheetXml;
 
-    const dataRows = getSummaryFiltered().map((r, i) => {
-      const row = [i + 1, r.student.student_id, r.student.student_name];
-      TERMS.forEach(t => {
-        const cell = r[t];
-        row.push(cell.grade !== null ? cell.grade.toFixed(2) : '-');
-        row.push(cell.gp !== null ? cell.gp.toFixed(2) : '-');
+    sheetXml = updateWorksheetCell(
+      sheetXml,
+      'A15',
+      `${currentAssignment.subjects?.code || ''}${currentAssignment.subjects?.code && currentAssignment.subjects?.name ? ': ' : ''}${currentAssignment.subjects?.name || ''}`,
+    );
+    sheetXml = updateWorksheetCell(sheetXml, 'A16', `SEMESTER SUMMARY CLASS RECORD - ${currentAssignment.sections?.name || ''}`);
+    sheetXml = updateWorksheetCell(sheetXml, 'A17', `${currentAssignment.semester || '1st Semester'}, Academic Year ${currentAssignment.school_year || ''}`);
+    sheetXml = updateWorksheetCell(sheetXml, `A${70 + extended.extraRows}`, currentAssignment.teacher?.full_name?.toUpperCase() || '');
+    sheetXml = updateWorksheetCell(sheetXml, 'D21', TERM_WEIGHTS.PRELIMS);
+    sheetXml = updateWorksheetCell(sheetXml, 'F21', TERM_WEIGHTS.MIDTERMS);
+    sheetXml = updateWorksheetCell(sheetXml, 'H21', TERM_WEIGHTS['PRE-FINALS']);
+    sheetXml = updateWorksheetCell(sheetXml, 'J21', TERM_WEIGHTS.FINALS);
+    sheetXml = updateWorksheetCell(sheetXml, 'K21', 1);
+
+    const termColumns = [
+      ['PRELIMS', 'C', 'D'],
+      ['MIDTERMS', 'E', 'F'],
+      ['PRE-FINALS', 'G', 'H'],
+      ['FINALS', 'I', 'J'],
+    ];
+    for (let index = 0; index < filtered.length; index += 1) {
+      const rowNumber = SEMESTER_TEMPLATE_FIRST_ROW + index;
+      const rowData = filtered[index];
+      const values = [
+        ['A', index + 1],
+        ['B', rowData.student.student_name || ''],
+        ...termColumns.flatMap(([term, gradeColumn, scoreColumn]) => [
+          [gradeColumn, rowData[term].grade],
+          [scoreColumn, rowData[term].weightedScore],
+        ]),
+        ['K', rowData.finalGrade],
+        ['L', rowData.finalGp.toFixed(2)],
+      ];
+      let foundRow = false;
+      sheetXml = sheetXml.replace(/<row\b[^>]*\br="(\d+)"[^>]*>[\s\S]*?<\/row>/g, (rowXml, value) => {
+        if (Number(value) !== rowNumber) return rowXml;
+        foundRow = true;
+        return values.reduce((updatedRow, [column, cellValue]) => (
+          replaceCellValue(updatedRow, `${column}${rowNumber}`, cellValue)
+        ), rowXml);
       });
-      row.push(r.finalGrade !== null ? r.finalGrade.toFixed(2) : '-');
-      row.push(r.finalGp !== null ? r.finalGp.toFixed(2) : '-');
-      row.push(r.remarks ?? '-');
-      return row;
-    });
-
-    // Row 0: main header — write merged labels
-    const mainHdrRow = Array(subHeaders.length).fill('');
-    // STUDENT INFORMATION spans cols 0-2
-    mainHdrRow[0] = 'STUDENT INFORMATION';
-    TERMS.forEach((t, i) => {
-      mainHdrRow[3 + i * 2] = `${t} ${TERM_PCTS[t]}`;
-    });
-    mainHdrRow[3 + TERMS.length * 2] = 'SEMESTRAL GRADE';
-
-    const allRows = [mainHdrRow, subHeaders, ...dataRows];
-    const worksheet = XLSX.utils.aoa_to_sheet(allRows);
-
-    const colCount = subHeaders.length;
-    const rowCount = allRows.length;
-
-    // Column widths
-    const colWidths = [
-      { wch: 5 },   // #
-      { wch: 14 },  // Stud ID
-      { wch: 28 },  // Student Name
-    ];
-    TERMS.forEach(() => { colWidths.push({ wch: 12 }, { wch: 10 }); });
-    colWidths.push({ wch: 12 }, { wch: 10 }, { wch: 10 });
-    worksheet['!cols'] = colWidths;
-
-    // Colors
-    const SIDEBAR = '1B1B2F';
-    const TERM_BLUE = '0F172A';
-    const FINAL_GREEN = 'EAB308';
-    const GRAY_50 = 'F9FAFB';
-    const GRAY_100 = 'F3F4F6';
-    const WHITE = 'FFFFFF';
-    const BORDER = 'E5E7EB';
-    const GREEN_700 = '15803D';
-    const RED_600 = 'DC2626';
-
-    const thinBorder = { top: { style: 'thin', color: { rgb: BORDER } }, bottom: { style: 'thin', color: { rgb: BORDER } }, left: { style: 'thin', color: { rgb: BORDER } }, right: { style: 'thin', color: { rgb: BORDER } } };
-    const thickerRight = { ...thinBorder, right: { style: 'medium', color: { rgb: BORDER } } };
-
-    const applyStyle = (cell, style) => { if (cell) cell.s = style; };
-
-    // --- Row 0: main header ---
-    const hdrStyle = { fill: { fgColor: { rgb: SIDEBAR } }, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder };
-    const termHdrStyle = { ...hdrStyle, fill: { fgColor: { rgb: TERM_BLUE } } };
-    const finalHdrStyle = { ...hdrStyle, fill: { fgColor: { rgb: FINAL_GREEN } } };
-
-    for (let c = 0; c < 3; c++) applyStyle(worksheet[XLSX.utils.encode_cell({ r: 0, c })], hdrStyle);
-    let col = 3;
-    TERMS.forEach(() => {
-      applyStyle(worksheet[XLSX.utils.encode_cell({ r: 0, c: col })], termHdrStyle);
-      applyStyle(worksheet[XLSX.utils.encode_cell({ r: 0, c: col + 1 })], termHdrStyle);
-      col += 2;
-    });
-    for (let c = col; c < colCount; c++) applyStyle(worksheet[XLSX.utils.encode_cell({ r: 0, c })], finalHdrStyle);
-
-    // --- Row 1: sub-header ---
-    const subHdrStyle = { fill: { fgColor: { rgb: GRAY_50 } }, font: { bold: true, color: { rgb: '1B1B2F' }, sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder };
-    const subGpStyle = { ...subHdrStyle, border: thickerRight };
-    for (let c = 0; c < colCount; c++) {
-      const isGp = (c >= 4 && (c - 4) % 2 === 1) || c === colCount - 2;
-      applyStyle(worksheet[XLSX.utils.encode_cell({ r: 1, c })], isGp ? subGpStyle : subHdrStyle);
+      if (!foundRow) throw new Error(`Semester template is missing student row ${rowNumber}.`);
     }
 
-    // --- Data rows (r >= 2) ---
-    const dataCenterStyle = (isGreen) => ({ fill: { fgColor: { rgb: WHITE } }, font: { bold: true, color: { rgb: isGreen ? GREEN_700 : '1B1B2F' }, sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder });
-    const dataFailStyle = { fill: { fgColor: { rgb: WHITE } }, font: { bold: true, color: { rgb: RED_600 }, sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder };
-    const dataLeftStyle = { ...dataCenterStyle(false), font: { ...dataCenterStyle(false).font, bold: false }, alignment: { horizontal: 'left', vertical: 'center' } };
-
-    for (let r = 2; r < rowCount; r++) {
-      for (let c = 0; c < colCount; c++) {
-        const cell = worksheet[XLSX.utils.encode_cell({ r, c })];
-        if (!cell) continue;
-
-        if (c === 0) { cell.s = { ...dataCenterStyle(false), font: { color: { rgb: '9CA3AF' }, sz: 9 } }; continue; }
-        if (c === 1) { cell.s = dataLeftStyle; continue; }
-        if (c === 2) { cell.s = { ...dataLeftStyle, font: { ...dataLeftStyle.font, bold: false } }; continue; }
-
-        const isGp = (c >= 4 && (c - 4) % 2 === 1) || c === colCount - 2;
-        if (isGp) {
-          const isRed = typeof cell.v === 'string' && cell.v === '5.00';
-          cell.s = { ...(isRed ? dataFailStyle : dataCenterStyle(false)), border: thickerRight };
-          continue;
-        }
-
-        if (c >= 3) {
-          const numVal = typeof cell.v === 'number' ? cell.v : (typeof cell.v === 'string' && cell.v !== '-' ? parseFloat(cell.v) : null);
-          const isFail = numVal !== null && numVal < 75;
-          cell.s = isFail ? dataFailStyle : dataCenterStyle(true);
-          continue;
-        }
-        // Remarks column (last)
-        if (c === colCount - 1) {
-          const isPassed = cell.v !== 'Failed';
-          cell.s = { ...(isPassed ? dataCenterStyle(true) : dataFailStyle), font: { ...(isPassed ? dataCenterStyle(true).font : dataFailStyle.font), bold: true } };
-          continue;
-        }
-        cell.s = dataCenterStyle(false);
-      }
-
-      if (r % 2 === 1) {
-        for (let c = 0; c < colCount; c++) {
-          const cell = worksheet[XLSX.utils.encode_cell({ r, c })];
-          if (cell?.s) cell.s = { ...cell.s, fill: { fgColor: { rgb: GRAY_50 } } };
-        }
-      }
-    }
-
-    // Merges for main header
-    worksheet['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },   // STUDENT INFORMATION
-    ];
-    TERMS.forEach((_, i) => {
-      const startCol = 3 + i * 2;
-      worksheet['!merges'].push({ s: { r: 0, c: startCol }, e: { r: 0, c: startCol + 1 } });
+    parts[worksheetPath] = strToU8(sheetXml);
+    const workbookBytes = zipSync(parts, { level: 6 });
+    const workbookBlob = new Blob([workbookBytes], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
-    const finalStart = 3 + TERMS.length * 2;
-    worksheet['!merges'].push({ s: { r: 0, c: finalStart }, e: { r: 0, c: colCount - 1 } });
-
-    worksheet['!rows'] = Array.from({ length: rowCount }, () => ({ hpt: 22 }));
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'GradeSummary');
-    XLSX.writeFile(workbook, buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: 'all-terms', page: 'gradesummary', ext: 'xlsx' }));
+    const downloadUrl = URL.createObjectURL(workbookBlob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: 'semester', page: 'gradesummary', ext: 'xlsx' });
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     if (!currentAssignment || exporting) return;
     setExporting('pdf');
     setExportError('');
     try {
       const filtered = getSummaryFiltered();
-      const head = ['#', 'Stud ID', 'Student Name'];
-      TERMS.forEach(t => { head.push(`${t} Grade`, `${t} G.P.`); });
-      head.push('FINAL Grade', 'FINAL G.P.', 'Remarks');
-      const body = filtered.map((r, i) => {
-        const row = [i + 1, String(r.student.student_id ?? ''), r.student.student_name ?? ''];
-        TERMS.forEach(t => {
-          const cell = r[t];
-          row.push(cell.grade !== null ? cell.grade.toFixed(2) : '-');
-          row.push(cell.gp !== null ? cell.gp.toFixed(2) : '-');
-        });
-        row.push(r.finalGrade !== null ? r.finalGrade.toFixed(2) : '-');
-        row.push(r.finalGp !== null ? r.finalGp.toFixed(2) : '-');
-        row.push(r.remarks ?? '-');
-        return row;
+      const response = await fetch(SEMESTER_TEMPLATE_PATH);
+      if (!response.ok) throw new Error('Semester export template could not be loaded.');
+      const parts = unzipSync(new Uint8Array(await response.arrayBuffer()));
+      const leftLogo = imageBytesToDataUrl(parts['xl/media/image2.jpg'], 'image/jpeg');
+      const rightLogo = imageBytesToDataUrl(parts['xl/media/image1.png'], 'image/png');
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'legal' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 32;
+      const blueHeader = [1, 87, 155];
+      const termHeader = [34, 90, 165];
+      const semesterHeader = [254, 242, 0];
+      const headerCell = (content, color, textColor = [255, 255, 255], options = {}) => ({
+        content,
+        ...options,
+        styles: { fillColor: color, textColor, fontStyle: 'bold', halign: 'center', valign: 'middle' },
       });
-      exportTablePdf({
-        title: 'Grade Summary',
-        context: [`${currentAssignment.subjects?.name || ''} — ${currentAssignment.sections?.name || ''}`],
-        filename: buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: 'all-terms', page: 'gradesummary', ext: 'pdf' }),
-        head: [head],
+      const groupHead = [[
+        headerCell('NO.', blueHeader, [255, 255, 255], { rowSpan: 2 }),
+        headerCell('NAME', blueHeader, [255, 255, 255], { rowSpan: 2 }),
+        headerCell('PRELIM', termHeader, [255, 255, 255], { colSpan: 2 }),
+        headerCell('MIDTERM', termHeader, [255, 255, 255], { colSpan: 2 }),
+        headerCell('PRE-FINALS', termHeader, [255, 255, 255], { colSpan: 2 }),
+        headerCell('FINALS', termHeader, [255, 255, 255], { colSpan: 2 }),
+        headerCell('SEMESTER GRADE', semesterHeader, [0, 0, 0], { rowSpan: 2 }),
+        headerCell('GRADE EQUIVALENT', semesterHeader, [0, 0, 0], { rowSpan: 2 }),
+      ], [
+        'Grade', TERM_PCTS.PRELIMS,
+        'Grade', TERM_PCTS.MIDTERMS,
+        'Grade', TERM_PCTS['PRE-FINALS'],
+        'Grade', TERM_PCTS.FINALS,
+      ]];
+      const body = filtered.map((row, index) => [
+        index + 1,
+        row.student.student_name || '',
+        row.PRELIMS.grade.toFixed(2), row.PRELIMS.weightedScore.toFixed(2),
+        row.MIDTERMS.grade.toFixed(2), row.MIDTERMS.weightedScore.toFixed(2),
+        row['PRE-FINALS'].grade.toFixed(2), row['PRE-FINALS'].weightedScore.toFixed(2),
+        row.FINALS.grade.toFixed(2), row.FINALS.weightedScore.toFixed(2),
+        row.finalGrade.toFixed(2), row.finalGp.toFixed(2),
+      ]);
+      const courseTitle = `${currentAssignment.subjects?.code || ''}${currentAssignment.subjects?.code && currentAssignment.subjects?.name ? ': ' : ''}${currentAssignment.subjects?.name || ''}`;
+      const semesterTitle = `${currentAssignment.semester || '1st Semester'}, Academic Year ${currentAssignment.school_year || ''}`;
+      const drawPageHeader = () => {
+        doc.addImage(leftLogo, 'JPEG', margin, 18, 56, 56);
+        doc.addImage(rightLogo, 'PNG', pageW - margin - 56, 18, 56, 56);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text('STI WEST NEGROS UNIVERSITY', pageW / 2, 31, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.text('Burgos St., Bacolod City 6100', pageW / 2, 45, { align: 'center' });
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('COLLEGE of INFORMATION and COMMUNICATIONS TECHNOLOGY', pageW / 2, 61, { align: 'center' });
+        doc.setFontSize(9);
+        doc.text(courseTitle, pageW / 2, 87, { align: 'center', maxWidth: pageW - 190 });
+        doc.setFontSize(11);
+        doc.text(`SEMESTER SUMMARY CLASS RECORD - ${currentAssignment.sections?.name || ''}`, pageW / 2, 104, { align: 'center' });
+        doc.setFontSize(9);
+        doc.text(semesterTitle, pageW / 2, 119, { align: 'center' });
+      };
+
+      doc.setProperties({ title: 'Semester Summary Class Record', subject: courseTitle });
+      autoTable(doc, {
+        head: groupHead,
         body,
-        landscape: true,
-        emptyMessage: 'No students match the current filters.',
-        extraTables: [{
-          title: 'Grade Point Scale',
-          head: [['Grade', 'Equivalent', 'Description']],
-          body: [
-            ...GRADE_RANGES.map((r, i) => [r.gp.toFixed(2), `${r.min}%${i > 0 ? ` – ${GRADE_RANGES[i - 1].min - 1}%` : ' – 100%'}`, r.desc]),
-            ['5.00', 'below 75%', 'Failed'],
-          ],
-        }],
+        startY: 136,
+        margin: { top: 136, left: margin, right: margin, bottom: 20 },
+        theme: 'grid',
+        showHead: 'everyPage',
+        styles: {
+          font: 'helvetica', fontSize: 7, textColor: [0, 0, 0], fillColor: [255, 255, 255],
+          lineColor: [100, 100, 100], lineWidth: 0.3, cellPadding: 3,
+          halign: 'center', valign: 'middle', overflow: 'linebreak',
+        },
+        headStyles: { fontStyle: 'bold', fontSize: 7, fillColor: [255, 255, 255], textColor: [0, 0, 0], lineColor: [100, 100, 100], lineWidth: 0.3 },
+        columnStyles: {
+          0: { cellWidth: 34 }, 1: { cellWidth: 220, halign: 'left' },
+          2: { cellWidth: 62 }, 3: { cellWidth: 54 },
+          4: { cellWidth: 62 }, 5: { cellWidth: 54 },
+          6: { cellWidth: 62 }, 7: { cellWidth: 54 },
+          8: { cellWidth: 62 }, 9: { cellWidth: 54 },
+          10: { cellWidth: 80 }, 11: { cellWidth: 80 },
+        },
+        didDrawPage: drawPageHeader,
       });
+
+      const signatures = [
+        ['Submitted by:', 'Reviewed by:', 'Approved by:'],
+        [currentAssignment.teacher?.full_name?.toUpperCase() || '', 'ARIEL T. SUMAGAYSAY, MSCS, MAEd', 'MAE B. LODANA, Ph.D.'],
+        ['Course Instructor', 'Program Head, BSIT', 'Dean, CICT'],
+      ].map((row, rowIndex) => row.map(content => ({
+        content,
+        styles: {
+          fontStyle: rowIndex === 1 ? 'bold' : 'normal',
+          fontSize: rowIndex === 0 ? 8 : 8.5,
+          halign: rowIndex === 0 ? 'left' : 'center',
+          cellPadding: rowIndex === 0 ? { top: 2, bottom: 1, left: 4, right: 4 } : { top: 1, bottom: 1, left: 4, right: 4 },
+          lineWidth: 0,
+        },
+      })));
+      autoTable(doc, {
+        body: signatures,
+        startY: doc.lastAutoTable.finalY + 10,
+        margin: { top: 136, left: margin, right: margin, bottom: 18 },
+        theme: 'plain',
+        styles: { textColor: [0, 0, 0], valign: 'middle', overflow: 'linebreak' },
+        columnStyles: { 0: { cellWidth: (pageW - margin * 2) / 3 }, 1: { cellWidth: (pageW - margin * 2) / 3 }, 2: { cellWidth: (pageW - margin * 2) / 3 } },
+        didDrawPage: drawPageHeader,
+        rowPageBreak: 'avoid',
+      });
+      doc.save(buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: 'semester', page: 'gradesummary', ext: 'pdf' }));
     } catch (err) {
       console.error(err);
       setExportError('PDF export failed. Please try again.');
@@ -344,15 +406,15 @@ const GradeSummary = () => {
     }
   };
 
-  const onExcelClick = () => {
+  const onExcelClick = async () => {
     if (exporting) return;
     setExporting('excel');
     setExportError('');
     try {
-      handleExportExcel();
+      await handleExportExcel();
     } catch (err) {
       console.error(err);
-      setExportError('Excel export failed. Please try again.');
+      setExportError(err.message || 'Excel export failed. Please try again.');
     } finally {
       setExporting(null);
     }
@@ -442,7 +504,7 @@ const GradeSummary = () => {
                   {TERMS.map(term => (
                     <React.Fragment key={term}>
                       <th className="px-3 py-2.5 border-r border-gray-200 bg-gray-100/50 w-24 relative z-0">Grade</th>
-                      <th className="px-3 py-2.5 border-r-2 border-gray-300 bg-gray-100/50 w-24 relative z-0">G.P.</th>
+                      <th className="px-3 py-2.5 border-r-2 border-gray-300 bg-gray-100/50 w-24 relative z-0">{TERM_PCTS[term]}</th>
                     </React.Fragment>
                   ))}
                   <th className="px-3 py-2.5 border-r border-gray-200 bg-gray-100/50 w-20 relative z-0 font-semibold text-sidebar">Grade</th>
@@ -484,8 +546,8 @@ const GradeSummary = () => {
                             <td className={`px-2 py-1.5 text-center border-r border-b border-gray-200 font-bold text-xs align-middle ${gradeColor(cell.grade)}`}>
                               {cell.grade !== null ? cell.grade.toFixed(2) : '-'}
                             </td>
-                            <td className={`px-2 py-1.5 text-center border-r-2 border-b border-gray-300 font-bold text-xs align-middle ${gpColor(cell.gp)}`}>
-                              {cell.gp !== null ? cell.gp.toFixed(2) : '-'}
+                            <td className="px-2 py-1.5 text-center border-r-2 border-b border-gray-300 font-bold text-xs align-middle text-green-700">
+                              {cell.weightedScore.toFixed(2)}
                             </td>
                           </React.Fragment>
                         );

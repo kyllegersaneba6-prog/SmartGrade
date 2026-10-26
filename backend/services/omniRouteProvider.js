@@ -19,15 +19,7 @@ async function chatJson({ system, user }) {
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(`${base}/chat/completions`, {
-      method: 'POST',
-      signal: ctrl.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
+  const payload = {
         model,
         messages: [
           { role: 'system', content: system },
@@ -36,7 +28,20 @@ async function chatJson({ system, user }) {
         temperature,
         max_tokens: maxTokens,
         response_format: { type: 'json_object' },
-      }),
+      };
+
+  // DEBUGGING: Log the payload
+  console.log('Sending to OmniRoute:', JSON.stringify(payload, null, 2));
+
+  try {
+    const res = await fetch(`${base}/chat/completions`, {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');

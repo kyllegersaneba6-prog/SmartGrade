@@ -448,9 +448,8 @@ const BehavioralAnalytics = () => {
 
         if (perfCol) {
           const pct = typeof cell.v === 'string' ? parseFloat(cell.v) : cell.v;
-          const isLow = pct < 60;
-          const isMid = pct >= 60 && pct < 75;
-          const color = isLow ? RED_600 : (isMid ? 'D97706' : GREEN_700);
+          const isMid = pct >= 50 && pct < 75;
+          const color = pct >= 75 ? GREEN_700 : (isMid ? 'D97706' : RED_600);
           cell.s = { ...dataCenterStyle(false), font: { bold: true, color: { rgb: color }, sz: 10 }, border: isThicker ? thickerRight : thinBorder };
           continue;
         }
@@ -561,7 +560,7 @@ const BehavioralAnalytics = () => {
 
   // --- Performance bar ---
   const PerformanceBar = ({ pct }) => {
-    const color = pct >= 75 ? '#16a34a' : pct >= 60 ? '#f59e0b' : '#ef4444';
+    const color = pct >= 75 ? '#16a34a' : pct >= 50 ? '#f59e0b' : '#ef4444';
     return (
       <div className="w-full max-w-full overflow-hidden" title={`Performance: ${pct.toFixed(1)}%`}>
         <div className="bg-gray-200 rounded-full h-2.5 overflow-hidden">
@@ -858,9 +857,9 @@ const BehavioralAnalytics = () => {
                           );
                         })}
                         <td className={`px-2 py-1.5 text-center font-extrabold text-sm border-b border-gray-200 align-middle w-[75px] ${entry.finalGrade < 75 ? 'text-red-600' : 'text-green-900'}`}>{entry.finalGrade.toFixed(2)}</td>
-                        <td className="px-2 py-1.5 text-center font-bold text-xs border-b border-gray-200 text-purple-900 align-middle w-[65px]">{(entry.overallSubRate * 100).toFixed(1)}%</td>
-                        <td className="px-2 py-1.5 text-center font-bold text-xs border-b border-gray-200 text-cyan-900 align-middle w-[65px]">{(entry.attendanceRate * 100).toFixed(1)}%</td>
-                        <td className="px-2 py-1.5 text-center font-bold text-xs border-b border-gray-200 text-orange-900 align-middle w-[90px]">{entry.overallPerformance.toFixed(1)}%</td>
+                        <td className="px-2 py-1.5 text-center font-bold text-xs border-b border-gray-200 text-gray-900 align-middle w-[65px]">{(entry.overallSubRate * 100).toFixed(1)}%</td>
+                        <td className="px-2 py-1.5 text-center font-bold text-xs border-b border-gray-200 text-gray-900 align-middle w-[65px]">{(entry.attendanceRate * 100).toFixed(1)}%</td>
+                        <td className="px-2 py-1.5 text-center font-bold text-xs border-b border-gray-200 align-middle w-[90px]" style={{ color: '#142a3f' }}>{entry.overallPerformance.toFixed(1)}%</td>
                       </tr>
                     );
                   })
@@ -1012,18 +1011,18 @@ const BehavioralAnalytics = () => {
                 <div className={`mt-1 text-2xl font-extrabold ${detailStudent.finalGrade < 75 ? 'text-red-600' : 'text-green-700'}`}>{detailStudent.finalGrade.toFixed(2)}</div>
               </div>
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Performance</div>
-                <div className={`mt-1 text-2xl font-extrabold ${detailStudent.overallPerformance >= 75 ? 'text-green-700' : detailStudent.overallPerformance >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                <div className="text-xs font-bold text-gray-900 uppercase tracking-wide">Performance</div>
+                <div className="mt-1 text-2xl font-extrabold text-[#142a3f]">
                   {detailStudent.overallPerformance.toFixed(1)}%
                 </div>
               </div>
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Attendance</div>
-                <div className="mt-1 text-2xl font-extrabold text-cyan-700">{(detailStudent.attendanceRate * 100).toFixed(1)}%</div>
+                <div className="text-xs font-bold text-gray-900 uppercase tracking-wide">Attendance</div>
+                <div className="mt-1 text-2xl font-extrabold text-[#142a3f]">{(detailStudent.attendanceRate * 100).toFixed(1)}%</div>
               </div>
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Submitted</div>
-                <div className="mt-1 text-2xl font-extrabold text-purple-700">{(detailStudent.overallSubRate * 100).toFixed(1)}%</div>
+                <div className="text-xs font-bold text-gray-900 uppercase tracking-wide">Submitted</div>
+                <div className="mt-1 text-2xl font-extrabold text-[#142a3f]">{(detailStudent.overallSubRate * 100).toFixed(1)}%</div>
               </div>
             </div>
 
@@ -1041,20 +1040,20 @@ const BehavioralAnalytics = () => {
 
                     <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <div className="rounded-lg bg-gray-50 px-3 py-2">
-                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Weighted Total</div>
+                        <div className="text-xs font-semibold text-gray-900 uppercase tracking-wide">Weighted Total</div>
                         <div className="mt-0.5 text-base font-bold text-yellow-700">{cd.weighted.toFixed(2)}</div>
                       </div>
                       <div className="rounded-lg bg-gray-50 px-3 py-2">
-                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Equivalent</div>
-                        <div className={`mt-0.5 text-base font-bold ${cd.equiv < 75 ? 'text-red-600' : 'text-green-700'}`}>{cd.equiv.toFixed(2)}</div>
+                        <div className="text-xs font-semibold text-gray-900 uppercase tracking-wide">Equivalent</div>
+                        <div className="mt-0.5 text-base font-bold text-gray-900">{cd.equiv.toFixed(2)}</div>
                       </div>
                       <div className="rounded-lg bg-gray-50 px-3 py-2">
-                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Performance</div>
-                        <div className="mt-0.5 text-base font-bold text-blue-600">{cd.performance.toFixed(1)}%</div>
+                        <div className="text-xs font-semibold text-gray-900 uppercase tracking-wide">Performance</div>
+                        <div className="mt-0.5 text-base font-bold text-gray-900">{cd.performance.toFixed(1)}%</div>
                       </div>
                       <div className="rounded-lg bg-gray-50 px-3 py-2">
-                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Submitted</div>
-                        <div className="mt-0.5 text-base font-bold text-gray-600">{(cd.submissionRate * 100).toFixed(0)}%</div>
+                        <div className="text-xs font-semibold text-gray-900 uppercase tracking-wide">Submitted</div>
+                        <div className="mt-0.5 text-base font-bold text-gray-900">{(cd.submissionRate * 100).toFixed(0)}%</div>
                       </div>
                     </div>
 
@@ -1120,6 +1119,5 @@ const BehavioralAnalytics = () => {
 };
 
 export default BehavioralAnalytics;
-
 
 

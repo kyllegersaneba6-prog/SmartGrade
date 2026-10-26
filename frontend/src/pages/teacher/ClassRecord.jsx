@@ -15,7 +15,7 @@ const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
 
 // Standard grading-component names offered in the name dropdown. Anything else
 // is treated as a custom name and shown as a free-text input.
-const COMPONENT_NAME_PRESETS = ['Quiz', 'Performance Task', 'Exam'];
+const COMPONENT_NAME_PRESETS = ['Class Standing', 'Performance Task', 'Exam'];
 
 const COMPONENT_COLORS = [
   { bg: '#0f172a', border: '#0f172a', light: '#eef2f6', headerBg: '#0f172a', headerBorder: '#0f172a' },
@@ -317,32 +317,13 @@ const ClassRecord = () => {
     }
   };
 
-  // Next sub-component name from the parent component name: first letter of every
-  // word + running number (Performance Task->PTn, Written Works->WWn, Final
-  // Exam->FEn). Continues from the highest existing number; null = keep legacy behavior.
-  const nextActivityName = (comp) => {
-    const words = String(comp?.name || '').split(/\s+/).filter(Boolean);
-    let prefix = '';
-    words.forEach(w => {
-      const m = w.match(/[A-Za-z]/);
-      if (m) prefix += m[0].toUpperCase();
-    });
-    if (!prefix) return null;
-    let max = 0;
-    (comp.activities || []).forEach(a => {
-      const m = String(a?.name || '').trim().match(new RegExp(`^${prefix}(\\d+)$`, 'i'));
-      if (m) max = Math.max(max, parseInt(m[1], 10));
-    });
-    return `${prefix}${max + 1}`;
-  };
-
   // Add activity
   const addActivity = async (componentId) => {
     if (addingActivityId) return;
     const parent = components.find(c => c.id === componentId);
     if (!parent || !isTableReady(parent)) return;
     setAddingActivityId(componentId);
-    const autoName = nextActivityName(parent);
+    const autoName = 'Activity';
     try {
       const res = await api('/api/component-activities', {
         method: 'POST',
@@ -350,9 +331,8 @@ const ClassRecord = () => {
       });
       if (res.ok) {
         const act = await res.json();
-        // Keep the auto-generated name visible (still editable); otherwise use
-        // empty to force placeholder behavior in UI (legacy behavior).
-        const cleanAct = autoName ? { ...act, name: autoName, max_score: 0 } : { ...act, name: '', max_score: 0 };
+        // Force 'Activity' placeholder behavior regardless of component name
+        const cleanAct = { ...act, name: '', max_score: 0 };
         setComponents(prev => prev.map(c =>
           c.id === componentId ? { ...c, activities: [...(c.activities || []), cleanAct] } : c
         ));
@@ -651,7 +631,6 @@ const ClassRecord = () => {
     mainHeader[0] = 'STUDENT INFORMATION';
     let colIdx = 2;
     visibleComponents.forEach((c, i) => {
-      const color = getColor(i);
       if (c.is_attendance) {
         mainHeader[colIdx] = `${c.name} (${c.weight}%)`;
       } else {
@@ -1072,10 +1051,15 @@ const ClassRecord = () => {
                               className="text-sm font-extrabold text-sidebar bg-gray-200 border-b border-transparent hover:border-sidebar/20 focus:border-gold focus:outline-none px-1 py-0.5 flex-1 min-w-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                               disabled={isReadOnly}
                             >
-                              <option value=""></option>
-                              {COMPONENT_NAME_PRESETS.map((preset) => (
-                                <option key={preset} value={preset}>{preset}</option>
-                              ))}
+                              <option value="" disabled>Select</option>
+                              {COMPONENT_NAME_PRESETS.map((preset) => {
+                                const alreadyExists = components.some(c => c.id !== comp.id && c.name === preset);
+                                return (
+                                  <option key={preset} value={preset} disabled={alreadyExists}>
+                                    {preset}
+                                  </option>
+                                );
+                              })}
                               {savedCustomName && (
                                 <option value={savedCustomName}>{savedCustomName}</option>
                               )}
@@ -1134,16 +1118,21 @@ const ClassRecord = () => {
                                 placeholder="Activity"
                                 disabled={isReadOnly}
                               />
-                            <div className="flex items-center gap-1 bg-white rounded border border-gray-200 px-1.5 py-0.5">
+                            <div className="flex items-center gap-1 bg-white rounded border border-gray-500 px-1.5 py-0.5">
                                 <input
                                   type="number"
                                   value={act.max_score === 0 ? '' : act.max_score}
-                                  onChange={(e) => setComponents(prev => prev.map(c =>
-                                    c.id === comp.id ? { ...c, activities: c.activities.map(a => a.id === act.id ? { ...a, max_score: parseFloat(e.target.value) || 0 } : a) } : c
-                                  ))}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    const clamped = Math.min(val, 1000);
+                                    setComponents(prev => prev.map(c =>
+                                      c.id === comp.id ? { ...c, activities: c.activities.map(a => a.id === act.id ? { ...a, max_score: clamped } : a) } : c
+                                    ));
+                                  }}
                                   onBlur={() => updateActivity(act.id, { max_score: act.max_score })}
                                   className="w-12 text-center text-[10px] font-extrabold text-sidebar bg-transparent focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                   min="0"
+                                  max="1000"
                                   disabled={isReadOnly}
                                 />
                               <span className="text-[9px] font-bold" style={{ color: color.bg }}>max</span>
@@ -1501,6 +1490,5 @@ const ClassRecord = () => {
 };
 
 export default ClassRecord;
-
 
 
