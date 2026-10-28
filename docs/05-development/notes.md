@@ -8,7 +8,7 @@ Miscellaneous technical notes, known gaps, and follow-ups.
 |---|---|---|
 | CORS | `app.use(cors())` allows every origin | Fine for local demo; lock down before deployment |
 | Notifications | Broadcast form only logs to the console | Feature appears to work but sends nothing |
-| Bulk import page | `/admin/bulk-students` is unlinked and its header title falls back to "Settings" | Discoverability bug |
+| Bulk import page | `/admin/bulk-students` is not linked from the sidebar; its header now correctly says "Bulk Student Import" when opened directly | Discoverability bug |
 | Legacy table | `admin_users` is queried by login but undefined in `sql/` | Login fallback shape is unverifiable |
 
 ## Architecture Notes

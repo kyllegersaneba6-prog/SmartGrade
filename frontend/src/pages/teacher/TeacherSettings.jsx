@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Archive, X } from 'lucide-react';
+import { Archive, X } from 'lucide-react';
 import { useTeacher } from '../../contexts/TeacherContext';
 import { SkeletonSettingsCard } from '../../components/common/Skeleton';
+import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
 
 const TeacherSettings = () => {
   const { activeTerm, allTerms, viewTerm, setViewTerm, isArchiveMode, loading } = useTeacher();
@@ -19,12 +20,11 @@ const TeacherSettings = () => {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card flex flex-col justify-center" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Settings</h1>
-          <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>View academic terms and browse archived semesters</p>
-        </div>
-      </div>
+      <TeacherPageHeading
+        eyebrow="Preferences"
+        title="Settings"
+        description="View academic terms and browse archived semesters."
+      />
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50 card-hover">
         <h2 className="text-sm font-bold text-gray-900 mb-4">Academic Term Information</h2>

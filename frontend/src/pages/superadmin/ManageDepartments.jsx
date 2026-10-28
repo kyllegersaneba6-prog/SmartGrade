@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit3, Building2, BookOpen, ChevronDown } from 'lucide-react';
 import api from '../../utils/api';
 import { SkeletonList } from '../../components/common/Skeleton';
+import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
 
 const ManageDepartments = () => {
   const [departments, setDepartments] = useState([]);
@@ -258,14 +259,20 @@ const ManageDepartments = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Departments & Courses</h1>
-          <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>Organize academic departments and manage the courses under each one.</p>
-                  </div>
-        <button onClick={() => { setAddDeptOpen(true); setDeptName(''); setDeptAbbreviation(''); setError(''); }} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0c1925', borderColor: '#142a3f' }}><Plus size={14} /> Add Department</button>
-      </div>
+    <div className="mx-auto w-full max-w-7xl space-y-6">
+      <SuperAdminPageHeading
+        eyebrow="Organization"
+        title="Departments & Courses"
+        description="Organize academic departments and manage the courses under each one."
+        actions={(
+          <button
+            onClick={() => { setAddDeptOpen(true); setDeptName(''); setDeptAbbreviation(''); setError(''); }}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#0c1925] px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#142a3f]"
+          >
+            <Plus size={14} /> Add Department
+          </button>
+        )}
+      />
 
       {departments.length === 0 ? (
         <div className="bg-white rounded-xl p-12 text-center border border-[#e5e0d5] card-hover text-gray-500">

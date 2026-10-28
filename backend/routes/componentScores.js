@@ -76,7 +76,7 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
 
     const { data: activities, error: actError } = await supabase
       .from('component_activities')
-      .select('id, component_id, name, max_score')
+      .select('id, component_id, name, max_score, is_attendance')
       .in('id', activityIds);
     if (actError) {
       console.error('Bulk score activity lookup failed:', actError.message);
@@ -84,6 +84,9 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
     }
     if (!activities || activities.length !== activityIds.length) {
       return res.status(403).json({ message: 'Access denied.' });
+    }
+    if (activities.some(activity => activity.is_attendance)) {
+      return res.status(400).json({ message: 'Attendance scores are computed from attendance records and cannot be entered manually.' });
     }
 
     const activityById = new Map(activities.map(a => [a.id, a]));

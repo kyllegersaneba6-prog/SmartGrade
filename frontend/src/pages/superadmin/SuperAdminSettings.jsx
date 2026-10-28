@@ -3,6 +3,7 @@ import { Settings, X, Plus, ChevronDown, Check, CalendarDays } from 'lucide-reac
 import api from '../../utils/api';
 import { SkeletonSettingsCard } from '../../components/common/Skeleton';
 import BackupRestore from '../../components/superadmin/BackupRestore';
+import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
 
 // Academic year starts in August: e.g. June 2026 → 2025-2026, Sept 2026 → 2026-2027.
 const getCurrentStartYear = () => {
@@ -158,13 +159,12 @@ const SuperAdminSettings = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card flex flex-col justify-center" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Settings</h1>
-          <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>View academic terms and browse archived semesters</p>
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <SuperAdminPageHeading
+        eyebrow="Preferences"
+        title="Settings"
+        description="Manage academic terms and system backups."
+      />
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50 card-hover">
         <h2 className="text-sm font-bold text-gray-900 mb-4">Academic Term Management</h2>
@@ -183,7 +183,7 @@ const SuperAdminSettings = () => {
           </div>
         ) : (
           activeTerm && (
-            <div className="bg-amber-400 border border-amber-400 rounded-xl p-5 mb-6">
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5">
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Active Term</span>
@@ -207,7 +207,7 @@ const SuperAdminSettings = () => {
             <div className="space-y-2">
               {allTerms.map(t => (
                 <div key={t.id} className={`flex items-center justify-between px-4 py-3 rounded-lg border ${
-                  t.is_active ? 'bg-amber-400 border-amber-400' : 'bg-gray-50 border-gray-200'
+                  t.is_active ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'
                 }`}>
                   <div className="flex items-center gap-3">
                     {t.is_active && <span className="w-2 h-2 rounded-full bg-amber-500" />}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Download, FileSpreadsheet, ArrowLeft, CheckCircle2, Plus, Trash2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import AdminPageHeading from '../../components/admin/AdminPageHeading';
 
 const TEMPLATE_HEADERS = ['firstname', 'lastname', 'middle initial', 'student id', 'gender'];
 
@@ -66,26 +67,21 @@ const BulkStudentImport = () => {
   const filledCount = rows.filter((r) => Object.values(r).some((v) => String(v).trim() !== '')).length;
 
   return (
-    <div className="min-h-screen bg-[#fbf6eb] font-sans">
-      <div className="max-w-3xl mx-auto p-6 md:p-10">
-        <div className="bg-white rounded-2xl shadow-lg border border-[#e5e0d5] card-hover overflow-hidden">
-          <div className="bg-[#142a3f] px-6 py-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10">
-                <FileSpreadsheet size={20} className="text-white" />
-              </span>
-              <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">Student Excel Template</h1>
-                <p className="text-xs text-white/70 mt-0.5">Fill it out here or in Excel, save it, then upload it back in admin/sections</p>
-              </div>
-            </div>
-            <div className="text-right text-xs text-white/90 bg-white/10 rounded-lg px-3 py-2">
-              <div className="font-semibold">{courseName || '—'} — {yearLevel || '—'}</div>
-              <div className="text-white/70">{sectionName || '—'} ({sectionId ? 'Selected' : 'None'})</div>
-            </div>
-          </div>
+    <div className="mx-auto max-w-7xl space-y-6">
+      <AdminPageHeading
+        eyebrow="Student Import"
+        title="Student Excel Template"
+        description="Fill it out here or in Excel, then upload it back in Manage Sections."
+        actions={(
+          <>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700"><FileSpreadsheet size={14} />{courseName || '—'} · {yearLevel || '—'}</span>
+            <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700">{sectionName || 'No section'} · {sectionId ? 'Selected' : 'None'}</span>
+          </>
+        )}
+      />
 
-          <div className="p-6 space-y-5">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 card-hover overflow-hidden">
+          <div className="p-5 md:p-6 space-y-5">
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-gray-700 leading-relaxed">
               <p className="font-bold text-gray-900 mb-1">How this works</p>
               <ol className="list-decimal ml-4 space-y-1">
@@ -179,7 +175,6 @@ const BulkStudentImport = () => {
               <p>Your original admin/sections tab was left open. After saving, switch back to it and use the <strong>Import / Upload Completed Excel File</strong> button next to the student list to upload, preview duplicates (in-file + already in section), and confirm the import. Browsers don’t allow auto-detecting the saved file, so uploading it manually is the final step.</p>
             </div>
           </div>
-        </div>
       </div>
     </div>
   );

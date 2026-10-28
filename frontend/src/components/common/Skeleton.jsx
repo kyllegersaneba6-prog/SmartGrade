@@ -118,18 +118,18 @@ export const SkeletonList = ({ rows = 5, avatar = false, className = '' }) => (
 
 /** Assignment/class card grid (teacher dashboard). */
 export const SkeletonClassGrid = ({ count = 4, className = '' }) => (
-  <Shell className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${className}`} label="Loading classes">
+  <Shell className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 ${className}`} label="Loading assigned classes">
     {Array.from({ length: count }).map((_, i) => (
       <div key={i} className="bg-white rounded-xl p-5 shadow-sm border border-gray-50 space-y-3">
-        <Skeleton style={{ width: '35%', height: 10 }} />
+        <div className="flex items-center justify-between">
+          <Skeleton style={{ width: '45%', height: 10 }} />
+          <Skeleton style={{ width: 22, height: 14, borderRadius: 999 }} />
+        </div>
         <div className="space-y-2">
           {[0, 1, 2].map((r) => (
-            <div key={r} className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
-              <div className="space-y-1.5 flex-1">
-                <Skeleton style={{ width: '70%', height: 13 }} />
-                <Skeleton style={{ width: '45%', height: 10 }} />
-              </div>
-              <Skeleton style={{ width: 52, height: 20, borderRadius: 10 }} />
+            <div key={r} className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 space-y-1.5">
+              <Skeleton style={{ width: '75%', height: 13 }} />
+              <Skeleton style={{ width: '50%', height: 11 }} />
             </div>
           ))}
         </div>

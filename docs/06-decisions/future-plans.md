@@ -19,7 +19,7 @@
 - Frontend error boundary for unexpected render failures (backend returns JSON 404s; unknown routes now render the 404 page)
 - Centralize write-side ownership checks into shared middleware/services (read helpers live in `backend/middleware/access.js`; term locks now live in `backend/middleware/termLock.js`)
 - Restrict CORS to known origins
-- Link `/admin/bulk-students` from Manage Sections and fix its header title
+- Link `/admin/bulk-students` from Manage Sections; its route title is already fixed
 - Automated / scheduled backups (manual export/restore exists)
 - AI: persist summaries, add a batch/class-level view, add prompt/version tracking
 - Tests and a migration runner

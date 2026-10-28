@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE } from '../utils/api';
+import stiWestNegrosLogo from '../assets/sti-west-negros-logo.png';
 import {
   User, Lock, AlertCircle, ArrowRight,
   Eye, EyeOff, ShieldCheck, BarChart3, ClipboardCheck, Users, TrendingUp
 } from 'lucide-react';
 
 const features = [
-  { icon: <BarChart3 className="w-5 h-5 text-amber-400" />, title: 'Grade Computation & Analytics', desc: 'Automated weighted grading with real-time analytics' },
-  { icon: <ClipboardCheck className="w-5 h-5 text-amber-400" />, title: 'Attendance Tracking', desc: 'Track student attendance with AM/PM session support' },
-  { icon: <Users className="w-5 h-5 text-amber-400" />, title: 'Class & Teacher Management', desc: 'Manage sections, subjects, and teacher assignments' },
-  { icon: <TrendingUp className="w-5 h-5 text-amber-400" />, title: 'Performance Reports', desc: 'Generate grade summaries with grade-point conversion' },
+  { icon: <BarChart3 className="w-5 h-5 text-amber-400 stroke-icon" />, title: 'Grade Computation & Analytics', desc: 'Automated weighted grading with real-time analytics' },
+  { icon: <ClipboardCheck className="w-5 h-5 text-amber-400 stroke-icon" />, title: 'Attendance Tracking', desc: 'Track student attendance with AM/PM session support' },
+  { icon: <Users className="w-5 h-5 text-amber-400 stroke-icon" />, title: 'Class & Teacher Management', desc: 'Manage sections, subjects, and teacher assignments' },
+  { icon: <TrendingUp className="w-5 h-5 text-amber-400 stroke-icon" />, title: 'Performance Reports', desc: 'Generate grade summaries with grade-point conversion' },
 ];
 
 const OFFLINE_MESSAGE = 'You are currently offline. Please check your Wi-Fi or ethernet connection and try again.';
@@ -107,11 +108,13 @@ const Login = () => {
           className="w-full max-w-[420px] backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 md:p-10 shadow-2xl shadow-[#0c1925]/30"
           style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}
         >
-          {/* Logo */}
-          <div className="flex flex-col items-center mb-8">
-            <img src="/src/assets/logo.png" className="w-20 h-20 object-contain mb-4" alt="SmartGrade Logo" />
-            <h1 className="text-amber-400 font-extrabold text-2xl tracking-wide">SmartGrade</h1>
-            <p className="text-slate-300 text-sm mt-1">Academic Management System</p>
+          {/* Brand logos */}
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <img src="/src/assets/logo.png" className="w-14 h-14 shrink-0 object-contain" alt="SmartGrade Logo" />
+            <div className="min-w-0">
+              <h1 className="text-amber-400 font-extrabold text-2xl tracking-wide">SmartGrade</h1>
+              <p className="text-slate-300 text-sm mt-1">Academic Management System</p>
+            </div>
           </div>
 
           {error && (
@@ -203,7 +206,7 @@ const Login = () => {
             backgroundImage: "url('/src/assets/STI_Background.png')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'blur(2px)',
+            filter: 'blur(0px)',
             transform: 'scale(1.05)',
           }}
         />
@@ -211,10 +214,12 @@ const Login = () => {
         <div className="absolute inset-0 bg-slate-900/60" />
 
         {/* Content */}
-        <div className="relative z-10 max-w-lg">
+        <div className="relative z-10 w-full max-w-lg p-8">
           {/* Brand header */}
           <div className="flex items-center gap-4 mb-8">
-            <img src="/src/assets/logo.png" className="w-16 h-16 object-contain" alt="SmartGrade Logo" />
+            <img src={stiWestNegrosLogo} className="w-14 h-14 shrink-0 object-contain" alt="STI West Negros University Logo" />
+            <span aria-hidden="true" className="h-12 w-px shrink-0 bg-white/50" />
+            <img src="/src/assets/logo.png" className="w-14 h-14 shrink-0 object-contain" alt="SmartGrade Logo" />
             <div>
               <h2 className="text-3xl font-extrabold text-white tracking-wide stroke-text">SmartGrade</h2>
               <p className="text-white text-sm stroke-text-sm">Academic Management Platform</p>
@@ -231,7 +236,7 @@ const Login = () => {
           <div className="space-y-5">
             {features.map((feature, i) => (
               <div key={i} className="flex items-start gap-4 group">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400/20 to-amber-600/10 border border-amber-400/20 flex items-center justify-center shrink-0 group-hover:border-amber-400/40 group-hover:from-amber-400/30 group-hover:to-amber-600/20 transition-all">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400/20 to-amber-600/10 border border-black/80 flex items-center justify-center shrink-0 group-hover:border-amber-400/40 group-hover:from-amber-400/30 group-hover:to-amber-600/20 transition-all shadow-md">
                   {feature.icon}
                 </div>
                 <div>

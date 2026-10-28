@@ -1,8 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Filter, Download, Share2, FileText, Table2, BookOpen, ChevronLeft, ChevronRight, Info, Check, RefreshCw } from 'lucide-react';
 import api from '../../utils/api';
 import { splitUpdateDescription } from '../../utils/auditText';
 import { SkeletonTable } from '../../components/common/Skeleton';
+import Pagination from '../../components/common/Pagination';
+import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
+
+const LOGS_PER_PAGE = 50;
 
 const outputFormats = [
   { label: 'RAW LOGS', sub: 'JSON/TXT Format', pct: 100, icon: FileText, color: '#b5a98a' },
@@ -12,6 +16,8 @@ const outputFormats = [
 
 const SecurityAudit = () => {
   const [page, setPage] = useState(1);
+  const auditSectionRef = useRef(null);
+  const scrollAnimationFrameRef = useRef(null);
   const [logs, setLogs] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +88,7 @@ const SecurityAudit = () => {
     return () => {
       clearInterval(id);
       window.removeEventListener('app:reload', handler);
+      if (scrollAnimationFrameRef.current !== null) cancelAnimationFrame(scrollAnimationFrameRef.current);
     };
   }, []);
 
@@ -136,19 +143,51 @@ const SecurityAudit = () => {
     }
   };
   const filteredRows = dynamicRows.filter(matchesActionFilter);
+  const paginatedRows = filteredRows.slice((page - 1) * LOGS_PER_PAGE, page * LOGS_PER_PAGE);
+  const handlePageChange = (nextPage) => {
+    setPage(nextPage);
+    if (scrollAnimationFrameRef.current !== null) cancelAnimationFrame(scrollAnimationFrameRef.current);
+    scrollAnimationFrameRef.current = requestAnimationFrame(() => {
+      const section = auditSectionRef.current;
+      const scrollContainer = section?.closest('main');
+      if (!section || !scrollContainer) return;
+      const sectionTop = section.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top;
+      const startTop = scrollContainer.scrollTop;
+      const maxScrollTop = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+      const targetTop = Math.max(0, Math.min(maxScrollTop, startTop + sectionTop));
+      const distance = targetTop - startTop;
+      if (Math.abs(distance) < 1) return;
+
+      const duration = 500;
+      let startTime = null;
+      const animate = (time) => {
+        if (startTime === null) startTime = time;
+        const progress = Math.min((time - startTime) / duration, 1);
+        const eased = progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        scrollContainer.scrollTop = startTop + distance * eased;
+        if (progress < 1) {
+          scrollAnimationFrameRef.current = requestAnimationFrame(animate);
+        } else {
+          scrollAnimationFrameRef.current = null;
+        }
+      };
+      scrollAnimationFrameRef.current = requestAnimationFrame(animate);
+    });
+  };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Security & Audit</h1>
-          <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>Review critical alerts and trace every system access in the institutional audit trail.</p>
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-7xl space-y-6">
+      <SuperAdminPageHeading
+        eyebrow="Security"
+        title="Security & Audit"
+        description="Review critical alerts and trace every system access in the institutional audit trail."
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
         {metrics.map(({ label, value, color, bg, icon, tooltip }) => (
-          <div key={label} className="rounded-xl p-4 shadow-sm flex items-center justify-between border border-[#F9FAFB] card-hover" style={{ background: '#fff' }}>
+          <div key={label} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 shadow-sm card-hover">
             <div>
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="text-[10px] font-bold text-gray-900 tracking-widest uppercase">{label}</span>
@@ -167,9 +206,9 @@ const SecurityAudit = () => {
         ))}
       </div>
 
-      <div className="w-full">
+      <div ref={auditSectionRef} className="w-full">
         <div>
-          <div className="rounded-xl p-5 shadow-sm border border-[#F9FAFB] card-hover" style={{ background: '#fff' }}>
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2"><span className="text-lg">🔄</span><h2 className="text-[16px] font-bold text-gray-900">Institutional System Audit Trail (Root Access)</h2></div>
               <div className="flex gap-2">
@@ -200,19 +239,19 @@ const SecurityAudit = () => {
                 </div>
               </div>
             </div>
-            <div className="table-responsive max-h-[500px] overflow-y-auto pr-1"><table className="w-full text-[12px] min-w-[800px]">
-              <thead className="sticky top-0 bg-white z-10"><tr className="border-b" style={{ borderColor: '#f0ede6' }}>{['Timestamp', 'User', 'Role', 'Action', 'Description'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[12px] uppercase tracking-wide">{h}</th>))}</tr></thead>
+            <table className="w-full text-[12px] min-w-[800px]">
+              <thead><tr className="border-b border-gray-200">{['Timestamp', 'User', 'Role', 'Action', 'Description'].map((h) => (<th key={h} className="sticky top-0 z-20 bg-gray-50 px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-600">{h}</th>))}</tr></thead>
               <tbody>
                 {loading ? (
                   <tr><td colSpan="5" className="py-4"><div aria-busy="true"><SkeletonTable cols={5} rows={6} /></div></td></tr>
                 ) : filteredRows.length === 0 ? (<tr><td colSpan="5" className="py-8 text-center text-gray-500">No activity recorded yet.</td></tr>
-                ) : filteredRows.map((row, i) => (
-                  <tr key={row.id || i} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
-                    <td className="py-3 pr-3 whitespace-pre font-mono text-[12px]" style={{ color: '#0c1925' }}>{row.ts}</td>
-                    <td className="py-3 pr-3 font-bold text-gray-800 text-[12px]">{row.user === '-' ? <span className="text-gray-900">-</span> : row.user}</td>
-                    <td className="py-3 pr-3">{row.role === '-' ? <span className="text-gray-900 font-semibold text-[12px]">-</span> : <span className={`px-2 py-0.5 rounded text-[12px] font-bold ${!row.role ? '' : row.role === 'admin' ? 'text-black' : 'text-white'}`} style={row.role ? { background: row.roleColor } : undefined}>{row.role}</span>}</td>
-                    <td className="py-3 pr-3 font-mono font-bold text-[12px]" style={{ color: row.action.includes('DELET') || row.action.includes('FAIL') ? '#dc2626' : row.action.includes('UPDAT') ? '#2563eb' : row.action.includes('CREAT') || row.action.includes('SUCCESS') ? '#16a34a' : '#4b5563' }}>{row.action}</td>
-                    <td className="py-3 pr-3 text-gray-700 max-w-[300px] text-[12px]" title={row.desc}>
+                ) : paginatedRows.map((row, i) => (
+                  <tr key={row.id || i} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-gray-50">
+                    <td className="whitespace-pre px-3 py-3 font-mono text-[12px]" style={{ color: '#0c1925' }}>{row.ts}</td>
+                    <td className="px-3 py-3 text-[12px] font-bold text-gray-800">{row.user === '-' ? <span className="text-gray-900">-</span> : row.user}</td>
+                    <td className="px-3 py-3">{row.role === '-' ? <span className="text-gray-900 font-semibold text-[12px]">-</span> : <span className={`px-2 py-0.5 rounded text-[12px] font-bold ${!row.role ? '' : row.role === 'admin' ? 'text-black' : 'text-white'}`} style={row.role ? { background: row.roleColor } : undefined}>{row.role}</span>}</td>
+                    <td className="px-3 py-3 font-mono text-[12px] font-bold" style={{ color: row.action.includes('DELET') || row.action.includes('FAIL') ? '#dc2626' : row.action.includes('UPDAT') ? '#2563eb' : row.action.includes('CREAT') || row.action.includes('SUCCESS') ? '#16a34a' : '#4b5563' }}>{row.action}</td>
+                    <td className="max-w-[300px] px-3 py-3 text-[12px] text-gray-700" title={row.desc}>
                       {row.split ? (
                         <span className="block break-words whitespace-normal">
                           {row.split.head}
@@ -226,7 +265,15 @@ const SecurityAudit = () => {
                   </tr>
                 ))}
               </tbody>
-            </table></div>
+            </table>
+            <Pagination
+              currentPage={page}
+              totalPages={Math.ceil(filteredRows.length / LOGS_PER_PAGE)}
+              onPageChange={handlePageChange}
+              totalItems={filteredRows.length}
+              rowsPerPage={LOGS_PER_PAGE}
+              itemLabel="logs"
+            />
             <div className="flex items-center justify-between mt-4 pt-4 border-t text-[12px]" style={{ borderColor: '#f0ede6' }}>
               <span className="text-gray-900 text-[12px]">Total entries: {filteredRows.length.toLocaleString()}</span>
             </div>

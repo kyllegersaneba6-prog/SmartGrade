@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart3, Loader, ArrowLeft, TrendingUp, TrendingDown, Minus, X, Sparkles, AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
-import ExportButtons from '../../components/teacher/ExportButtons';
+import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
 import Pagination from '../../components/common/Pagination';
 import { SkeletonHeaderCard, SkeletonMetricCards, SkeletonTable } from '../../components/common/Skeleton';
 import api from '../../utils/api';
-import { buildTeacherFilename, TEACHER_TERM_TOKENS } from '../../utils/exportFilenames';
-import { exportTablePdf } from '../../utils/exportPdf';
+import { TEACHER_TABLE_PAGE_SIZE } from '../../utils/teacherTable';
 import {
   TERMS, getComponentTotal, getComponentMaxTotal,
   getComponentEquiv, getComponentWeighted, getFinalGrade
@@ -51,49 +49,70 @@ const BehavioralAnalytics = () => {
   const [aiSource, setAiSource] = useState(null);
   const [aiGeneratedAt, setAiGeneratedAt] = useState(null);
   const [aiCacheStatus, setAiCacheStatus] = useState(null);
-  const [exporting, setExporting] = useState(null);
-  const [exportError, setExportError] = useState('');
+
+  useEffect(() => { setPage(1); }, [selectedAssignment, selectedTerm]);
 
   useEffect(() => {
-    if (!currentAssignment) return;
+    const sectionId = currentAssignment?.section_id;
+    const controller = new AbortController();
+    if (!sectionId) {
+      setStudents([]);
+      return () => controller.abort();
+    }
+    setStudents([]);
     const fetchStudents = async () => {
       try {
-        const res = await api(`/api/sections/${currentAssignment.section_id}/students`);
+        const res = await api(`/api/sections/${sectionId}/students`, { signal: controller.signal });
         if (res.ok) setStudents(await res.json());
-      } catch (err) { console.error(err); }
+      } catch (err) { if (err.name !== 'AbortError') console.error(err); }
     };
     fetchStudents();
-  }, [currentAssignment]);
+    return () => controller.abort();
+  }, [currentAssignment?.section_id]);
 
-  const fetchGradeData = async () => {
-    if (!selectedAssignment) return;
-    setDataLoading(true);
-    try {
-      const [compRes, scoresRes, attRes] = await Promise.all([
-        api(`/api/grading-components?assignment_id=${selectedAssignment}&term=${selectedTerm}`),
-        api(`/api/component-scores?assignment_id=${selectedAssignment}&term=${selectedTerm}`),
-        api(`/api/attendance/computed-scores?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`),
-      ]);
-      if (compRes.ok) setComponents(await compRes.json());
-      if (scoresRes.ok) {
-        const scoreList = await scoresRes.json();
+  useEffect(() => {
+    const controller = new AbortController();
+    if (!selectedAssignment) {
+      setComponents([]);
+      setScores({});
+      setAttendanceScores({ max_total: 0, scores: {} });
+      setDataLoading(false);
+      return () => controller.abort();
+    }
+    const fetchGradeData = async () => {
+      setComponents([]);
+      setScores({});
+      setAttendanceScores({ max_total: 0, scores: {} });
+      setDataLoading(true);
+      try {
+        const [compRes, scoresRes, attRes] = await Promise.all([
+          api(`/api/grading-components?assignment_id=${selectedAssignment}&term=${selectedTerm}`, { signal: controller.signal }),
+          api(`/api/component-scores?assignment_id=${selectedAssignment}&term=${selectedTerm}`, { signal: controller.signal }),
+          api(`/api/attendance/computed-scores?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`, { signal: controller.signal }),
+        ]);
+        const [nextComponents, scoreList, nextAttendance] = await Promise.all([
+          compRes.ok ? compRes.json() : Promise.resolve([]),
+          scoresRes.ok ? scoresRes.json() : Promise.resolve([]),
+          attRes.ok ? attRes.json() : Promise.resolve({ max_total: 0, scores: {} }),
+        ]);
+        if (controller.signal.aborted) return;
         const scoreMap = {};
-        scoreList.forEach(s => {
-          if (!scoreMap[s.activity_id]) scoreMap[s.activity_id] = {};
-          scoreMap[s.activity_id][s.student_id] = s.score;
+        scoreList.forEach((score) => {
+          if (!scoreMap[score.activity_id]) scoreMap[score.activity_id] = {};
+          scoreMap[score.activity_id][score.student_id] = score.score;
         });
+        setComponents(nextComponents);
         setScores(scoreMap);
+        setAttendanceScores(nextAttendance);
+      } catch (err) {
+        if (err.name !== 'AbortError') console.error(err);
+      } finally {
+        if (!controller.signal.aborted) setDataLoading(false);
       }
-      if (attRes.ok) {
-        setAttendanceScores(await attRes.json());
-      } else {
-        setAttendanceScores({ max_total: 0, scores: {} });
-      }
-    } catch (err) { console.error(err); }
-    finally { setDataLoading(false); }
-  };
-
-  useEffect(() => { fetchGradeData(); }, [selectedAssignment, selectedTerm]);
+    };
+    fetchGradeData();
+    return () => controller.abort();
+  }, [selectedAssignment, selectedTerm]);
 
   // --- Computation helpers ---
   const getComponentPerformance = (studentId, comp) => {
@@ -104,10 +123,14 @@ const BehavioralAnalytics = () => {
     const activities = comp.activities || [];
     let earned = 0, possible = 0;
     activities.forEach(a => {
-      const val = parseFloat(scores[a.id]?.[studentId]);
+      const val = a.is_attendance
+        ? parseFloat(attendanceScores.scores[studentId] ?? 0)
+        : parseFloat(scores[a.id]?.[studentId]);
       if (!isNaN(val)) {
         earned += val;
-        possible += parseFloat(a.max_score || 0);
+        possible += a.is_attendance
+          ? parseFloat(attendanceScores.max_total || 0)
+          : parseFloat(a.max_score || 0);
       }
     });
     if (possible === 0) return 0;
@@ -117,11 +140,14 @@ const BehavioralAnalytics = () => {
   const getComponentActivityScores = (studentId, comp) => {
     if (comp.is_attendance) return [];
     return (comp.activities || []).map(a => {
-      const raw = parseFloat(scores[a.id]?.[studentId]);
+      const raw = a.is_attendance
+        ? parseFloat(attendanceScores.scores[studentId] ?? 0)
+        : parseFloat(scores[a.id]?.[studentId]);
+      const maxScore = a.is_attendance ? attendanceScores.max_total : a.max_score;
       return {
         activity: a,
         score: isNaN(raw) ? null : raw,
-        pct: isNaN(raw) ? null : a.max_score ? raw / a.max_score : null,
+        pct: isNaN(raw) ? null : maxScore ? raw / maxScore : null,
       };
     }).filter(x => x.score !== null && x.pct !== null);
   };
@@ -135,14 +161,15 @@ const BehavioralAnalytics = () => {
     if (activities.length === 0) return 0;
     let submitted = 0;
     activities.forEach(a => {
-      const val = scores[a.id]?.[studentId];
+      const val = a.is_attendance
+        ? attendanceScores.max_total > 0 && Object.prototype.hasOwnProperty.call(attendanceScores.scores || {}, studentId) ? attendanceScores.scores[studentId] : null
+        : scores[a.id]?.[studentId];
       if (val !== null && val !== undefined && Number(val) !== 0) submitted++;
     });
     return submitted / activities.length;
   };
 
   const getComponentTrend = (studentId, comp) => {
-    if (comp.is_attendance) return 'stable';
     const scored = getComponentActivityScores(studentId, comp);
     if (scored.length < 2) return 'stable';
     const values = scored.map(x => x.pct);
@@ -183,10 +210,14 @@ const BehavioralAnalytics = () => {
       } else {
         const activities = c.activities || [];
         activities.forEach(a => {
-          const val = parseFloat(scores[a.id]?.[studentId]);
+          const val = a.is_attendance
+            ? parseFloat(attendanceScores.scores[studentId] ?? 0)
+            : parseFloat(scores[a.id]?.[studentId]);
           if (!isNaN(val)) {
             totalEarned += val;
-            totalPossible += parseFloat(a.max_score || 0);
+            totalPossible += a.is_attendance
+              ? parseFloat(attendanceScores.max_total || 0)
+              : parseFloat(a.max_score || 0);
           }
         });
       }
@@ -267,288 +298,6 @@ const BehavioralAnalytics = () => {
   const sortIcon = (key) => {
     if (sortKey !== key) return null;
     return <span className="ml-1">{sortDir === 'asc' ? '▲' : '▼'}</span>;
-  };
-
-  // --- Export ---
-  const handleExportExcel = () => {
-    if (!currentAssignment || components.length === 0) return;
-
-    const visibleComponents = components.filter(c => c.is_attendance || c.activities?.length > 0);
-
-    const titleRow = [`${currentAssignment.subjects?.code || ''} ${currentAssignment.subjects?.name}`.trim(), `Section: ${currentAssignment.sections?.name}`, `Term: ${selectedTerm}`, 'Behavioral Analytics'];
-
-    const subHeader = ['Stud No.', 'Student Name'];
-    visibleComponents.forEach(c => {
-      subHeader.push('EQUIV', 'Performance', 'Sub%');
-    });
-    subHeader.push('FINAL', 'Sub%', 'Att.%', 'PERFORMANCE');
-
-    const dataRows = sortedStudents.map((entry) => {
-      const row = [entry.student.student_id, entry.student.student_name];
-      visibleComponents.forEach(c => {
-        const cd = entry.components[c.id];
-        row.push(
-          cd.equiv.toFixed(2),
-          cd.performance.toFixed(1) + '%',
-          (cd.submissionRate * 100).toFixed(1) + '%'
-        );
-      });
-      row.push(
-        entry.finalGrade.toFixed(2),
-        (entry.overallSubRate * 100).toFixed(1) + '%',
-        (entry.attendanceRate * 100).toFixed(1) + '%',
-        entry.overallPerformance.toFixed(1) + '%'
-      );
-      return row;
-    });
-
-    // Main header row with component names
-    const mainHeader = Array(subHeader.length).fill('');
-    mainHeader[0] = 'STUDENT INFORMATION';
-    let ci = 0;
-    visibleComponents.forEach(c => {
-      // place component name at the start of its 3-col span (after 2 static cols)
-      const idx = 2 + ci * 3;
-      if (idx < mainHeader.length) mainHeader[idx] = `${c.name} (${c.weight}%)`;
-      ci++;
-    });
-    // FINAL, Sub%, Att.%, PERFORMANCE — place at their span start
-    const afterComp = 2 + visibleComponents.length * 3;
-    mainHeader[afterComp] = 'FINAL';
-    mainHeader[afterComp + 1] = 'Sub%';
-    mainHeader[afterComp + 2] = 'Att.%';
-    mainHeader[afterComp + 3] = 'PERFORMANCE';
-
-    const allRows = [titleRow, mainHeader, subHeader, ...dataRows];
-    const worksheet = XLSX.utils.aoa_to_sheet(allRows);
-
-    const colCount = subHeader.length;
-    const rowCount = allRows.length;
-
-    // Column widths
-    const colWidths = [
-      { wch: 14 },  // Stud No.
-      { wch: 28 },  // Student Name
-    ];
-    visibleComponents.forEach(() => { colWidths.push({ wch: 10 }, { wch: 14 }, { wch: 8 }); });
-    colWidths.push({ wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 14 });
-    worksheet['!cols'] = colWidths;
-
-    // Merges for title (row 0) and main header (row 1)
-    const merges = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } }, // STUDENT INFORMATION
-    ];
-    visibleComponents.forEach((_, i) => {
-      const startCol = 2 + i * 3;
-      merges.push({ s: { r: 1, c: startCol }, e: { r: 1, c: startCol + 2 } });
-    });
-    worksheet['!merges'] = merges;
-
-    // Colors
-    const WHITE = 'FFFFFF';
-    const GRAY_50 = 'F9FAFB';
-    const BORDER = 'E5E7EB';
-    const GREEN_700 = '15803D';
-    const RED_600 = 'DC2626';
-    const SIDEBAR = '1B1B2F';
-    const FINAL_GREEN = '0F172A';
-    const PURPLE = '0F172A';
-    const CYAN = '0F172A';
-    const ORANGE = '0F172A';
-    const COMP_BLUE = '0F172A';
-
-    const thinBorder = { top: { style: 'thin', color: { rgb: BORDER } }, bottom: { style: 'thin', color: { rgb: BORDER } }, left: { style: 'thin', color: { rgb: BORDER } }, right: { style: 'thin', color: { rgb: BORDER } } };
-    const thickerRight = { ...thinBorder, right: { style: 'medium', color: { rgb: BORDER } } };
-
-    const applyStyle = (cell, style) => { if (cell) cell.s = style; };
-
-    // Row 0: title
-    const titleStyle = { fill: { fgColor: { rgb: SIDEBAR } }, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 13 }, alignment: { horizontal: 'center', vertical: 'center' } };
-    for (let c = 0; c < colCount; c++) applyStyle(worksheet[XLSX.utils.encode_cell({ r: 0, c })], titleStyle);
-
-    // Row 1: main header — component names and FINAL/Sub%/Att.%/PERFORMANCE
-    const mainHdrStyle = (bg) => ({ fill: { fgColor: { rgb: bg } }, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder });
-    const lastMainColors = [FINAL_GREEN, PURPLE, CYAN, ORANGE];
-    // Student info columns
-    applyStyle(worksheet[XLSX.utils.encode_cell({ r: 1, c: 0 })], mainHdrStyle(SIDEBAR));
-    applyStyle(worksheet[XLSX.utils.encode_cell({ r: 1, c: 1 })], mainHdrStyle(SIDEBAR));
-    ci = 0;
-    visibleComponents.forEach(() => {
-      for (let i = 0; i < 3; i++) {
-        const c = ci++;
-        applyStyle(worksheet[XLSX.utils.encode_cell({ r: 1, c: 2 + c })], mainHdrStyle(COMP_BLUE));
-      }
-    });
-    lastMainColors.forEach((bg) => {
-      const c = ci++;
-      applyStyle(worksheet[XLSX.utils.encode_cell({ r: 1, c: 2 + c })], mainHdrStyle(bg));
-    });
-
-    // Row 2: sub-header
-    const compHdrColors = [COMP_BLUE, COMP_BLUE, COMP_BLUE];
-    const lastHdrColors = [FINAL_GREEN, PURPLE, CYAN, ORANGE];
-    const subHdrStyle = (bg) => ({ fill: { fgColor: { rgb: bg } }, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder });
-
-    ci = 2;
-    applyStyle(worksheet[XLSX.utils.encode_cell({ r: 2, c: 0 })], { ...subHdrStyle(GRAY_50), font: { bold: true, color: { rgb: SIDEBAR }, sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder });
-    applyStyle(worksheet[XLSX.utils.encode_cell({ r: 2, c: 1 })], { ...subHdrStyle(GRAY_50), font: { bold: true, color: { rgb: SIDEBAR }, sz: 10 }, alignment: { horizontal: 'left', vertical: 'center' }, border: thinBorder });
-
-    visibleComponents.forEach(() => {
-      for (let i = 0; i < 3; i++) {
-        const c = ci++;
-        const isLast = i === 2;
-        applyStyle(worksheet[XLSX.utils.encode_cell({ r: 2, c })], { ...subHdrStyle(GRAY_50), font: { bold: true, color: { rgb: SIDEBAR }, sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: isLast ? thickerRight : thinBorder });
-      }
-    });
-    lastHdrColors.forEach((bg, i) => {
-      const c = ci++;
-      const isLast = i === lastHdrColors.length - 1;
-      applyStyle(worksheet[XLSX.utils.encode_cell({ r: 2, c })], { ...subHdrStyle(GRAY_50), font: { bold: true, color: { rgb: SIDEBAR }, sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: isLast ? thinBorder : thickerRight });
-    });
-
-    // Data rows (r >= 3)
-    const dataCenterStyle = (isGreen) => ({ fill: { fgColor: { rgb: WHITE } }, font: { bold: true, color: { rgb: isGreen ? GREEN_700 : SIDEBAR }, sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder });
-    const dataFailStyle = { fill: { fgColor: { rgb: WHITE } }, font: { bold: true, color: { rgb: RED_600 }, sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder };
-    const dataLeftStyle = { ...dataCenterStyle(false), font: { ...dataCenterStyle(false).font, bold: false }, alignment: { horizontal: 'left', vertical: 'center' } };
-
-    const isThickerRightCol = (c) => {
-      let idx = 2; // start after Stud No. + Student Name
-      for (let i = 0; i < visibleComponents.length; i++) {
-        idx += 2; // EQUIV, Performance — skip Sub% which has thicker
-        if (c === idx) return true;
-        idx += 1; // Sub%
-      }
-      // last 4 cols: FINAL (thicker), Sub% (thicker), Att.% (thicker), PERFORMANCE (no)
-      const afterComp = 2 + visibleComponents.length * 3;
-      const rel = c - afterComp;
-      return rel >= 0 && rel < lastHdrColors.length - 1;
-    };
-
-    for (let r = 3; r < rowCount; r++) {
-      for (let c = 0; c < colCount; c++) {
-        const cell = worksheet[XLSX.utils.encode_cell({ r, c })];
-        if (!cell) continue;
-
-        if (c === 0) { cell.s = { ...dataCenterStyle(false), font: { color: { rgb: '9CA3AF' }, sz: 9 } }; continue; }
-        if (c === 1) { cell.s = dataLeftStyle; continue; }
-
-        const isThicker = isThickerRightCol(c);
-
-        // Performance columns (show green/amber/red)
-        const perfCol = (() => {
-          let idx = 2;
-          for (let i = 0; i < visibleComponents.length; i++) {
-            idx += 1; // EQUIV
-            if (c === idx) return true; // Performance
-            idx += 2; // Sub%
-          }
-          return c === colCount - 1; // last column is overall PERFORMANCE
-        })();
-
-        if (perfCol) {
-          const pct = typeof cell.v === 'string' ? parseFloat(cell.v) : cell.v;
-          const isMid = pct >= 50 && pct < 75;
-          const color = pct >= 75 ? GREEN_700 : (isMid ? 'D97706' : RED_600);
-          cell.s = { ...dataCenterStyle(false), font: { bold: true, color: { rgb: color }, sz: 10 }, border: isThicker ? thickerRight : thinBorder };
-          continue;
-        }
-
-        cell.s = { ...dataCenterStyle(false), border: isThicker ? thickerRight : thinBorder };
-      }
-
-      if (r % 2 === 0) {
-        for (let c = 0; c < colCount; c++) {
-          const cell = worksheet[XLSX.utils.encode_cell({ r, c })];
-          if (cell?.s) cell.s = { ...cell.s, fill: { fgColor: { rgb: GRAY_50 } } };
-        }
-      }
-    }
-
-    worksheet['!rows'] = Array.from({ length: rowCount }, () => ({ hpt: 22 }));
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Analytics');
-    XLSX.writeFile(workbook, buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'analytics', ext: 'xlsx' }));
-  };
-
-  const getAnalyticsFiltered = () => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return sortedStudents;
-    return sortedStudents.filter(s =>
-      s.student.student_name?.toLowerCase().includes(q) ||
-      s.student.student_id?.toLowerCase().includes(q)
-    );
-  };
-
-  const handleExportPdf = () => {
-    if (!currentAssignment || components.length === 0 || exporting) return;
-    setExporting('pdf');
-    setExportError('');
-    try {
-      const visibleComponents = components.filter(c => c.is_attendance || c.activities?.length > 0);
-      const filtered = getAnalyticsFiltered();
-      const head = ['#', 'Stud ID', 'Student Name'];
-      visibleComponents.forEach(c => {
-        head.push(`EQUIV (${c.name})`, `Perf% (${c.name})`, `Sub% (${c.name})`);
-      });
-      head.push('FINAL', 'Sub%', 'Att.%', 'PERFORMANCE');
-      const body = filtered.map((entry, i) => {
-        const row = [i + 1, String(entry.student.student_id ?? ''), entry.student.student_name ?? ''];
-        visibleComponents.forEach(c => {
-          const cd = entry.components[c.id];
-          row.push(
-            cd ? cd.equiv.toFixed(2) : '-',
-            cd ? cd.performance.toFixed(1) + '%' : '-',
-            cd ? (cd.is_attendance ? '-' : (cd.submissionRate * 100).toFixed(1) + '%') : '-'
-          );
-        });
-        row.push(
-          entry.finalGrade.toFixed(2),
-          (entry.overallSubRate * 100).toFixed(1) + '%',
-          (entry.attendanceRate * 100).toFixed(1) + '%',
-          entry.overallPerformance.toFixed(1) + '%'
-        );
-        return row;
-      });
-      exportTablePdf({
-        title: 'Behavioral Analytics',
-        context: [
-          `${currentAssignment.subjects?.name || ''} — ${currentAssignment.sections?.name || ''}`,
-          `Term: ${selectedTerm}`,
-        ],
-        filename: buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'analytics', ext: 'pdf' }),
-        head: [['Metric', 'Value']],
-        body: [
-          ['Avg Final Grade', summary.avgGrade.toFixed(2)],
-          ['Avg Submission Rate', (summary.avgSubRate * 100).toFixed(1) + '%'],
-          ['Avg Attendance Rate', (summary.avgAttendanceRate * 100).toFixed(1) + '%'],
-          ['Overall Performance', summary.avgPerformance.toFixed(1) + '%'],
-        ],
-        landscape: false,
-        emptyMessage: 'No analytics data available.',
-        extraTables: [{ title: 'Student Analytics', head: [head], body }],
-      });
-    } catch (err) {
-      console.error(err);
-      setExportError('PDF export failed. Please try again.');
-    } finally {
-      setExporting(null);
-    }
-  };
-
-  const onExcelClick = () => {
-    if (exporting) return;
-    setExporting('excel');
-    setExportError('');
-    try {
-      handleExportExcel();
-    } catch (err) {
-      console.error(err);
-      setExportError('Excel export failed. Please try again.');
-    } finally {
-      setExporting(null);
-    }
   };
 
   // --- Trend icon ---
@@ -682,6 +431,11 @@ const BehavioralAnalytics = () => {
 
   return (
     <div className="space-y-6">
+      <TeacherPageHeading
+        eyebrow="Class insights"
+        title="Behavioral Analytics"
+        description="Review class trends in attendance, submissions, and student performance."
+      />
       <div className="flex flex-wrap items-center gap-3">
         <AssignmentSelector />
         <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
@@ -699,22 +453,6 @@ const BehavioralAnalytics = () => {
           {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
         </div>
       </div>
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-5 rounded-2xl shadow-sm border border-gray-50 card-hover text-white" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <div className="text-[12px] font-bold text-white uppercase tracking-wider mb-1 font-sans">
-            SmartGrade — Behavioral Analytics
-          </div>
-          <span className="text-sm font-bold text-amber-400">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-          {hasComponents && (
-            <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
-          )}
-        </div>
-      </div>
-
       {/* Summary KPI Cards */}
       {hasComponents && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -745,15 +483,14 @@ const BehavioralAnalytics = () => {
         </div>
       )}
 
-      <div className="mb-2 px-1 flex items-center justify-between">
-        <span className="text-sm font-bold text-gray-700">{currentAssignment?.subjects?.name} — {currentAssignment?.sections?.name}</span>
+      <div className="mb-2 px-1 flex items-center justify-end">
         <div className="relative">
           <input
             type="text"
             placeholder="Search by name or ID..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
+            className="w-56 pl-9 pr-8 py-2 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           {searchQuery && (
@@ -765,7 +502,7 @@ const BehavioralAnalytics = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover">
         {dataLoading && !hasComponents ? (
           <div aria-busy="true"><SkeletonTable cols={7} rows={8} /></div>
         ) : !hasComponents ? (
@@ -775,11 +512,11 @@ const BehavioralAnalytics = () => {
             <p className="text-xs mt-1">Set up components in Class Record first.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto w-full pb-4" style={{ scrollbarWidth: 'auto' }}>
-            <table className="min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+          <div className="w-full pb-2">
+            <table className="teacher-sticky-table teacher-sticky-table-2rows sticky-cols sticky-cols-compact min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
-                  <th colSpan={3} className="bg-sidebar border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[330px] sticky left-0 z-20">
+                  <th colSpan={3} className="sticky-student-header bg-sidebar border-b-2 border-r-2 border-border p-3 text-white text-left font-bold sticky left-0 z-20">
                     <div className="flex justify-between items-center">
                       <span>STUDENT INFORMATION</span>
                       <span className="text-[10px] text-gray-300">{searchQuery ? `${sortedStudents.filter(s => s.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
@@ -795,22 +532,22 @@ const BehavioralAnalytics = () => {
                   <th colSpan={4} className="bg-amber-400 border-b-2 border-amber-400 p-3 text-[#0c1925] text-center font-bold text-sm uppercase tracking-wider relative z-0">TOTAL</th>
                 </tr>
                 <tr className="bg-gray-50 border-b border-border text-center font-semibold text-sidebar">
-                  <th className="px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20 w-10" style={{ left: 0 }}>#</th>
-                  <th className="px-3 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20 w-[110px] cursor-pointer select-none hover:bg-gray-100" style={{ left: '40px' }} onClick={() => handleSort('student_id')}>Stud ID {sortIcon('student_id')}</th>
-                  <th className="px-4 py-2.5 text-left sticky bg-gray-50 border-r-2 border-border z-20 w-[180px] cursor-pointer select-none hover:bg-gray-100" style={{ left: '150px' }} onClick={() => handleSort('name')}>Student Name {sortIcon('name')}</th>
+                  <th className="sticky-student-number px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20">#</th>
+                  <th className="sticky-student-id px-3 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20 cursor-pointer select-none hover:bg-gray-100" onClick={() => handleSort('student_id')}>Stud ID {sortIcon('student_id')}</th>
+                  <th className="sticky-student-name px-4 py-2.5 text-left sticky bg-gray-50 border-r-2 border-border z-20 cursor-pointer select-none hover:bg-gray-100" onClick={() => handleSort('name')}>Student Name {sortIcon('name')}</th>
                   {components.map((comp) => (
                     (comp.is_attendance || comp.activities?.length > 0) && (
                       <React.Fragment key={comp.id}>
-                        <th className="px-2 py-2.5 border-r border-gray-200 bg-gray-100/50 w-[65px] relative z-0 font-semibold text-sidebar align-middle">EQUIV</th>
-                        <th className="px-2 py-2.5 border-r border-gray-200 bg-gray-100/50 w-24 relative z-0 font-semibold text-sidebar align-middle">Performance</th>
-                        <th className="px-2 py-2.5 border-r-2 border-gray-300 bg-gray-100/50 w-[55px] relative z-0 font-semibold text-sidebar align-middle">Sub%</th>
+                        <th className="px-2 py-2.5 border-r border-gray-200 bg-gray-100 w-[65px] relative z-0 font-semibold text-sidebar align-middle">EQUIV</th>
+                        <th className="px-2 py-2.5 border-r border-gray-200 bg-gray-100 w-24 relative z-0 font-semibold text-sidebar align-middle">Performance</th>
+                        <th className="px-2 py-2.5 border-r-2 border-gray-300 bg-gray-100 w-[55px] relative z-0 font-semibold text-sidebar align-middle">Sub%</th>
                       </React.Fragment>
                     )
                   ))}
-                  <th className="px-3 py-2.5 bg-gray-100/50 text-sidebar font-extrabold text-sm w-[75px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('finalGrade')}>FINAL {sortIcon('finalGrade')}</th>
-                  <th className="px-3 py-2.5 bg-gray-100/50 text-sidebar font-extrabold text-xs w-[65px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('subRate')}>SUB% {sortIcon('subRate')}</th>
-                  <th className="px-3 py-2.5 bg-gray-100/50 text-sidebar font-extrabold text-xs w-[65px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('attRate')}>ATT% {sortIcon('attRate')}</th>
-                  <th className="px-3 py-2.5 bg-gray-100/50 text-sidebar font-extrabold text-xs w-[90px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('performance')}>PERFORMANCE {sortIcon('performance')}</th>
+                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-sm w-[75px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('finalGrade')}>FINAL {sortIcon('finalGrade')}</th>
+                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-xs w-[65px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('subRate')}>SUB% {sortIcon('subRate')}</th>
+                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-xs w-[65px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('attRate')}>ATT% {sortIcon('attRate')}</th>
+                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-xs w-[90px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('performance')}>PERFORMANCE {sortIcon('performance')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -821,7 +558,7 @@ const BehavioralAnalytics = () => {
                         s.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())
                       )
                     : sortedStudents;
-                   const paginatedStudents = filtered.slice((page - 1) * 10, page * 10);
+                   const paginatedStudents = filtered.slice((page - 1) * TEACHER_TABLE_PAGE_SIZE, page * TEACHER_TABLE_PAGE_SIZE);
                   return students.length === 0 ? (
                     <tr>
                       <td colSpan={3 + components.filter(c => c.is_attendance || c.activities?.length > 0).length * 3 + 4} className="px-6 py-10 text-center text-gray-500 italic">
@@ -840,9 +577,9 @@ const BehavioralAnalytics = () => {
                     const rowBg = isLowPerforming ? 'bg-red-50/60' : (index % 2 === 0 ? 'bg-white' : 'bg-gray-50');
                     return (
                       <tr key={entry.student.id} className={`${rowBg} hover:bg-blue-50/30 cursor-pointer transition-colors ${highlightedRowId === entry.student.id ? '!bg-green-200' : ''}`} onClick={() => openStudent(entry.student.id)}>
-                        <td className={`px-1 py-1.5 text-center sticky border-r border-b border-gray-200 z-30 w-10 text-gray-400 text-[10px] align-middle ${highlightedRowId === entry.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: 0 }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === entry.student.id ? null : entry.student.id); }}>{(page - 1) * 10 + index + 1}</td>
-                        <td className={`px-2 py-1.5 sticky border-r border-b border-gray-200 z-20 w-[110px] text-xs font-mono font-semibold text-sidebar align-middle ${highlightedRowId === entry.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: '40px' }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === entry.student.id ? null : entry.student.id); }}>{entry.student.student_id}</td>
-                        <td className={`px-2 py-1.5 sticky border-r-2 border-b border-border z-20 w-[180px] text-xs font-medium text-sidebar truncate align-middle ${highlightedRowId === entry.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: '150px' }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === entry.student.id ? null : entry.student.id); }}>{entry.student.student_name}</td>
+                        <td className={`sticky-student-number px-1 py-1.5 text-center sticky border-r border-b border-gray-200 z-30 text-gray-400 text-[10px] align-middle ${highlightedRowId === entry.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === entry.student.id ? null : entry.student.id); }}>{(page - 1) * TEACHER_TABLE_PAGE_SIZE + index + 1}</td>
+                        <td className={`sticky-student-id px-2 py-1.5 sticky border-r border-b border-gray-200 z-20 text-xs font-mono font-semibold text-sidebar align-middle ${highlightedRowId === entry.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === entry.student.id ? null : entry.student.id); }}>{entry.student.student_id}</td>
+                        <td className={`sticky-student-name px-2 py-1.5 sticky border-r-2 border-b border-border z-20 text-xs font-medium text-sidebar align-middle ${highlightedRowId === entry.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === entry.student.id ? null : entry.student.id); }}>{entry.student.student_name}</td>
                         {components.map((comp) => {
                           const cd = entry.components[comp.id];
                           if (!cd) return null;
@@ -852,7 +589,7 @@ const BehavioralAnalytics = () => {
                               <td className="px-2 py-1.5 border-r border-b border-gray-200 align-middle w-24 max-w-24 overflow-hidden">
                                 <PerformanceBar pct={cd.performance} />
                               </td>
-                              <td className="px-2 py-1.5 text-center border-r-2 border-b border-gray-300 text-xs font-semibold align-middle w-[55px]">{cd.is_attendance ? '-' : (cd.submissionRate * 100).toFixed(0) + '%'}</td>
+                              <td className="px-2 py-1.5 text-center border-r-2 border-b border-gray-300 text-xs font-semibold align-middle w-[55px]">{(cd.submissionRate * 100).toFixed(0)}%</td>
                             </React.Fragment>
                           );
                         })}
@@ -871,10 +608,10 @@ const BehavioralAnalytics = () => {
         {hasComponents && (
           <Pagination
             currentPage={page}
-            totalPages={Math.ceil((searchQuery ? sortedStudents.filter(s => s.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : sortedStudents.length) / 10)}
+            totalPages={Math.ceil((searchQuery ? sortedStudents.filter(s => s.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : sortedStudents.length) / TEACHER_TABLE_PAGE_SIZE)}
             onPageChange={setPage}
             totalItems={searchQuery ? sortedStudents.filter(s => s.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : sortedStudents.length}
-            rowsPerPage={10}
+            rowsPerPage={TEACHER_TABLE_PAGE_SIZE}
           />
         )}
       </div>
@@ -1080,14 +817,15 @@ const BehavioralAnalytics = () => {
                     ) : (
                       <div className="mt-3 space-y-2">
                         {cd.activities.map((act) => {
-                          const pct = act.activity.max_score ? (act.score / act.activity.max_score) * 100 : 0;
+                          const maxScore = act.activity.is_attendance ? attendanceScores.max_total : act.activity.max_score;
+                          const pct = act.pct * 100;
                           return (
                             <div key={act.activity.id} className="flex items-center gap-3 text-sm">
                               <span className="w-36 shrink-0 font-semibold text-gray-700 truncate">{act.activity.name}</span>
                               <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
                                 <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: pct >= 75 ? '#16a34a' : pct >= 50 ? '#f59e0b' : '#ef4444' }} />
                               </div>
-                              <span className="w-24 shrink-0 text-right font-mono text-gray-600">{act.score} / {act.activity.max_score}</span>
+                              <span className="w-24 shrink-0 text-right font-mono text-gray-600">{act.score} / {maxScore}</span>
                               <span className="w-12 shrink-0 text-right font-bold" style={{ color: pct >= 75 ? '#16a34a' : pct >= 50 ? '#f59e0b' : '#ef4444' }}>{pct.toFixed(0)}%</span>
                             </div>
                           );

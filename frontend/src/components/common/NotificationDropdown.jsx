@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Megaphone } from 'lucide-react';
+import { Bell } from 'lucide-react';
 
 /**
- * Header notification bell (megaphone) with dropdown panel.
+ * Header notification bell with dropdown panel.
  * Matches the app design system (rounded-xl, navy accents, soft shadows).
  *
  * Props:
@@ -36,9 +36,9 @@ const NotificationDropdown = ({ items = [], loading = false }) => {
         type="button"
         onClick={() => setOpen((v) => !v)}
         title="Notifications"
-        className="p-2 rounded-lg text-amber-400 hover:text-amber-500 transition-colors cursor-pointer"
+        className="p-2 rounded-lg text-[#0c1925] hover:text-[#24384b] transition-colors cursor-pointer"
       >
-        <Megaphone size={22} />
+        <Bell size={22} />
       </button>
 
       {open && (
@@ -51,7 +51,7 @@ const NotificationDropdown = ({ items = [], loading = false }) => {
               <p className="px-4 py-6 text-center text-xs text-gray-400">Loading…</p>
             ) : items.length === 0 ? (
               <div className="flex flex-col items-center px-4 py-8 text-center text-gray-500">
-                <Megaphone size={32} className="mb-2 opacity-30" />
+                <Bell size={32} className="mb-2 opacity-30" />
                 <p className="text-xs font-semibold">No notifications yet.</p>
               </div>
             ) : (

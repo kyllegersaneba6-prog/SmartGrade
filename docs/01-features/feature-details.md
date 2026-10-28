@@ -154,10 +154,8 @@ All export work is client-side.
 |---|---|
 | Class Record | `.xlsx`, `.pdf` |
 | Grade Summary | `.xlsx`, `.pdf` (with grade-point legend) |
-| Attendance | `.xlsx` |
-| Behavioral Analytics | `.xlsx`, `.pdf` |
-| Teacher list | `.xlsx` (`SmartGrade_Teachers.xlsx`) |
-| Admin list | `.xlsx` (`SmartGrade_Admins.xlsx`) |
+
+Teacher and admin account tables (Admin → Teachers, Superadmin → Admin Management) no longer have export buttons.
 
 Shared UI: `frontend/src/components/teacher/ExportButtons.jsx` (per-format spinner, disabled while busy).
 

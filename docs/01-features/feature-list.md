@@ -52,8 +52,8 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Grade-point conversion + remarks | Done | 1.00–5.00, Excellent → Failed |
 | Behavioral analytics | Done | Performance, submission rate, attendance, trend |
 | AI student summary | Done | Read-only narrative; AI never computes grades |
-| Excel export | Done | Class record, summary, attendance, analytics, admin/teacher lists |
-| PDF export | Done | Class record, summary, analytics |
+| Excel export | Done | Class record, summary, admin/teacher lists |
+| PDF export | Done | Class record, summary |
 | Non-numeric marks (DRP / P / F) | Planned | Documented in `formula.md`, not implemented |
 
 ## Operations
@@ -67,7 +67,7 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Backup restore (merge / replace / full) | Done | Typed `CONFIRM` / `FULL RESTORE`; restore lock |
 | Configurable API base URL | Done | `VITE_API_BASE_URL` (default `http://<hostname>:5000`); pages pass relative `/api/...` paths |
 | 404 page + catch-all route | Done | `NotFound` page for any unknown URL; links to the role dashboard or login |
-| Student Excel template builder | In Progress | `/admin/bulk-students` exists but is not linked from Manage Sections; header title falls back to "Settings" |
+| Student Excel template builder | In Progress | `/admin/bulk-students` exists but is not linked from Manage Sections; the shared Admin header now labels the direct route "Bulk Student Import" |
 | Broadcast notification | Not Wired | Forms + success banner only; no API call |
 | Student portal / self-service | Planned | |
 | Multi-institution support | Planned | |

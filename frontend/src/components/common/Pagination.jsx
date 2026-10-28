@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const Pagination = ({ currentPage, totalPages, onPageChange, totalItems, rowsPerPage = 15 }) => {
+const Pagination = ({ currentPage, totalPages, onPageChange, totalItems, rowsPerPage = 15, itemLabel = 'students' }) => {
   if (totalPages <= 1) return null;
 
   const startItem = (currentPage - 1) * rowsPerPage + 1;
@@ -28,7 +28,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, totalItems, rowsPer
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-border">
       <span className="text-xs text-gray-500">
-        Showing {startItem}–{endItem} of {totalItems} students
+        Showing {startItem}–{endItem} of {totalItems} {itemLabel}
       </span>
       <div className="flex items-center gap-1">
         <button

@@ -6,6 +6,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
 import ExportButtons from '../../components/teacher/ExportButtons';
+import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
 import { SkeletonHeaderCard, SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
@@ -435,30 +436,22 @@ const GradeSummary = () => {
 
   return (
     <div className="space-y-6">
+      <TeacherPageHeading
+        eyebrow="Student outcomes"
+        title="Grade Summary"
+        description="Review final grades and semester outcomes for your assigned classes."
+        actions={hasAnyData && !dataLoading && <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />}
+      />
       <AssignmentSelector />
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-5 rounded-2xl shadow-sm border border-gray-50 card-hover text-white" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <div className="text-[12px] font-bold text-white uppercase tracking-wider mb-1 font-sans">
-            SmartGrade — Grade Summary
-          </div>
-          <span className="text-sm font-bold text-amber-400">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
-        </div>
-        {dataLoading && <Loader size={18} className="animate-spin text-white/40" />}
-        {hasAnyData && !dataLoading && (
-          <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
-        )}
-      </div>
 
-      <div className="mb-2 px-1 flex items-center justify-between">
-        <span className="text-sm font-bold text-gray-700">{currentAssignment?.subjects?.name} — {currentAssignment?.sections?.name}</span>
+      <div className="mb-2 px-1 flex items-center justify-end">
         <div className="relative">
           <input
             type="text"
             placeholder="Search by name or ID..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
+            className="w-56 pl-9 pr-8 py-2 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           {searchQuery && (
@@ -480,11 +473,11 @@ const GradeSummary = () => {
             <p className="text-xs mt-1">Set up components and scores in Class Record first.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto w-full pb-4" style={{ scrollbarWidth: 'auto' }}>
-            <table className="min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+          <div className="table-scroll w-full rounded-lg" style={{ scrollbarWidth: 'auto' }}>
+            <table className="sticky-cols sticky-cols-compact min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
-                  <th colSpan={3} className="bg-sidebar border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[280px] sticky left-0 z-20" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+                  <th colSpan={3} className="sticky-student-header bg-sidebar border-b-2 border-r-2 border-border p-3 text-white text-left font-bold sticky left-0 z-20" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
                     <div className="flex justify-between items-center">
                       <span>STUDENT INFORMATION</span>
                       <span className="text-[10px] text-gray-300">{searchQuery ? `${studentRows.filter(r => r.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || r.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
@@ -498,9 +491,9 @@ const GradeSummary = () => {
                   <th className="bg-amber-400 border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-sm uppercase tracking-wider relative z-0" colSpan={3}>SEMESTRAL GRADE</th>
                 </tr>
                 <tr className="bg-gray-50 border-b border-border text-center font-semibold text-sidebar">
-                  <th className="px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20 w-10" style={{ left: 0 }}>#</th>
-                  <th className="px-3 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20 w-[110px]" style={{ left: '40px' }}>Stud ID</th>
-                  <th className="px-4 py-2.5 text-left sticky bg-gray-50 border-r-2 border-border z-20 w-[180px]" style={{ left: '150px' }}>Student Name</th>
+                  <th className="sticky-student-number px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20">#</th>
+                  <th className="sticky-student-id px-3 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20">Stud ID</th>
+                  <th className="sticky-student-name px-4 py-2.5 text-left sticky bg-gray-50 border-r-2 border-border z-20">Student Name</th>
                   {TERMS.map(term => (
                     <React.Fragment key={term}>
                       <th className="px-3 py-2.5 border-r border-gray-200 bg-gray-100/50 w-24 relative z-0">Grade</th>
@@ -536,9 +529,9 @@ const GradeSummary = () => {
                   ) : (
                     paginatedRows.map((row, index) => (
                     <tr key={row.student.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50/30 transition-colors ${highlightedRowId === row.student.id ? '!bg-green-200' : ''}`}>
-                       <td className={`px-1 py-1.5 text-center sticky border-r border-b border-gray-200 z-30 w-10 text-gray-400 text-[10px] align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: 0 }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{(page - 1) * 10 + index + 1}</td>
-                      <td className={`px-2 py-1.5 sticky border-r border-b border-gray-200 z-20 w-[110px] text-xs font-mono font-semibold text-sidebar align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: '40px' }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{row.student.student_id}</td>
-                      <td className={`px-2 py-1.5 sticky border-r-2 border-b border-border z-20 w-[180px] text-xs font-medium text-sidebar truncate align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} style={{ left: '150px' }} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{row.student.student_name}</td>
+                       <td className={`sticky-student-number px-1 py-1.5 text-center sticky border-r border-b border-gray-200 z-30 text-gray-400 text-[10px] align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{(page - 1) * 10 + index + 1}</td>
+                      <td className={`sticky-student-id px-2 py-1.5 sticky border-r border-b border-gray-200 z-20 text-xs font-mono font-semibold text-sidebar align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{row.student.student_id}</td>
+                      <td className={`sticky-student-name px-2 py-1.5 sticky border-r-2 border-b border-border z-20 text-xs font-medium text-sidebar align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{row.student.student_name}</td>
                       {TERMS.map(term => {
                         const cell = row[term];
                         return (

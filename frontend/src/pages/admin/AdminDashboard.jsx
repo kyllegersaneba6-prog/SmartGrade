@@ -4,6 +4,7 @@ import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
 import { splitUpdateDescription, isSentenceDescription } from '../../utils/auditText';
 import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../components/common/Skeleton';
+import AdminPageHeading from '../../components/admin/AdminPageHeading';
 
 const AdminDashboard = () => {
   const { currentTerm, isArchiveMode } = useAdmin();
@@ -94,15 +95,12 @@ const AdminDashboard = () => {
   const activityLogToDisplay = filteredActivities;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pt-0">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Welcome, {JSON.parse(localStorage.getItem('user') || '{}')?.full_name || 'Admin'}</h1>
-          <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>
-            Manage departments, Teachers, and monitor activity logs.
-          </p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-7xl space-y-6">
+      <AdminPageHeading
+        eyebrow="Dashboard"
+        title={`Welcome, ${JSON.parse(localStorage.getItem('user') || '{}')?.full_name || 'Admin'}`}
+        description="Manage departments, teachers, and monitor activity logs."
+      />
 
       
 
@@ -111,7 +109,7 @@ const AdminDashboard = () => {
           <div className="md:col-span-3" aria-busy="true"><SkeletonMetricCards count={3} /></div>
         ) : (
         <>
-        <div className="bg-gray-50 p-5 rounded-2xl shadow-sm card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Total Teachers</span>
             <div className="text-3xl font-extrabold text-[#142a3f]">{teachers.length}</div>
@@ -120,7 +118,7 @@ const AdminDashboard = () => {
           <div className="p-3.5 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#142a3f15', color: '#142a3f' }}><UsersRound size={24} /></div>
         </div>
 
-        <div className="bg-gray-50 p-5 rounded-2xl shadow-sm card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Courses</span>
             <div className="text-3xl font-extrabold text-[#142a3f]">{coursesCount}</div>
@@ -129,7 +127,7 @@ const AdminDashboard = () => {
           <div className="p-3.5 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#142a3f15', color: '#142a3f' }}><GraduationCap size={24} /></div>
         </div>
 
-        <div className="bg-gray-50 p-5 rounded-2xl shadow-sm card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Activity</span>
             <div className="text-3xl font-extrabold text-[#142a3f]">{activityLog.length}</div>
@@ -149,7 +147,7 @@ const AdminDashboard = () => {
           </>
         ) : (
         <>
-        <div className="lg:col-span-4 rounded-xl p-5 shadow-sm self-start border border-gray-50 card-hover" style={{ background: '#fff' }}>
+        <div className="lg:col-span-4 rounded-2xl p-5 shadow-sm self-start border border-gray-200 card-hover bg-white">
           <h2 className="text-base font-bold mb-4" style={{ color: '#0c1925' }}>Teacher Overview</h2>
           {teachers.length === 0 ? (
             <p className="text-sm text-gray-500 italic py-6 text-center">No teachers registered yet.</p>
@@ -157,14 +155,14 @@ const AdminDashboard = () => {
             <div className="max-h-[380px] overflow-y-auto pr-1">
               <table className="w-full text-xs min-w-[300px]">
                 <thead>
-                  <tr className="border-b sticky top-0 bg-white z-10" style={{ borderColor: '#f0ede6' }}>
+                  <tr className="border-b sticky top-0 bg-gray-50 z-10" style={{ borderColor: '#e5e7eb' }}>
                     <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Name</th>
                     <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Subjects Assigned</th>
                   </tr>
                 </thead>
                 <tbody>
                   {teachers.map((t) => (
-                    <tr key={t.id} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
+                    <tr key={t.id} className="border-b last:border-0 hover:bg-gray-50" style={{ borderColor: '#e5e7eb' }}>
                       <td className="py-3 pr-3 font-bold text-gray-900">{t.full_name}</td>
                       <td className="py-3 pr-3">
                         <span
@@ -182,7 +180,7 @@ const AdminDashboard = () => {
           {teachers.length > 0 && <p className="text-xs text-gray-400 mt-3">Total: {teachers.length} teachers</p>}
         </div>
 
-        <div className="lg:col-span-8 rounded-xl p-5 shadow-sm border border-gray-50 card-hover" style={{ background: '#fff' }}>
+        <div className="lg:col-span-8 rounded-2xl p-5 shadow-sm border border-gray-200 card-hover bg-white">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Recent Activities</h2>
             <div className="relative">
@@ -243,7 +241,7 @@ const AdminDashboard = () => {
                 const bg = isCreate || isSuccess ? '#f0fdf4' : isDelete || isFailed ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
 
                 return (
-                  <div key={log.id} className="flex gap-3 p-3 rounded-lg border border-gray-50 card-hover shadow-sm hover:shadow-md transition-all duration-100">
+                  <div key={log.id} className="flex gap-3 p-3 rounded-xl border border-gray-200 card-hover shadow-sm hover:shadow-md transition-all duration-100">
                     <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: bg }}><Icon size={14} style={{ color: iconColor }} /></div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1">

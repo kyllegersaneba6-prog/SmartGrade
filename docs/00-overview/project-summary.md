@@ -60,7 +60,7 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 **Data & operations**
 - Activity/audit logging, role-scoped (superadmin all; admin department-only; teacher empty)
 - Backup/restore (`.backup.sg`), checksummed, optional AES-256-GCM encryption, merge/replace/full modes
-- Excel and PDF export for class records, summaries, attendance, analytics, and account lists
+- Excel and PDF export for class records, summaries, and account lists
 
 ## Current Status
 

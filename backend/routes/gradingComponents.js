@@ -139,7 +139,7 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
       .single();
     if (error) {
       if (error.code === '23505') return res.status(400).json({ message: 'A component with this name already exists for this term.' });
-      if (error.code === '23514') return res.status(400).json({ message: 'Weight must be between 0 and 100, and the term total cannot exceed 100%.' });
+      if (error.code === '23514') return res.status(400).json({ message: error.message?.includes('Attendance can only be used once') ? error.message : 'Weight must be between 0 and 100, and the term total cannot exceed 100%.' });
       return sendServerError(res, error);
     }
     res.status(201).json(data);

@@ -1,21 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ArrowLeft, FileSpreadsheet, Percent, HelpCircle, Plus, Trash2, Loader, GripVertical } from 'lucide-react';
+import { FileSpreadsheet, Plus, Trash2, Loader, Pencil, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
 import ExportButtons from '../../components/teacher/ExportButtons';
+import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
 import { SkeletonHeaderCard, SkeletonList, SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
 import { buildTeacherFilename, TEACHER_TERM_TOKENS } from '../../utils/exportFilenames';
-import { exportTablePdf } from '../../utils/exportPdf';
+import { exportClassRecordExcel, exportClassRecordPdf } from '../../utils/classRecordExport';
+import { TEACHER_TABLE_PAGE_SIZE } from '../../utils/teacherTable';
 
 const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
-
-// Standard grading-component names offered in the name dropdown. Anything else
-// is treated as a custom name and shown as a free-text input.
-const COMPONENT_NAME_PRESETS = ['Class Standing', 'Performance Task', 'Exam'];
 
 const COMPONENT_COLORS = [
   { bg: '#0f172a', border: '#0f172a', light: '#eef2f6', headerBg: '#0f172a', headerBorder: '#0f172a' },
@@ -25,6 +22,7 @@ const COMPONENT_COLORS = [
   { bg: '#0f172a', border: '#0f172a', light: '#eef2f6', headerBg: '#0f172a', headerBorder: '#0f172a' },
   { bg: '#0f172a', border: '#0f172a', light: '#eef2f6', headerBg: '#0f172a', headerBorder: '#0f172a' },
 ];
+const getColor = (idx) => COMPONENT_COLORS[idx % COMPONENT_COLORS.length];
 
 const ClassRecord = () => {
   const navigate = useNavigate();
@@ -49,13 +47,14 @@ const ClassRecord = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [addCompOpen, setAddCompOpen] = useState(false);
-  const [addingComp, setAddingComp] = useState(null);
-  const [addingActivityId, setAddingActivityId] = useState(null);
-  const [customNameIds, setCustomNameIds] = useState({});
+  const [componentModal, setComponentModal] = useState(null);
+  const [componentDraft, setComponentDraft] = useState({ name: '', weight: '', is_attendance: false, activities: [] });
+  const [showSubcomponentChoices, setShowSubcomponentChoices] = useState(false);
+  const [savingComponent, setSavingComponent] = useState(false);
   const [copyingPrelims, setCopyingPrelims] = useState(false);
   const [error, setError] = useState('');
   const [clampWarnings, setClampWarnings] = useState({});
+  const [scoreDrafts, setScoreDrafts] = useState({});
   const [deleteModal, setDeleteModal] = useState(null);
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -65,62 +64,89 @@ const ClassRecord = () => {
   const [exporting, setExporting] = useState(null);
   const [exportError, setExportError] = useState('');
   const inputRefs = useRef({});
-  const focusCompIdRef = useRef(null);
+  const studentFetchControllerRef = useRef(null);
+  const gradeFetchControllerRef = useRef(null);
+  const gradeFetchRequestRef = useRef(0);
 
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (addCompOpen && !e.target.closest('.add-comp-popup')) setAddCompOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [addCompOpen]);
+  useEffect(() => { setPage(1); }, [selectedAssignment, selectedTerm]);
 
-  // Fetch students when assignment changes
+  // Load students for the selected section and cancel stale assignment requests.
   useEffect(() => {
-    if (!currentAssignment) return;
+    const sectionId = currentAssignment?.section_id;
+    studentFetchControllerRef.current?.abort();
+    const controller = new AbortController();
+    studentFetchControllerRef.current = controller;
+    if (!sectionId) {
+      setStudents([]);
+      return () => controller.abort();
+    }
+    setStudents([]);
+
     const fetchStudents = async () => {
       try {
-        const res = await api(`/api/sections/${currentAssignment.section_id}/students`);
+        const res = await api(`/api/sections/${sectionId}/students`, { signal: controller.signal });
         if (res.ok) setStudents(await res.json());
-      } catch (err) { console.error(err); }
+      } catch (err) {
+        if (err.name !== 'AbortError') console.error(err);
+      }
     };
     fetchStudents();
-  }, [currentAssignment]);
+    return () => controller.abort();
+  }, [currentAssignment?.section_id]);
 
-  // Fetch components + scores when assignment or term changes
+  // Fetch independent grade datasets together and ignore responses for a term
+  // or assignment that is no longer selected.
   const fetchGradeData = useCallback(async () => {
-    if (!selectedAssignment) return;
+    gradeFetchControllerRef.current?.abort();
+    const controller = new AbortController();
+    gradeFetchControllerRef.current = controller;
+    const requestId = ++gradeFetchRequestRef.current;
+    if (!selectedAssignment) {
+      setComponents([]);
+      setScores({});
+      setAttendanceScores({ max_total: 0, scores: {} });
+      setDataLoading(false);
+      return;
+    }
+    setComponents([]);
+    setScores({});
+    setAttendanceScores({ max_total: 0, scores: {} });
     setDataLoading(true);
     try {
-      const compRes = await api(`/api/grading-components?assignment_id=${selectedAssignment}&term=${selectedTerm}`);
-      let comps = [];
-      if (compRes.ok) {
-        comps = await compRes.json();
-        setComponents(comps);
-      }
-
-      const scoresRes = await api(`/api/component-scores?assignment_id=${selectedAssignment}&term=${selectedTerm}`);
-      if (scoresRes.ok) {
-        const scoreList = await scoresRes.json();
-        const scoreMap = {};
-        scoreList.forEach(s => {
-          if (!scoreMap[s.activity_id]) scoreMap[s.activity_id] = {};
-          scoreMap[s.activity_id][s.student_id] = s.score;
-        });
-        setScores(scoreMap);
-      }
-
-      const attRes = await api(`/api/attendance/computed-scores?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`);
-      if (attRes.ok) {
-        setAttendanceScores(await attRes.json());
-      } else {
-        setAttendanceScores({ max_total: 0, scores: {} });
-      }
-    } catch (err) { console.error(err); }
-    finally { setDataLoading(false); }
+      const [compRes, scoresRes, attRes] = await Promise.all([
+        api(`/api/grading-components?assignment_id=${selectedAssignment}&term=${selectedTerm}`, { signal: controller.signal }),
+        api(`/api/component-scores?assignment_id=${selectedAssignment}&term=${selectedTerm}`, { signal: controller.signal }),
+        api(`/api/attendance/computed-scores?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`, { signal: controller.signal }),
+      ]);
+      const [comps, scoreList, attendance] = await Promise.all([
+        compRes.ok ? compRes.json() : Promise.resolve([]),
+        scoresRes.ok ? scoresRes.json() : Promise.resolve([]),
+        attRes.ok ? attRes.json() : Promise.resolve({ max_total: 0, scores: {} }),
+      ]);
+      if (requestId !== gradeFetchRequestRef.current) return;
+      const scoreMap = {};
+      scoreList.forEach((score) => {
+        if (!scoreMap[score.activity_id]) scoreMap[score.activity_id] = {};
+        scoreMap[score.activity_id][score.student_id] = score.score;
+      });
+      setComponents(comps);
+      setScores(scoreMap);
+      setAttendanceScores(attendance);
+    } catch (err) {
+      if (err.name !== 'AbortError' && requestId === gradeFetchRequestRef.current) console.error(err);
+    } finally {
+      if (requestId === gradeFetchRequestRef.current) setDataLoading(false);
+    }
   }, [selectedAssignment, selectedTerm]);
 
-  useEffect(() => { fetchGradeData(); setError(''); }, [fetchGradeData]);
+  useEffect(() => {
+    fetchGradeData();
+    setError('');
+    return () => {
+      gradeFetchRequestRef.current += 1;
+      gradeFetchControllerRef.current?.abort();
+    };
+  }, [fetchGradeData]);
 
   useEffect(() => {
     const handler = async () => {
@@ -180,43 +206,109 @@ const ClassRecord = () => {
     scheduleScoreSave(updated);
   };
 
-  // Add component
-  const addComponent = async (isAttendance) => {
-    if (!selectedAssignment || totalWeight === 100) return;
-    if (isAttendance && hasAttendance) return;
-    if (addingComp) return;
-    const kind = isAttendance ? 'attendance' : 'regular';
-    setAddingComp(kind);
+  const openAddComponent = () => {
+    setError('');
+    setShowSubcomponentChoices(false);
+    setComponentDraft({ name: '', weight: '', is_attendance: false, activities: [] });
+    setComponentModal({ mode: 'add' });
+  };
+
+  const openEditComponent = (comp) => {
+    setError('');
+    setShowSubcomponentChoices(false);
+    setComponentDraft({
+      name: comp.is_attendance ? 'Attendance' : (comp.name || ''),
+      weight: String(comp.weight ?? ''),
+      is_attendance: !!comp.is_attendance,
+      activities: (comp.activities || []).map((activity) => ({
+        id: activity.id,
+        name: activity.name || '',
+        max_score: String(activity.max_score ?? ''),
+        is_attendance: !!activity.is_attendance,
+      })),
+    });
+    setComponentModal({ mode: 'edit', componentId: comp.id });
+  };
+
+  const saveComponentModal = async (e) => {
+    e.preventDefault();
+    if (!selectedAssignment || savingComponent) return;
+    const name = componentDraft.is_attendance ? 'Attendance' : componentDraft.name.trim();
+    const weight = Number(componentDraft.weight);
+    const existing = componentModal.mode === 'edit'
+      ? components.find((comp) => comp.id === componentModal.componentId)
+      : null;
+    const weightAvailable = 100 - components.reduce((sum, comp) => sum + (comp.id === existing?.id ? 0 : Number(comp.weight || 0)), 0);
+    if (!name) return setError('Enter a component name.');
+    if (!Number.isFinite(weight) || weight <= 0 || weight > weightAvailable) {
+      return setError(`Weight must be greater than 0 and no more than ${weightAvailable}%.`);
+    }
+    if (components.some((comp) => comp.id !== existing?.id && comp.name?.toLowerCase() === name.toLowerCase())) {
+      return setError('A component with this name already exists for this term.');
+    }
+    if (!componentDraft.is_attendance && componentDraft.activities.some((activity) =>
+      !activity.is_attendance && (!activity.name.trim() || !Number.isFinite(Number(activity.max_score)) || Number(activity.max_score) <= 0)
+    )) return setError('Each activity needs a name and a maximum score greater than 0.');
+    const draftAttendanceCount = componentDraft.activities.filter((activity) => activity.is_attendance).length;
+    const otherAttendanceCount = components.reduce((count, component) => {
+      if (component.id === existing?.id) return count;
+      if (component.is_attendance) return count + 1;
+      return count + (component.activities || []).filter((activity) => activity.is_attendance).length;
+    }, 0);
+    if (draftAttendanceCount > 1 || (draftAttendanceCount > 0 && otherAttendanceCount > 0) || (componentDraft.is_attendance && otherAttendanceCount > 0)) {
+      return setError('Attendance can only be used once per assignment and term, either as a main component or a subcomponent.');
+    }
+
+    setSavingComponent(true);
+    setError('');
     try {
-      const res = await api('/api/grading-components', {
-        method: 'POST',
-        body: JSON.stringify({
-          teacher_assignment_id: selectedAssignment,
-          term: selectedTerm,
-          name: isAttendance ? 'Attendance' : 'Assessment',
-          weight: 0,
-          is_attendance: isAttendance || false
-        })
-      });
-      if (res.ok) {
-        const comp = await res.json();
-        comp.activities = [];
-        if (!isAttendance) comp.name = '';
-        setComponents(prev => [...prev, comp]);
-        setError('');
-        setAddCompOpen(false);
-        if (!isAttendance) focusCompIdRef.current = comp.id;
+      let componentId = existing?.id;
+      if (existing) {
+        const res = await api(`/api/grading-components/${existing.id}`, {
+          method: 'PUT', body: JSON.stringify({ name, weight }),
+        });
+        if (!res.ok) throw new Error((await res.json().catch(() => null))?.message || 'Could not save component.');
       } else {
-        const data = await res.json().catch(() => null);
-        setError(data?.message || 'Failed to add component. Please try again.');
-        setTimeout(() => setError(''), 4000);
+        const res = await api('/api/grading-components', {
+          method: 'POST',
+          body: JSON.stringify({ teacher_assignment_id: selectedAssignment, term: selectedTerm, name, weight, is_attendance: componentDraft.is_attendance }),
+        });
+        if (!res.ok) throw new Error((await res.json().catch(() => null))?.message || 'Could not add component.');
+        componentId = (await res.json()).id;
+        setComponentModal({ mode: 'edit', componentId });
       }
+
+      if (!componentDraft.is_attendance) {
+        const originalActivities = existing?.activities || [];
+        const draftIds = new Set(componentDraft.activities.filter((activity) => activity.id).map((activity) => activity.id));
+        for (const activity of originalActivities) {
+          if (!draftIds.has(activity.id)) {
+            const res = await api(`/api/component-activities/${activity.id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error((await res.json().catch(() => null))?.message || 'Could not delete subcomponent.');
+          }
+        }
+        for (const activity of componentDraft.activities) {
+          const payload = activity.is_attendance
+            ? { name: 'Attendance', max_score: 1, is_attendance: true }
+            : { name: activity.name.trim(), max_score: Number(activity.max_score), is_attendance: false };
+          const res = activity.id
+            ? await api(`/api/component-activities/${activity.id}`, { method: 'PUT', body: JSON.stringify(payload) })
+            : await api('/api/component-activities', { method: 'POST', body: JSON.stringify({ component_id: componentId, ...payload }) });
+          if (!res.ok) throw new Error((await res.json().catch(() => null))?.message || 'Could not save a subcomponent.');
+          if (!activity.id) {
+            const created = await res.json();
+            activity.id = created.id;
+            setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item) => item.key === activity.key ? { ...item, id: created.id } : item) }));
+          }
+        }
+      }
+      setComponentModal(null);
+      await fetchGradeData();
     } catch (err) {
-      console.error(err);
-      setError('Network error. Please try again.');
-      setTimeout(() => setError(''), 4000);
+      setError(err.message || 'Network error. Please try again.');
+      await fetchGradeData();
     } finally {
-      setAddingComp(null);
+      setSavingComponent(false);
     }
   };
 
@@ -241,53 +333,6 @@ const ClassRecord = () => {
     finally { setCopyingPrelims(false); }
   };
 
-  // Update component
-  // Merge ONLY the fields that were sent — never the full server echo — so one
-  // field's save can never overwrite another field's unsaved local edits.
-  const updateComponent = async (id, updates) => {
-    try {
-      const res = await api(`/api/grading-components/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(updates)
-      });
-      if (res.ok) {
-        setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-      } else {
-        const data = await res.json().catch(() => null);
-        setError(data?.message || 'Failed to save component. Please try again.');
-        setTimeout(() => setError(''), 4000);
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Network error. Changes may not have been saved.');
-      setTimeout(() => setError(''), 4000);
-    }
-  };
-
-  // Set a standard name from the dropdown and persist it immediately.
-  const applyComponentPreset = (comp, name) => {
-    setComponents(prev => prev.map(c => c.id === comp.id ? { ...c, name } : c));
-    updateComponent(comp.id, { name });
-  };
-
-  // "+ Add" turns the dropdown into a free-text input so a custom name can be
-  // typed. The input's ref callback focuses and selects the existing text.
-  const enableCustomComponentName = (comp) => {
-    setCustomNameIds(prev => ({ ...prev, [comp.id]: true }));
-    focusCompIdRef.current = comp.id;
-  };
-
-  // Back arrow in custom mode returns the field to the preset dropdown. The
-  // typed name is kept and shown as a selectable option.
-  const exitCustomComponentName = (comp) => {
-    setCustomNameIds(prev => {
-      const next = { ...prev };
-      delete next[comp.id];
-      return next;
-    });
-    focusCompIdRef.current = comp.id;
-  };
-
   // Delete component
   const deleteComponent = async (id) => {
     try {
@@ -298,7 +343,7 @@ const ClassRecord = () => {
           const comp = components.find(c => c.id === id);
           if (comp) {
             const next = { ...prev };
-            comp.activities.forEach(a => delete next[a.id]);
+            (comp.activities || []).forEach(a => delete next[a.id]);
             return next;
           }
           return prev;
@@ -317,84 +362,11 @@ const ClassRecord = () => {
     }
   };
 
-  // Add activity
-  const addActivity = async (componentId) => {
-    if (addingActivityId) return;
-    const parent = components.find(c => c.id === componentId);
-    if (!parent || !isTableReady(parent)) return;
-    setAddingActivityId(componentId);
-    const autoName = 'Activity';
-    try {
-      const res = await api('/api/component-activities', {
-        method: 'POST',
-        body: JSON.stringify({ component_id: componentId, name: autoName || 'Activity', max_score: 100 })
-      });
-      if (res.ok) {
-        const act = await res.json();
-        // Force 'Activity' placeholder behavior regardless of component name
-        const cleanAct = { ...act, name: '', max_score: 0 };
-        setComponents(prev => prev.map(c =>
-          c.id === componentId ? { ...c, activities: [...(c.activities || []), cleanAct] } : c
-        ));
-        setError('');
-      } else {
-        const data = await res.json().catch(() => null);
-        setError(data?.message || 'Failed to add activity. Please try again.');
-        setTimeout(() => setError(''), 4000);
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Network error. Please try again.');
-      setTimeout(() => setError(''), 4000);
-    } finally {
-      setAddingActivityId(null);
-    }
-  };
-
-  // Update activity
-  const updateActivity = async (id, updates) => {
-    try {
-      const res = await api(`/api/component-activities/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(updates)
-      });
-    } catch (err) { console.error(err); }
-  };
-
-  // Delete activity
-  const deleteActivity = async (componentId, activityId) => {
-    try {
-      const res = await api(`/api/component-activities/${activityId}`, { method: 'DELETE' });
-      if (res.ok) {
-        setComponents(prev => prev.map(c =>
-          c.id === componentId ? { ...c, activities: c.activities.filter(a => a.id !== activityId) } : c
-        ));
-        setScores(prev => {
-          const next = { ...prev };
-          delete next[activityId];
-          return next;
-        });
-        return true;
-      }
-      const data = await res.json().catch(() => null);
-      setError(data?.message || 'Failed to delete activity. Please try again.');
-      setTimeout(() => setError(''), 4000);
-      return false;
-    } catch (err) {
-      console.error(err);
-      setError('Network error. Please try again.');
-      setTimeout(() => setError(''), 4000);
-      return false;
-    }
-  };
-
   const handleConfirmDelete = async () => {
     if (!deleteModal || deleting || confirmText !== 'Confirm') return;
     setDeleting(true);
     try {
-      const ok = deleteModal.type === 'component'
-        ? await deleteComponent(deleteModal.id)
-        : await deleteActivity(deleteModal.componentId, deleteModal.id);
+      const ok = await deleteComponent(deleteModal.id);
       if (ok) {
         setDeleteModal(null);
         setConfirmText('');
@@ -464,7 +436,9 @@ const ClassRecord = () => {
     const activities = comp.activities || [];
     let sum = 0;
     activities.forEach(a => {
-      const val = parseFloat(scores[a.id]?.[studentId]);
+      const val = a.is_attendance
+        ? parseFloat(attendanceScores.scores[studentId] ?? 0)
+        : parseFloat(scores[a.id]?.[studentId]);
       if (!isNaN(val)) sum += val;
     });
     return sum;
@@ -476,7 +450,11 @@ const ClassRecord = () => {
     }
     const activities = comp.activities || [];
     let sum = 0;
-    activities.forEach(a => sum += parseFloat(a.max_score || 0));
+    activities.forEach(a => {
+      sum += a.is_attendance
+        ? parseFloat(attendanceScores.max_total || 0)
+        : parseFloat(a.max_score || 0);
+    });
     return sum;
   };
 
@@ -503,26 +481,21 @@ const ClassRecord = () => {
   };
 
   const totalWeight = components.reduce((sum, c) => sum + parseFloat(c.weight || 0), 0);
-  const hasAttendance = components.some(c => c.is_attendance);
+  const hasAttendance = components.some(c => c.is_attendance || (c.activities || []).some(activity => activity.is_attendance));
 
-  // Table-ready = has a Title/Name AND a Percentage (weight > 0). Attendance is
-  // auto-created with a fixed name, so it is exempt from the name rule and
-  // appears in the table automatically once its percentage is set.
-  const isTableReady = (c) => c?.is_attendance
-    ? parseFloat(c?.weight) > 0
-    : (String(c?.name || '').trim() !== '' && parseFloat(c?.weight) > 0);
-  const tableComponents = useMemo(() => components.filter(isTableReady), [components]);
+  // Keep incomplete legacy entries in the table so teachers can still edit them.
+  const tableComponents = useMemo(() => components, [components]);
 
   // Score-ready = activity has a name AND a max score above zero. Score cells
   // stay locked until both are set, so blank activities can't collect scores.
   const isActivityReady = (act) => String(act?.name || '').trim() !== '' && parseFloat(act?.max_score) > 0;
-  const hasUnreadyActivity = tableComponents.some((comp) => !comp.is_attendance && (comp.activities || []).some((a) => !isActivityReady(a)));
+  const hasUnreadyActivity = tableComponents.some((comp) => !comp.is_attendance && (comp.activities || []).some((a) => !a.is_attendance && !isActivityReady(a)));
 
   const visibleActivityIds = useMemo(() => {
     const ids = [];
     components.forEach(comp => {
       if (!comp.is_attendance && comp.activities) {
-        comp.activities.forEach(act => { if (isActivityReady(act)) ids.push(act.id); });
+        comp.activities.forEach(act => { if (!act.is_attendance && isActivityReady(act)) ids.push(act.id); });
       }
     });
     return ids;
@@ -564,303 +537,21 @@ const ClassRecord = () => {
   components.forEach(c => { if (c.activities) activityCount += c.activities.length; });
   const colCount = 3 + (activityCount > 0 || hasAttendance ? components.length * 3 + activityCount : 0) + 1;
 
-  // Color for each component
-  const getColor = (idx) => COMPONENT_COLORS[idx % COMPONENT_COLORS.length];
+  const getExportFilename = (ext) => buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'classrecord', ext });
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!currentAssignment || components.length === 0) return;
-
-    const visibleComponents = components.filter(c => c.is_attendance || c.activities?.length > 0);
-
-    // Build sub-header row
-    const subHeader = ['Stud No.', 'Student Name'];
-    visibleComponents.forEach(c => {
-      if (c.is_attendance) {
-        subHeader.push('TOTAL', 'EQUIV', 'W_TOTAL');
-      } else {
-        (c.activities || []).forEach(a => subHeader.push(a.name));
-        subHeader.push('TOTAL', 'EQUIV', 'W_TOTAL');
-      }
-    });
-    subHeader.push(`${selectedTerm} GRADE`);
-
-    // Build MAX SCORE row
-    const maxRow = ['MAX SCORE', ''];
-    visibleComponents.forEach(c => {
-      const maxTotal = getComponentMaxTotal(c);
-      if (c.is_attendance) {
-        maxRow.push(maxTotal, '100.00', ((100 * c.weight) / 100).toFixed(2));
-      } else {
-        (c.activities || []).forEach(a => maxRow.push(a.max_score || 0));
-        maxRow.push(maxTotal, '100.00', ((100 * c.weight) / 100).toFixed(2));
-      }
-    });
-    maxRow.push('100.00');
-
-    // Build data rows
-    const dataRows = students.map((student) => {
-      const row = [student.student_id, student.student_name];
-      visibleComponents.forEach(c => {
-        if (c.is_attendance) {
-          const total = getComponentTotal(student.id, c);
-          const equiv = getComponentEquiv(student.id, c);
-          const weighted = getComponentWeighted(student.id, c);
-          row.push(total, equiv.toFixed(2), weighted.toFixed(2));
-        } else {
-          (c.activities || []).forEach(a => {
-            row.push(scores[a.id]?.[student.id] ?? 0);
-          });
-          const total = getComponentTotal(student.id, c);
-          const equiv = getComponentEquiv(student.id, c);
-          const weighted = getComponentWeighted(student.id, c);
-          row.push(total, equiv.toFixed(2), weighted.toFixed(2));
-        }
-      });
-      row.push(getFinalGrade(student.id).toFixed(2));
-      return row;
-    });
-
-    // Title row
-    const titleRow = Array(subHeader.length).fill('');
-    titleRow[0] = `${currentAssignment.subjects?.code || ''} ${currentAssignment.subjects?.name}`.trim();
-    titleRow[1] = `Section: ${currentAssignment.sections?.name}`;
-    titleRow[2] = `Term: ${selectedTerm}`;
-
-    // Main header row (component names)
-    const mainHeader = Array(subHeader.length).fill('');
-    mainHeader[0] = 'STUDENT INFORMATION';
-    let colIdx = 2;
-    visibleComponents.forEach((c, i) => {
-      if (c.is_attendance) {
-        mainHeader[colIdx] = `${c.name} (${c.weight}%)`;
-      } else {
-        const actCount = (c.activities || []).length;
-        mainHeader[colIdx] = `${c.name} (${c.weight}%)`;
-      }
-      // advance colIdx past the component's columns
-      if (c.is_attendance) {
-        colIdx += 3;
-      } else {
-        colIdx += (c.activities || []).length + 3;
-      }
-    });
-    const finalCol = subHeader.length - 1;
-    mainHeader[finalCol] = `${selectedTerm} GRADE`;
-
-    const allRows = [titleRow, mainHeader, subHeader, maxRow, ...dataRows];
-    const worksheet = XLSX.utils.aoa_to_sheet(allRows);
-
-    const rowCount = allRows.length;
-
-    // Column widths
-    const colWidths = [
-      { wch: 14 },  // Stud No.
-      { wch: 28 },  // Student Name
-    ];
-    visibleComponents.forEach(c => {
-      if (c.is_attendance) {
-        colWidths.push({ wch: 10 }, { wch: 10 }, { wch: 10 });
-      } else {
-        (c.activities || []).forEach(() => colWidths.push({ wch: 8 }));
-        colWidths.push({ wch: 10 }, { wch: 10 }, { wch: 10 });
-      }
-    });
-    colWidths.push({ wch: 12 });
-    worksheet['!cols'] = colWidths;
-
-    // Colors
-    const WHITE = 'FFFFFF';
-    const GRAY_50 = 'F9FAFB';
-    const BORDER = 'E5E7EB';
-    const SIDEBAR = '1B1B2F';
-    const FINAL_GREEN = 'EAB308';
-    const GREEN_700 = '15803D';
-    const RED_600 = 'DC2626';
-
-    const thinBorder = { top: { style: 'thin', color: { rgb: BORDER } }, bottom: { style: 'thin', color: { rgb: BORDER } }, left: { style: 'thin', color: { rgb: BORDER } }, right: { style: 'thin', color: { rgb: BORDER } } };
-    const thickerRight = { ...thinBorder, right: { style: 'medium', color: { rgb: BORDER } } };
-
-    const applyStyle = (cell, style) => { if (cell) cell.s = style; };
-
-    // Row 0: title
-    const titleStyle = { fill: { fgColor: { rgb: SIDEBAR } }, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 13 }, alignment: { horizontal: 'center', vertical: 'center' } };
-    for (let c = 0; c < subHeader.length; c++) applyStyle(worksheet[XLSX.utils.encode_cell({ r: 0, c })], titleStyle);
-
-    // Row 1: main header
-    const mainHdrStyle = (bg) => ({ fill: { fgColor: { rgb: bg } }, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder });
-
-    // Student info part of main header
-    applyStyle(worksheet[XLSX.utils.encode_cell({ r: 1, c: 0 })], mainHdrStyle(SIDEBAR));
-    applyStyle(worksheet[XLSX.utils.encode_cell({ r: 1, c: 1 })], mainHdrStyle(SIDEBAR));
-    colIdx = 2;
-    visibleComponents.forEach((c, i) => {
-      const color = getColor(i);
-      const bg = color.headerBg.replace('#', '').toUpperCase();
-      const span = c.is_attendance ? 3 : (c.activities || []).length + 3;
-      for (let j = 0; j < span; j++) {
-        applyStyle(worksheet[XLSX.utils.encode_cell({ r: 1, c: colIdx + j })], mainHdrStyle(bg));
-      }
-      colIdx += span;
-    });
-    applyStyle(worksheet[XLSX.utils.encode_cell({ r: 1, c: finalCol })], mainHdrStyle(FINAL_GREEN));
-
-    // Row 2: sub-header
-    const subHdrStyle = { fill: { fgColor: { rgb: GRAY_50 } }, font: { bold: true, color: { rgb: SIDEBAR }, sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder };
-    const subHdrLeftStyle = { ...subHdrStyle, alignment: { horizontal: 'left', vertical: 'center' } };
-    applyStyle(worksheet[XLSX.utils.encode_cell({ r: 2, c: 0 })], subHdrStyle);
-    applyStyle(worksheet[XLSX.utils.encode_cell({ r: 2, c: 1 })], subHdrLeftStyle);
-
-    // Determine which columns have thicker right border (last sub-col of each component group + final) and apply component light colors
-    const thickerCols = new Set();
-    let ci = 2;
-    visibleComponents.forEach((c, i) => {
-      const color = getColor(i);
-      const light = color.light.replace('#', '').toUpperCase();
-      const activityStyle = { ...subHdrStyle, fill: { fgColor: { rgb: light } } };
-      const span = c.is_attendance ? 3 : (c.activities || []).length + 3;
-      for (let j = 0; j < span; j++) {
-        applyStyle(worksheet[XLSX.utils.encode_cell({ r: 2, c: ci + j })], activityStyle);
-      }
-      ci += span - 1; // last column of this component group
-      thickerCols.add(ci);
-      ci++; // move past
-    });
-    thickerCols.add(finalCol); // final grade column
-
-    for (let c = 2; c < subHeader.length; c++) {
-      const isThicker = thickerCols.has(c);
-      applyStyle(worksheet[XLSX.utils.encode_cell({ r: 2, c })], isThicker ? { ...subHdrStyle, border: thickerRight } : subHdrStyle);
-    }
-
-    // Row 3: MAX SCORE
-    const maxStyle = { fill: { fgColor: { rgb: GRAY_50 } }, font: { bold: true, color: { rgb: SIDEBAR }, sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder };
-    const maxLeftStyle = { ...maxStyle, alignment: { horizontal: 'left', vertical: 'center' } };
-    applyStyle(worksheet[XLSX.utils.encode_cell({ r: 3, c: 0 })], maxStyle);
-    applyStyle(worksheet[XLSX.utils.encode_cell({ r: 3, c: 1 })], maxLeftStyle);
-    for (let c = 2; c < subHeader.length; c++) {
-      const isThicker = thickerCols.has(c);
-      applyStyle(worksheet[XLSX.utils.encode_cell({ r: 3, c })], isThicker ? { ...maxStyle, border: thickerRight } : maxStyle);
-    }
-
-    // Data rows (r >= 4)
-    const dataCenterStyle = { fill: { fgColor: { rgb: WHITE } }, font: { bold: false, color: { rgb: SIDEBAR }, sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' }, border: thinBorder };
-    const dataLeftStyle = { ...dataCenterStyle, alignment: { horizontal: 'left', vertical: 'center' }, font: { ...dataCenterStyle.font, bold: false } };
-    const dataBoldStyle = { ...dataCenterStyle, font: { ...dataCenterStyle.font, bold: true } };
-    const dataFailStyle = { ...dataCenterStyle, font: { bold: true, color: { rgb: RED_600 }, sz: 10 } };
-    const dataGreenStyle = { ...dataCenterStyle, font: { bold: true, color: { rgb: GREEN_700 }, sz: 10 } };
-
-    for (let r = 4; r < rowCount; r++) {
-      // Student info columns
-      const cell0 = worksheet[XLSX.utils.encode_cell({ r, c: 0 })];
-      if (cell0) cell0.s = { ...dataCenterStyle, font: { color: { rgb: '9CA3AF' }, sz: 9 } };
-      const cell1 = worksheet[XLSX.utils.encode_cell({ r, c: 1 })];
-      if (cell1) cell1.s = dataLeftStyle;
-
-      for (let c = 2; c < subHeader.length; c++) {
-        const cell = worksheet[XLSX.utils.encode_cell({ r, c })];
-        if (!cell) continue;
-        const isThicker = thickerCols.has(c);
-
-        // W_TOTAL columns and final grade - bold
-        const isWTotal = (() => {
-          let idx = 2;
-          for (const comp of visibleComponents) {
-            if (comp.is_attendance) {
-              idx += 2; // TOTAL, EQUIV
-              if (c === idx) return true; // W_TOTAL
-              idx += 1;
-            } else {
-              idx += (comp.activities || []).length; // activities
-              idx += 2; // TOTAL, EQUIV
-              if (c === idx) return true; // W_TOTAL
-              idx += 1;
-            }
-          }
-          return c === finalCol;
-        })();
-
-        if (isWTotal) {
-          const val = parseFloat(cell.v);
-          const isFail = !isNaN(val) && val < 75;
-          cell.s = { ...(isFail ? dataFailStyle : dataGreenStyle), border: isThicker ? thickerRight : thinBorder };
-        } else {
-          cell.s = { ...dataCenterStyle, border: isThicker ? thickerRight : thinBorder };
-        }
-      }
-
-      // Alternate row background
-      if (r % 2 === 0) {
-        for (let c = 0; c < subHeader.length; c++) {
-          const cell = worksheet[XLSX.utils.encode_cell({ r, c })];
-          if (cell?.s) cell.s = { ...cell.s, fill: { fgColor: { rgb: GRAY_50 } } };
-        }
-      }
-    }
-
-    // Merges for main header
-    const merges = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: subHeader.length - 1 } }, // title
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } }, // STUDENT INFORMATION
-    ];
-    colIdx = 2;
-    visibleComponents.forEach(c => {
-      const span = c.is_attendance ? 3 : (c.activities || []).length + 3;
-      merges.push({ s: { r: 1, c: colIdx }, e: { r: 1, c: colIdx + span - 1 } });
-      colIdx += span;
-    });
-    // Final grade merge already single column, no merge needed
-    worksheet['!merges'] = merges;
-
-    worksheet['!rows'] = Array.from({ length: rowCount }, () => ({ hpt: 22 }));
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Class Record');
-    XLSX.writeFile(workbook, buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'classrecord', ext: 'xlsx' }));
+    await exportClassRecordExcel({ assignment: currentAssignment, term: selectedTerm, students, components, scores, attendanceScores, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename: getExportFilename('xlsx') });
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     if (!currentAssignment || components.length === 0 || exporting) return;
     setExporting('pdf');
     setExportError('');
     try {
-      const visibleComponents = components.filter(c => c.is_attendance || c.activities?.length > 0);
-      const q = searchQuery.trim().toLowerCase();
-      const filtered = q
-        ? students.filter(s => s.student_name?.toLowerCase().includes(q) || s.student_id?.toLowerCase().includes(q))
-        : students;
-      const head = ['#', 'Stud ID', 'Student Name'];
-      visibleComponents.forEach(c => {
-        if (!c.is_attendance) (c.activities || []).forEach(a => head.push(a.name));
-        head.push(`TOTAL (${c.name})`, `EQUIV (${c.name})`, `WTD (${c.name})`);
-      });
-      head.push(`${selectedTerm} GRADE`);
-      const body = filtered.map((student, i) => {
-        const row = [i + 1, String(student.student_id ?? ''), student.student_name ?? ''];
-        visibleComponents.forEach(c => {
-          if (!c.is_attendance) {
-            (c.activities || []).forEach(a => row.push(scores[a.id]?.[student.id] ?? 0));
-          }
-          row.push(
-            getComponentTotal(student.id, c),
-            getComponentEquiv(student.id, c).toFixed(2),
-            getComponentWeighted(student.id, c).toFixed(2)
-          );
-        });
-        row.push(getFinalGrade(student.id).toFixed(2));
-        return row;
-      });
-      exportTablePdf({
-        title: 'Class Record',
-        context: [
-          `${currentAssignment.subjects?.name || ''} — ${currentAssignment.sections?.name || ''}`,
-          `Term: ${selectedTerm}`,
-        ],
-        filename: buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'classrecord', ext: 'pdf' }),
-        head: [head],
-        body,
-        landscape: true,
-        emptyMessage: 'No students match the current filters.',
-      });
+      const query = searchQuery.trim().toLowerCase();
+      const filteredStudents = query ? students.filter((student) => student.student_name?.toLowerCase().includes(query) || student.student_id?.toLowerCase().includes(query)) : students;
+    await exportClassRecordPdf({ assignment: currentAssignment, term: selectedTerm, students: filteredStudents, components, scores, attendanceScores, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename: getExportFilename('pdf') });
     } catch (err) {
       console.error(err);
       setExportError('PDF export failed. Please try again.');
@@ -869,12 +560,12 @@ const ClassRecord = () => {
     }
   };
 
-  const onExcelClick = () => {
+  const onExcelClick = async () => {
     if (exporting) return;
     setExporting('excel');
     setExportError('');
     try {
-      handleExportExcel();
+      await handleExportExcel();
     } catch (err) {
       console.error(err);
       setExportError('Excel export failed. Please try again.');
@@ -904,8 +595,16 @@ const ClassRecord = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="teacher-class-record-page space-y-6">
+      <div className="class-record-horizontal-anchor class-record-heading-anchor">
+        <TeacherPageHeading
+          eyebrow="Grade management"
+          title="Class Record"
+          description="View and manage student grades, assessment components, and class performance."
+          actions={<ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />}
+        />
+      </div>
+      <div className="class-record-horizontal-anchor flex flex-wrap items-center gap-3">
         <AssignmentSelector />
         <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
           {TERMS.map((t) => (
@@ -924,341 +623,70 @@ const ClassRecord = () => {
           {dataLoading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
         </div>
       </div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-5 rounded-2xl shadow-sm border border-gray-50 card-hover text-white" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <div className="text-[12px] font-bold text-white uppercase tracking-wider mb-1 font-sans">
-            SmartGrade — Class Record
-          </div>
-          <span className="text-sm font-bold text-amber-400">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-          <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
-        </div>
-      </div>
-
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-gray-300"><Percent size={16} className="text-[#0c1925]" /></div>
-              <h4 className="text-xs font-bold text-sidebar uppercase tracking-wider">Grading Components</h4>
-            </div>
-            <div className="group relative">
-              <HelpCircle size={14} className="text-gray-700 hover:text-[#0c1925] cursor-pointer transition-colors" />
-              <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-52 bg-sidebar text-white text-[10px] p-2.5 rounded-lg shadow-xl z-20 leading-relaxed">
-                Define your grading components and their percentage weights. Add sub-activities under each component. Total weight must equal 100%.
-              </div>
-            </div>
-          </div>
-
-          {dataLoading && components.length === 0 ? (
-            <div className="space-y-2 py-4" role="status" aria-label="Loading grading components">
-              <SkeletonList rows={3} />
-            </div>
-          ) : components.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Percent size={36} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-bold">No grading components yet</p>
-              <p className="text-xs mt-1 mb-4">Click below to set up your grading system.</p>
-              {selectedTerm !== 'PRELIMS' && (
-                <div className="mb-4">
-                  <button onClick={copyFromPrelims} disabled={copyingPrelims || isReadOnly}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-amber-700 bg-amber-100 border border-amber-300 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50">
-                    {copyingPrelims ? <Loader size={14} className="animate-spin" /> : null}
-                    {copyingPrelims ? 'Copying...' : 'Copy from PRELIMS'}
-                  </button>
-                  <p className="text-[10px] text-sidebar/40 mt-2">Copy all PRELIMS grading components and activities to {selectedTerm}.</p>
-                </div>
-              )}
-              <div className="relative inline-block">
-                <button onClick={() => setAddCompOpen(true)} disabled={isReadOnly || totalWeight === 100} className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#0c1925] border border-[#0c1925] rounded-lg shadow-sm hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                  <Plus size={14} /> Add Component
-                </button>
-                {addCompOpen && !isReadOnly && (
-                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[180px] overflow-hidden add-comp-popup">
-                    <button onClick={() => addComponent(false)} disabled={!!addingComp} className="w-full text-left px-4 py-3 text-xs font-bold text-sidebar hover:bg-gray-50 border-b border-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                      {addingComp === 'regular' ? 'Adding Component...' : 'Regular Component'}
-                    </button>
-                    <button
-                      onClick={() => addComponent(true)}
-                      disabled={hasAttendance || !!addingComp}
-                      className={`w-full text-left px-4 py-3 text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${hasAttendance ? 'text-gray-300 cursor-not-allowed' : 'text-sidebar hover:bg-gray-50'}`}
-                    >
-                      {addingComp === 'attendance' ? 'Adding...' : (<><span className={hasAttendance ? 'text-gray-300' : 'text-amber-600'}>Attendance</span>{hasAttendance && <span className="ml-1 text-[10px] text-gray-300">(already added)</span>}</>)}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {components.map((comp, idx) => {
-                  const color = getColor(idx);
-                  const needsSetup = !isTableReady(comp);
-                  const missing = [
-                    (comp?.is_attendance || String(comp?.name || '').trim() !== '') ? null : 'a name',
-                    parseFloat(comp?.weight) > 0 ? null : 'a percentage',
-                  ].filter(Boolean);
-                  const isCustomName = !!customNameIds[comp.id];
-                  // Keep a previously typed custom name selectable when the
-                  // back arrow returns the field to the dropdown.
-                  const savedCustomName = String(comp?.name || '').trim() !== '' && !COMPONENT_NAME_PRESETS.includes(comp.name)
-                    ? comp.name
-                    : null;
-                  return (
-                    <div key={comp.id} className={`group w-full rounded-xl border card-hover shadow-sm overflow-visible hover:shadow-md transition-shadow bg-gray-200 relative ${needsSetup && !isReadOnly ? 'border-red-300 ring-1 ring-red-300' : 'border-gray-200'}`}>
-                      {needsSetup && !isReadOnly && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 -translate-y-full w-56 p-2.5 bg-sidebar text-white text-[10px] rounded-lg shadow-xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-30 leading-relaxed font-normal normal-case">
-                          This component needs {missing.join(' and ')} before it appears in the class-record table.
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-sidebar"></div>
-                        </div>
-                      )}
-                      <div className="px-4 py-2.5 flex items-center justify-between border-b border-gray-900 rounded-t-[10px]" style={{ backgroundColor: '#d1d5db' }}>
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          {comp.is_attendance ? (
-                            <span className="text-sm font-extrabold text-sidebar px-1 py-0.5">Attendance</span>
-                          ) : isCustomName ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => exitCustomComponentName(comp)}
-                                title="Back to the list"
-                                disabled={isReadOnly}
-                                className="shrink-0 -ml-1 p-0.5 text-sidebar/60 hover:text-sidebar transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <ArrowLeft size={13} />
-                              </button>
-                              <input
-                                type="text"
-                                value={comp.name}
-                                onChange={(e) => setComponents(prev => prev.map(c => c.id === comp.id ? { ...c, name: e.target.value } : c))}
-                                onBlur={() => updateComponent(comp.id, { name: comp.name })}
-                                ref={(el) => { if (el && focusCompIdRef.current === comp.id) { focusCompIdRef.current = null; el.focus(); el.select(); } }}
-                                className="text-sm font-extrabold text-sidebar bg-gray-200 border-b border-transparent hover:border-sidebar/20 focus:border-gold focus:outline-none px-1 py-0.5 flex-1 min-w-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                                placeholder="Assessment"
-                                disabled={isReadOnly}
-                              />
-                            </>
-                          ) : (
-                            <select
-                              value={String(comp.name || '')}
-                              onChange={(e) => {
-                                if (e.target.value === '__custom__') enableCustomComponentName(comp);
-                                else applyComponentPreset(comp, e.target.value);
-                              }}
-                              ref={(el) => { if (el && focusCompIdRef.current === comp.id) { focusCompIdRef.current = null; el.focus(); } }}
-                              className="text-sm font-extrabold text-sidebar bg-gray-200 border-b border-transparent hover:border-sidebar/20 focus:border-gold focus:outline-none px-1 py-0.5 flex-1 min-w-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                              disabled={isReadOnly}
-                            >
-                              <option value="" disabled>Select</option>
-                              {COMPONENT_NAME_PRESETS.map((preset) => {
-                                const alreadyExists = components.some(c => c.id !== comp.id && c.name === preset);
-                                return (
-                                  <option key={preset} value={preset} disabled={alreadyExists}>
-                                    {preset}
-                                  </option>
-                                );
-                              })}
-                              {savedCustomName && (
-                                <option value={savedCustomName}>{savedCustomName}</option>
-                              )}
-                              <option value="__custom__">+ Add</option>
-                            </select>
-                          )}
-                          {needsSetup && !isReadOnly && (
-                            <span title={`This component needs ${missing.join(' and ')}`} className="shrink-0 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-extrabold flex items-center justify-center cursor-help">
-                              !
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 ml-2">
-                          <div className="flex items-center bg-white rounded-lg border border-gray-200 px-2 py-1">
-                              <input
-                                type="number"
-                                value={comp.weight === 0 ? '' : comp.weight}
-                                onChange={(e) => setComponents(prev => {
-                                  const raw = parseFloat(e.target.value) || 0;
-                                  const others = prev.reduce((s, c) => c.id === comp.id ? s : s + parseFloat(c.weight || 0), 0);
-                                  const clamped = Math.min(raw, Math.max(0, 100 - others));
-                                  if (raw !== clamped) {
-                                    setClampWarnings(cw => ({ ...cw, [`weight-${comp.id}`]: 100 - others }));
-                                    setTimeout(() => {
-                                      setClampWarnings(cw => { const c = { ...cw }; delete c[`weight-${comp.id}`]; return c; });
-                                    }, 3000);
-                                  }
-                                  return prev.map(c => c.id === comp.id ? { ...c, weight: clamped } : c);
-                                })}
-                                onBlur={() => updateComponent(comp.id, { weight: comp.weight })}
-                                className={`w-12 text-center text-xs font-extrabold text-sidebar bg-transparent focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed ${clampWarnings[`weight-${comp.id}`] ? 'text-amber-600' : ''}`}
-                                min="0" max="100"
-                                disabled={isReadOnly}
-                              />
-                            <span className="text-[10px] font-bold" style={{ color: color.bg }}>%</span>
-                          </div>
-                          {!isReadOnly && (
-                            <button onClick={() => { setConfirmText(''); setDeleteModal({ type: 'component', id: comp.id }); }} className="text-gray-900 hover:text-red-500 transition-colors p-1">
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="p-3 space-y-1.5">
-                        <div className={(comp.activities || []).length > 3 ? 'max-h-[122px] overflow-y-auto pr-1 space-y-1.5' : 'space-y-1.5'} style={{ scrollbarWidth: 'thin' }}>
-                        {(comp.activities || []).map((act) => (
-                          <div key={act.id} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 border border-gray-200 bg-white">
-                              <input
-                                type="text"
-                                value={act.name}
-                                onChange={(e) => setComponents(prev => prev.map(c =>
-                                  c.id === comp.id ? { ...c, activities: c.activities.map(a => a.id === act.id ? { ...a, name: e.target.value } : a) } : c
-                                ))}
-                                onBlur={() => updateActivity(act.id, { name: act.name })}
-                                className="text-[11px] font-bold text-sidebar bg-white border border-gray-500 focus:border-[#0c1925] focus:outline-none px-1 py-0.5 flex-1 min-w-0"
-                                placeholder="Activity"
-                                disabled={isReadOnly}
-                              />
-                            <div className="flex items-center gap-1 bg-white rounded border border-gray-500 px-1.5 py-0.5">
-                                <input
-                                  type="number"
-                                  value={act.max_score === 0 ? '' : act.max_score}
-                                  onChange={(e) => {
-                                    const val = parseFloat(e.target.value) || 0;
-                                    const clamped = Math.min(val, 1000);
-                                    setComponents(prev => prev.map(c =>
-                                      c.id === comp.id ? { ...c, activities: c.activities.map(a => a.id === act.id ? { ...a, max_score: clamped } : a) } : c
-                                    ));
-                                  }}
-                                  onBlur={() => updateActivity(act.id, { max_score: act.max_score })}
-                                  className="w-12 text-center text-[10px] font-extrabold text-sidebar bg-transparent focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                  min="0"
-                                  max="1000"
-                                  disabled={isReadOnly}
-                                />
-                              <span className="text-[9px] font-bold" style={{ color: color.bg }}>max</span>
-                            </div>
-                            {!isReadOnly && (
-                              <button onClick={() => { setConfirmText(''); setDeleteModal({ type: 'activity', id: act.id, componentId: comp.id }); }} className="text-gray-900 hover:text-red-500 transition-colors shrink-0 p-0.5">
-                                <Trash2 size={11} />
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                        </div>
-                        {!comp.is_attendance && !isReadOnly && (
-                            <button
-                              onClick={() => addActivity(comp.id)}
-                              disabled={addingActivityId === comp.id || needsSetup}
-                              title={needsSetup ? 'Set the assessment name and percentage before adding activities' : undefined}
-                              className="w-full text-[10px] font-bold text-white flex items-center justify-center gap-1 py-1.5 rounded-lg border border-transparent hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                              style={{ backgroundColor: '#0c1925' }}
-                            >
-                              {addingActivityId === comp.id ? <Loader size={12} className="animate-spin" /> : <Plus size={12} />}
-                              {addingActivityId === comp.id ? 'Adding...' : 'Add'}
-                            </button>
-                        )}
-                        {comp.is_attendance && (
-                          <div className="text-[10px] text-gray-900 italic text-center py-1.5">
-                            Scores auto-computed from attendance records
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-                {!isReadOnly && (
-                <div className="relative min-h-[120px]">
-                  <button
-                    onClick={() => setAddCompOpen(true)}
-                    disabled={isReadOnly || totalWeight === 100}
-                    className="w-full h-full min-h-[120px] flex flex-col items-center justify-center gap-2 rounded-xl border border-[#0c1925] border-dashed bg-[#0c1925] transition-all text-white disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <Plus size={24} />
-                    <span className="text-xs font-bold">Add Component</span>
-                  </button>
-                  {addCompOpen && (
-                    <div className="absolute top-0 left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[180px] overflow-hidden add-comp-popup">
-                      <button onClick={() => addComponent(false)} disabled={!!addingComp} className="w-full text-left px-4 py-3 text-xs font-bold text-sidebar hover:bg-gray-50 border-b border-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        {addingComp === 'regular' ? 'Adding Component...' : 'Regular Component'}
-                      </button>
-                      <button
-                        onClick={() => addComponent(true)}
-                        disabled={hasAttendance || !!addingComp}
-                        className={`w-full text-left px-4 py-3 text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${hasAttendance ? 'text-gray-300 cursor-not-allowed' : 'text-sidebar hover:bg-gray-50'}`}
-                      >
-                        {addingComp === 'attendance' ? 'Adding...' : (<><span className={hasAttendance ? 'text-gray-300' : 'text-amber-600'}>Attendance</span>{hasAttendance && <span className="ml-1 text-[10px] text-gray-300">(already added)</span>}</>)}
-                      </button>
-                    </div>
-                  )}
-                </div>
-                )}
-              </div>
-              <div className="flex items-center justify-end mt-4 pt-3 border-t border-sidebar/10">
-                <div className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-extrabold ${
-                  totalWeight === 100 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'
-                }`}>
-                  <span>Total Weight:</span>
-                  <span className="text-sm">{totalWeight}%</span>
-                  {totalWeight === 100 ? (
-                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                  ) : (
-                    <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
 
       {error && (
-        <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-bold">
+        <div className="class-record-horizontal-anchor flex items-center gap-2 px-5 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-bold">
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
           <span>{error}</span>
         </div>
       )}
       {isReadOnly && (
-        <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs font-bold">
+        <div className="class-record-horizontal-anchor flex items-center gap-2 px-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs font-bold">
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10m9.364-9.364a9 9 0 11-12.728 0 9 9 0 0112.728 0z" /></svg>
           <span>This term is closed. Viewing only.</span>
         </div>
       )}
 
-      {currentAssignment && (
-        <div className="mb-2 px-1 flex items-center justify-between">
-          <span className="text-sm font-bold text-gray-700">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search by name or ID..."
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-              className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
-            />
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            {searchQuery && (
-              <button onClick={() => { setSearchQuery(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover">
+        <div className="class-record-horizontal-anchor flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-border bg-gray-50">
+          <div className="flex items-center gap-3 text-xs text-gray-600">
+            <span className="font-bold text-sidebar">Grading components</span>
+            <span className={`font-extrabold ${totalWeight === 100 ? 'text-green-700' : 'text-amber-700'}`}>Total weight: {totalWeight}%</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {selectedTerm !== 'PRELIMS' && !isReadOnly && !dataLoading && components.length === 0 && (
+              <button onClick={copyFromPrelims} disabled={copyingPrelims} className="px-3 py-2 text-xs font-bold text-amber-800 bg-amber-100 border border-amber-200 rounded-lg hover:bg-amber-200 disabled:opacity-50">
+                {copyingPrelims ? 'Copying...' : 'Copy from PRELIMS'}
               </button>
+            )}
+            {!isReadOnly && (
+              <button onClick={openAddComponent} disabled={totalWeight >= 100 || savingComponent} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-[#0c1925] rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                <Plus size={14} /> Add Component
+              </button>
+            )}
+            {currentAssignment && (
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search by name or ID..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                  className="w-56 pl-9 pr-8 py-2 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
+                />
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                {searchQuery && (
+                  <button onClick={() => { setSearchQuery(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
-      )}
-
-      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-hidden">
         {components.length > 0 && totalWeight === 100 && !hasUnreadyActivity && (
-          <div className="flex items-center gap-2 px-5 py-2.5 bg-green-50 border-b border-green-200 text-green-700 text-xs font-bold">
+          <div className="class-record-horizontal-anchor flex items-center gap-2 px-5 py-2.5 bg-green-50 border-b border-green-200 text-green-700 text-xs font-bold">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
             <span>Component weights total 100%. Grade computation is balanced — you can now enter scores.</span>
           </div>
         )}
         {components.length > 0 && totalWeight === 100 && hasUnreadyActivity && (
-          <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs font-bold">
+          <div className="class-record-horizontal-anchor flex items-center gap-2 px-5 py-2.5 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs font-bold">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
             <span>Name each activity and set its max score before entering scores.</span>
           </div>
         )}
         {components.length > 0 && totalWeight !== 100 && (
-          <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 border-b border-red-200 text-red-700 text-xs font-bold">
+          <div className="class-record-horizontal-anchor flex items-center gap-2 px-5 py-2.5 bg-red-50 border-b border-red-200 text-red-700 text-xs font-bold">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
             <span>Component weights must total 100% before you can enter scores. Current: {totalWeight}%</span>
           </div>
@@ -1267,21 +695,38 @@ const ClassRecord = () => {
           <div aria-busy="true"><SkeletonTable cols={6} rows={8} /></div>
         ) : components.length === 0 ? (
           <div className="py-12 text-center text-gray-400">
-            <p className="text-sm font-medium">Set up grading components to view the class record table.</p>
+            <p className="text-sm font-medium">Add grading components to set up the class record table.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto w-full pb-4" style={{ scrollbarWidth: 'auto' }}>
-            <table className="min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+          <div className="w-full pb-2">
+            <table className="teacher-sticky-table teacher-sticky-table-3rows teacher-sticky-class-record sticky-cols table-fixed w-max min-w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+              <colgroup>
+                <col key="student-number-col" style={{ width: 'var(--student-number-width)' }} />
+                <col key="student-id-col" style={{ width: 'var(--student-id-width)' }} />
+                <col key="student-name-col" style={{ width: 'var(--student-name-width)' }} />
+                {tableComponents.flatMap((comp) => comp.is_attendance
+                  ? [
+                    <col key={`${comp.id}-total-col`} style={{ width: '64px' }} />,
+                    <col key={`${comp.id}-equiv-col`} style={{ width: '64px' }} />,
+                    <col key={`${comp.id}-weighted-col`} style={{ width: '80px' }} />,
+                  ]
+                  : [
+                    ...(comp.activities || []).map((activity) => <col key={`${activity.id}-col`} style={{ width: '48px' }} />),
+                    <col key={`${comp.id}-total-col`} style={{ width: '64px' }} />,
+                    <col key={`${comp.id}-equiv-col`} style={{ width: '64px' }} />,
+                    <col key={`${comp.id}-weighted-col`} style={{ width: '80px' }} />,
+                  ])}
+                <col key="final-grade-col" style={{ width: '120px' }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th colSpan={3} className="bg-[#0c1925] border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[352px] sticky left-0 z-20" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+                  <th colSpan={3} className="sticky-student-header class-record-separator bg-[#0c1925] border-b-2 border-r border-border p-3 text-white text-left font-bold sticky left-0 z-20" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
                     <div className="flex justify-between items-center">
                       <span>STUDENT INFORMATION</span>
                       <span className="text-[10px] text-white">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
                     </div>
                   </th>
-                  {tableComponents.map((comp, idx) => {
-                    const color = getColor(idx);
+                  {tableComponents.map((comp) => {
                     const actCount = comp.activities?.length || 0;
                     const cols = comp.is_attendance ? 3 : actCount + 3;
                     if (cols === 0) return null;
@@ -1298,13 +743,18 @@ const ClassRecord = () => {
                         onDrop={(e) => { e.preventDefault(); handleCompDrop(comp.id); }}
                         onDragEnd={() => { setDragCompId(null); setDropCompId(null); }}
                         title={isReadOnly ? undefined : 'Drag to reorder columns'}
-                        className={`bg-[#0c1925] border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0 ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : ''} ${isDragging ? 'opacity-40' : ''} ${isDropTarget ? 'outline outline-2 outline-amber-400 outline-offset-[-2px]' : ''}`}
+                        className={`class-record-separator bg-[#0c1925] border-b-2 border-r p-2 text-white text-center font-bold relative z-0 ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : ''} ${isDragging ? 'opacity-40' : ''} ${isDropTarget ? 'outline outline-2 outline-amber-400 outline-offset-[-2px]' : ''}`}
                         style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}
                       >
-                        <span className="inline-flex items-center justify-center gap-1.5">
-                          {!isReadOnly && <GripVertical size={14} className="opacity-50 shrink-0" />}
-                          <span>{comp.is_attendance ? 'Attendance' : comp.name} ({comp.weight}%)</span>
-                        </span>
+                        <div className="flex min-h-[4.25rem] flex-col items-center justify-center gap-1.5">
+                          <span className="flex h-9 w-full items-center justify-center px-1 text-xs leading-tight uppercase tracking-wider line-clamp-2 break-words">
+                            {comp.is_attendance ? 'Attendance' : (comp.name || 'Untitled component')} ({comp.weight}%)
+                          </span>
+                          {!isReadOnly && <span className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button type="button" onClick={() => openEditComponent(comp)} title={`Edit ${comp.name || 'component'}`} aria-label={`Edit ${comp.name || 'component'}`} className="inline-flex h-6 min-w-[3.5rem] items-center justify-center gap-1 rounded bg-white/10 px-1.5 text-[10px] font-bold hover:bg-white/20"><Pencil size={11} /> Edit</button>
+                            <button type="button" onClick={() => { setConfirmText(''); setDeleteModal({ type: 'component', id: comp.id }); }} title={`Delete ${comp.name || 'component'}`} aria-label={`Delete ${comp.name || 'component'}`} className="inline-flex h-6 min-w-[3.5rem] items-center justify-center gap-1 rounded bg-white/10 px-1.5 text-[10px] font-bold hover:bg-red-500/80"><Trash2 size={11} /> Delete</button>
+                          </span>}
+                        </div>
                       </th>
                     );
                   })}
@@ -1314,53 +764,52 @@ const ClassRecord = () => {
                 </tr>
 
                 <tr className="bg-gray-50 border-b border-border text-center font-semibold text-sidebar">
-                  <th className="px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20 w-12" style={{ left: 0 }}>#</th>
-                  <th className="px-3 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20 w-28" style={{ left: '48px' }}>Stud ID</th>
-                  <th className="px-4 py-2.5 text-left sticky bg-gray-50 border-r-2 border-border z-20 min-w-[180px]" style={{ left: '160px' }}>Student Name</th>
+                  <th className="sticky-student-number px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20">#</th>
+                  <th className="sticky-student-id px-3 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20">Stud ID</th>
+                  <th className="sticky-student-name class-record-separator px-4 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20">Student Name</th>
                   {tableComponents.map((comp, idx) => {
                     const color = getColor(idx);
                     if (comp.is_attendance) {
                       return [
-                        <th key={`${comp.id}-total`} className="px-3 py-2.5 border-r border-gray-200 bg-gray-150 text-sidebar font-bold w-16 relative z-0">TOTAL</th>,
-                        <th key={`${comp.id}-equiv`} className="px-3 py-2.5 border-r-2 border-gray-300 bg-gray-150 text-sidebar font-bold w-16 relative z-0">EQUIV</th>,
-                        <th key={`${comp.id}-wt`} className="px-3 py-2.5 border-r-4 border-gray-300 bg-gray-150 text-sidebar font-extrabold w-20 relative z-0" style={{ borderRightColor: color.border }}>W_TOTAL</th>
+                        <th key={`${comp.id}-total`} className="px-3 py-2.5 border-r border-gray-200 bg-gray-100 text-sidebar font-bold w-16 relative z-0">TOTAL</th>,
+                        <th key={`${comp.id}-equiv`} className="px-3 py-2.5 border-r-2 border-gray-300 bg-gray-100 text-sidebar font-bold w-16 relative z-0">EQUIV</th>,
+                        <th key={`${comp.id}-wt`} className="class-record-separator px-3 py-2.5 border-r bg-gray-100 text-sidebar font-extrabold w-20 relative z-0">W_TOTAL</th>
                       ];
                     }
                     return (comp.activities || []).map((act) => (
-                      <th key={act.id} className="px-2 py-2.5 border-r border-gray-200 bg-gray-100/50 w-12 relative z-0" style={{ backgroundColor: color.light }}>{act.name}</th>
+                      <th key={act.id} className="px-2 py-2.5 border-r border-gray-200 bg-gray-100 w-12 relative z-0" style={{ backgroundColor: color.light }}>{act.name}</th>
                     )).concat(
-                      <th key={`${comp.id}-total`} className="px-3 py-2.5 border-r border-gray-200 bg-gray-150 text-sidebar font-bold w-16 relative z-0">TOTAL</th>,
-                      <th key={`${comp.id}-equiv`} className="px-3 py-2.5 border-r-2 border-gray-300 bg-gray-150 text-sidebar font-bold w-16 relative z-0">EQUIV</th>,
-                      <th key={`${comp.id}-wt`} className="px-3 py-2.5 border-r-4 border-gray-300 bg-gray-150 text-sidebar font-extrabold w-20 relative z-0" style={{ borderRightColor: color.border }}>W_TOTAL</th>
+                      <th key={`${comp.id}-total`} className="px-3 py-2.5 border-r border-gray-200 bg-gray-100 text-sidebar font-bold w-16 relative z-0">TOTAL</th>,
+                      <th key={`${comp.id}-equiv`} className="px-3 py-2.5 border-r-2 border-gray-300 bg-gray-100 text-sidebar font-bold w-16 relative z-0">EQUIV</th>,
+                      <th key={`${comp.id}-wt`} className="class-record-separator px-3 py-2.5 border-r bg-gray-100 text-sidebar font-extrabold w-20 relative z-0">W_TOTAL</th>
                     );
                   })}
-                  <th className="px-3 py-2.5 bg-gray-150 text-sidebar font-extrabold text-sm w-28 relative z-0">FINAL</th>
+                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-sm w-28 relative z-0">FINAL</th>
                 </tr>
 
-                <tr className="bg-white border-b border-border text-center font-bold text-sidebar select-none">
-                  <td className="px-1 py-2 text-center sticky bg-white border-r border-border z-20 w-12" style={{ left: 0 }}></td>
-                  <td className="px-3 py-2 text-left sticky bg-white border-r border-border z-20 text-[10px] text-gray-900 w-28" style={{ left: '48px' }}>MAX SCORE</td>
-                  <td className="px-4 py-2 text-left sticky bg-white border-r-2 border-border z-20 text-[10px] text-gray-900 font-normal italic min-w-[180px]" style={{ left: '160px' }}>Maximum target scores</td>
-                  {tableComponents.map((comp, idx) => {
-                    const color = getColor(idx);
+                <tr className="class-record-max-score-row bg-white border-b border-border text-center font-bold text-sidebar select-none">
+                  <td className="sticky-student-number px-1 py-2 text-center sticky bg-white border-r border-border z-20"></td>
+                  <td className="sticky-student-id px-3 py-2 text-left sticky bg-white border-r border-border z-20 text-[10px] text-gray-900">MAX SCORE</td>
+                  <td className="sticky-student-name class-record-separator px-4 py-2 text-left sticky bg-white border-r border-border z-20 text-[10px] text-gray-900 font-normal italic">Maximum target scores</td>
+                  {tableComponents.map((comp) => {
                     const maxTotal = getComponentMaxTotal(comp);
                     if (comp.is_attendance) {
                       return [
                         <td key={`${comp.id}-total`} className="px-2 py-2 border-r border-b border-gray-200 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{maxTotal}</td>,
                         <td key={`${comp.id}-equiv`} className="px-2 py-2 border-r-2 border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">100.00</td>,
-                        <td key={`${comp.id}-wt`} className="px-2 py-2 border-r-4 border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0" style={{ borderRightColor: color.border }}>{comp.weight.toFixed(2)}</td>
+                        <td key={`${comp.id}-wt`} className="class-record-separator px-2 py-2 border-r border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{comp.weight.toFixed(2)}</td>
                       ];
                     }
                     return (comp.activities || []).map((act) => (
-                      <td key={act.id} className="p-1 border-r border-b border-gray-200 bg-gray-50/20 relative z-0">
+                      <td key={act.id} className="p-1 border-r border-b border-gray-200 bg-gray-50 relative z-0">
                         <div className="w-full text-center text-xs font-black text-sidebar p-1" title="Set the max score in the component setup above">
-                          {act.max_score || 0}
+                          {act.is_attendance ? attendanceScores.max_total : (act.max_score || 0)}
                         </div>
                       </td>
                     )).concat(
                       <td key={`${comp.id}-total`} className="px-2 py-2 border-r border-b border-gray-200 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{maxTotal}</td>,
                       <td key={`${comp.id}-equiv`} className="px-2 py-2 border-r-2 border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">100.00</td>,
-                      <td key={`${comp.id}-wt`} className="px-2 py-2 border-r-4 border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0" style={{ borderRightColor: color.border }}>{comp.weight.toFixed(2)}</td>
+                      <td key={`${comp.id}-wt`} className="class-record-separator px-2 py-2 border-r border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{comp.weight.toFixed(2)}</td>
                     );
                   })}
                   <td className="px-2 py-2 bg-gray-100 font-extrabold text-sidebar text-center text-sm relative z-0 border-b border-gray-200">100.00</td>
@@ -1374,7 +823,7 @@ const ClassRecord = () => {
                           s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())
                         )
                       : students;
-                    const paginatedStudents = filtered.slice((page - 1) * 10, page * 10);
+                    const paginatedStudents = filtered.slice((page - 1) * TEACHER_TABLE_PAGE_SIZE, page * TEACHER_TABLE_PAGE_SIZE);
                     return students.length === 0 ? (
                     <tr>
                       <td colSpan={colCount} className="px-6 py-10 text-center text-gray-500 italic">
@@ -1394,10 +843,10 @@ const ClassRecord = () => {
 
                     return (
                       <tr key={student.id} className={`transition-colors ${selectedRow === student.id ? 'bg-green-200' : 'hover:bg-green-50/10'}`}>
-                        <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-gray-900 text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 10 + index + 1}</td>
-                        <td className={`px-2 py-1 sticky border-r border-b border-gray-200 z-20 w-28 text-xs font-mono font-semibold text-gray-900 cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '48px' }} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
-                        <td className={`px-2 py-1 sticky border-r-2 border-b border-border z-20 min-w-[180px] text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '160px' }} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
-                        {tableComponents.map((comp, idx) => {
+                        <td className={`sticky-student-number px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 text-gray-900 text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} onClick={() => setSelectedRow(student.id)}>{(page - 1) * TEACHER_TABLE_PAGE_SIZE + index + 1}</td>
+                        <td className={`sticky-student-id px-2 py-1 sticky border-r border-b border-gray-200 z-20 text-xs font-mono font-semibold text-gray-900 cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
+                        <td className={`sticky-student-name class-record-separator px-2 py-1 sticky border-r border-b border-border z-20 text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
+                        {tableComponents.map((comp) => {
                           const componentTotal = getComponentTotal(student.id, comp);
                           const componentEquiv = getComponentEquiv(student.id, comp);
                           const componentWeighted = getComponentWeighted(student.id, comp);
@@ -1408,24 +857,42 @@ const ClassRecord = () => {
                             return [
                               <td key={`${comp.id}-total-${student.id}`} className={`px-2 py-2 border-r border-b border-gray-200 text-center font-bold text-xs ${isSelected ? 'bg-green-200 text-sidebar' : 'bg-white text-sidebar'}`}>{componentTotal}</td>,
                               <td key={`${comp.id}-equiv-${student.id}`} className={`px-2 py-2 border-r-2 border-b border-gray-300 text-center font-bold text-xs ${isSelected ? 'bg-green-200' : 'bg-white'} ${isFail ? 'text-red-600 font-extrabold' : 'text-sidebar'}`}>{componentEquiv.toFixed(2)}</td>,
-                              <td key={`${comp.id}-wt-${student.id}`} className={`px-2 py-2 border-r-4 border-b border-gray-200 text-center font-bold text-sidebar text-xs ${isSelected ? 'bg-green-200' : 'bg-white'}`}>{componentWeighted.toFixed(2)}</td>
+                              <td key={`${comp.id}-wt-${student.id}`} className={`class-record-separator px-2 py-2 border-r border-b border-gray-200 text-center font-bold text-sidebar text-xs ${isSelected ? 'bg-green-200' : 'bg-white'}`}>{componentWeighted.toFixed(2)}</td>
                             ];
                           }
                           return (comp.activities || []).map((act) => {
+                            if (act.is_attendance) {
+                              return <td key={act.id} className={`px-2 py-2 border-r border-b border-gray-200 text-center font-bold text-xs ${isSelected ? 'bg-green-200 text-sidebar' : 'bg-white text-sidebar'}`} title="Computed from attendance records">{attendanceScores.scores[student.id] ?? 0}</td>;
+                            }
                             const val = scores[act.id]?.[student.id] ?? '';
                             const maxVal = act.max_score || 100;
                             const inputVal = val !== null && val !== undefined ? val : '';
                             const actLocked = !isActivityReady(act);
+                            const draftKey = `${act.id}:${student.id}`;
+                            const displayVal = scoreDrafts[draftKey] !== undefined
+                              ? scoreDrafts[draftKey]
+                              : (inputVal === '' ? '' : String(inputVal));
                             return (
                               <td key={act.id} className={`p-0.5 border-r border-b border-gray-200 ${isSelected ? 'bg-green-200' : 'bg-[#f3f4f6]'}`}>
                                 <div className="relative">
-                                  <input type="number" step="any" value={inputVal === '' ? '' : inputVal}
+                                  <input type="text" inputMode="decimal" value={displayVal}
                                     ref={el => { if (el) inputRefs.current[`${student.id}:${act.id}`] = el; }}
                                     disabled={totalWeight !== 100 || isReadOnly || actLocked}
                                     title={actLocked && !isReadOnly && totalWeight === 100 ? 'Set the activity name and max score first' : undefined}
-                                    onChange={(e) => handleScoreChange(act.id, student.id, e.target.value)}
+                                    onChange={(e) => {
+                                      const raw = e.target.value.replace(/[^0-9.]/g, '');
+                                      const parts = raw.split('.');
+                                      const cleaned = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : raw;
+                                      const parsed = parseFloat(cleaned);
+                                      const clampedDisplay = cleaned !== '' && !Number.isNaN(parsed) && parsed > maxVal ? String(maxVal) : cleaned;
+                                      setScoreDrafts((prev) => ({ ...prev, [draftKey]: clampedDisplay }));
+                                      if (cleaned === '' || /^\d+(\.\d*)?$/.test(cleaned)) {
+                                        handleScoreChange(act.id, student.id, cleaned);
+                                      }
+                                    }}
+                                    onBlur={() => setScoreDrafts((prev) => { const next = { ...prev }; delete next[draftKey]; return next; })}
                                     onKeyDown={(e) => handleKeyDown(e, student.id, act.id, index, paginatedStudents, visibleActivityIds)}
-                                    className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:opacity-40 disabled:cursor-not-allowed ${clampWarnings[`${act.id}-${student.id}`] ? 'border-amber-400 bg-amber-50' : 'border-transparent'}`}
+                                    className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${clampWarnings[`${act.id}-${student.id}`] ? 'border-amber-400 bg-amber-50' : 'border-transparent'}`}
                                     max={maxVal} />
                                   {clampWarnings[`${act.id}-${student.id}`] && (
                                     <div className="absolute -top-1 right-0 w-2 h-2 bg-amber-400 rounded-full" title={`Value clamped to max ${clampWarnings[`${act.id}-${student.id}`]}`} />
@@ -1436,7 +903,7 @@ const ClassRecord = () => {
                           }).concat(
                             <td key={`${comp.id}-total-${student.id}`} className={`px-2 py-2 border-r border-b border-gray-200 text-center font-bold text-xs ${isSelected ? 'bg-green-200 text-sidebar' : 'bg-white text-sidebar'}`}>{componentTotal}</td>,
                             <td key={`${comp.id}-equiv-${student.id}`} className={`px-2 py-2 border-r-2 border-b border-gray-300 text-center font-bold text-xs ${isSelected ? 'bg-green-200' : 'bg-white'} ${isFail ? 'text-red-600 font-extrabold' : 'text-sidebar'}`}>{componentEquiv.toFixed(2)}</td>,
-                            <td key={`${comp.id}-wt-${student.id}`} className={`px-2 py-2 border-r-4 border-b border-gray-200 text-center font-bold text-sidebar text-xs ${isSelected ? 'bg-green-200' : 'bg-white'}`}>{componentWeighted.toFixed(2)}</td>
+                            <td key={`${comp.id}-wt-${student.id}`} className={`class-record-separator px-2 py-2 border-r border-b border-gray-200 text-center font-bold text-sidebar text-xs ${isSelected ? 'bg-green-200' : 'bg-white'}`}>{componentWeighted.toFixed(2)}</td>
                           );
                         })}
                         <td className={`px-2 py-2 text-center font-extrabold text-sm border-b border-gray-200 ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'} ${isFinalFail ? 'text-red-700' : 'text-green-700'}`}>
@@ -1451,15 +918,93 @@ const ClassRecord = () => {
           </div>
         )}
         {components.length > 0 && (
-          <Pagination
-            currentPage={page}
-            totalPages={Math.ceil((searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length) / 10)}
-            onPageChange={setPage}
-            totalItems={searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length}
-            rowsPerPage={10}
-          />
+          <div className="class-record-horizontal-anchor">
+            <Pagination
+              currentPage={page}
+              totalPages={Math.ceil((searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length) / TEACHER_TABLE_PAGE_SIZE)}
+              onPageChange={setPage}
+              totalItems={searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length}
+              rowsPerPage={TEACHER_TABLE_PAGE_SIZE}
+            />
+          </div>
         )}
       </div>
+      {componentModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center modal-backdrop p-4" onMouseDown={(e) => { if (e.target === e.currentTarget && !savingComponent) setComponentModal(null); }}>
+          <form onSubmit={saveComponentModal} className="bg-white rounded-2xl modal-surface w-full max-w-xl max-h-[90vh] overflow-hidden shadow-2xl border border-gray-200 flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <div>
+                <h3 className="text-base font-extrabold text-sidebar">{componentModal.mode === 'add' ? 'Add grading component' : 'Edit grading component'}</h3>
+                <p className="text-xs text-gray-500 mt-1">Set its weight and subcomponents for this term.</p>
+              </div>
+              <button type="button" onClick={() => setComponentModal(null)} disabled={savingComponent} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-50" aria-label="Close"><X size={18} /></button>
+            </div>
+            <div className="p-5 overflow-y-auto space-y-4">
+              {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{error}</div>}
+              {!componentModal.componentId && (
+                <label className="block text-xs font-bold text-gray-700">Component type
+                  <select value={componentDraft.is_attendance ? 'attendance' : 'regular'} onChange={(e) => setComponentDraft((draft) => ({ ...draft, is_attendance: e.target.value === 'attendance', name: e.target.value === 'attendance' ? 'Attendance' : '' }))} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]">
+                    <option value="regular">Grading component</option>
+                    <option value="attendance" disabled={hasAttendance}>Attendance{hasAttendance ? ' (already added)' : ''}</option>
+                  </select>
+                </label>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
+                <label className="block text-xs font-bold text-gray-700">Component name
+                  <input value={componentDraft.is_attendance ? 'Attendance' : componentDraft.name} onChange={(e) => setComponentDraft((draft) => ({ ...draft, name: e.target.value }))} placeholder="e.g. Class Standing" disabled={componentDraft.is_attendance} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925] disabled:bg-gray-100" />
+                </label>
+                <label className="block text-xs font-bold text-gray-700">Weight (%)
+                  <input type="text" inputMode="decimal" value={componentDraft.weight} onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); const parts = raw.split('.'); const cleaned = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : raw; setComponentDraft((draft) => ({ ...draft, weight: cleaned })); }} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]" />
+                </label>
+              </div>
+              {!componentDraft.is_attendance && (
+                <section className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div><h4 className="text-xs font-extrabold text-sidebar">Subcomponents</h4><p className="text-[11px] text-gray-500">Add an activity or include attendance.</p></div>
+                    <div className="relative">
+                      <button type="button" onClick={() => setShowSubcomponentChoices((visible) => !visible)} aria-expanded={showSubcomponentChoices} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-sidebar text-xs font-bold hover:bg-gray-200"><Plus size={13} /> Add</button>
+                      {showSubcomponentChoices && (
+                        <div className="absolute right-0 top-full z-10 mt-1 w-40 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                          <button type="button" onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: '', max_score: '100', is_attendance: false }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50">Activity</button>
+                          <button type="button" disabled={hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance)} onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: 'Attendance', max_score: '1', is_attendance: true }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400">Attendance{hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance) ? ' (already used)' : ''}</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {componentDraft.activities.length === 0 ? <p className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-xs text-gray-500">No subcomponents yet.</p> : componentDraft.activities.map((activity, index) => (
+                    <div key={activity.id || activity.key} className="grid grid-cols-[1fr_105px_34px] gap-2 items-end rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+                      {activity.id ? (
+                        <label className="text-[11px] font-bold text-gray-600">{activity.is_attendance ? 'Attendance' : 'Name'}
+                          {activity.is_attendance
+                            ? <div className="mt-1 rounded-md border border-gray-200 bg-gray-100 px-2.5 py-2 text-xs font-semibold text-gray-500">Attendance scores are computed automatically</div>
+                            : <input value={activity.name} onChange={(e) => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, name: e.target.value } : item) }))} placeholder="e.g. Quiz 1" className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2.5 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />}
+                        </label>
+                      ) : (
+                        <label className="text-[11px] font-bold text-gray-600">{activity.is_attendance ? 'Attendance' : 'Name'}
+                          {activity.is_attendance && <span className="mt-1 block rounded-md border border-gray-200 bg-gray-100 px-2.5 py-2 text-xs font-medium text-gray-500">Uses computed attendance scores</span>}
+                          {!activity.is_attendance && <input value={activity.name} onChange={(e) => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, name: e.target.value } : item) }))} placeholder="e.g. Quiz 1" className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2.5 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />}
+                        </label>
+                      )}
+                      {!activity.is_attendance && (
+                        <label className="text-[11px] font-bold text-gray-600">Max score
+                          <input type="number" min="0.01" max="1000" step="any" value={activity.max_score} onChange={(e) => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, max_score: e.target.value } : item) }))} className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />
+                        </label>
+                      )}
+                      <button type="button" onClick={() => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.filter((_, i) => i !== index) }))} title="Remove subcomponent" aria-label="Remove subcomponent" className="mb-0.5 p-2 rounded-md text-gray-500 hover:bg-red-50 hover:text-red-600"><Trash2 size={14} /></button>
+                    </div>
+                  ))}
+                </section>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200 bg-gray-50">
+              <button type="button" onClick={() => setComponentModal(null)} disabled={savingComponent} className="px-4 py-2 rounded-lg bg-white border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-100 disabled:opacity-50">Cancel</button>
+              <button type="submit" disabled={savingComponent} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0c1925] text-white text-xs font-bold hover:bg-gray-800 disabled:opacity-50">
+                {savingComponent && <Loader size={13} className="animate-spin" />}{savingComponent ? 'Saving...' : componentModal.mode === 'add' ? 'Add Component' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
       {deleteModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">

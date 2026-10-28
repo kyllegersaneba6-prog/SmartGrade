@@ -6,9 +6,10 @@ import { ArrowRight, FileText, Cpu, Network, Shield, Users, UserGroup, Graduatio
 import api from '../../utils/api';
 import { splitUpdateDescription } from '../../utils/auditText';
 import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../components/common/Skeleton';
+import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
 
 const MetricCard = ({ title, value, icon: Icon, color, subtitle }) => (
-  <div className="bg-gray-50 p-5 rounded-2xl shadow-sm card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
+  <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-300 card-hover hover:shadow-md">
     <div className="space-y-1">
       <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">{title}</span>
       <div className="text-3xl font-extrabold text-[#1a2233]">{value}</div>
@@ -90,13 +91,12 @@ const SuperAdminDashboard = () => {
   const totals = { teachers: departments.reduce((s, d) => s + d.teachers, 0), admins: departments.reduce((s, d) => s + d.admins, 0) };
 
   return (
-  <div className="space-y-6 max-w-7xl mx-auto pt-4 md:pt-6 lg:pt-0">
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Dashboard</h1>
-        <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>Monitor registered users, department distribution, system activities, and broadcast announcements.</p>
-      </div>
-    </div>
+  <div className="mx-auto w-full max-w-7xl space-y-6">
+    <SuperAdminPageHeading
+      eyebrow="System overview"
+      title="Dashboard"
+      description="Monitor registered users, department distribution, system activities, and broadcast announcements."
+    />
 
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
       {initialLoading ? (
@@ -120,7 +120,7 @@ const SuperAdminDashboard = () => {
       ) : (
       <>
       <div className="lg:col-span-2 flex flex-col gap-5">
-        <div className="rounded-xl p-5 shadow-sm bg-gray-50 card-hover">
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Department User Overview</h2>
@@ -134,22 +134,22 @@ const SuperAdminDashboard = () => {
             <div className="table-responsive">
               <table className="w-full text-xs min-w-[500px]">
                 <thead>
-                  <tr>
-                    <th className="text-left pb-3 pr-4 font-medium text-gray-900 w-44">Department</th>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="w-44 px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-600">Department</th>
                     {[{ label: 'Teachers', icon: Users, color: '#142a3f' }, { label: 'Admins', icon: ShieldCheck, color: '#142a3f' }].map(({ label, icon: Icon, color }) => (
-                      <th key={label} className="pb-3 px-2 text-center">
-                        <div className="flex flex-col items-center gap-1"><Icon size={14} style={{ color }} /><span className="font-medium text-gray-900">{label}</span></div>
+                      <th key={label} className="px-2 py-2.5 text-center">
+                        <div className="flex flex-col items-center gap-1"><Icon size={14} style={{ color }} /><span className="text-[10px] font-bold uppercase tracking-wide text-gray-600">{label}</span></div>
                       </th>
                     ))}
-                    <th className="pb-3 px-2 text-center">
-                      <div className="flex flex-col items-center gap-1"><Equal size={14} style={{ color: '#142a3f' }} /><span className="font-medium text-gray-900">Total</span></div>
+                    <th className="px-2 py-2.5 text-center">
+                      <div className="flex flex-col items-center gap-1"><Equal size={14} style={{ color: '#142a3f' }} /><span className="text-[10px] font-bold uppercase tracking-wide text-gray-600">Total</span></div>
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {departments.map((dept) => (
-                    <tr key={dept.name} className="border-t border-gray-200">
-                      <td className="py-3 pr-4 font-semibold text-gray-700 text-xs">{dept.name}</td>
+                    <tr key={dept.name} className="border-b border-gray-100 transition-colors hover:bg-gray-50">
+                      <td className="px-3 py-3 text-xs font-semibold text-gray-700">{dept.name}</td>
                       {[{ val: dept.teachers, bg: '#fbbf24' }, { val: dept.admins, bg: '#fbbf24' }].map((cell, i) => (
                         <td key={i} className="py-3 px-2 text-center">
                           <span
@@ -170,7 +170,7 @@ const SuperAdminDashboard = () => {
           )}
         </div>
 
-        <div className="rounded-xl p-4 sm:p-5 shadow-sm bg-gray-50 card-hover">
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm card-hover sm:p-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
             <h2 className="text-sm sm:text-base font-bold" style={{ color: '#0c1925' }}>Recent Activities</h2>
           </div>
@@ -234,7 +234,7 @@ const SuperAdminDashboard = () => {
       </div>
 
       <div className="flex flex-col gap-5">
-        <div className="rounded-xl p-5 shadow-sm h-full bg-gray-50 card-hover">
+        <div className="h-full rounded-2xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
           <div className="flex items-center gap-2 mb-4"><Megaphone size={18} style={{ color: '#142a3f' }} /><h2 className="text-sm font-bold" style={{ color: '#0c1925' }}>Broadcast Notification</h2></div>
           <p className="text-[11px] mb-5 text-gray-900">Send an update or alert to Users (Teachers, Admins).</p>
           <form onSubmit={handlePostNotification} className="flex flex-col gap-4">

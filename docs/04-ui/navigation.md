@@ -6,12 +6,12 @@ All three layouts share the same skeleton:
 
 | Part | Detail |
 |---|---|
-| Sidebar | Fixed 272 px (`w-68`) on `lg+`, off-canvas with overlay + hamburger below `lg` |
-| Header | `h-16`, navy gradient, page title, role-specific metadata |
+| Sidebar | Fixed 224 px on `lg+`, collapsible to 72 px; off-canvas with overlay + hamburger below `lg` |
+| Header | `h-16`, white with a light border and shadow, page title, role-specific metadata |
 | Banner | Amber archive bar (admin/teacher only), above the outlet |
-| Outlet | `flex-1 p-4 md:p-6 lg:p-8 overflow-auto` |
+| Outlet | `min-h-0 flex-1 overflow-auto` with an inner `p-4 md:p-6 lg:p-8` content wrapper |
 
-Sidebar styling: gradient `to right, #0c1925 → #102132 → #142a3f`; active item `bg-[#0a316a] text-amber-400 border-l-4 border-gold`; footer shows avatar, full name, role badge (`bg-gold/20 text-amber-400`), and a logout icon with a confirmation modal.
+Sidebar styling: gradient `to right, #0c1925 → #102132 → #142a3f`; active item `bg-[#24384b] text-amber-300 border-l-[3px] border-gold`; hovering a nav item zooms its icon and label (`group-hover:scale-110`, 200 ms); footer shows avatar, full name, role badge, and a logout icon with a confirmation modal.
 
 ## Superadmin Sidebar
 
@@ -23,7 +23,7 @@ Sidebar styling: gradient `to right, #0c1925 → #102132 → #142a3f`; active it
 | Security & Audit | `/superadmin/security` | `ShieldCheck` |
 | Settings | `/superadmin/settings` | `Settings` |
 
-Header: page title only. No department badge, term pill, or notification bell.
+Header: page title and a System Administration badge, in the shared white-header style.
 
 ## Admin Sidebar
 
@@ -35,7 +35,7 @@ Header: page title only. No department badge, term pill, or notification bell.
 | Teacher Management | `/admin/teachers` | `Users` |
 | Settings | `/admin/settings` | `Settings` |
 
-Header: page title, department badge (`Department (ABBR)`), term pill `{school_year} — {semester}` (archive-styled when browsing), `NotificationDropdown` (always empty).
+Header: page title, department badge (`Department (ABBR)`), term pill `{school_year} · {semester}`, and `NotificationDropdown` (always empty). Uses the shared white-header style.
 
 ## Teacher Sidebar
 
@@ -48,7 +48,7 @@ Header: page title, department badge (`Department (ABBR)`), term pill `{school_y
 | Grade Summary | `/teacher/grade-summary` | `Summary` |
 | Settings | `/teacher/settings` | `Settings` |
 
-Header: page title, department badge, term pill `{school_year} | {semester}`, `NotificationDropdown`.
+Header: page title, department badge, term pill `{school_year} · {semester}`, `NotificationDropdown`.
 
 ## Routing Tree
 
@@ -104,7 +104,8 @@ Unmatched URLs are handled by the top-level `*` route and render `NotFound` with
 | `/admin/teachers/create` | Create New Teacher |
 | `/admin/sections` | Manage Sections |
 | `/admin/subjects` | Manage Subjects |
-| `/admin/settings` (and anything unmatched, incl. `/admin/bulk-students`) | Settings |
+| `/admin/bulk-students` | Bulk Student Import |
+| `/admin/settings` (and anything unmatched) | Settings |
 | `/superadmin` | Dashboard |
 | `/superadmin/security` | Security & Audit Logs |
 | `/superadmin/users` | Admin Management |

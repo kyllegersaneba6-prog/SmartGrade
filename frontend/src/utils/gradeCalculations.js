@@ -27,7 +27,9 @@ export const getComponentTotal = (studentId, comp, scores, attScores) => {
   const activities = comp.activities || [];
   let sum = 0;
   activities.forEach(a => {
-    const val = parseFloat(scores?.[a.id]?.[studentId]);
+    const val = a.is_attendance
+      ? parseFloat(attScores?.scores?.[studentId] ?? 0)
+      : parseFloat(scores?.[a.id]?.[studentId]);
     if (!isNaN(val)) sum += val;
   });
   return sum;
@@ -37,7 +39,11 @@ export const getComponentMaxTotal = (comp, attScores) => {
   if (comp.is_attendance) return attScores?.max_total ?? 0;
   const activities = comp.activities || [];
   let sum = 0;
-  activities.forEach(a => sum += parseFloat(a.max_score || 0));
+  activities.forEach(a => {
+    sum += a.is_attendance
+      ? parseFloat(attScores?.max_total || 0)
+      : parseFloat(a.max_score || 0);
+  });
   return sum;
 };
 

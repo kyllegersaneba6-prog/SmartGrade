@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Upload, Eye, EyeOff, CalendarX, Cog } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Eye, EyeOff, CalendarX, Cog } from 'lucide-react';
 import CreateSuperAdminUser from './CreateSuperAdminUser';
 import api from '../../utils/api';
 import { displayStaffId, formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
+import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
 
 const USERS_PER_PAGE = 10;
 
@@ -119,14 +119,6 @@ const SuperAdminUsers = () => {
     return () => window.removeEventListener('app:reload', handler);
   }, []);
 
-  const exportToExcel = () => {
-    const exportData = usersList.map(u => ({ 'ID': displayStaffId(u.staffId), 'Name': u.name, 'Username': u.username, 'Department': u.dept }));
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Admins');
-    XLSX.writeFile(wb, 'SmartGrade_Admins.xlsx');
-  };
-
   const openEditModal = (u) => {
     setUserToEdit(u);
     const deptName = u.dept === 'N/A' ? '' : u.dept;
@@ -235,28 +227,30 @@ const SuperAdminUsers = () => {
   const paginatedUsers = sortedUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Admin Management</h1>
-          <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>Create, edit, and manage administrator accounts across all departments.</p>
-                  </div>
-        <span className="text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#0c1925' }}>{usersList.length} ADMINS</span>
-      </div>
+    <div className="mx-auto w-full max-w-7xl space-y-6">
+      <SuperAdminPageHeading
+        eyebrow="Accounts"
+        title="Admin Management"
+        description="Create, edit, and manage administrator accounts across all departments."
+        actions={(
+          <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-[10px] font-bold text-gray-600 sm:text-xs">
+            {usersList.length} ADMINS
+          </span>
+        )}
+      />
 
-      <div className="rounded-xl p-5 shadow-sm border border-[#F9FAFB] card-hover" style={{ background: '#fff' }}>
+      <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Admin Accounts</h2>
+          <h2 className="text-base font-bold text-sidebar">Admin Accounts</h2>
           <div className="flex gap-2">
             <button onClick={handleAddAdminClick} disabled={checkingTerm} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform disabled:opacity-50" style={{ background: '#0c1925', borderColor: '#142a3f' }}><UserPlus size={14} /> {checkingTerm ? 'Checking…' : 'Add Admin'}</button>
-            <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-[#0c1925] text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#fbbf24', borderColor: '#fbbf24' }}><Upload size={14} /> Export</button>
           </div>
         </div>
 
         <div className="table-responsive"><table className="w-full text-xs min-w-[500px]">
           <thead>
-            <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
-              {['ID', 'NAME', 'USERNAME', 'DEPARTMENT', 'ACTIONS'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[12px] uppercase tracking-wide">{h}</th>))}
+            <tr className="border-b border-gray-200 bg-gray-50">
+              {['ID', 'NAME', 'USERNAME', 'DEPARTMENT', 'ACTIONS'].map((h) => (<th key={h} className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-600">{h}</th>))}
             </tr>
           </thead>
           <tbody>
@@ -268,12 +262,12 @@ const SuperAdminUsers = () => {
               </tr>
             )}
             {paginatedUsers.map((u) => (
-              <tr key={u.id} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
-                <td className="py-3 pr-3 font-mono text-[12px] text-gray-900">{displayStaffId(u.staffId)}</td>
-                <td className="py-3 pr-3 font-bold text-gray-900 text-[12px]">{u.name}</td>
-                <td className="py-3 pr-3 text-gray-900 font-mono text-[12px]">{u.username}</td>
-                <td className="py-3 pr-3 text-gray-900 text-[12px]">{deptDisplay(u.dept)}</td>
-                <td className="py-3 items-center">
+              <tr key={u.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-gray-50">
+                <td className="px-3 py-3 font-mono text-[12px] text-gray-700">{displayStaffId(u.staffId)}</td>
+                <td className="px-3 py-3 text-[12px] font-bold text-gray-900">{u.name}</td>
+                <td className="px-3 py-3 font-mono text-[12px] text-gray-700">{u.username}</td>
+                <td className="px-3 py-3 text-[12px] text-gray-700">{deptDisplay(u.dept)}</td>
+                <td className="px-3 py-3 items-center">
                   <button onClick={(e) => openMenu(u, e)} className="text-gray-900 hover:text-[#0c1925] transition-colors p-1 rounded-md hover:bg-gray-100" title="Actions"><Cog size={20} /></button>
                 </td>
               </tr>

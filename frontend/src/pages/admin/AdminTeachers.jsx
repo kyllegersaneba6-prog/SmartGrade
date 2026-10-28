@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Upload, UserCheck, BookOpen, GraduationCap, Calendar,
+import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, UserCheck, BookOpen, GraduationCap, Calendar,
 CheckCircle, Eye, EyeOff, X, Lock, Cog } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import CreateAdminTeacher from './CreateAdminTeacher';
 import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
 import { displayStaffId, formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
 import { SkeletonList } from '../../components/common/Skeleton';
+import AdminPageHeading from '../../components/admin/AdminPageHeading';
 
 const USERS_PER_PAGE = 10;
 
@@ -141,14 +141,6 @@ const AdminTeachers = () => {
     window.addEventListener('app:reload', handler);
     return () => window.removeEventListener('app:reload', handler);
   }, []);
-
-  const exportToExcel = () => {
-    const exportData = teachers.map(u => ({ 'ID': displayStaffId(u.staffId), 'Name': u.name, 'Username': u.username }));
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Teachers');
-    XLSX.writeFile(wb, 'SmartGrade_Teachers.xlsx');
-  };
 
   const openEditModal = (u) => {
     setTeacherToEdit(u);
@@ -303,28 +295,26 @@ const AdminTeachers = () => {
   const menuTeacher = teachers.find((x) => x.rawId === openMenuId) || null;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Teacher Management</h1>
-          <p className="text-xs sm:text-sm mt-0.5 text-amber-400">Provision, edit, and manage all teacher accounts.</p>
-        </div>
-        <span className="text-[10px] sm:text-sm font-bold px-3 py-1 rounded-full text-white" style={{ background: '#0c1925' }}>{teachers.length} TEACHERS</span>
-      </div>
+    <div className="mx-auto max-w-7xl space-y-6">
+      <AdminPageHeading
+        eyebrow="Accounts"
+        title="Teacher Management"
+        description="Provision, edit, and manage all teacher accounts."
+        actions={<span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-700">{teachers.length} teachers</span>}
+      />
 
-      <div className="rounded-xl p-5 shadow-sm border border-gray-50 card-hover" style={{ background: '#fff' }}>
+      <div className="rounded-2xl p-5 shadow-sm border border-gray-200 card-hover bg-white">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Teacher Accounts</h2>
           <div className="flex gap-2">
             <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0c1925', borderColor: '#0c1925' }}><UserPlus size={14} /> Add Teacher</button>
-            <button onClick={exportToExcel} className="px-3 h-8 rounded border flex items-center gap-1.5 text-[#0c1925] text-xs font-bold shadow-sm hover:scale-105" style={{ background: '#fbbf24', borderColor: '#fbbf24' }}><Upload size={14} /> Export</button>
           </div>
         </div>
 
         <div className="table-responsive"><table className="w-full text-xs min-w-[600px]">
           <thead>
-            <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
-              {['ID', 'NAME', 'USERNAME', 'ASSIGNED COURSE', 'ACTIONS'].map((h) => (<th key={h} className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[12px] uppercase tracking-wide">{h}</th>))}
+            <tr className="border-b bg-gray-50" style={{ borderColor: '#e5e7eb' }}>
+              {['ID', 'NAME', 'USERNAME', 'ASSIGNED COURSE', 'ACTIONS'].map((h) => (<th key={h} className="text-left px-3 py-3 font-bold text-gray-600 text-[10px] uppercase tracking-wide">{h}</th>))}
             </tr>
           </thead>
           <tbody>
@@ -336,11 +326,11 @@ const AdminTeachers = () => {
               </tr>
             )}
             {paginated.map((u) => (
-              <tr key={u.rawId} className="border-b last:border-0" style={{ borderColor: '#f0ede6' }}>
-                <td className="py-3 pr-3 font-mono text-[12px] text-gray-900">{displayStaffId(u.staffId)}</td>
-                <td className="py-3 pr-3 font-bold text-gray-900">{u.name}</td>
-                <td className="py-3 pr-3 text-gray-900 text-[12px]">{u.username}</td>
-                <td className="py-3 pr-3">
+              <tr key={u.rawId} className="border-b last:border-0 hover:bg-gray-50" style={{ borderColor: '#e5e7eb' }}>
+                <td className="px-3 py-3 font-mono text-[12px] text-gray-900">{displayStaffId(u.staffId)}</td>
+                <td className="px-3 py-3 font-bold text-gray-900">{u.name}</td>
+                <td className="px-3 py-3 text-gray-900 text-[12px]">{u.username}</td>
+                <td className="px-3 py-3">
                   {teacherCourses[u.rawId]?.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {teacherCourses[u.rawId].map((c, i) => (
@@ -351,7 +341,7 @@ const AdminTeachers = () => {
                     <span className="text-[10px] text-gray-500">—</span>
                   )}
                 </td>
-                <td className="py-3">
+                <td className="px-3 py-3">
                   <button onClick={(e) => openMenu(u, e)} className="text-gray-900   hover:text-[#0c1925] transition-colors p-1 rounded-md hover:bg-gray-100" title="Actions"><Cog size={20} /></button>
                 </td>
               </tr>

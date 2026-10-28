@@ -35,7 +35,7 @@ const TABLE_COLUMNS = {
   subjects: ['id', 'name', 'code', 'year_level', 'school_year', 'semester', 'course_id', 'created_by', 'created_at'],
   teacher_assignments: ['id', 'teacher_id', 'section_id', 'subject_id', 'school_year', 'semester', 'created_by', 'created_at'],
   grading_components: ['id', 'teacher_assignment_id', 'term', 'name', 'weight', 'sort_order', 'is_attendance', 'created_at'],
-  component_activities: ['id', 'component_id', 'name', 'max_score', 'sort_order', 'created_at'],
+  component_activities: ['id', 'component_id', 'name', 'max_score', 'sort_order', 'is_attendance', 'created_at'],
   component_scores: ['id', 'activity_id', 'student_id', 'score', 'created_at'],
   attendance: ['id', 'teacher_assignment_id', 'student_id', 'date', 'status', 'score', 'session', 'type', 'term', 'created_at'],
   activity_log: ['id', 'user_name', 'action', 'details', 'department', 'created_at'],

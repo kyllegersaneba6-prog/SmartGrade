@@ -1,5 +1,233 @@
 # Changelog
 
+## 2026-10-29
+
+### Fixed: Class Record PDF export item was unclickable
+
+- Cause: the Class Record heading sits in a `position: sticky` wrapper at `z-index: 20`, and the toolbar rows below are later sticky siblings with the same `z-index: 20`. They painted over the Export dropdown, so the second item (**PDF (.pdf)**) never received the click while **Excel (.xlsx)** still worked. The exporter itself was fine (valid PDF produced in headless Chromium with mock data).
+- `index.css`: new `.teacher-class-record-page .class-record-heading-anchor { z-index: 40; }`.
+- `ClassRecord.jsx`: heading wrapper now uses `class-record-horizontal-anchor class-record-heading-anchor`.
+- Verified: minimal repro resolved `document.elementFromPoint` from `DIV.anchor toolbar` back to the PDF button; `vite build` passes.
+- Docs updated: `04-ui/design-system.md`, `04-ui/screens.md`, `05-development/changelog.md`.
+
+## 2026-10-28
+
+### Fixed: modal backdrop covers frozen table columns
+
+- `index.css`: `.modal-backdrop` now sets `z-index: 100`, above the sticky student header/data cells (`z-index: 60`/`55`). The Remove Date modal in Attendance (and every other `modal-backdrop`) now dims and blurs the frozen Student Information column like the rest of the table.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/design-system.md`, `05-development/changelog.md`.
+
+### Removed: empty-state Add Component inside the Class Record table
+
+- `ClassRecord.jsx`: the empty table state now only shows the "Add grading components…" message; the duplicate **Add Component** button was removed (the toolbar button remains).
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/changelog.md`.
+
+### Changed: Copy from PRELIMS only shows on an empty non-prelim term
+
+- `ClassRecord.jsx`: the **Copy from PRELIMS** button now renders only when the selected term is MIDTERMS, PRE-FINALS, or FINALS, the term is editable, data has loaded, and the term currently has zero grading components. It hides as soon as any component exists.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/screens.md`, `05-development/changelog.md`.
+
+### Changed: section labels use the compact `BSCS-1A` format
+
+- `AdminSections.jsx`: Add Section preview now generates `BSCS-1A`; the sections list, roster heading, Excel-import header, and delete confirmation render stored names through the new `formatSectionName` util (`frontend/src/utils/sectionName.js`), so legacy `BSCS 1-A` rows display as `BSCS-1A` without a data rewrite.
+- `backend/routes/sections.js`: new sections are stored as `BSCS-1A`; the duplicate check matches both the new and legacy spacing; seed preview returns the new format.
+- Verified: `npm run build` and `node --check backend/routes/sections.js` pass.
+- Docs updated: `04-ui/screens.md`, `05-development/changelog.md`.
+
+### Changed: sidebar footer shows the full user name
+
+- `TeacherSidebar.jsx`, `AdminSidebar.jsx`, `SuperAdminSidebar.jsx`: removed `truncate` from the account name so long names wrap (`break-words whitespace-normal leading-tight`) instead of being cut off.
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/changelog.md`.
+
+### Removed: export buttons on account tables
+
+- `AdminTeachers.jsx`: removed the Export button, `exportToExcel` handler, and now-unused `XLSX`/`Upload` imports from the Teacher Accounts table.
+- `SuperAdminUsers.jsx`: removed the Export button, `exportToExcel` handler, and now-unused `XLSX`/`Upload` imports from the Admin Accounts table.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/screens.md`, `01-features/feature-details.md`, `05-development/changelog.md`.
+
+### Changed: sidebar nav items zoom on hover
+
+- `TeacherSidebar.jsx`, `AdminSidebar.jsx`, `SuperAdminSidebar.jsx`: nav icon and label now scale to 110% on hover (`transition-transform duration-200 group-hover:scale-110`, label `origin-left`).
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/navigation.md`, `05-development/changelog.md`.
+
+### Changed: Admin pages match the shared role UI
+
+- Added a shared Admin page heading matching the Teacher and Superadmin heading style; updated Dashboard, Teachers, Sections, Subjects, Settings, and Bulk Student Import surfaces and tables to use consistent white cards, gray borders, and light table headers.
+- Preserved current page actions, forms, filters, data flows, and archive behavior.
+- Docs updated: `04-ui/screens.md`, `04-ui/design-system.md`, `05-development/changelog.md`, `06-decisions/future-plans.md`.
+
+### Changed: Admin sidebar and header match the teacher shell
+
+- Added persistent desktop sidebar collapse, mobile drawer behavior, matching navigation states, and the shared account footer styling to Admin.
+- Updated the Admin header to the shared white style with department and term badges, notifications, responsive menu, and archive banner; corrected the bulk student import route title.
+- Verified: `npm run build` passes.
+- Docs updated: `01-features/feature-list.md`, `04-ui/navigation.md`, `04-ui/screens.md`, `04-ui/design-system.md`, `05-development/notes.md`, `05-development/changelog.md`.
+
+### Changed: Superadmin audit table sticky header and pagination
+
+- The audit column headers now stick during page scrolling, filtered audit logs display 50 entries per page with a range label that says "logs", and changing pages runs an explicit 500ms eased scroll animation to the audit section top.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/screens.md`, `04-ui/design-system.md`, `05-development/bug-fixes.md`, `05-development/changelog.md`.
+
+### Fixed: Attendance sticky header gap
+
+- Set explicit sticky offsets for the first two Attendance header rows and layered the opaque frozen student headers above table data to remove the visible gap/bleed-through.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/screens.md`, `04-ui/design-system.md`, `05-development/bug-fixes.md`, `05-development/changelog.md`.
+
+### Fixed: Class Record page content shifted under the sidebar
+
+- Anchored the page heading, assignment/term controls, status banners, grading toolbar, and pagination to the visible content area while horizontally scrolling the wide grade grid.
+- Preserved page-level vertical scrolling and the existing sticky table headers.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/screens.md`, `04-ui/design-system.md`, `05-development/bug-fixes.md`, `05-development/changelog.md`.
+
+### Fixed: Class Record activity subheader color
+
+- Restored the component color lookup in the activity subheader map so its `color.light` background resolves correctly.
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/bug-fixes.md`, `05-development/changelog.md`.
+
+### Changed: Class Record component separators
+
+- Thinned the existing component-end dividers from 4px to 1px and added matching 1px black separators after Student Information and each component group through the header, max-score, and student-score rows.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/design-system.md`, `05-development/bug-fixes.md`, `05-development/changelog.md`.
+
+### Changed: Class Record max-score separator
+
+- Added a thin 1px black divider immediately below the MAX SCORE row, spanning all columns and remaining visible across horizontal scrolling.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/design-system.md`, `05-development/bug-fixes.md`, `05-development/changelog.md`.
+
+### Fixed: Class Record horizontal header overlap
+
+- The class-record grid now declares each column width so the Student Information header spans the same fixed number, ID, and name columns as the data rows.
+- Frozen student header cells now stack above horizontally scrolling grading-component headers, preventing component headings from covering student information.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/design-system.md`, `04-ui/screens.md`, `05-development/bug-fixes.md`, `05-development/changelog.md`.
+
+## 2026-10-27
+
+### Changed: bell icon is navy
+
+- `NotificationDropdown.jsx`: header bell icon color changed from `text-amber-400` to `text-[#0c1925]` (hover `text-[#24384b]`). Applies to both teacher and admin headers.
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/changelog.md`.
+
+### Changed: notification icon is now a bell
+
+- `NotificationDropdown.jsx`: switched the header notification icon (and its empty-state icon) from `Megaphone` to `Bell` from lucide-react. Applies to both teacher and admin headers since they share the component.
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/changelog.md`.
+
+### Changed: login hero has no black panel
+
+- `Login.jsx`: removed the translucent black card wrapper around the right-side hero content (no `bg-black/40`, blur, white/15 border, or rounded panel); the brand lockup, description, feature blocks, and footer now sit directly over the background photo with the existing dark overlay.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/screens.md`, `05-development/changelog.md`.
+
+### Changed: teacher sidebar brand bar matches header height
+
+- `TeacherSidebar.jsx`: the desktop collapse/brand button and the mobile brand row are now `h-16` (64px, no `py-5`), matching the top header bar so both line up; hover/active behavior unchanged.
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/changelog.md`.
+
+### Changed: teacher toolbars right-aligned
+
+- Attendance, Behavioral Analytics, and Grade Summary now right-align their controls (`justify-end`): Attendance shows **Add Date → Search** at the right edge; Analytics and Grade Summary show the search bar at the right edge, matching Class Record. The Add Date button now uses the search bar's height (`py-2` + 1px transparent border).
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/changelog.md`.
+
+### Changed: teacher header shows the full department name
+
+- Removed `max-w-44 truncate` from the department pill in `TeacherLayout.jsx`, so the header now shows the complete department label (with abbreviation) instead of an ellipsized version.
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/changelog.md`.
+
+### Changed: grading-component weight field accepts numbers only
+
+- In the Add/Edit grading component modal, the Weight (%) field is now `type="text"` with `inputMode="decimal"`; input is sanitized on change to digits plus at most one decimal point (no `-`, `e`, or other characters).
+- Class Record score cells use the same approach: `type="text"` + `inputMode="decimal"` with digit/decimal-only sanitizing, backed by a per-cell `scoreDrafts` buffer so partial values (e.g. `85.`) still type naturally and sync to the stored score on each valid change. Typed values above the activity's max score snap to the max in the field (stored value is clamped and the amber clamp warning still appears).
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/changelog.md`.
+
+### Changed: Attendance toolbar order
+
+- Moved the **Add Date** button out of the subject label group so the toolbar reads subject/section on the left, then **Add Date → Search** on the right; the date popover now opens left-aligned (`right-0`) to stay inside the viewport.
+- Class Record header controls reordered to **Copy from PRELIMS → Add Component → Search**.
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/changelog.md`.
+
+### Changed: assigned-classes skeleton matches the four-column layout
+
+- `SkeletonClassGrid` now mirrors the teacher dashboard's year columns (`grid-cols-1 sm:grid-cols-2 xl:grid-cols-4`) with a header placeholder, count pill, and three subject-row placeholders per card; the dashboard keeps showing it while assignments load (`aria-busy`).
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/changelog.md`.
+
+### Changed: teacher dashboard laid out in four year-level columns
+
+- `TeacherDashboard.jsx` now renders a 1/2/4-column responsive grid (`grid-cols-1 sm:grid-cols-2 xl:grid-cols-4`) with one card per year (1st–4th Year). Every column always shows; each has an assignment count pill, the assigned subject list (subject code/name + section, without school year/semester), and a "No assigned subjects." empty state.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/screens.md`, `05-development/changelog.md`.
+
+### Changed: pointer cursor on all buttons
+
+- Added a global base rule in `index.css`: enabled `button`, `[role="button"]`, `input[type=button|submit|reset]`, `select`, and `summary` use `cursor: pointer`; disabled controls use `cursor: not-allowed`. Tailwind utilities (e.g. `disabled:cursor-not-allowed`) still override it.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/design-system.md`, `05-development/changelog.md`.
+
+### Changed: unified teacher search-bar sizing
+
+- Attendance, Behavioral Analytics, and Grade Summary search inputs now match the Class Record bar (`w-56`, `pl-9 pr-8 py-2 text-xs`). In Class Record the header controls now read **Add Component → Copy from PRELIMS → Search**.
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/changelog.md`.
+
+### Removed: subject/section label above the Class Record grading components
+
+- Deleted the "Subject — Section" text above the "Grading components" card in `ClassRecord.jsx`; the student search field moved into the card header row, next to "Copy from PRELIMS" / "Add Component".
+- Verified: `npm run build` passes.
+- Docs updated: `05-development/changelog.md`.
+
+### Removed: export button from Attendance
+
+- Removed the `ExportButtons` control from the `Attendance` header, plus the now-unused export helpers (`getFilteredStudents`, `dateLabel`, `exportContext`, `handleExportExcel`, `handleExportPdf`), `exporting`/`exportError` state, and imports (`xlsx-js-style`, `ExportButtons`, `exportTablePdf`, `exportFilenames`).
+- Verified: `npm run build` passes (`npx eslint` reports only pre-existing unused `React`/`ArrowLeft`/`navigate`/`color`/`idx` and effect notices).
+- Docs updated: `00-overview/project-summary.md`, `01-features/feature-details.md`, `01-features/feature-list.md`, `04-ui/screens.md`, `05-development/changelog.md`.
+
+### Removed: export button from Behavioral Analytics
+
+- Removed the Excel/PDF `ExportButtons` control from the `BehavioralAnalytics` header, along with the now-unused export handlers, `exporting`/`exportError` state, and imports (`xlsx-js-style`, `ExportButtons`, `exportTablePdf`, `exportFilenames`).
+- Verified: `npm run build` passes (`npx eslint` reports only pre-existing unused `ArrowLeft`/`navigate`/`activities` and hook-dependency notices).
+- Docs updated: `01-features/feature-details.md`, `04-ui/screens.md`, `05-development/changelog.md`.
+
+### Fixed: sticky student columns lag on fast horizontal scroll
+
+- Added a `.sticky-cols` utility (`index.css`) applied to the teacher grids (`Attendance`, `BehavioralAnalytics`, `ClassRecord`, `GradeSummary`): it targets the pinned cells (`th/td` with inline `left`) and sets `will-change: transform`, `transform: translateZ(0)`, and `background-clip: padding-box`. The student-information columns now track fast horizontal scrolling instead of visibly dragging behind.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/design-system.md`, `05-development/changelog.md`.
+
+### Fixed: teacher grade-grid headers scroll away vertically
+
+- Added a `.table-scroll` utility (`index.css`): `max-height: min(480px, 60vh)` with 2-axis `overflow: auto`, plus a sticky `<thead>` (`top: 0`, `z-index: 40`).
+- `Attendance.jsx`, `BehavioralAnalytics.jsx`, and `GradeSummary.jsx` now use `.table-scroll` instead of `overflow-x-auto`, so the "STUDENT INFORMATION" header stays pinned while the table scrolls vertically, and wide grids still scroll horizontally (existing `sticky left-*` student columns keep working).
+- `ClassRecord.jsx`, `Attendance.jsx`, and `BehavioralAnalytics.jsx` keep a plain `overflow-x-auto` wrapper (no inner vertical scroll); those grids grow to full height and scroll horizontally only. `GradeSummary.jsx` retains the pinned `.table-scroll` header.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/design-system.md`, `04-ui/screens.md`, `05-development/changelog.md`.
+
+### Changed: login hero content grouped in translucent black card
+
+- `Login.jsx` right column: brand lockup, description, four feature blocks, and footer are now inside a card (`max-w-lg`, `rounded-2xl`, `border border-white/15`, `bg-black/40`, `backdrop-blur-sm`, `shadow-2xl`) so the blurred campus photo remains visible through it.
+- Feature icons use a thin black outline (`.stroke-icon` in `index.css`, 0.5px four-way drop-shadow) instead of the earlier bold 1px/`border-2` treatment.
+- Verified: `npm run build` passes.
+- Docs updated: `04-ui/screens.md`, `05-development/changelog.md`.
+
 ## 2026-10-26
 
 ### Reviewed & Updated: System Review & Documentation Audit

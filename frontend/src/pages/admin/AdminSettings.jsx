@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Settings, Archive, X, Lock } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import { SkeletonSettingsCard } from '../../components/common/Skeleton';
+import AdminPageHeading from '../../components/admin/AdminPageHeading';
 
 const AdminSettings = () => {
   const { activeTerm, allTerms, viewTerm, setViewTerm, isArchiveMode, loading } = useAdmin();
@@ -18,19 +19,18 @@ const AdminSettings = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card flex flex-col justify-center" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Settings</h1>
-          <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>View academic terms and browse archived semesters</p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <AdminPageHeading
+        eyebrow="Preferences"
+        title="Settings"
+        description="View academic terms and browse archived semesters."
+      />
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50 card-hover">
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 card-hover">
         <h2 className="text-sm font-bold text-gray-900 mb-4">Academic Term Information</h2>
 
         {isArchiveMode && viewTerm && (
-          <div className="bg-amber-400 border border-amber-400 rounded-xl p-4 mb-6 flex items-center justify-between">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Archive size={16} className="text-amber-600" />
               <span className="text-sm font-semibold text-gray-800">
@@ -55,7 +55,7 @@ const AdminSettings = () => {
         )}
 
         {activeTerm && !isArchiveMode && (
-          <div className="bg-amber-400 border border-amber-400 rounded-xl p-5 mb-6">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Active Term</span>
@@ -86,7 +86,7 @@ const AdminSettings = () => {
                     }}
                     className={`flex items-center justify-between px-4 py-3 rounded-lg border cursor-pointer transition-colors ${
                       isCurrentlyViewing ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-300' :
-                      isActive ? 'bg-amber-400 border-amber-400 hover:bg-amber-400' :
+                      isActive ? 'bg-amber-50 border-amber-200 hover:bg-amber-100' :
                       'bg-gray-50 border-gray-200 hover:bg-gray-100'
                     }`}
                   >

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { TeacherProvider, useTeacher } from '../contexts/TeacherContext';
 import Sidebar from '../components/teacher/TeacherSidebar';
@@ -9,8 +9,13 @@ import { Archive, X, Menu } from 'lucide-react';
 const TeacherLayoutInner = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('teacher_sidebar_collapsed') === 'true');
   const { isArchiveMode, currentTerm, setViewTerm } = useTeacher();
   const deptLabel = useDeptLabel();
+
+  useEffect(() => {
+    localStorage.setItem('teacher_sidebar_collapsed', String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   const getTitle = () => {
     switch (location.pathname) {
@@ -27,26 +32,34 @@ const TeacherLayoutInner = () => {
 
   return (
     <div className="min-h-screen bg-bg-light font-sans text-text-main">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="lg:pl-[272px] flex flex-col h-[100dvh] overflow-hidden">
-        <header className="h-16 flex items-center justify-between px-4 md:px-6 lg:px-8 text-white border-b border-sidebar-hover shadow-sm shrink-0" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-          <div className="flex items-center gap-3 lg:gap-4 min-w-0">
-            <button onClick={() => setSidebarOpen(true)} className="text-gray-300 hover:text-white lg:hidden shrink-0">
-              <Menu size={22} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((collapsed) => !collapsed)}
+      />
+      <div style={{ '--teacher-sidebar-width': sidebarCollapsed ? '72px' : '224px' }} className={`flex h-[100dvh] flex-col overflow-hidden transition-[padding] duration-300 ${sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[224px]'}`}>
+        <header className="z-30 flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 text-sidebar shadow-sm md:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3 lg:gap-4">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-sidebar transition-colors hover:bg-gray-100 lg:hidden"
+            >
+              <Menu size={20} />
             </button>
-           
-          
-            <h3 className="text-xs sm:text-sm text-white truncate font-medium">{getTitle()}</h3>
-
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-gold/20 text-amber-400 whitespace-nowrap">{deptLabel}</span>
-           {currentTerm && (
-              <>
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/10 text-amber-400 whitespace-nowrap tracking-wider">{currentTerm.school_year} | {currentTerm.semester}</span>
-              </>
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-bold text-sidebar sm:text-base">{getTitle()}</h1>
+            </div>
+            <span className="hidden whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-bold text-amber-800 sm:inline-flex">{deptLabel}</span>
+            {currentTerm && (
+              <span className="hidden whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-gray-600 md:inline-flex">
+                {currentTerm.school_year} · {currentTerm.semester}
+              </span>
             )}
-            
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             <NotificationDropdown items={[]} />
           </div>
         </header>
@@ -64,8 +77,10 @@ const TeacherLayoutInner = () => {
             </button>
           </div>
         )}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
-          <Outlet />
+        <main className="min-h-0 flex-1 overflow-auto">
+          <div className="p-4 md:p-6 lg:p-8">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

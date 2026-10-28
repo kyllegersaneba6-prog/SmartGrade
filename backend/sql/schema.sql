@@ -157,6 +157,7 @@ CREATE TABLE IF NOT EXISTS public.grading_components (
   name TEXT NOT NULL,
   weight DECIMAL NOT NULL,
   sort_order INT DEFAULT 0,
+  is_attendance BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(teacher_assignment_id, term, name)
 );
@@ -168,6 +169,7 @@ CREATE TABLE IF NOT EXISTS public.component_activities (
   name TEXT NOT NULL,
   max_score DECIMAL NOT NULL DEFAULT 100,
   sort_order INT DEFAULT 0,
+  is_attendance BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

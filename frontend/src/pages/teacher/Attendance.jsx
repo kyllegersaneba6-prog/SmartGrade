@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CalendarCheck, Loader, Plus, X, Trash2, ArrowLeft, Cloud, Clock, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx-js-style';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
-import ExportButtons from '../../components/teacher/ExportButtons';
+import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
 import CustomDropdown from '../../components/common/CustomDropdown';
 import Pagination from '../../components/common/Pagination';
 import { SkeletonHeaderCard, SkeletonTable } from '../../components/common/Skeleton';
 import api from '../../utils/api';
-import { buildTeacherFilename, TEACHER_TERM_TOKENS } from '../../utils/exportFilenames';
-import { exportTablePdf } from '../../utils/exportPdf';
+import { TEACHER_TABLE_PAGE_SIZE } from '../../utils/teacherTable';
 
 const LS_PREFIX = 'pending_attendance_';
 
@@ -97,8 +95,6 @@ const Attendance = () => {
   const [error, setError] = useState('');
   const [clampWarnings, setClampWarnings] = useState({});
   const [syncing, setSyncing] = useState(false);
-  const [exporting, setExporting] = useState(null);
-  const [exportError, setExportError] = useState('');
   const datePickerRef = useRef(null);
   const saveTimerRef = useRef(null);
   const columnsRef = useRef(columns);
@@ -151,17 +147,26 @@ const Attendance = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => { setPage(1); }, [selectedAssignment, selectedTerm]);
+
   useEffect(() => {
-    if (!selectedAssignment) { setLoading(false); return; }
+    const controller = new AbortController();
+    const sectionId = currentAssignment?.section_id;
+    if (!selectedAssignment || !sectionId) {
+      setLoading(false);
+      return () => controller.abort();
+    }
     const fetchData = async () => {
+      setStudents([]);
+      setAttendanceMap({});
+      setColumns([]);
       setLoading(true);
       try {
-        const sectionId = currentAssignment?.section_id;
-        if (!sectionId) return;
         const [studentsRes, attendanceRes] = await Promise.all([
-          api(`/api/sections/${sectionId}/students`),
-          api(`/api/attendance?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`),
+          api(`/api/sections/${sectionId}/students`, { signal: controller.signal }),
+          api(`/api/attendance?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`, { signal: controller.signal }),
         ]);
+        if (controller.signal.aborted) return;
         if (studentsRes.ok) setStudents(await studentsRes.json());
         if (attendanceRes.ok) {
           const records = await attendanceRes.json();
@@ -176,11 +181,12 @@ const Attendance = () => {
           setAttendanceMap(map);
           setColumns([...keySet].sort());
         }
-      } catch (err) { console.error(err); }
-      finally { setLoading(false); }
+      } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+      finally { if (!controller.signal.aborted) setLoading(false); }
     };
     fetchData();
-  }, [selectedAssignment, selectedTerm]);
+    return () => controller.abort();
+  }, [selectedAssignment, selectedTerm, currentAssignment?.section_id]);
 
   useEffect(() => {
     const handler = async () => {
@@ -364,98 +370,6 @@ const Attendance = () => {
     return sum;
   };
 
-  // --- Export (reuses the page's own data, headers, search filter) ---
-  const getFilteredStudents = () => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return students;
-    return students.filter(s =>
-      s.student_name?.toLowerCase().includes(q) ||
-      s.student_id?.toLowerCase().includes(q)
-    );
-  };
-
-  const dateLabel = (key) => {
-    const { session, type } = parseKey(key);
-    return `${formatDate(key)} ${session} ${type === 'Laboratory' ? 'LAB' : 'LEC'}`;
-  };
-
-  const exportContext = () => [
-    `${currentAssignment.subjects?.name || ''} — ${currentAssignment.sections?.name || ''}`,
-    `Term: ${selectedTerm}`,
-  ];
-
-  const handleExportExcel = () => {
-    if (!currentAssignment || columns.length === 0 || exporting) return;
-    setExporting('excel');
-    setExportError('');
-    try {
-      const filtered = getFilteredStudents();
-      const subHeader = ['Stud No.', 'Student Name', ...columns.map(dateLabel), 'TOTAL'];
-      const maxRow = ['MAX SCORE', '', ...columns.map(() => 2), columns.length * 2];
-      const dataRows = filtered.map((s) => [
-        String(s.student_id ?? ''),
-        s.student_name ?? '',
-        ...columns.map((k) => attendanceMap[k]?.[s.id] ?? ''),
-        getStudentTotal(s.id),
-      ]);
-      const titleRow = Array(subHeader.length).fill('');
-      titleRow[0] = `Attendance — ${currentAssignment.subjects?.name || ''}`.trim();
-      titleRow[1] = `Section: ${currentAssignment.sections?.name || ''}`;
-      titleRow[2] = `Term: ${selectedTerm}`;
-      const allRows = [titleRow, subHeader, maxRow, ...dataRows];
-      const worksheet = XLSX.utils.aoa_to_sheet(allRows);
-      worksheet['!cols'] = [{ wch: 14 }, { wch: 28 }, ...columns.map(() => ({ wch: 12 })), { wch: 10 }];
-      const lastCol = subHeader.length - 1;
-      worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } }];
-      worksheet['!rows'] = Array.from({ length: allRows.length }, () => ({ hpt: 22 }));
-      // Keep Stud ID as text so leading zeros survive in Excel.
-      for (let r = 3; r < allRows.length; r++) {
-        const addr = XLSX.utils.encode_cell({ r, c: 0 });
-        if (worksheet[addr]) worksheet[addr].t = 's';
-      }
-      if (dataRows.length > 0) {
-        worksheet['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 1, c: 0 }, e: { r: allRows.length - 1, c: lastCol } }) };
-      }
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
-      XLSX.writeFile(workbook, buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'attendance', ext: 'xlsx' }));
-    } catch (err) {
-      console.error(err);
-      setExportError('Excel export failed. Please try again.');
-    } finally {
-      setExporting(null);
-    }
-  };
-
-  const handleExportPdf = () => {
-    if (!currentAssignment || columns.length === 0 || exporting) return;
-    setExporting('pdf');
-    setExportError('');
-    try {
-      const filtered = getFilteredStudents();
-      exportTablePdf({
-        title: 'Attendance',
-        context: exportContext(),
-        filename: buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: TEACHER_TERM_TOKENS[selectedTerm] ?? String(selectedTerm).toLowerCase(), page: 'attendance', ext: 'pdf' }),
-        head: [['#', 'Stud ID', 'Student Name', ...columns.map(dateLabel), 'TOTAL']],
-        body: filtered.map((s, i) => [
-          i + 1,
-          String(s.student_id ?? ''),
-          s.student_name ?? '',
-          ...columns.map((k) => attendanceMap[k]?.[s.id] ?? ''),
-          getStudentTotal(s.id),
-        ]),
-        landscape: true,
-        emptyMessage: 'No students match the current filters.',
-      });
-    } catch (err) {
-      console.error(err);
-      setExportError('PDF export failed. Please try again.');
-    } finally {
-      setExporting(null);
-    }
-  };
-
   if (ctxLoading || loading) {
     return (
       <div className="space-y-6" aria-busy="true">
@@ -478,6 +392,11 @@ const Attendance = () => {
 
   return (
     <div className="space-y-6">
+      <TeacherPageHeading
+        eyebrow="Class monitoring"
+        title="Attendance"
+        description="Record and review attendance for your assigned classes."
+      />
       <div className="flex flex-wrap items-center gap-3">
         <AssignmentSelector />
         <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
@@ -497,21 +416,6 @@ const Attendance = () => {
           {loading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
         </div>
       </div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-5 rounded-2xl shadow-sm border border-gray-50 card-hover text-white" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <div className="text-[12px] font-bold text-white uppercase tracking-wider mb-1 font-sans">
-            SmartGrade — Attendance
-          </div>
-          <span className="text-sm font-bold text-amber-400">{currentAssignment.subjects?.name} — {currentAssignment.sections?.name}</span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-          {columns.length > 0 && (
-            <ExportButtons onExcel={handleExportExcel} onPdf={handleExportPdf} exporting={exporting} error={exportError} />
-          )}
-        </div>
-      </div>
-
       {isReadOnly && (
         <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs font-bold">
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10m9.364-9.364a9 9 0 11-12.728 0 9 9 0 0112.728 0z" /></svg>
@@ -531,15 +435,14 @@ const Attendance = () => {
         )}
       </div>
 
-      <div className="mb-2 px-1 flex items-center justify-between">
+      <div className="mb-2 px-1 flex flex-wrap items-center justify-end gap-3">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-bold text-gray-900">{currentAssignment?.subjects?.name} — {currentAssignment?.sections?.name}</span>
           <div className="relative" ref={datePickerRef}>
-            <button onClick={() => { setAddDateOpen(!addDateOpen); setNewDate(todayStr()); setNewSession('AM'); setNewType('Lecture'); setError(''); }} disabled={isReadOnly} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0c1925] text-white rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+            <button onClick={() => { setAddDateOpen(!addDateOpen); setNewDate(todayStr()); setNewSession('AM'); setNewType('Lecture'); setError(''); }} disabled={isReadOnly} className="flex items-center gap-1.5 px-3 py-2 bg-[#0c1925] text-white border border-transparent rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
               <Plus size={14} /> Add Date
             </button>
             {addDateOpen && (
-              <div className="absolute left-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-gray-200 p-4 z-50 min-w-[240px]">
+              <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-gray-200 p-4 z-50 min-w-[240px]">
                 <label className="text-[11px] font-bold text-gray-900 uppercase tracking-wider block mb-1.5">Select Date</label>
                 <input
                   type="date"
@@ -584,25 +487,25 @@ const Attendance = () => {
               </div>
             )}
           </div>
-        </div>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search by name or ID..."
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            className="w-72 pl-9 pr-3 py-1.5 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
-          />
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          {searchQuery && (
-            <button onClick={() => { setSearchQuery(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          )}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by name or ID..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              className="w-56 pl-9 pr-8 py-2 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
+            />
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            {searchQuery && (
+              <button onClick={() => { setSearchQuery(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover">
         {columns.length === 0 ? (
           <div className="py-12 text-center text-gray-500">
             <CalendarCheck size={36} className="mx-auto mb-3 opacity-30" />
@@ -610,11 +513,11 @@ const Attendance = () => {
             <p className="text-xs mt-1">Click "Add Date" to start recording attendance.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto w-full pb-4" style={{ scrollbarWidth: 'auto' }}>
-            <table className="text-xs select-none" style={{ width: 'fit-content', minWidth: 'max-content', borderCollapse: 'separate', borderSpacing: 0 }}>
+          <div className="w-full pb-2">
+            <table className="teacher-sticky-table teacher-sticky-table-3rows teacher-sticky-attendance sticky-cols text-xs select-none" style={{ width: 'fit-content', minWidth: 'max-content', borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
-                  <th colSpan={3} className="bg-[#0c1925] border-b-2 border-r-2 border-border p-3 text-white text-left font-bold min-w-[352px] sticky left-0 z-20" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+                  <th colSpan={3} className="sticky-student-header bg-[#0c1925] border-b-2 border-r-2 border-border p-3 text-white text-left font-bold sticky left-0 z-20" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
                     <div className="flex justify-between items-center">
                       <span>STUDENT INFORMATION</span>
                       <span className="text-[12px] text-gray-300">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
@@ -651,9 +554,9 @@ const Attendance = () => {
                 </tr>
 
                 <tr className="bg-gray-50 border-b border-border text-center font-semibold text-sidebar">
-                  <th className="px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20 w-12" style={{ left: 0 }}>#</th>
-                  <th className="px-3 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20 w-28" style={{ left: '48px' }}>Stud ID</th>
-                  <th className="px-4 py-2.5 text-left sticky bg-gray-50 border-r-2 border-border z-20 min-w-[180px]" style={{ left: '160px' }}>Student Name</th>
+                  <th className="sticky-student-number px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20">#</th>
+                  <th className="sticky-student-id px-3 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20">Stud ID</th>
+                  <th className="sticky-student-name px-4 py-2.5 text-left sticky bg-gray-50 border-r-2 border-border z-20">Student Name</th>
                   {columns.map((key, idx) => {
                     return (
                       <th key={key} className="px-2 py-2.5 border-r border-gray-200 bg-gray-50 w-14 relative z-0">
@@ -665,9 +568,9 @@ const Attendance = () => {
                 </tr>
 
                 <tr className="bg-white border-b border-border text-center font-bold text-sidebar select-none">
-                  <td className="px-1 py-2 text-center sticky bg-white border-r border-border z-20 w-12" style={{ left: 0 }}></td>
-                  <td className="px-3 py-2 text-left sticky bg-white border-r border-border z-20 text-[10px] text-gray-700 w-28" style={{ left: '48px' }}>MAX SCORE</td>
-                  <td className="px-4 py-2 text-left sticky bg-white border-r-2 border-border z-20 text-[10px] text-gray-700 font-normal italic min-w-[180px]" style={{ left: '160px' }}>Maximum target scores</td>
+                  <td className="sticky-student-number px-1 py-2 text-center sticky bg-white border-r border-border z-20"></td>
+                  <td className="sticky-student-id px-3 py-2 text-left sticky bg-white border-r border-border z-20 text-[10px] text-gray-700">MAX SCORE</td>
+                  <td className="sticky-student-name px-4 py-2 text-left sticky bg-white border-r-2 border-border z-20 text-[10px] text-gray-700 font-normal italic">Maximum target scores</td>
                   {columns.map((key, idx) => {
                     return (
                       <td key={key} className="p-1 border-r border-b border-gray-200 bg-gray-50 relative z-0">
@@ -689,7 +592,7 @@ const Attendance = () => {
                         s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())
                       )
                     : students;
-                  const paginatedStudents = filtered.slice((page - 1) * 10, page * 10);
+                  const paginatedStudents = filtered.slice((page - 1) * TEACHER_TABLE_PAGE_SIZE, page * TEACHER_TABLE_PAGE_SIZE);
                   return students.length === 0 ? (
                     <tr>
                       <td colSpan={3 + columns.length + 1} className="px-6 py-10 text-center text-gray-500 italic">
@@ -707,9 +610,9 @@ const Attendance = () => {
                     const studentTotal = getStudentTotal(student.id);
                     return (
                       <tr key={student.id} className={`transition-colors ${selectedRow === student.id ? 'bg-green-200' : 'hover:bg-green-50/10'}`}>
-                        <td className={`px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 w-12 text-[#0c1925] text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: 0 }} onClick={() => setSelectedRow(student.id)}>{(page - 1) * 10 + index + 1}</td>
-                        <td className={`px-2 py-1 sticky border-r border-b border-gray-200 z-20 w-28 text-xs font-mono font-semibold text-[#0c1925] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '48px' }} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
-                        <td className={`px-2 py-1 sticky border-r-2 border-b border-border z-20 min-w-[180px] text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} style={{ left: '160px' }} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
+                        <td className={`sticky-student-number px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 text-[#0c1925] text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} onClick={() => setSelectedRow(student.id)}>{(page - 1) * TEACHER_TABLE_PAGE_SIZE + index + 1}</td>
+                        <td className={`sticky-student-id px-2 py-1 sticky border-r border-b border-gray-200 z-20 text-xs font-mono font-semibold text-[#0c1925] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
+                        <td className={`sticky-student-name px-2 py-1 sticky border-r-2 border-b border-border z-20 text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
                         {columns.map((key) => {
                           const isSelected = selectedRow === student.id;
                           const clampKey = `${key}-${student.id}`;
@@ -755,10 +658,10 @@ const Attendance = () => {
         {columns.length > 0 && (
           <Pagination
             currentPage={page}
-            totalPages={Math.ceil((searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length) / 10)}
+            totalPages={Math.ceil((searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length) / TEACHER_TABLE_PAGE_SIZE)}
             onPageChange={setPage}
             totalItems={searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length}
-            rowsPerPage={10}
+            rowsPerPage={TEACHER_TABLE_PAGE_SIZE}
           />
         )}
       </div>

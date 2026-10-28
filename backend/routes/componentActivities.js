@@ -82,11 +82,13 @@ router.get('/', async (req, res) => {
 
 // POST /api/component-activities — create an activity
 router.post('/', authorizeRole('teacher'), async (req, res) => {
-  const { component_id, name, max_score } = req.body;
-  if (!component_id || !name) {
+  const { component_id, name, max_score, is_attendance = false } = req.body;
+  const isAttendance = is_attendance === true;
+  if (!component_id || (!isAttendance && !name)) {
     return res.status(400).json({ message: 'component_id and name are required' });
   }
-  const maxScore = max_score === undefined ? 100 : Number(max_score);
+  const activityName = isAttendance ? 'Attendance' : name;
+  const maxScore = isAttendance ? 1 : max_score === undefined ? 100 : Number(max_score);
   if (!Number.isFinite(maxScore) || maxScore <= 0) {
     return res.status(400).json({ message: 'Max score must be greater than 0.' });
   }
@@ -134,11 +136,11 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
 
     const { data, error } = await supabase
       .from('component_activities')
-      .insert([{ component_id, name, max_score: maxScore, sort_order }])
+      .insert([{ component_id, name: activityName, max_score: maxScore, is_attendance: isAttendance, sort_order }])
       .select()
       .single();
     if (error) {
-      if (error.code === '23514') return res.status(400).json({ message: 'Max score must be greater than 0.' });
+      if (error.code === '23514') return res.status(400).json({ message: error.message?.includes('Attendance can only be used once') ? error.message : 'Max score must be greater than 0.' });
       return sendServerError(res, error);
     }
     res.status(201).json(data);

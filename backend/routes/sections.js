@@ -29,7 +29,7 @@ router.get('/seed/preview', async (req, res) => {
     if (!course) return res.status(404).json({ message: 'Course not found' });
     const yearNum = year_level.replace('th', '').replace('nd', '').replace('rd', '').replace('st', '');
     const names = sectionsByYear[year_level] || [];
-    const preview = names.map((name) => `${course.abbreviation} ${yearNum}-${name.replace('Section ', '')}`);
+    const preview = names.map((name) => `${course.abbreviation}-${yearNum}${name.replace('Section ', '')}`);
     res.json(preview);
   } catch (err) {
     console.error(err);
@@ -72,6 +72,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
   try {
     if (!(await assertActiveTerm(res, { schoolYear: school_year, semester }))) return;
     let resolvedName = name;
+    let legacyName = name;
     if (course_id) {
       const { data: course } = await supabase
         .from('courses')
@@ -80,13 +81,16 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
         .single();
       if (course?.abbreviation) {
         const yearNum = year_level.replace('th', '').replace('nd', '').replace('rd', '').replace('st', '');
-        resolvedName = `${course.abbreviation} ${yearNum}-${name}`;
+        resolvedName = `${course.abbreviation}-${yearNum}${name}`;
+        // Older rows used "BSCS 1-A" spacing; keep it in the duplicate check
+        // so the same section cannot be created twice during the rename.
+        legacyName = `${course.abbreviation} ${yearNum}-${name}`;
       }
     }
     let dupQuery = supabase
       .from('sections')
       .select('id')
-      .eq('name', resolvedName)
+      .in('name', [resolvedName, legacyName])
       .eq('school_year', school_year);
     if (course_id) {
       dupQuery = dupQuery.eq('course_id', course_id);

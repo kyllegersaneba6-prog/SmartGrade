@@ -4,6 +4,7 @@ import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
 import { SkeletonList, SkeletonTable } from '../../components/common/Skeleton';
 import CustomDropdown from '../../components/common/CustomDropdown';
+import AdminPageHeading from '../../components/admin/AdminPageHeading';
 
 const yearLevels = ['1st', '2nd', '3rd', '4th'];
 const yearLabels = { '1st': '1st Year', '2nd': '2nd Year', '3rd': '3rd Year', '4th': '4th Year' };
@@ -139,13 +140,12 @@ const AdminSubjects = () => {
   const maxRows = Math.max(...grouped.map((g) => g.subjects.length), 0);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Manage Subjects</h1>
-          <p className="text-xs sm:text-sm mt-0.5 text-amber-400">Add and organize subjects per year level.</p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-7xl space-y-6">
+      <AdminPageHeading
+        eyebrow="Academic Setup"
+        title="Manage Subjects"
+        description="Add and organize subjects per year level."
+      />
 
       <div className="flex flex-col sm:flex-row gap-3">
         {courses.length > 0 && (
@@ -204,7 +204,7 @@ const AdminSubjects = () => {
 
       {error && <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-4 py-2 rounded-lg whitespace-pre-line">{error}</div>}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-50 card-hover overflow-x-auto">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 card-hover overflow-x-auto">
         {loading ? (
           <div aria-busy="true"><SkeletonTable cols={4} rows={6} /></div>
         ) : subjects.length === 0 ? (
@@ -215,9 +215,9 @@ const AdminSubjects = () => {
         ) : (
           <table className="w-full text-xs table-fixed">
             <thead>
-              <tr className="border-b" style={{ borderColor: '#0c1925' }}>
+              <tr className="border-b bg-gray-50" style={{ borderColor: '#e5e7eb' }}>
                 {yearLevels.map((y) => (
-                  <th key={y} className="text-left pb-3 pt-3 px-4 font-bold text-[#0c1925] text-sm border-r last:border-r-0" style={{ borderColor: '#0c1925' }}>
+                  <th key={y} className="text-left py-3 px-4 font-bold text-gray-700 text-xs uppercase tracking-wide border-r last:border-r-0" style={{ borderColor: '#e5e7eb' }}>
                     {yearLabels[y]}
                   </th>
                 ))}
@@ -225,9 +225,9 @@ const AdminSubjects = () => {
             </thead>
             <tbody>
               {Array.from({ length: Math.max(maxRows, 1) }).map((_, rowIdx) => (
-                <tr key={rowIdx} className="border-b last:border-0" style={{ borderColor: '#0c1925' }}>
+                <tr key={rowIdx} className="border-b last:border-0 hover:bg-gray-50" style={{ borderColor: '#e5e7eb' }}>
                   {grouped.map((g) => (
-                    <td key={g.year} className="px-4 py-2 border-r last:border-r-0 align-top" style={{ borderColor: '#0c1925' }}>
+                    <td key={g.year} className="px-4 py-2 border-r last:border-r-0 align-top" style={{ borderColor: '#e5e7eb' }}>
                       {g.subjects[rowIdx] ? (
                           <div className="flex items-center justify-between group px-2 py-1.5 rounded-lg hover:bg-gray-50 -mx-2 cursor-pointer" onClick={() => openAssignModal(g.subjects[rowIdx])}>
                             <div className="flex items-center gap-1.5 min-w-0">

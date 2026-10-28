@@ -32,7 +32,7 @@
 
 | Value | Where |
 |---|---|
-| `linear-gradient(to right, #0c1925, #102132, #142a3f)` | Sidebars, headers, page-header cards, login panel, table headers |
+| `linear-gradient(to right, #0c1925, #102132, #142a3f)` | Sidebars, login / not-found panels, and teacher grading table header bands |
 | `#0c1925`, `#142a3f` | Primary buttons, focus rings, headings |
 | `#0a316a` + `border-gold` | Active sidebar item |
 | `#f5a623`, `amber-*` | Archive chips, year pills, "View Archive" |
@@ -52,6 +52,7 @@ There is **no per-role color palette**. Admin, teacher, and superadmin share nav
 
 - Page container: `space-y-6 max-w-7xl mx-auto`; settings pages `max-w-3xl`.
 - Header `h-16`; page header cards `min-height: 106px` (mobile) / `118px` (`sm+`).
+- Role shells use a shared white `h-16` header; desktop sidebars are 224 px wide and collapse to 72 px.
 - Card padding `p-4`/`p-5`/`p-6`; grids `gap-4`/`gap-5`/`gap-6`.
 - Radius: `rounded-lg` inputs/buttons, `rounded-xl` cards/modals, `rounded-2xl` header cards, `rounded-full` pills, `rounded-3xl` count pills.
 - Elevation: `shadow-sm` default; hover `0 4px 12px rgba(0,0,0,0.12)`; modal `0 12px 40px rgba(0,0,0,0.12)`.
@@ -61,19 +62,21 @@ There is **no per-role color palette**. Admin, teacher, and superadmin share nav
 
 | Pattern | Implementation |
 |---|---|
-| Page header card | Navy gradient, white title, amber subtitle, optional count pill / action button |
-| Card | `bg-white rounded-xl border border-gray-50 shadow-sm`, optional `card-hover` |
-| Data table | `.table-responsive` wrapper, uppercase 10–12 px headers, warm thin borders, pagination footer |
-| Primary button | Navy `#0c1925`/`#142a3f`, white text, `rounded-lg`, hover `scale-105` |
+| Page heading | White `rounded-2xl` card with an uppercase eyebrow, navy title, muted description, and optional count / filter / action chips; Admin, teacher, and superadmin use the same pattern |
+| Card | `bg-white rounded-2xl border border-gray-200 shadow-sm`, optional `card-hover` |
+| Data table | `.table-responsive` wrapper, light-gray header row, uppercase 10–12 px labels, thin gray borders, pagination footer |
+| Teacher grade grid | Class Record and Attendance use page scrolling for vertical movement and horizontal scrolling for wide grids; their student columns remain frozen. Attendance fixes the sticky row offsets and keeps frozen header cells opaque above student data. Class Record anchors its heading, controls, alerts, and pagination during horizontal movement; its explicit `<colgroup>` keeps student columns and the spanning header aligned, with 1px black separators at component boundaries and below MAX SCORE. Grade Summary keeps its own `.table-scroll` wrapper with a sticky `<thead>`. |
+| Class Record sticky layers | `.class-record-horizontal-anchor` is sticky at `z-index: 20`. The heading wrapper adds `.class-record-heading-anchor` (`z-index: 40`) so the Export dropdown (second item hangs over the toolbar row) stays clickable; without it, later `z-index: 20` toolbar rows swallow the click and only Excel works. |
+| Primary button | Navy `#0c1925`/`#142a3f`, white text, `rounded-lg`, hover `scale-105`; global base rule gives every enabled `button`/`[role="button"]`/submit input/`select`/`summary` a pointer cursor (disabled ones get `not-allowed`) |
 | Gold button | `#fbbf24` with dark text (Export, Import) |
 | Destructive button | `bg-red-600` (disabled `bg-red-300`) + typed `Confirm` |
 | Input / select | `bg-gray-100` or `#fbf8f1`, border `#e5e0d5`, `rounded-lg`, focus `ring-2 ring-[#142a3f]` |
 | Pills | `rounded-full text-[10px] font-bold uppercase`; amber = active/role, green = open/success, gray = closed, red = critical |
-| Modal | Fixed overlay `rgba(0,0,0,0.6)` + 2 px blur, `rounded-xl` surface, Escape/outside close |
+| Modal | Fixed overlay `rgba(0,0,0,0.6)` + 2 px blur at `z-index: 100` (`.modal-backdrop`, above frozen table columns), `rounded-xl` surface, Escape/outside close |
 | Dropdown | Custom trigger with icon tile, optional search, `max-h-56` scroll panel, check mark on selection |
 | Empty state | Centered icon at 30% opacity + short title + hint |
 | Skeleton | `.skeleton-shimmer` blocks; presets in `components/common/Skeleton.jsx` |
-| Pagination | `components/common/Pagination.jsx` — range label, ellipsis, prev/next; hidden at one page |
+| Pagination | `components/common/Pagination.jsx` — range label with configurable item label, ellipsis, prev/next; hidden at one page |
 | Read-only notice | Amber banner "This term is closed. Viewing only." |
 | Archive banner | `bg-amber-600/90 text-white`, Archive icon, "Exit Archive" |
 | Clamp warning | Amber border + dot for 3 s when a score/weight is clamped |

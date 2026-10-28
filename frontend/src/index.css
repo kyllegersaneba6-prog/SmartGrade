@@ -21,7 +21,7 @@
   --color-orange-warn: #f97316;
   --color-red-critical: #ef4444;
 
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'RobotoLightNew', Ubuntu, helvetica, sans-serif;
   --font-mono: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
@@ -39,6 +39,24 @@
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
     padding: 0;
+  }
+  /* System-wide: clickable controls show a pointer cursor. Utility
+     classes (e.g. disabled:cursor-not-allowed) still override this. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+  button:disabled,
+  input[type="button"]:disabled,
+  input[type="submit"]:disabled,
+  input[type="reset"]:disabled,
+  select:disabled {
+    cursor: not-allowed;
   }
 }
 
@@ -71,6 +89,174 @@
     .admin-header-card {
       min-height: 118px;
     }
+  }
+  /* The teacher <main> is the page scrollport and begins directly below
+     the fixed-height shell header. Do not subtract its content padding here:
+     sticky offsets are measured from the scrollport, not from the table. */
+  .teacher-sticky-table > thead > tr:first-child > th {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background-clip: padding-box;
+  }
+  .teacher-sticky-table-2rows {
+    --teacher-header-row-one-height: 46px;
+  }
+  .teacher-sticky-table-3rows.teacher-sticky-class-record {
+    --teacher-header-row-one-height: 86px;
+    --teacher-header-row-two-height: 39px;
+  }
+  .teacher-sticky-table-3rows.teacher-sticky-attendance {
+    --teacher-header-row-one-height: 60px;
+    --teacher-header-row-two-height: 39px;
+  }
+  .teacher-sticky-attendance > thead > tr:first-child {
+    height: 60px;
+  }
+  .teacher-sticky-attendance > thead > tr:nth-child(2) {
+    height: 39px;
+  }
+  .teacher-sticky-attendance > thead > tr:first-child > .sticky-student-header {
+    z-index: 60;
+    background-clip: border-box;
+  }
+  .teacher-sticky-attendance > thead > tr:nth-child(2) > .sticky-student-number,
+  .teacher-sticky-attendance > thead > tr:nth-child(2) > .sticky-student-id,
+  .teacher-sticky-attendance > thead > tr:nth-child(2) > .sticky-student-name,
+  .teacher-sticky-attendance > thead > tr:nth-child(3) > .sticky-student-number,
+  .teacher-sticky-attendance > thead > tr:nth-child(3) > .sticky-student-id,
+  .teacher-sticky-attendance > thead > tr:nth-child(3) > .sticky-student-name {
+    z-index: 55;
+    background-clip: border-box;
+  }
+  .teacher-sticky-attendance > thead > tr:nth-child(2) > .sticky-student-number,
+  .teacher-sticky-attendance > thead > tr:nth-child(2) > .sticky-student-id,
+  .teacher-sticky-attendance > thead > tr:nth-child(2) > .sticky-student-name {
+    background-color: #f9fafb;
+  }
+  .teacher-sticky-attendance > thead > tr:nth-child(3) > .sticky-student-number,
+  .teacher-sticky-attendance > thead > tr:nth-child(3) > .sticky-student-id,
+  .teacher-sticky-attendance > thead > tr:nth-child(3) > .sticky-student-name {
+    background-color: #fff;
+  }
+  .teacher-sticky-table-2rows > thead > tr:nth-child(2) > th,
+  .teacher-sticky-table-3rows > thead > tr:nth-child(2) > th,
+  .teacher-sticky-table-3rows > thead > tr:nth-child(2) > td {
+    position: sticky;
+    top: var(--teacher-header-row-one-height);
+    z-index: 40;
+    background-clip: padding-box;
+  }
+  .teacher-sticky-table-3rows > thead > tr:nth-child(3) > th,
+  .teacher-sticky-table-3rows > thead > tr:nth-child(3) > td {
+    position: sticky;
+    top: calc(var(--teacher-header-row-one-height) + var(--teacher-header-row-two-height));
+    z-index: 40;
+    background-clip: padding-box;
+  }
+  /* Keep the frozen student columns at the same measured widths in every
+     row. Sticky offsets are derived from these shared widths instead of
+     depending on the table's content-driven auto layout. */
+  .sticky-cols {
+    --student-number-width: 48px;
+    --student-id-width: 112px;
+    --student-name-width: 192px;
+  }
+  .sticky-cols.sticky-cols-compact {
+    --student-number-width: 40px;
+    --student-id-width: 110px;
+    --student-name-width: 180px;
+  }
+  .sticky-cols .sticky-student-number,
+  .sticky-cols .sticky-student-id,
+  .sticky-cols .sticky-student-name {
+    box-sizing: border-box;
+    position: sticky;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .sticky-cols .sticky-student-number {
+    left: 0;
+    width: var(--student-number-width);
+    min-width: var(--student-number-width);
+    max-width: var(--student-number-width);
+  }
+  .sticky-cols .sticky-student-id {
+    left: var(--student-number-width);
+    width: var(--student-id-width);
+    min-width: var(--student-id-width);
+    max-width: var(--student-id-width);
+    text-overflow: ellipsis;
+  }
+  .sticky-cols .sticky-student-name {
+    left: calc(var(--student-number-width) + var(--student-id-width));
+    width: var(--student-name-width);
+    min-width: var(--student-name-width);
+    max-width: var(--student-name-width);
+    text-overflow: ellipsis;
+  }
+  .sticky-cols .sticky-student-header {
+    position: sticky;
+    left: 0;
+    box-sizing: border-box;
+    width: calc(var(--student-number-width) + var(--student-id-width) + var(--student-name-width));
+    min-width: calc(var(--student-number-width) + var(--student-id-width) + var(--student-name-width));
+    max-width: calc(var(--student-number-width) + var(--student-id-width) + var(--student-name-width));
+  }
+  /* Frozen class-record columns must paint above horizontally scrolling
+     component headers. Otherwise equal header z-index lets later component
+     cells cover the Student Information group while the table scrolls. */
+  .teacher-sticky-class-record > thead > tr:first-child > .sticky-student-header {
+    z-index: 60;
+  }
+  .teacher-sticky-class-record > thead > tr:nth-child(2) > .sticky-student-number,
+  .teacher-sticky-class-record > thead > tr:nth-child(2) > .sticky-student-id,
+  .teacher-sticky-class-record > thead > tr:nth-child(2) > .sticky-student-name,
+  .teacher-sticky-class-record > thead > tr:nth-child(3) > .sticky-student-number,
+  .teacher-sticky-class-record > thead > tr:nth-child(3) > .sticky-student-id,
+  .teacher-sticky-class-record > thead > tr:nth-child(3) > .sticky-student-name {
+    z-index: 55;
+  }
+  .teacher-sticky-class-record .class-record-max-score-row > td {
+    border-bottom: 1px solid #111;
+  }
+  .teacher-sticky-class-record .class-record-separator {
+    border-right: 1px solid #000;
+  }
+  .teacher-class-record-page {
+    width: max-content;
+    min-width: 100%;
+  }
+  .teacher-class-record-page .class-record-horizontal-anchor {
+    position: sticky;
+    left: 1rem;
+    width: calc(100vw - 2rem);
+    max-width: none;
+    z-index: 20;
+  }
+  /* The heading owns the Export dropdown, so it has to sit above the sticky
+     toolbar rows that follow it in the DOM (they also use z-index 20). */
+  .teacher-class-record-page .class-record-heading-anchor {
+    z-index: 40;
+  }
+  @media (min-width: 768px) {
+    .teacher-class-record-page .class-record-horizontal-anchor {
+      left: 1.5rem;
+      width: calc(100vw - 3rem);
+    }
+  }
+  @media (min-width: 1024px) {
+    .teacher-class-record-page .class-record-horizontal-anchor {
+      left: 2rem;
+      width: calc(100vw - var(--teacher-sidebar-width, 224px) - 4rem);
+    }
+  }
+  /* Keep sticky cell backgrounds from bleeding through adjacent borders.
+     Let the browser manage sticky layers; forcing transforms on each pinned
+     table cell can make wide tables scroll out of sync across cells. */
+  .sticky-cols th.sticky,
+  .sticky-cols td.sticky {
+    background-clip: padding-box;
   }
   /* Facebook-style skeleton shimmer: soft light sweep over gray blocks. */
   .skeleton-shimmer {
@@ -106,6 +292,9 @@
 
 /* Industry Standard: Elegant Minimalist modal styling (surface only). */
 .modal-backdrop {
+  /* Must sit above frozen table columns (z-index up to 60) so the backdrop
+     dims/blurs the whole table, including sticky student cells. */
+  z-index: 100;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(2px);
 }
@@ -164,9 +353,7 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
-.stroke-text-sm {
-  -webkit-text-stroke: 0.45px #000;
-  paint-order: stroke fill;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+.stroke-icon {
+  filter: drop-shadow(0.5px 0.5px 0px #000) drop-shadow(-0.5px -0.5px 0px #000) drop-shadow(0.5px -0.5px 0px #000) drop-shadow(-0.5px 0.5px 0px #000);
 }
 

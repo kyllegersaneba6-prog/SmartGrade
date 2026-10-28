@@ -6,6 +6,8 @@ import Pagination from '../../components/common/Pagination';
 import CustomDropdown from '../../components/common/CustomDropdown';
 import { GraduationCap, CalendarDays } from 'lucide-react';
 import { SkeletonList, SkeletonTable } from '../../components/common/Skeleton';
+import AdminPageHeading from '../../components/admin/AdminPageHeading';
+import { formatSectionName } from '../../utils/sectionName';
 import * as XLSX from 'xlsx';
 
 const formatStudentId = (value) => {
@@ -179,7 +181,7 @@ const AdminSections = () => {
     const course = courses.find(c => c.id === selectedCourseId);
     if (!course?.abbreviation) return '';
     const yearNum = year.replace('th', '').replace('nd', '').replace('rd', '').replace('st', '');
-    return `${course.abbreviation} ${yearNum}-${letter.trim().toUpperCase()}`;
+    return `${course.abbreviation}-${yearNum}${letter.trim().toUpperCase()}`;
   };
 
   const addSection = async () => {
@@ -471,14 +473,13 @@ const AdminSections = () => {
   );
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl shadow-sm border border-gray-50 admin-header-card" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#ffffff' }}>Manage Sections</h1>
-          <p className="text-xs sm:text-sm mt-1" style={{ color: '#fbbf24' }}>Create and organize class sections and manage student rosters.</p>
-          <p className="text-xs sm:text-sm mt-0.5" style={{ color: '#cbd5e1' }}>{yearLabels[year] || year}</p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-7xl space-y-6">
+      <AdminPageHeading
+        eyebrow="Academic Setup"
+        title="Manage Sections"
+        description="Create and organize class sections and manage student rosters."
+        actions={<span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-700">{yearLabels[year] || year}</span>}
+      />
 
       {error && <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-4 py-2 rounded-lg">{error}</div>}
 
@@ -510,7 +511,7 @@ const AdminSections = () => {
               emptyMessage="No year levels found."
             />
           </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-50 card-hover flex-1 flex flex-col">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 card-hover flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold text-[#0c1925] flex items-center gap-2">
               <Layers size={16} style={{ color: '#0c1925' }} /> Sections
@@ -555,7 +556,7 @@ const AdminSections = () => {
                   }`}
                   onClick={() => setSelectedSection(section)}
                 >
-                  <span>{section.name}</span>
+                  <span>{formatSectionName(section.name)}</span>
                   <div className="relative group">
                     <button
                       onClick={(e) => { e.stopPropagation(); if (!isArchiveMode) { setSectionToDelete(section); setConfirmSectionText(''); setDeleteSectionOpen(true); } }}
@@ -577,7 +578,7 @@ const AdminSections = () => {
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-gray-50 card-hover h-full flex flex-col">
+        <div className="lg:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-gray-200 card-hover h-full flex flex-col">
           {!selectedSection ? (
             <div className="flex flex-col flex-1 items-center justify-center py-16 text-gray-500">
               <Layers size={48} className="mb-3 opacity-30" />
@@ -587,7 +588,7 @@ const AdminSections = () => {
             <div className="flex flex-col flex-1">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold text-gray-900">
-                  Students — <span style={{ color: '#0c1925' }}>{selectedSection.name}</span>
+                  Students — <span style={{ color: '#0c1925' }}>{formatSectionName(selectedSection.name)}</span>
                 </h2>
                 <input
                   type="file"
@@ -678,12 +679,12 @@ const AdminSections = () => {
                   <div className="overflow-x-auto flex-1">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="border-b" style={{ borderColor: '#f0ede6' }}>
-                          <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">#</th>
-                          <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Student ID</th>
-                          <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Student Name</th>
-                          <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Gender</th>
-                          <th className="text-left pb-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Action</th>
+                        <tr className="border-b bg-gray-50" style={{ borderColor: '#e5e7eb' }}>
+                          <th className="text-left px-3 py-3 font-bold text-gray-600 text-[10px] uppercase tracking-wide">#</th>
+                          <th className="text-left px-3 py-3 font-bold text-gray-600 text-[10px] uppercase tracking-wide">Student ID</th>
+                          <th className="text-left px-3 py-3 font-bold text-gray-600 text-[10px] uppercase tracking-wide">Student Name</th>
+                          <th className="text-left px-3 py-3 font-bold text-gray-600 text-[10px] uppercase tracking-wide">Gender</th>
+                          <th className="text-left px-3 py-3 font-bold text-gray-600 text-[10px] uppercase tracking-wide">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1025,7 +1026,7 @@ const AdminSections = () => {
               </button>
             </div>
             <p className="text-xs text-gray-900 mb-3">
-              Section: <strong className="text-gray-900">{selectedSection?.name || '—'}</strong> — enter rows directly. Columns: {EXCEL_HEADERS.join(', ')}.
+              Section: <strong className="text-gray-900">{formatSectionName(selectedSection?.name) || '—'}</strong> — enter rows directly. Columns: {EXCEL_HEADERS.join(', ')}.
             </p>
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-gray-900">{excelRows.length} rows</p>
@@ -1100,7 +1101,7 @@ const AdminSections = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Section</h3>
-            <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{sectionToDelete?.name}</strong>? This will also delete all enrolled students.</p>
+            <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{formatSectionName(sectionToDelete?.name)}</strong>? This will also delete all enrolled students.</p>
             <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
               <input type="text" value={confirmSectionText} onChange={(e) => setConfirmSectionText(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
             </div>
