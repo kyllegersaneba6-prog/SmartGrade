@@ -10,9 +10,9 @@ import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
 import { SkeletonHeaderCard, SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
-import { buildTeacherFilename } from '../../utils/exportFilenames';
+import { TEACHER_TABLE_PAGE_SIZE } from '../../utils/teacherTable';
 import {
-  TERMS, TERM_PCTS, TERM_WEIGHTS, GRADE_RANGES,
+  TERMS, TERM_PCTS, TERM_WEIGHTS, GRADE_RANGES, SPECIAL_MARKS,
   gradeToPoint, getFinalGrade
 } from '../../utils/gradeCalculations';
 
@@ -463,7 +463,7 @@ const GradeSummary = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-x-auto">
         {dataLoading && !hasAnyData ? (
           <div aria-busy="true"><SkeletonTable cols={8} rows={8} /></div>
         ) : !hasAnyData ? (
@@ -473,7 +473,7 @@ const GradeSummary = () => {
             <p className="text-xs mt-1">Set up components and scores in Class Record first.</p>
           </div>
         ) : (
-          <div className="table-scroll w-full rounded-lg" style={{ scrollbarWidth: 'auto' }}>
+          <div className="table-scroll w-full rounded-lg overflow-x-auto" style={{ scrollbarWidth: 'auto' }}>
             <table className="sticky-cols sticky-cols-compact min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
@@ -488,7 +488,7 @@ const GradeSummary = () => {
                       {term} {TERM_PCTS[term]}
                     </th>
                   ))}
-                  <th className="bg-amber-400 border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-sm uppercase tracking-wider relative z-0" colSpan={3}>SEMESTRAL GRADE</th>
+                  <th className="bg-amber-300 border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-sm uppercase tracking-wider relative z-0" colSpan={3}>SEMESTRAL GRADE</th>
                 </tr>
                 <tr className="bg-gray-50 border-b border-border text-center font-semibold text-sidebar">
                   <th className="sticky-student-number px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20">#</th>
@@ -513,7 +513,7 @@ const GradeSummary = () => {
                         r.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())
                       )
                     : studentRows;
-                   const paginatedRows = filtered.slice((page - 1) * 10, page * 10);
+                   const paginatedRows = filtered.slice((page - 1) * TEACHER_TABLE_PAGE_SIZE, page * TEACHER_TABLE_PAGE_SIZE);
                   return students.length === 0 ? (
                     <tr>
                       <td colSpan={3 + TERMS.length * 2 + 3} className="px-6 py-10 text-center text-gray-500 italic">
@@ -529,7 +529,7 @@ const GradeSummary = () => {
                   ) : (
                     paginatedRows.map((row, index) => (
                     <tr key={row.student.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50/30 transition-colors ${highlightedRowId === row.student.id ? '!bg-green-200' : ''}`}>
-                       <td className={`sticky-student-number px-1 py-1.5 text-center sticky border-r border-b border-gray-200 z-30 text-gray-400 text-[10px] align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{(page - 1) * 10 + index + 1}</td>
+                       <td className={`sticky-student-number px-1 py-1.5 text-center sticky border-r border-b border-gray-200 z-30 text-gray-400 text-[10px] align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{(page - 1) * TEACHER_TABLE_PAGE_SIZE + index + 1}</td>
                       <td className={`sticky-student-id px-2 py-1.5 sticky border-r border-b border-gray-200 z-20 text-xs font-mono font-semibold text-sidebar align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{row.student.student_id}</td>
                       <td className={`sticky-student-name px-2 py-1.5 sticky border-r-2 border-b border-border z-20 text-xs font-medium text-sidebar align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{row.student.student_name}</td>
                       {TERMS.map(term => {
@@ -564,10 +564,10 @@ const GradeSummary = () => {
         {hasAnyData && (
           <Pagination
             currentPage={page}
-            totalPages={Math.ceil((searchQuery ? studentRows.filter(r => r.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || r.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : studentRows.length) / 10)}
+            totalPages={Math.ceil((searchQuery ? studentRows.filter(r => r.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || r.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : studentRows.length) / TEACHER_TABLE_PAGE_SIZE)}
             onPageChange={setPage}
             totalItems={searchQuery ? studentRows.filter(r => r.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || r.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : studentRows.length}
-            rowsPerPage={10}
+            rowsPerPage={TEACHER_TABLE_PAGE_SIZE}
           />
         )}
       </div>
@@ -584,17 +584,22 @@ const GradeSummary = () => {
             </tr>
           </thead>
           <tbody>
-            {GRADE_RANGES.map((r, i) => (
-              <tr key={r.gp} className="border-b border-gray-100 last:border-0">
-                <td className="py-1 pr-4 font-mono">{r.gp.toFixed(2)}</td>
-                <td className="py-1 pr-4 font-mono">{r.min}%{i > 0 ? ` – ${GRADE_RANGES[i - 1].min - 1}%` : ' – 100%'}</td>
-                <td className="py-1">{r.desc}</td>
-              </tr>
-            ))}
+            {GRADE_RANGES.map((r, i) => {
+              const upper = i === 0 ? '100.00' : (GRADE_RANGES[i - 1].min - 0.01).toFixed(2);
+              const lower = r.min.toFixed(2);
+              const equivText = i === 0 ? `${lower}–${upper}` : `${lower}–Below ${GRADE_RANGES[i - 1].min.toFixed(2)}`;
+              return (
+                <tr key={r.gp} className="border-b border-gray-100 last:border-0">
+                  <td className="py-1 pr-4 font-mono">{r.gp.toFixed(2)}</td>
+                  <td className="py-1 pr-4 font-mono">{equivText}</td>
+                  <td className="py-1">{r.desc}</td>
+                </tr>
+              );
+            })}
             <tr className="border-b border-gray-100 last:border-0">
               <td className="py-1 pr-4 font-mono text-red-600">5.00</td>
-              <td className="py-1 pr-4 font-mono text-red-600">below 75%</td>
-              <td className="py-1 text-red-600">Failed</td>
+              <td className="py-1 pr-4 font-mono text-red-600">Below 75.00</td>
+              <td className="py-1 text-red-600">Failed due to poor performance, absences, or withdrawal without notice</td>
             </tr>
           </tbody>
         </table>

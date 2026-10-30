@@ -39,7 +39,7 @@ const TeacherSettings = () => {
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Read Only</span>
             </div>
             <button
-              onClick={() => { setViewTerm(null); navigate('/teacher/dashboard'); }}
+              onClick={() => { setViewTerm(null); navigate('/teacher/overview'); }}
               className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500/20 text-red-700 border border-red-200 hover:bg-red-500/30 transition-colors cursor-pointer"
             >
               <X size={12} /> Exit Archive
@@ -55,7 +55,7 @@ const TeacherSettings = () => {
         )}
 
         {activeTerm && !isArchiveMode && (
-          <div className="bg-amber-400 border border-amber-200 rounded-xl p-5 mb-6">
+          <div className="bg-amber-300 border border-amber-200 rounded-xl p-5 mb-6">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Active Term</span>
@@ -79,14 +79,14 @@ const TeacherSettings = () => {
                     key={t.id}
                     onClick={() => {
                       if (isActive) {
-                        if (isArchiveMode) { setViewTerm(null); navigate('/teacher/dashboard'); }
+                        if (isArchiveMode) { setViewTerm(null); navigate('/teacher/overview'); }
                       } else {
                         setConfirmTerm(t);
                       }
                     }}
                     className={`flex items-center justify-between px-4 py-3 rounded-lg border cursor-pointer transition-colors ${
                       isCurrentlyViewing ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-300' :
-                      isActive ? 'bg-amber-400 border-amber-200 hover:bg-amber-100' :
+                      isActive ? 'bg-amber-300 border-amber-200 hover:bg-amber-100' :
                       'bg-gray-50 border-gray-200 hover:bg-gray-100'
                     }`}
                   >
@@ -139,7 +139,7 @@ const TeacherSettings = () => {
                 onClick={() => {
                   setViewTerm({ school_year: confirmTerm.school_year, semester: confirmTerm.semester });
                   setConfirmTerm(null);
-                  navigate('/teacher/dashboard');
+                  navigate('/teacher/overview');
                 }}
                 className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm hover:scale-105 transition-transform cursor-pointer"
                 style={{ background: '#f5a623' }}

@@ -90,7 +90,7 @@ const AdminSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }
                 aria-current={isActive ? 'page' : undefined}
                 title={isCollapsed ? item.name : undefined}
                 className={clsx(
-                  'group mx-1 flex min-h-11 items-center gap-3 whitespace-nowrap rounded-xl border-l-[3px] px-3 py-2.5 text-xs font-semibold transition-colors',
+                  'group mx-1 flex min-h-11 items-center gap-3 whitespace-nowrap rounded-xl border-l-[3px] px-3 py-2.5 text-sm font-semibold transition-colors',
                   isCollapsed && 'lg:mx-0 lg:justify-center lg:px-0',
                   isActive
                     ? 'border-gold bg-[#24384b] text-amber-300 shadow-sm'

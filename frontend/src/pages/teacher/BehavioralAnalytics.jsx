@@ -529,7 +529,7 @@ const BehavioralAnalytics = () => {
                       </th>
                     )
                   ))}
-                  <th colSpan={4} className="bg-amber-400 border-b-2 border-amber-400 p-3 text-[#0c1925] text-center font-bold text-sm uppercase tracking-wider relative z-0">TOTAL</th>
+                  <th colSpan={4} className="bg-amber-300 border-b-2 border-amber-300 p-3 text-[#0c1925] text-center font-bold text-sm uppercase tracking-wider relative z-0">TOTAL</th>
                 </tr>
                 <tr className="bg-gray-50 border-b border-border text-center font-semibold text-sidebar">
                   <th className="sticky-student-number px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20">#</th>
@@ -652,14 +652,14 @@ const BehavioralAnalytics = () => {
                   <button
                     onClick={handleSummarizeWithAI}
                     disabled={aiLoading}
-                    className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="px-4 py-2 bg-[#0c1925] text-amber-300 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {aiLoading ? (
-                      <Loader size={16} className="animate-spin" />
+                      <Loader size={16} className="animate-spin text-amber-300" />
                     ) : showRetryLabel ? (
-                      <RefreshCw size={16} />
+                      <RefreshCw size={16} className="text-amber-300" />
                     ) : (
-                      <Sparkles size={16} />
+                      <Sparkles size={16} className="text-amber-300" />
                     )}
                     {aiLoading ? 'Analyzing student performance...' : showRetryLabel ? 'Retry AI Summary' : 'Summarize Student Behaviour with AI'}
                   </button>

@@ -504,7 +504,7 @@ const AdminTeachers = () => {
               </div>
             ) : (
               <>
-                <div className="bg-amber-50 border border-amber-400 rounded-lg px-4 py-3 mb-5 space-y-1">
+                <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-3 mb-5 space-y-1">
                   <p className="text-xs text-amber-700 font-medium">
                     Select the year level, section, and subject to assign this teacher.
                   </p>

@@ -243,7 +243,7 @@ const SuperAdminDashboard = () => {
               <div className="flex flex-col gap-2 p-3 border rounded-lg bg-gray-100 border-gray-200">
                 {['Admins', 'Teachers'].map((role) => (
                   <label key={role} className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-900">
-                    <input type="checkbox" checked={notification.audience.includes(role)} onChange={(e) => { let newAudience = [...notification.audience]; if (e.target.checked) newAudience.push(role); else newAudience = newAudience.filter(item => item !== role); setNotification({ ...notification, audience: newAudience }); }} className="rounded border-gray-200 text-[#0c1925] focus:ring-[#0c1925] w-4 h-4 cursor-pointer accent-amber-400" />
+                    <input type="checkbox" checked={notification.audience.includes(role)} onChange={(e) => { let newAudience = [...notification.audience]; if (e.target.checked) newAudience.push(role); else newAudience = newAudience.filter(item => item !== role); setNotification({ ...notification, audience: newAudience }); }} className="rounded border-gray-200 text-[#0c1925] focus:ring-[#0c1925] w-4 h-4 cursor-pointer accent-amber-300" />
                     {role}
                   </label>
                 ))}

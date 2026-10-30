@@ -527,28 +527,30 @@ const Attendance = () => {
                     const color = getColor(idx);
                     const { session, type } = parseKey(key);
                     return (
-                      <th key={key} className="border-b-2 border-r-2 border-gray-200 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative group z-0 bg-[#0c1925]"style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
-                        <div className="flex items-center justify-center gap-2">
+                      <th key={key} className="border-b-2 border-r-2 border-gray-200 py-2.5 px-2 text-white text-center font-bold text-sm uppercase tracking-wider relative group z-0 bg-[#0c1925]" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+                        <div className="flex flex-col items-center justify-center">
+                          {!isReadOnly && (
+                            <button
+                              onClick={() => { setConfirmRemoveKey(key); setConfirmText(''); }}
+                              className="text-red-400 hover:text-red-300 transition-colors mb-1 p-0.5 leading-none"
+                              title="Delete date"
+                              aria-label="Delete date"
+                            >
+                              <X size={12} />
+                            </button>
+                          )}
                           <div className="text-center leading-tight">
-                            <div className="text-sm font-bold">{formatDate(key)}</div>
-                            <div className="flex items-center justify-center gap-1 mt-0.5">
-                              <span style={{ backgroundColor: session === 'AM' ? '#059e00' : '#ff0000', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px' }}>{session}</span>
-                              <span style={{ backgroundColor: type === 'Laboratory' ? '#0029b0' : '#f97316', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px' }}>{type === 'Laboratory' ? 'LAB' : 'LEC'}</span>
+                            <div className="text-xs font-bold">{formatDate(key)}</div>
+                            <div className="flex items-center justify-center gap-1 mt-1">
+                              <span style={{ backgroundColor: session === 'AM' ? '#059e00' : '#ff0000', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px' }}>{session}</span>
+                              <span style={{ backgroundColor: type === 'Laboratory' ? '#0029b0' : '#f97316', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px' }}>{type === 'Laboratory' ? 'LAB' : 'LEC'}</span>
                             </div>
                           </div>
-                          {!isReadOnly && (
-                              <button
-                                onClick={() => { setConfirmRemoveKey(key); setConfirmText(''); }}
-                                className="text-red-400 hover:text-red-600 transition-opacity"
-                              >
-                                <X size={13} />
-                              </button>
-                          )}
                         </div>
                       </th>
                     );
                   })}
-                  <th className="bg-amber-400 border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-base uppercase tracking-wider min-w-[100px] relative z-0">
+                  <th className="bg-amber-300 border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-base uppercase tracking-wider min-w-[100px] relative z-0">
                     TOTAL
                   </th>
                 </tr>
@@ -634,11 +636,11 @@ const Attendance = () => {
                                     }
                                   }}
                                   onKeyDown={(e) => handleKeyDown(e, student.id, key, index, paginatedStudents, columns)}
-                                  className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${isClamped ? 'border-amber-400 bg-amber-50' : 'border-transparent'}`}
+                                  className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${isClamped ? 'border-amber-300 bg-amber-50' : 'border-transparent'}`}
                                   disabled={isReadOnly}
                                 />
                                 {isClamped && (
-                                  <div className="absolute -top-1 right-0 w-2 h-2 bg-amber-400 rounded-full" title="Value clamped to 0–2 range" />
+                                  <div className="absolute -top-1 right-0 w-2 h-2 bg-amber-300 rounded-full" title="Value clamped to 0–2 range" />
                                 )}
                               </div>
                             </td>

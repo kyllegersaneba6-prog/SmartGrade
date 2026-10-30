@@ -36,7 +36,7 @@ const FloatingAssignmentSelector = () => {
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 text-left text-xs bg-white border rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 cursor-pointer ${
           isArchiveMode
-            ? 'bg-amber-50 border-amber-300 focus:ring-amber-400/30'
+            ? 'bg-amber-50 border-amber-300 focus:ring-amber-300/30'
             : open
               ? 'border-[#0c1925] ring-2 ring-[#0c1925]/15'
               : 'border-gray-200 hover:border-[#0c1925]/50 focus:ring-[#0c1925]/30'

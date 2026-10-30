@@ -2,6 +2,7 @@
 
 | Date | Bug | Fix |
 |---|---|---|
+| 2026-10-30 | Class Record Excel/PDF export was still available while grading-component weights totalled less than 100%, producing an export whose final grade was capped at the weight total (e.g. 80% weights → 87% student shown as 69.6) | Export is now disabled until weights total 100%: `weightsBalanced` gate in `ClassRecord.jsx` (rounded total, guards in both handlers), `disabled` + `disabledReason` in `ExportButtons.jsx` so the reason is visible instead of a dead button |
 | 2026-10-28 | Superadmin audit trail needed sticky headers and paging, and browser smooth-scroll produced no visible movement on page changes | Made the column header sticky, paginated filtered events in 50-row pages, and added an explicit 500ms eased scroll animation to the audit section top |
 | 2026-10-28 | Attendance rows showed through the frozen student headers and the three header bands could leave a visible gap | Set explicit 60px/39px offsets for the first two header rows, raised the frozen header layers, and forced opaque backgrounds on frozen cells |
 | 2026-10-28 | Horizontal scrolling the wide Class Record grid also shifted the page heading, controls, and alerts under the fixed sidebar | Anchored non-grid Class Record panels to the content viewport while retaining page-level vertical and horizontal scrolling, so table headers keep their existing sticky behavior |

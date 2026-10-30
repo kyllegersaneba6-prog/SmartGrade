@@ -159,6 +159,8 @@ Teacher and admin account tables (Admin → Teachers, Superadmin → Admin Manag
 
 Shared UI: `frontend/src/components/teacher/ExportButtons.jsx` (per-format spinner, disabled while busy).
 
+**Class Record export gate:** Excel/PDF stay disabled until the selected term's grading-component weights total exactly 100% (rounded to 2dp). Until then the dropdown shows *"Export unlocks at 100% total weight."* Reason: `getFinalGrade()` only sums the weights that exist, so a partial weighting would export a deflated final grade. Score entry is locked by the same rule.
+
 ## Backup & Restore
 
 - Superadmin-only (`/api/backup` is guarded at router level).

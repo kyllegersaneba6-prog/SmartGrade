@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Download, Loader, ChevronDown, FileSpreadsheet, FileText } from 'lucide-react';
 
 // Compact shared Excel/PDF export dropdown for teacher pages.
-// Props: onExcel, onPdf, disabled, exporting ('excel'|'pdf'|null), error.
-export default function ExportButtons({ onExcel, onPdf, disabled = false, exporting = null, error = '' }) {
+// Props: onExcel, onPdf, disabled, disabledReason, exporting ('excel'|'pdf'|null), error.
+export default function ExportButtons({ onExcel, onPdf, disabled = false, disabledReason = '', exporting = null, error = '' }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const busy = exporting !== null;
@@ -23,6 +23,8 @@ export default function ExportButtons({ onExcel, onPdf, disabled = false, export
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled || busy}
+        title={disabled && disabledReason ? disabledReason : undefined}
+        aria-disabled={disabled || busy}
         className="px-4 py-2 bg-[#0c1925] text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-sidebar-hover transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {busy ? <Loader size={16} className="animate-spin" /> : <Download size={16} />}
@@ -51,6 +53,9 @@ export default function ExportButtons({ onExcel, onPdf, disabled = false, export
         </div>
       )}
 
+      {disabled && disabledReason && !error && (
+        <span className="text-[11px] font-semibold text-amber-700 max-w-[200px] text-right leading-snug">{disabledReason}</span>
+      )}
       {error && <span className="text-[11px] font-semibold text-red-600 mt-1">{error}</span>}
     </div>
   );

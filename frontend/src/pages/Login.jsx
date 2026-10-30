@@ -8,10 +8,10 @@ import {
 } from 'lucide-react';
 
 const features = [
-  { icon: <BarChart3 className="w-5 h-5 text-amber-400 stroke-icon" />, title: 'Grade Computation & Analytics', desc: 'Automated weighted grading with real-time analytics' },
-  { icon: <ClipboardCheck className="w-5 h-5 text-amber-400 stroke-icon" />, title: 'Attendance Tracking', desc: 'Track student attendance with AM/PM session support' },
-  { icon: <Users className="w-5 h-5 text-amber-400 stroke-icon" />, title: 'Class & Teacher Management', desc: 'Manage sections, subjects, and teacher assignments' },
-  { icon: <TrendingUp className="w-5 h-5 text-amber-400 stroke-icon" />, title: 'Performance Reports', desc: 'Generate grade summaries with grade-point conversion' },
+  { icon: <BarChart3 className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Grade Computation & Analytics', desc: 'Automated weighted grading with real-time analytics' },
+  { icon: <ClipboardCheck className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Attendance Tracking', desc: 'Track student attendance with AM/PM session support' },
+  { icon: <Users className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Class & Teacher Management', desc: 'Manage sections, subjects, and teacher assignments' },
+  { icon: <TrendingUp className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Performance Reports', desc: 'Generate grade summaries with grade-point conversion' },
 ];
 
 const OFFLINE_MESSAGE = 'You are currently offline. Please check your Wi-Fi or ethernet connection and try again.';
@@ -30,7 +30,7 @@ const Login = () => {
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
-        if (user.role === 'teacher') navigate('/teacher/dashboard');
+        if (user.role === 'teacher') navigate('/teacher/overview');
         else if (user.role === 'admin') navigate('/admin');
         else navigate('/superadmin');
       } catch {
@@ -68,7 +68,7 @@ const Login = () => {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      if (data.user.role === 'teacher') navigate('/teacher/dashboard');
+      if (data.user.role === 'teacher') navigate('/teacher/overview');
       else if (data.user.role === 'admin') navigate('/admin');
       else navigate('/superadmin');
     } catch (err) {
@@ -112,7 +112,7 @@ const Login = () => {
           <div className="flex items-center justify-center gap-3 mb-8">
             <img src="/src/assets/logo.png" className="w-14 h-14 shrink-0 object-contain" alt="SmartGrade Logo" />
             <div className="min-w-0">
-              <h1 className="text-amber-400 font-extrabold text-2xl tracking-wide">SmartGrade</h1>
+              <h1 className="text-amber-300 font-extrabold text-2xl tracking-wide">SmartGrade</h1>
               <p className="text-slate-300 text-sm mt-1">Academic Management System</p>
             </div>
           </div>
@@ -175,7 +175,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-amber-400 hover:bg-amber-500 text-black font-bold py-3 px-4 rounded-xl transition-all transform active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-gold/25"
+              className="w-full bg-amber-300 hover:bg-amber-300 text-black font-bold py-3 px-4 rounded-xl transition-all transform active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-gold/25"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
@@ -236,7 +236,7 @@ const Login = () => {
           <div className="space-y-5">
             {features.map((feature, i) => (
               <div key={i} className="flex items-start gap-4 group">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400/20 to-amber-600/10 border border-black/80 flex items-center justify-center shrink-0 group-hover:border-amber-400/40 group-hover:from-amber-400/30 group-hover:to-amber-600/20 transition-all shadow-md">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-300/20 to-amber-600/10 border border-black/80 flex items-center justify-center shrink-0 group-hover:border-amber-300/40 group-hover:from-amber-300/30 group-hover:to-amber-600/20 transition-all shadow-md">
                   {feature.icon}
                 </div>
                 <div>

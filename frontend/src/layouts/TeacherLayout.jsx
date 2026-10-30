@@ -19,8 +19,8 @@ const TeacherLayoutInner = () => {
 
   const getTitle = () => {
     switch (location.pathname) {
-      case '/teacher': return 'Dashboard';
-      case '/teacher/dashboard': return 'Dashboard';
+      case '/teacher': return 'Overview';
+      case '/teacher/overview': return 'Overview';
       case '/teacher/class-record': return 'Class Record';
       case '/teacher/attendance': return 'Attendance';
       case '/teacher/grade-summary': return 'Grade Summary';
@@ -52,9 +52,9 @@ const TeacherLayoutInner = () => {
             <div className="min-w-0">
               <h1 className="truncate text-sm font-bold text-sidebar sm:text-base">{getTitle()}</h1>
             </div>
-            <span className="hidden whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-bold text-amber-800 sm:inline-flex">{deptLabel}</span>
+            <span className="hidden whitespace-nowrap rounded-full border border-[#0c1925] bg-[#0c1925] px-3 py-1 text-[12px] font-bold text-amber-300 sm:inline-flex">{deptLabel}</span>
             {currentTerm && (
-              <span className="hidden whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-gray-600 md:inline-flex">
+              <span className="hidden whitespace-nowrap rounded-full border border-[#0c1925] bg-[#0c1925] px-2.5 py-1 text-[12px] font-semibold tracking-wide text-amber-300 md:inline-flex">
                 {currentTerm.school_year} · {currentTerm.semester}
               </span>
             )}

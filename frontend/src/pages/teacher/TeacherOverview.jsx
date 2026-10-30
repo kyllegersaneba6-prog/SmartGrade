@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, GraduationCap, Archive, Loader } from 'lucide-react';
+import { BookOpen, GraduationCap, Archive } from 'lucide-react';
 import { useTeacher } from '../../contexts/TeacherContext';
 import { SkeletonClassGrid } from '../../components/common/Skeleton';
 import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
@@ -7,7 +7,7 @@ import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
 const yearOrder = ['1st', '2nd', '3rd', '4th'];
 const yearLabels = { '1st': '1st Year', '2nd': '2nd Year', '3rd': '3rd Year', '4th': '4th Year' };
 
-const TeacherDashboard = () => {
+const TeacherOverview = () => {
   const { assignments, loading, activeTerm, viewTerm, setViewTerm, isArchiveMode } = useTeacher();
 
   const userStr = localStorage.getItem('user');
@@ -92,6 +92,4 @@ const TeacherDashboard = () => {
   );
 };
 
-export default TeacherDashboard;
-
-
+export default TeacherOverview;

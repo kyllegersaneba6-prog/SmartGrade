@@ -52,8 +52,8 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Grade-point conversion + remarks | Done | 1.00–5.00, Excellent → Failed |
 | Behavioral analytics | Done | Performance, submission rate, attendance, trend |
 | AI student summary | Done | Read-only narrative; AI never computes grades |
-| Excel export | Done | Class record, summary, admin/teacher lists |
-| PDF export | Done | Class record, summary |
+| Excel export | Done | Class record, summary, admin/teacher lists. Class Record export stays disabled until component weights total 100% |
+| PDF export | Done | Class record, summary. Class Record export stays disabled until component weights total 100% |
 | Non-numeric marks (DRP / P / F) | Planned | Documented in `formula.md`, not implemented |
 
 ## Operations

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { FileSpreadsheet, Plus, Trash2, Loader, Pencil, X } from 'lucide-react';
+import { FileSpreadsheet, Plus, Trash2, Loader, Pencil, X, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
@@ -11,6 +11,11 @@ import api from '../../utils/api';
 import { buildTeacherFilename, TEACHER_TERM_TOKENS } from '../../utils/exportFilenames';
 import { exportClassRecordExcel, exportClassRecordPdf } from '../../utils/classRecordExport';
 import { TEACHER_TABLE_PAGE_SIZE } from '../../utils/teacherTable';
+
+// Component names offered in the Class Record "Component name" dropdown.
+// The last option ("+ Add") switches the field to free-text mode.
+const COMPONENT_NAME_PRESETS = ['Class Standing', 'Performance Task', 'Exam'];
+const COMPONENT_NAME_ADD_OPTION = '__add_new__';
 
 const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
 
@@ -49,6 +54,8 @@ const ClassRecord = () => {
   const [page, setPage] = useState(1);
   const [componentModal, setComponentModal] = useState(null);
   const [componentDraft, setComponentDraft] = useState({ name: '', weight: '', is_attendance: false, activities: [] });
+  // false = preset dropdown, true = free-text name field with a back button.
+  const [customNameMode, setCustomNameMode] = useState(false);
   const [showSubcomponentChoices, setShowSubcomponentChoices] = useState(false);
   const [savingComponent, setSavingComponent] = useState(false);
   const [copyingPrelims, setCopyingPrelims] = useState(false);
@@ -209,6 +216,7 @@ const ClassRecord = () => {
   const openAddComponent = () => {
     setError('');
     setShowSubcomponentChoices(false);
+    setCustomNameMode(false);
     setComponentDraft({ name: '', weight: '', is_attendance: false, activities: [] });
     setComponentModal({ mode: 'add' });
   };
@@ -216,6 +224,9 @@ const ClassRecord = () => {
   const openEditComponent = (comp) => {
     setError('');
     setShowSubcomponentChoices(false);
+    // Known names open in the dropdown; anything else (legacy/custom) opens
+    // straight into free-text mode so editing never rewrites the name.
+    setCustomNameMode(!comp.is_attendance && !COMPONENT_NAME_PRESETS.includes(comp.name));
     setComponentDraft({
       name: comp.is_attendance ? 'Attendance' : (comp.name || ''),
       weight: String(comp.weight ?? ''),
@@ -480,7 +491,12 @@ const ClassRecord = () => {
     return sum;
   };
 
-  const totalWeight = components.reduce((sum, c) => sum + parseFloat(c.weight || 0), 0);
+  // Rounded to 2dp so float drift (33.33 + 33.33 + 33.34) still counts as 100.
+  const totalWeight = Math.round(components.reduce((sum, c) => sum + parseFloat(c.weight || 0), 0) * 100) / 100;
+  // A final grade is only complete when the weights add up to 100%: below that,
+  // getFinalGrade() sums fewer than 100 points and the exported grade is deflated.
+  const weightsBalanced = totalWeight === 100;
+  const exportBlockedMessage = 'Component weights must total 100% before you can export.';
   const hasAttendance = components.some(c => c.is_attendance || (c.activities || []).some(activity => activity.is_attendance));
 
   // Keep incomplete legacy entries in the table so teachers can still edit them.
@@ -541,11 +557,13 @@ const ClassRecord = () => {
 
   const handleExportExcel = async () => {
     if (!currentAssignment || components.length === 0) return;
+    if (!weightsBalanced) { setExportError(exportBlockedMessage); return; }
     await exportClassRecordExcel({ assignment: currentAssignment, term: selectedTerm, students, components, scores, attendanceScores, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename: getExportFilename('xlsx') });
   };
 
   const handleExportPdf = async () => {
     if (!currentAssignment || components.length === 0 || exporting) return;
+    if (!weightsBalanced) { setExportError(exportBlockedMessage); return; }
     setExporting('pdf');
     setExportError('');
     try {
@@ -562,6 +580,7 @@ const ClassRecord = () => {
 
   const onExcelClick = async () => {
     if (exporting) return;
+    if (!weightsBalanced) { setExportError(exportBlockedMessage); return; }
     setExporting('excel');
     setExportError('');
     try {
@@ -601,7 +620,7 @@ const ClassRecord = () => {
           eyebrow="Grade management"
           title="Class Record"
           description="View and manage student grades, assessment components, and class performance."
-          actions={<ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />}
+          actions={<ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} disabled={!weightsBalanced} disabledReason={weightsBalanced ? '' : 'Export unlocks at 100% total weight.'} exporting={exporting} error={exportError} />}
         />
       </div>
       <div className="class-record-horizontal-anchor flex flex-wrap items-center gap-3">
@@ -743,7 +762,7 @@ const ClassRecord = () => {
                         onDrop={(e) => { e.preventDefault(); handleCompDrop(comp.id); }}
                         onDragEnd={() => { setDragCompId(null); setDropCompId(null); }}
                         title={isReadOnly ? undefined : 'Drag to reorder columns'}
-                        className={`class-record-separator bg-[#0c1925] border-b-2 border-r p-2 text-white text-center font-bold relative z-0 ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : ''} ${isDragging ? 'opacity-40' : ''} ${isDropTarget ? 'outline outline-2 outline-amber-400 outline-offset-[-2px]' : ''}`}
+                        className={`class-record-separator bg-[#0c1925] border-b-2 border-r p-2 text-white text-center font-bold relative z-0 ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : ''} ${isDragging ? 'opacity-40' : ''} ${isDropTarget ? 'outline outline-2 outline-amber-300 outline-offset-[-2px]' : ''}`}
                         style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}
                       >
                         <div className="flex min-h-[4.25rem] flex-col items-center justify-center gap-1.5">
@@ -758,7 +777,7 @@ const ClassRecord = () => {
                       </th>
                     );
                   })}
-                  <th className="bg-amber-400 border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-base uppercase tracking-wider min-w-[120px] relative z-0">
+                  <th className="bg-amber-300 border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-base uppercase tracking-wider min-w-[120px] relative z-0">
                     {selectedTerm === 'PRELIMS' ? 'PRE' : selectedTerm === 'MIDTERMS' ? 'MID' : selectedTerm === 'PRE-FINALS' ? 'P-F' : 'FIN'} GRADE
                   </th>
                 </tr>
@@ -892,10 +911,10 @@ const ClassRecord = () => {
                                     }}
                                     onBlur={() => setScoreDrafts((prev) => { const next = { ...prev }; delete next[draftKey]; return next; })}
                                     onKeyDown={(e) => handleKeyDown(e, student.id, act.id, index, paginatedStudents, visibleActivityIds)}
-                                    className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${clampWarnings[`${act.id}-${student.id}`] ? 'border-amber-400 bg-amber-50' : 'border-transparent'}`}
+                                    className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${clampWarnings[`${act.id}-${student.id}`] ? 'border-amber-300 bg-amber-50' : 'border-transparent'}`}
                                     max={maxVal} />
                                   {clampWarnings[`${act.id}-${student.id}`] && (
-                                    <div className="absolute -top-1 right-0 w-2 h-2 bg-amber-400 rounded-full" title={`Value clamped to max ${clampWarnings[`${act.id}-${student.id}`]}`} />
+                                    <div className="absolute -top-1 right-0 w-2 h-2 bg-amber-300 rounded-full" title={`Value clamped to max ${clampWarnings[`${act.id}-${student.id}`]}`} />
                                   )}
                                 </div>
                               </td>
@@ -943,7 +962,7 @@ const ClassRecord = () => {
               {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{error}</div>}
               {!componentModal.componentId && (
                 <label className="block text-xs font-bold text-gray-700">Component type
-                  <select value={componentDraft.is_attendance ? 'attendance' : 'regular'} onChange={(e) => setComponentDraft((draft) => ({ ...draft, is_attendance: e.target.value === 'attendance', name: e.target.value === 'attendance' ? 'Attendance' : '' }))} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]">
+                  <select value={componentDraft.is_attendance ? 'attendance' : 'regular'} onChange={(e) => { setCustomNameMode(false); setComponentDraft((draft) => ({ ...draft, is_attendance: e.target.value === 'attendance', name: e.target.value === 'attendance' ? 'Attendance' : '' })); }} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]">
                     <option value="regular">Grading component</option>
                     <option value="attendance" disabled={hasAttendance}>Attendance{hasAttendance ? ' (already added)' : ''}</option>
                   </select>
@@ -951,7 +970,49 @@ const ClassRecord = () => {
               )}
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
                 <label className="block text-xs font-bold text-gray-700">Component name
-                  <input value={componentDraft.is_attendance ? 'Attendance' : componentDraft.name} onChange={(e) => setComponentDraft((draft) => ({ ...draft, name: e.target.value }))} placeholder="e.g. Class Standing" disabled={componentDraft.is_attendance} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925] disabled:bg-gray-100" />
+                  {componentDraft.is_attendance ? (
+                    <input value="Attendance" disabled className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925] disabled:bg-gray-100" />
+                  ) : customNameMode ? (
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => { setCustomNameMode(false); setComponentDraft((draft) => ({ ...draft, name: '' })); }}
+                        title="Back to component name list"
+                        aria-label="Back to component name list"
+                        className="shrink-0 inline-flex items-center justify-center w-9 h-[42px] rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <input
+                        autoFocus
+                        value={componentDraft.name}
+                        onChange={(e) => setComponentDraft((draft) => ({ ...draft, name: e.target.value }))}
+                        placeholder="Enter component name"
+                        aria-label="Custom component name"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]"
+                      />
+                    </div>
+                  ) : (
+                    <select
+                      value={COMPONENT_NAME_PRESETS.includes(componentDraft.name) ? componentDraft.name : ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === COMPONENT_NAME_ADD_OPTION) {
+                          setCustomNameMode(true);
+                          setComponentDraft((draft) => ({ ...draft, name: '' }));
+                        } else {
+                          setComponentDraft((draft) => ({ ...draft, name: value }));
+                        }
+                      }}
+                      className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]"
+                    >
+                      <option value="" disabled>Select component name</option>
+                      {COMPONENT_NAME_PRESETS.map((preset) => (
+                        <option key={preset} value={preset}>{preset}</option>
+                      ))}
+                      <option value={COMPONENT_NAME_ADD_OPTION}>+ Add</option>
+                    </select>
+                  )}
                 </label>
                 <label className="block text-xs font-bold text-gray-700">Weight (%)
                   <input type="text" inputMode="decimal" value={componentDraft.weight} onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); const parts = raw.split('.'); const cleaned = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : raw; setComponentDraft((draft) => ({ ...draft, weight: cleaned })); }} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]" />

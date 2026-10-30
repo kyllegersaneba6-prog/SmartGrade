@@ -4,7 +4,7 @@ import { BarChart3, LayoutDashboard, Users, BookOpen, Download, X, FileSpreadshe
 import clsx from 'clsx';
 
 const navItems = [
-  { name: 'Dashboard', path: '/teacher/dashboard', icon: LayoutDashboard },
+  { name: 'Overview', path: '/teacher/overview', icon: LayoutDashboard },
   { name: 'Attendance', path: '/teacher/attendance', icon: CalendarCheck },
   { name: 'Class Record', path: '/teacher/class-record', icon: FileSpreadsheet },
   { name: 'Analytics', path: '/teacher/analytics', icon: BarChart3 },
@@ -87,7 +87,7 @@ const TeacherSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                 aria-current={isActive ? 'page' : undefined}
                 title={isCollapsed ? item.name : undefined}
                 className={clsx(
-                  'group mx-1 flex min-h-11 items-center gap-3 rounded-xl border-l-[3px] px-3 py-2.5 text-xs font-semibold transition-colors whitespace-nowrap',
+                  'group mx-1 flex min-h-11 items-center gap-3 rounded-xl border-l-[3px] px-3 py-2.5 text-sm font-semibold transition-colors whitespace-nowrap',
                   isCollapsed && 'lg:mx-0 lg:justify-center lg:px-0',
                   isActive
                     ? 'border-gold bg-[#24384b] text-amber-300 shadow-sm'

@@ -107,13 +107,16 @@
     --teacher-header-row-two-height: 39px;
   }
   .teacher-sticky-table-3rows.teacher-sticky-attendance {
-    --teacher-header-row-one-height: 60px;
+    --teacher-header-row-one-height: 76px;
     --teacher-header-row-two-height: 39px;
   }
   .teacher-sticky-attendance > thead > tr:first-child {
-    height: 60px;
+    height: 76px;
   }
   .teacher-sticky-attendance > thead > tr:nth-child(2) {
+    height: 39px;
+  }
+  .teacher-sticky-attendance > thead > tr:nth-child(3) {
     height: 39px;
   }
   .teacher-sticky-attendance > thead > tr:first-child > .sticky-student-header {
@@ -133,11 +136,13 @@
   .teacher-sticky-attendance > thead > tr:nth-child(2) > .sticky-student-id,
   .teacher-sticky-attendance > thead > tr:nth-child(2) > .sticky-student-name {
     background-color: #f9fafb;
+    top: 76px;
   }
   .teacher-sticky-attendance > thead > tr:nth-child(3) > .sticky-student-number,
   .teacher-sticky-attendance > thead > tr:nth-child(3) > .sticky-student-id,
   .teacher-sticky-attendance > thead > tr:nth-child(3) > .sticky-student-name {
     background-color: #fff;
+    top: 115px;
   }
   .teacher-sticky-table-2rows > thead > tr:nth-child(2) > th,
   .teacher-sticky-table-3rows > thead > tr:nth-child(2) > th,

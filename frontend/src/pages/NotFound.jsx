@@ -37,15 +37,15 @@ const NotFound = () => {
       >
         <div className="flex flex-col items-center mb-6">
           <img src="/src/assets/logo.png" className="w-16 h-16 object-contain mb-3" alt="SmartGrade Logo" />
-          <h1 className="text-amber-400 font-extrabold text-xl tracking-wide">SmartGrade</h1>
+          <h1 className="text-amber-300 font-extrabold text-xl tracking-wide">SmartGrade</h1>
           <p className="text-slate-300 text-xs mt-1">Academic Management System</p>
         </div>
 
-        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center">
-          <SearchX className="w-7 h-7 text-amber-400" />
+        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-amber-300/10 border border-amber-300/20 flex items-center justify-center">
+          <SearchX className="w-7 h-7 text-amber-300" />
         </div>
 
-        <p className="text-amber-400 font-extrabold text-6xl tracking-tight leading-none mb-3">404</p>
+        <p className="text-amber-300 font-extrabold text-6xl tracking-tight leading-none mb-3">404</p>
         <h2 className="text-white font-bold text-xl mb-2">Page not found</h2>
         <p className="text-slate-400 text-sm mb-5">
           The page you are looking for does not exist or may have moved.
@@ -59,7 +59,7 @@ const NotFound = () => {
           <button
             type="button"
             onClick={() => navigate(home.path)}
-            className="flex-1 bg-amber-400 hover:bg-amber-500 text-black font-bold py-3 px-4 rounded-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-gold/25"
+            className="flex-1 bg-amber-300 hover:bg-amber-300 text-black font-bold py-3 px-4 rounded-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-gold/25"
           >
             <span>{home.label}</span>
             <ArrowRight className="w-5 h-5" strokeWidth={2.5} />

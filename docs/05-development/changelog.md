@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-30
+
+### Changed: Class Record export is blocked until component weights total 100%
+
+- Cause: `getFinalGrade()` sums `equiv × weight / 100` over the components that exist, so a term adding up to 80% maxes out at 80. Exporting at that point wrote a **deflated final grade** (an 87% student exported as 69.6) even though score entry was already locked.
+- `ClassRecord.jsx`: total weight is now rounded to 2dp (`Math.round(sum * 100) / 100`) so float drift (`33.33 + 33.33 + 33.34`) still counts as 100; added `weightsBalanced` plus guards in `handleExportExcel`, `handleExportPdf`, and `onExcelClick`; the heading `ExportButtons` now receives `disabled={!weightsBalanced}` and a reason.
+- `components/teacher/ExportButtons.jsx`: new optional `disabledReason` prop — shown under the button in amber and mirrored on the trigger's `title`, plus `aria-disabled`.
+- Verified: `npm run build` passes; `eslint` on both files reports no new errors (6 pre-existing Class Record errors unchanged).
+- Docs updated: `01-features/feature-details.md`, `01-features/feature-list.md`, `04-ui/screens.md`, `05-development/bug-fixes.md`, `05-development/changelog.md`.
+
 ## 2026-10-29
 
 ### Fixed: Class Record PDF export item was unclickable

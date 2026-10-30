@@ -3,21 +3,32 @@ export const TERM_PCTS = { PRELIMS: '20%', MIDTERMS: '20%', 'PRE-FINALS': '20%',
 export const TERM_WEIGHTS = { PRELIMS: 0.20, MIDTERMS: 0.20, 'PRE-FINALS': 0.20, FINALS: 0.40 };
 
 export const GRADE_RANGES = [
-  { min: 98, gp: 1.00, desc: 'Excellent' },
-  { min: 95, gp: 1.25, desc: 'Very Good' },
-  { min: 92, gp: 1.50, desc: 'Very Good' },
-  { min: 89, gp: 1.75, desc: 'Very Good' },
-  { min: 86, gp: 2.00, desc: 'Satisfactory' },
-  { min: 83, gp: 2.25, desc: 'Satisfactory' },
-  { min: 80, gp: 2.50, desc: 'Satisfactory' },
-  { min: 77, gp: 2.75, desc: 'Fair' },
-  { min: 75, gp: 3.00, desc: 'Fair' },
+  { min: 98.00, max: 100.00, gp: 1.00, desc: 'Excellent' },
+  { min: 95.00, max: 97.99, gp: 1.25, desc: 'Very Good' },
+  { min: 92.00, max: 94.99, gp: 1.50, desc: 'Very Good' },
+  { min: 89.00, max: 91.99, gp: 1.75, desc: 'Very Good' },
+  { min: 86.00, max: 88.99, gp: 2.00, desc: 'Satisfactory' },
+  { min: 83.00, max: 85.99, gp: 2.25, desc: 'Satisfactory' },
+  { min: 80.00, max: 82.99, gp: 2.50, desc: 'Satisfactory' },
+  { min: 77.00, max: 79.99, gp: 2.75, desc: 'Fair' },
+  { min: 75.00, max: 76.99, gp: 3.00, desc: 'Fair' },
 ];
 
+export const SPECIAL_MARKS = {
+  DRP: { gp: null, desc: 'Officially Dropped' },
+  P: { gp: null, desc: 'Passed' },
+  F: { gp: null, desc: 'Failed' },
+};
+
 export const gradeToPoint = (grade) => {
-  if (grade < 75) return { gp: 5.00, desc: 'Failed' };
+  if (typeof grade === 'string' && SPECIAL_MARKS[grade.toUpperCase()]) {
+    const mark = SPECIAL_MARKS[grade.toUpperCase()];
+    return { gp: mark.gp, desc: mark.desc, mark: grade.toUpperCase() };
+  }
+  const numGrade = Number(grade);
+  if (isNaN(numGrade) || numGrade < 75) return { gp: 5.00, desc: 'Failed' };
   for (const r of GRADE_RANGES) {
-    if (grade >= r.min) return r;
+    if (numGrade >= r.min) return r;
   }
   return { gp: 5.00, desc: 'Failed' };
 };
