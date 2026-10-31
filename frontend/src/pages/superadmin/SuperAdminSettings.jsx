@@ -183,7 +183,7 @@ const SuperAdminSettings = () => {
           </div>
         ) : (
           activeTerm && (
-            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-300 p-5">
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Active Term</span>
@@ -207,7 +207,7 @@ const SuperAdminSettings = () => {
             <div className="space-y-2">
               {allTerms.map(t => (
                 <div key={t.id} className={`flex items-center justify-between px-4 py-3 rounded-lg border ${
-                  t.is_active ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'
+                  t.is_active ? 'bg-amber-300 border-amber-200' : 'bg-gray-50 border-gray-200'
                 }`}>
                   <div className="flex items-center gap-3">
                     {t.is_active && <span className="w-2 h-2 rounded-full bg-amber-500" />}

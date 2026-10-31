@@ -612,7 +612,7 @@ const Attendance = () => {
                     const studentTotal = getStudentTotal(student.id);
                     return (
                       <tr key={student.id} className={`transition-colors ${selectedRow === student.id ? 'bg-green-200' : 'hover:bg-green-50/10'}`}>
-                        <td className={`sticky-student-number px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 text-[#0c1925] text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} onClick={() => setSelectedRow(student.id)}>{(page - 1) * TEACHER_TABLE_PAGE_SIZE + index + 1}</td>
+                        <td className={`sticky-student-number px-1 py-1 text-center sticky border-r border-b border-gray-200 z-30 text-gray-900 text-[10px] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} onClick={() => setSelectedRow(student.id)}>{(page - 1) * TEACHER_TABLE_PAGE_SIZE + index + 1}</td>
                         <td className={`sticky-student-id px-2 py-1 sticky border-r border-b border-gray-200 z-20 text-xs font-mono font-semibold text-[#0c1925] cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} onClick={() => setSelectedRow(student.id)}>{student.student_id}</td>
                         <td className={`sticky-student-name px-2 py-1 sticky border-r-2 border-b border-border z-20 text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
                         {columns.map((key) => {

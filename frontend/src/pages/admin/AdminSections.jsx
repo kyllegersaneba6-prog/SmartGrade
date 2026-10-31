@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Trash2, X, UserPlus, Layers, Upload, FileSpreadsheet, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, X, UserPlus, Layers, Upload, FileSpreadsheet, CheckCircle, ArrowRightLeft } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import Pagination from '../../components/common/Pagination';
 import CustomDropdown from '../../components/common/CustomDropdown';
@@ -516,27 +516,37 @@ const AdminSections = () => {
             <h2 className="text-sm font-bold text-[#0c1925] flex items-center gap-2">
               <Layers size={16} style={{ color: '#0c1925' }} /> Sections
             </h2>
-            <div className="relative group">
+            <div className="flex items-center gap-2">
+              <div className="relative group">
+                <button
+                  onClick={() => { if (isArchiveMode) return; if (!selectedCourseId) { setCourseMissing(true); return; } setCourseMissing(false); setShowAddSection(true); setSectionError(''); setSectionLetterMissing(false); setNewSectionLetter(''); }}
+                  disabled={isArchiveMode}
+                  className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
+                    isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                  }`}
+                  style={{ background: '#0c1925' }}
+                >
+                  <Plus size={14} /> Add
+                </button>
+                {isArchiveMode && (
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    Cannot modify while viewing archives
+                  </div>
+                )}
+                {!isArchiveMode && courseMissing && !selectedCourseId && (
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    Please select a course first
+                  </div>
+                )}
+              </div>
               <button
-                onClick={() => { if (isArchiveMode) return; if (!selectedCourseId) { setCourseMissing(true); return; } setCourseMissing(false); setShowAddSection(true); setSectionError(''); setSectionLetterMissing(false); setNewSectionLetter(''); }}
+                type="button"
+                onClick={() => alert('Transfer student feature coming soon.')}
                 disabled={isArchiveMode}
-                className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white rounded-lg shadow-sm transition-transform ${
-                  isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-                }`}
-                style={{ background: '#0c1925' }}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-[#0c1925] bg-gray-100 border border-gray-200 rounded-lg shadow-sm hover:bg-gray-200 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Plus size={14} /> Add
+                <ArrowRightLeft size={13} /> Transfer student
               </button>
-              {isArchiveMode && (
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  Cannot modify while viewing archives
-                </div>
-              )}
-              {!isArchiveMode && courseMissing && !selectedCourseId && (
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  Please select a course first
-                </div>
-              )}
             </div>
           </div>
 

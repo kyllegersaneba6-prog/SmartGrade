@@ -5,7 +5,7 @@ import { useTeacher } from '../../contexts/TeacherContext';
 const groupKey = (a) => `${a.school_year}|${a.semester}`;
 
 const FloatingAssignmentSelector = () => {
-  const { assignments, selectedAssignment, setSelectedAssignment, currentAssignment, activeTerm, setViewTerm, isArchiveMode, loading } = useTeacher();
+  const { assignments, selectedAssignment, setSelectedAssignment, currentAssignment, activeTerm, viewTerm, setViewTerm, isArchiveMode, loading } = useTeacher();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -62,7 +62,7 @@ const FloatingAssignmentSelector = () => {
       </button>
 
       {open && (
-        <div className="dropdown-pop absolute top-full left-0 mt-1.5 w-72 sm:w-80 bg-white border border-gray-100 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto origin-top">
+        <div className="dropdown-pop absolute top-full left-0 mt-1.5 w-72 sm:w-80 bg-white border border-gray-100 rounded-xl shadow-2xl z-[100] max-h-80 overflow-y-auto origin-top">
           {groupKeys.length === 0 && (
             <div className="px-3 py-5 text-[11px] text-gray-500 text-center">No assignments found.</div>
           )}
@@ -79,11 +79,17 @@ const FloatingAssignmentSelector = () => {
                 </div>
                 {group.items.map((a) => {
                   const isItemActive = String(a.id) === String(selectedAssignment);
+                  const isViewingOtherTerm = viewTerm && (viewTerm.school_year !== group.school_year || viewTerm.semester !== group.semester);
                   return (
                     <button
                       key={a.id}
                       onClick={() => {
                         setSelectedAssignment(a.id);
+                        if (isArchiveMode && isViewingOtherTerm) {
+                          setViewTerm({ school_year: group.school_year, semester: group.semester });
+                        } else if (!isActive && !viewTerm) {
+                          setViewTerm({ school_year: group.school_year, semester: group.semester });
+                        }
                         setOpen(false);
                       }}
                       className={`w-full text-left px-4 py-2.5 border-b last:border-0 border-gray-100 transition-colors flex items-center gap-2 cursor-pointer ${

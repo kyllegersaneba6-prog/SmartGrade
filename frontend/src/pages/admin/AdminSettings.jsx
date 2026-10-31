@@ -26,7 +26,7 @@ const AdminSettings = () => {
         description="View academic terms and browse archived semesters."
       />
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 card-hover">
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50 card-hover">
         <h2 className="text-sm font-bold text-gray-900 mb-4">Academic Term Information</h2>
 
         {isArchiveMode && viewTerm && (
@@ -55,7 +55,7 @@ const AdminSettings = () => {
         )}
 
         {activeTerm && !isArchiveMode && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
+          <div className="bg-amber-300 border border-amber-200 rounded-xl p-5 mb-6">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Active Term</span>
@@ -86,14 +86,14 @@ const AdminSettings = () => {
                     }}
                     className={`flex items-center justify-between px-4 py-3 rounded-lg border cursor-pointer transition-colors ${
                       isCurrentlyViewing ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-300' :
-                      isActive ? 'bg-amber-50 border-amber-200 hover:bg-amber-100' :
+                      isActive ? 'bg-amber-300 border-amber-200 hover:bg-amber-100' :
                       'bg-gray-50 border-gray-200 hover:bg-gray-100'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       {isActive && <span className="w-2 h-2 rounded-full bg-amber-500" />}
                       {isCurrentlyViewing && !isActive && <Archive size={14} className="text-amber-600" />}
-                      <span className={`text-sm font-semibold ${isActive ? 'text-gray-900' : isCurrentlyViewing ? 'text-amber-900' : 'text-gray-900'}`}>
+                      <span className={`text-sm font-semibold ${isActive ? 'text-gray-900' : isCurrentlyViewing ? 'text-amber-900' : 'text-gray-500'}`}>
                         {t.school_year} — {t.semester}
                       </span>
                     </div>

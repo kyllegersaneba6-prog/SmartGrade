@@ -1,8 +1,11 @@
 # Grade Point System
 
 > **Implementation status:** the numeric scale below is implemented in
-> `frontend/src/utils/gradeCalculations.js` (`GRADE_RANGES`). The special marks
-> DRP / P / F are **not implemented** — the app only accepts numeric grades.
+> `frontend/src/utils/gradeCalculations.js` (`GRADE_RANGES`, with explicit
+> `min`/`max`). The special marks DRP / P / F are defined in `SPECIAL_MARKS`
+> and accepted by `gradeToPoint()` as string values, but there is no
+> score-entry UI for them and they are hidden from the Grade Summary legend —
+> the app still accepts numeric grades only.
 
 
 | Grade | Equivalence | Description |
@@ -23,6 +26,6 @@
 
 ## Implementation Status
 
-- Numeric grades (1.00–5.00) are implemented in `frontend/src/utils/gradeCalculations.js` (`GRADE_RANGES`).
-- Special marks (DRP, P, and F) are not implemented.
-- The application currently accepts numeric grades only.
+- Numeric grades (1.00–5.00) are implemented in `frontend/src/utils/gradeCalculations.js` (`GRADE_RANGES`), each range carrying an explicit `min` and `max`.
+- Special marks (DRP, P, and F) are declared in `SPECIAL_MARKS`, and `gradeToPoint()` returns them when passed the matching string.
+- The application still accepts numeric grades only: there is no UI to enter DRP/P/F, and the Grade Summary legend shows the numeric scale only.

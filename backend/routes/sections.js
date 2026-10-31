@@ -37,6 +37,52 @@ router.get('/seed/preview', async (req, res) => {
   }
 });
 
+// GET /api/sections/find-student — find a student across sections by student_id
+router.get('/find-student', async (req, res) => {
+  try {
+    const { student_id } = req.query;
+    if (!student_id) return res.status(400).json({ message: 'student_id is required' });
+    const { data: student, error } = await supabase
+      .from('students')
+      .select('*, sections(id, name, year_level, course_id, school_year, semester)')
+      .eq('student_id', student_id)
+      .maybeSingle();
+    if (error) return sendServerError(res, error);
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+    res.json(student);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PATCH /api/sections/students/:id/transfer — transfer a student to another section
+router.patch('/students/:id/transfer', authorizeRole('admin'), async (req, res) => {
+  try {
+    const { target_section_id } = req.body;
+    if (!target_section_id) return res.status(400).json({ message: 'target_section_id is required' });
+    const { data: student } = await supabase.from('students').select('id, section_id').eq('id', req.params.id).single();
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+    const { data: targetSection } = await supabase.from('sections').select('id, school_year, semester').eq('id', target_section_id).single();
+    if (!targetSection) return res.status(404).json({ message: 'Target section not found' });
+    const { data: activeTerm } = await supabase.from('academic_terms').select('*').eq('is_active', true).maybeSingle();
+    if (!activeTerm || activeTerm.school_year !== targetSection.school_year || activeTerm.semester !== targetSection.semester) {
+      return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
+    }
+    const { data, error } = await supabase
+      .from('students')
+      .update({ section_id: target_section_id })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error) return sendServerError(res, error);
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // GET /api/sections — list sections by year level
 router.get('/', async (req, res) => {
   try {
@@ -138,7 +184,51 @@ router.delete('/:id', authorizeRole('admin'), async (req, res) => {
   }
 });
 
-// GET /api/sections/:sectionId/students — get students for a section
+// GET /api/sections/find-student — find a student across sections by student_id
+router.get('/find-student', async (req, res) => {
+  try {
+    const { student_id } = req.query;
+    if (!student_id) return res.status(400).json({ message: 'student_id is required' });
+    const { data: student, error } = await supabase
+      .from('students')
+      .select('*, sections(id, name, year_level, course_id, school_year, semester)')
+      .eq('student_id', student_id)
+      .maybeSingle();
+    if (error) return sendServerError(res, error);
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+    res.json(student);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PATCH /api/sections/students/:id/transfer — transfer a student to another section
+router.patch('/students/:id/transfer', authorizeRole('admin'), async (req, res) => {
+  try {
+    const { target_section_id } = req.body;
+    if (!target_section_id) return res.status(400).json({ message: 'target_section_id is required' });
+    const { data: student } = await supabase.from('students').select('id, section_id').eq('id', req.params.id).single();
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+    const { data: targetSection } = await supabase.from('sections').select('id, school_year, semester').eq('id', target_section_id).single();
+    if (!targetSection) return res.status(404).json({ message: 'Target section not found' });
+    const { data: activeTerm } = await supabase.from('academic_terms').select('*').eq('is_active', true).maybeSingle();
+    if (!activeTerm || activeTerm.school_year !== targetSection.school_year || activeTerm.semester !== targetSection.semester) {
+      return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
+    }
+    const { data, error } = await supabase
+      .from('students')
+      .update({ section_id: target_section_id })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error) return sendServerError(res, error);
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 router.get('/:sectionId/students', async (req, res) => {
   try {
     if (!(await canAccessSection(req.params.sectionId, req.user))) {

@@ -18,12 +18,12 @@ Sidebar styling: gradient `to right, #0c1925 → #102132 → #142a3f`; active it
 | Label | Path | Icon |
 |---|---|---|
 | Dashboard | `/superadmin` | `LayoutDashboard` |
-| Departments & Courses | `/superadmin/departments` | `Building2` |
+| Dept & Courses | `/superadmin/departments` | `Building2` |
 | Admin Management | `/superadmin/users` | `Users` |
 | Security & Audit | `/superadmin/security` | `ShieldCheck` |
 | Settings | `/superadmin/settings` | `Settings` |
 
-Header: page title and a System Administration badge, in the shared white-header style.
+Header: page title and a System Administration badge, in the shared white-header style. Nav labels are `text-sm`.
 
 ## Admin Sidebar
 
@@ -35,20 +35,20 @@ Header: page title and a System Administration badge, in the shared white-header
 | Teacher Management | `/admin/teachers` | `Users` |
 | Settings | `/admin/settings` | `Settings` |
 
-Header: page title, department badge (`Department (ABBR)`), term pill `{school_year} · {semester}`, and `NotificationDropdown` (always empty). Uses the shared white-header style.
+Header: page title, department badge (`bg-[#0c1925]`, `text-amber-300`), term pill (`bg-[#0c1925]`, `text-amber-300`), and `NotificationDropdown` (always empty). Uses the shared white-header style. Nav labels are `text-sm`.
 
 ## Teacher Sidebar
 
 | Label | Path | Icon |
 |---|---|---|
-| Dashboard | `/teacher/dashboard` | `LayoutDashboard` |
+| Overview | `/teacher/overview` | `LayoutDashboard` |
 | Attendance | `/teacher/attendance` | `CalendarCheck` |
 | Class Record | `/teacher/class-record` | `FileSpreadsheet` |
 | Analytics | `/teacher/analytics` | `BarChart3` |
 | Grade Summary | `/teacher/grade-summary` | `Summary` |
 | Settings | `/teacher/settings` | `Settings` |
 
-Header: page title, department badge, term pill `{school_year} · {semester}`, `NotificationDropdown`.
+Header: page title, department badge (`bg-[#0c1925]`, `text-amber-300`), term pill (`bg-[#0c1925]`, `text-amber-300`), `NotificationDropdown`. Nav labels are `text-sm`.
 
 ## Routing Tree
 
@@ -73,8 +73,8 @@ Defined in `frontend/src/App.jsx`:
 /admin/bulk-students              → BulkStudentImport
 /admin/settings                   → AdminSettings
 
-/teacher                          → TeacherLayout → TeacherDashboard
-/teacher/dashboard                → TeacherDashboard
+/teacher                          → TeacherLayout → TeacherOverview
+/teacher/overview                 → TeacherOverview
 /teacher/attendance               → Attendance
 /teacher/class-record             → ClassRecord
 /teacher/analytics                → BehavioralAnalytics
@@ -112,7 +112,7 @@ Unmatched URLs are handled by the top-level `*` route and render `NotFound` with
 | `/superadmin/users/create` | Create New Admin |
 | `/superadmin/departments` | Departments & Courses |
 | `/superadmin/settings` | Settings |
-| `/teacher` or `/teacher/dashboard` | Dashboard |
+| `/teacher` or `/teacher/overview` | Overview |
 | `/teacher/class-record` | Class Record |
 | `/teacher/attendance` | Attendance |
 | `/teacher/grade-summary` | Grade Summary |

@@ -33,8 +33,6 @@ navigation.md
 design-system.md
 /05-development
 coding-rules.md
-bug-fixes.md
-changelog.md
 /06-decisions
 decisions.md
 future-plans.md
@@ -80,10 +78,6 @@ List all features with status:
 - In Progress
 - Done
 
-### changelog.md
-
-Track changes by date.
-
 ### decisions.md
 
 Record important decisions:
@@ -98,5 +92,4 @@ Every time you make changes:
 
 1. Check related docs first.
 2. Update the correct doc file.
-3. Add a short summary in changelog.md.
-4. Do not create random docs outside `/docs`.
+3. Do not create random docs outside `/docs`.

@@ -152,7 +152,7 @@ const AdminSubjects = () => {
           <div className="w-[400px] max-w-full">
             <CustomDropdown
               value={selectedCourseId}
-              onChange={setSelectedCourseId}
+              onChange={(v) => { setSelectedCourseId(v); if (v) setError(''); }}
               options={[
                 { value: '', label: 'All Courses', sublabel: 'Show every course' },
                 ...courses.map((c) => ({
@@ -202,7 +202,7 @@ const AdminSubjects = () => {
         </div>
       </div>
 
-      {error && <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-4 py-2 rounded-lg whitespace-pre-line">{error}</div>}
+      {error && <div className="w-fit max-w-full bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-pre-line">{error}</div>}
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 card-hover overflow-x-auto">
         {loading ? (
@@ -229,7 +229,7 @@ const AdminSubjects = () => {
                   {grouped.map((g) => (
                     <td key={g.year} className="px-4 py-2 border-r last:border-r-0 align-top" style={{ borderColor: '#e5e7eb' }}>
                       {g.subjects[rowIdx] ? (
-                          <div className="flex items-center justify-between group px-2 py-1.5 rounded-lg hover:bg-gray-50 -mx-2 cursor-pointer" onClick={() => openAssignModal(g.subjects[rowIdx])}>
+                          <div className="flex items-center justify-between group px-2.5 py-2 rounded-lg hover:bg-gray-100 -mx-2 cursor-pointer transition-transform duration-200 hover:scale-[1.02] origin-left" onClick={() => openAssignModal(g.subjects[rowIdx])}>
                             <div className="flex items-center gap-1.5 min-w-0">
                             {g.subjects[rowIdx].code && <span className="text-gray-900 font-mono text-[11px] leading-tight mt-0.5 shrink-0 w-[68px] text-center">{g.subjects[rowIdx].code}</span>}
                             <span className="text-gray-900 font-medium text-[13px] leading-tight break-words min-w-0">{g.subjects[rowIdx].name}</span>
@@ -340,18 +340,18 @@ const AdminSubjects = () => {
 
       {assignModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0c1925]/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4 border border-gray-100 max-h-[80vh] flex flex-col">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 border border-gray-100 h-[480px] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-green-50"><GraduationCap size={20} className="text-green-600" /></div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Assigned Teachers</h3>
-                  <p className="text-xs text-gray-400">{selectedSubject?.code && <span className="font-mono mr-1">{selectedSubject.code}</span>}{selectedSubject?.name}</p>
+                  <p className="text-xs text-gray-900">{selectedSubject?.code && <span className="font-mono mr-1">{selectedSubject.code}</span>}{selectedSubject?.name}</p>
                 </div>
               </div>
               <button onClick={() => { setAssignModalOpen(false); setSubjectAssignments([]); setSelectedSubject(null); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto pr-1">
               {assignLoading ? (
                 <div aria-busy="true"><SkeletonList rows={3} avatar /></div>
               ) : subjectAssignments.length === 0 ? (
@@ -365,9 +365,9 @@ const AdminSubjects = () => {
                     <div key={a.id} className="flex items-center justify-between px-4 py-3 rounded-lg border border-gray-100 bg-gray-50">
                       <div className="space-y-0.5">
                         <p className="text-sm font-semibold text-gray-800">{a.teacher?.full_name}</p>
-                        <p className="text-xs text-gray-400">{a.sections?.name}</p>
+                        <p className="text-xs text-gray-900">{a.sections?.name}</p>
                       </div>
-                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: '#f5a623' }}>
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: '#0c1925' }}>
                         {a.sections?.year_level} Year
                       </span>
                     </div>

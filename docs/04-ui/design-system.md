@@ -34,8 +34,9 @@
 |---|---|
 | `linear-gradient(to right, #0c1925, #102132, #142a3f)` | Sidebars, login / not-found panels, and teacher grading table header bands |
 | `#0c1925`, `#142a3f` | Primary buttons, focus rings, headings |
-| `#0a316a` + `border-gold` | Active sidebar item |
-| `#f5a623`, `amber-*` | Archive chips, year pills, "View Archive" |
+| `#0a316a` + `border-gold` | Active sidebar item (`bg-[#24384b]`, `text-amber-300`) |
+| `#0c1925` | Dept/term header badges (`text-amber-300`), assigned-teacher year pill |
+| `#f5a623`, `amber-300` | Archive chips, "View Archive" |
 | `#fbf6eb`, `#fbf8f1` | Cream surfaces (bulk import page, inputs) |
 | `#f0ede6`, `#e5e0d5` | Table/input borders |
 
@@ -71,7 +72,9 @@ There is **no per-role color palette**. Admin, teacher, and superadmin share nav
 | Gold button | `#fbbf24` with dark text (Export, Import) |
 | Destructive button | `bg-red-600` (disabled `bg-red-300`) + typed `Confirm` |
 | Input / select | `bg-gray-100` or `#fbf8f1`, border `#e5e0d5`, `rounded-lg`, focus `ring-2 ring-[#142a3f]` |
+| Table row number | `text-gray-900 text-[10px]`, frozen left column, `bg-white` (or `bg-gray-50` on zebra rows), `bg-green-200` when the row is selected — identical in Attendance, Class Record, Analytics, Grade Summary |
 | Pills | `rounded-full text-[10px] font-bold uppercase`; amber = active/role, green = open/success, gray = closed, red = critical |
+| Settings surfaces | Active term card / active history row: `bg-amber-300 border-amber-200` (badge `bg-amber-100 text-amber-700`); viewing/archive row: `bg-amber-50 border-amber-300 ring-1 ring-amber-300`; inactive row: `bg-gray-50 border-gray-200` |
 | Modal | Fixed overlay `rgba(0,0,0,0.6)` + 2 px blur at `z-index: 100` (`.modal-backdrop`, above frozen table columns), `rounded-xl` surface, Escape/outside close |
 | Dropdown | Custom trigger with icon tile, optional search, `max-h-56` scroll panel, check mark on selection |
 | Empty state | Centered icon at 30% opacity + short title + hint |

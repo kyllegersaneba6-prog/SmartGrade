@@ -86,19 +86,21 @@ Notes:
 
 | Grade | Equivalent | Description |
 |---|---|---|
-| 1.00 | 98–100% | Excellent |
-| 1.25 | 95–97% | Very Good |
-| 1.50 | 92–94% | Very Good |
-| 1.75 | 89–91% | Very Good |
-| 2.00 | 86–88% | Satisfactory |
-| 2.25 | 83–85% | Satisfactory |
-| 2.50 | 80–82% | Satisfactory |
-| 2.75 | 77–79% | Fair |
-| 3.00 | 75–76% | Fair |
-| 5.00 | below 75% | Failed |
+| 1.00 | 98.00–100.00 | Excellent |
+| 1.25 | 95.00–Below 98.00 | Very Good |
+| 1.50 | 92.00–Below 95.00 | Very Good |
+| 1.75 | 89.00–Below 92.00 | Very Good |
+| 2.00 | 86.00–Below 89.00 | Satisfactory |
+| 2.25 | 83.00–Below 86.00 | Satisfactory |
+| 2.50 | 80.00–Below 83.00 | Satisfactory |
+| 2.75 | 77.00–Below 80.00 | Fair |
+| 3.00 | 75.00–Below 77.00 | Fair |
+| 5.00 | Below 75.00 | Failed due to poor performance, absences, or withdrawal without notice |
 
-- `gradeToPoint()` returns `{ gp, desc }`; the Remarks column shows the classification, not "Passed"/"Failed".
+- The on-screen legend shows the numeric scale only. The `DRP` / `P` / `F` special marks exist in `gradeCalculations.js` (`SPECIAL_MARKS`) and `gradeToPoint()` accepts them as strings, but they are hidden from the UI because the app accepts numeric grades only.
+- `gradeToPoint()` returns `{ gp, desc }` (and `mark` for a special mark); the Remarks column shows the classification, not "Passed"/"Failed".
 - Colour coding: grade ≥ 75 green, below red; G.P. ≤ 2.00 green, ≤ 3.00 amber, else red.
+- Table scrolls horizontally; student columns stay frozen. Pagination uses the shared `TEACHER_TABLE_PAGE_SIZE`.
 - PDF export appends a Grade Point Scale table.
 - Full derivation: `docs/formula.md`.
 

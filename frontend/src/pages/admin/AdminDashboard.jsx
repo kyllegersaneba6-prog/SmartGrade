@@ -147,12 +147,12 @@ const AdminDashboard = () => {
           </>
         ) : (
         <>
-        <div className="lg:col-span-4 rounded-2xl p-5 shadow-sm self-start border border-gray-200 card-hover bg-white">
-          <h2 className="text-base font-bold mb-4" style={{ color: '#0c1925' }}>Teacher Overview</h2>
+        <div className="lg:col-span-4 rounded-2xl p-5 shadow-sm border border-gray-200 card-hover bg-white flex flex-col h-[460px]">
+          <h2 className="text-base font-bold mb-4 shrink-0" style={{ color: '#0c1925' }}>Teacher Overview</h2>
           {teachers.length === 0 ? (
             <p className="text-sm text-gray-500 italic py-6 text-center">No teachers registered yet.</p>
           ) : (
-            <div className="max-h-[380px] overflow-y-auto pr-1">
+            <div className="flex-1 overflow-y-auto pr-1">
               <table className="w-full text-xs min-w-[300px]">
                 <thead>
                   <tr className="border-b sticky top-0 bg-gray-50 z-10" style={{ borderColor: '#e5e7eb' }}>
@@ -177,10 +177,10 @@ const AdminDashboard = () => {
               </table>
             </div>
           )}
-          {teachers.length > 0 && <p className="text-xs text-gray-400 mt-3">Total: {teachers.length} teachers</p>}
+          {teachers.length > 0 && <p className="text-xs text-gray-400 mt-3 shrink-0">Total: {teachers.length} teachers</p>}
         </div>
 
-        <div className="lg:col-span-8 rounded-2xl p-5 shadow-sm border border-gray-200 card-hover bg-white">
+        <div className="lg:col-span-8 rounded-2xl p-5 shadow-sm border border-gray-200 card-hover bg-white flex flex-col h-[460px]">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Recent Activities</h2>
             <div className="relative">
@@ -209,7 +209,7 @@ const AdminDashboard = () => {
           {activityLogToDisplay.length === 0 ? (
             <p className="text-sm text-gray-500 italic py-6 text-center">No recent activities found.</p>
           ) : (
-            <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-1">
               {activityLogToDisplay.map((log) => {
                 const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
                 const isOwn = log.user_name === currentUser?.username;

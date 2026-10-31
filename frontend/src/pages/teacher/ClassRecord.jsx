@@ -632,7 +632,7 @@ const ClassRecord = () => {
               onClick={() => setGradingTerm(t)}
               className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 selectedTerm === t
-                  ? 'bg-sidebar text-white shadow-sm'
+                  ? 'bg-[#0c1925] text-white shadow-sm'
                   : 'text-text-muted hover:text-sidebar'
               }`}
             >
@@ -778,7 +778,7 @@ const ClassRecord = () => {
                     );
                   })}
                   <th className="bg-amber-300 border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-base uppercase tracking-wider min-w-[120px] relative z-0">
-                    {selectedTerm === 'PRELIMS' ? 'PRE' : selectedTerm === 'MIDTERMS' ? 'MID' : selectedTerm === 'PRE-FINALS' ? 'P-F' : 'FIN'} GRADE
+                    {selectedTerm === 'PRELIMS' ? 'PRELIM' : selectedTerm === 'MIDTERMS' ? 'MIDTERM' : selectedTerm === 'PRE-FINALS' ? 'PRE-FINAL' : 'FINAL'} GRADE
                   </th>
                 </tr>
 

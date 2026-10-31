@@ -237,7 +237,8 @@
     left: 1rem;
     width: calc(100vw - 2rem);
     max-width: none;
-    z-index: 20;
+    z-index: 80;
+    overflow: visible;
   }
   /* The heading owns the Export dropdown, so it has to sit above the sticky
      toolbar rows that follow it in the DOM (they also use z-index 20). */

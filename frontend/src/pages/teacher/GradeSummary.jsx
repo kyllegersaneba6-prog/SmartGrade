@@ -10,9 +10,10 @@ import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
 import { SkeletonHeaderCard, SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
+import { buildTeacherFilename } from '../../utils/exportFilenames';
 import { TEACHER_TABLE_PAGE_SIZE } from '../../utils/teacherTable';
 import {
-  TERMS, TERM_PCTS, TERM_WEIGHTS, GRADE_RANGES, SPECIAL_MARKS,
+  TERMS, TERM_PCTS, TERM_WEIGHTS, GRADE_RANGES,
   gradeToPoint, getFinalGrade
 } from '../../utils/gradeCalculations';
 
@@ -529,7 +530,7 @@ const GradeSummary = () => {
                   ) : (
                     paginatedRows.map((row, index) => (
                     <tr key={row.student.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50/30 transition-colors ${highlightedRowId === row.student.id ? '!bg-green-200' : ''}`}>
-                       <td className={`sticky-student-number px-1 py-1.5 text-center sticky border-r border-b border-gray-200 z-30 text-gray-400 text-[10px] align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{(page - 1) * TEACHER_TABLE_PAGE_SIZE + index + 1}</td>
+                       <td className={`sticky-student-number px-1 py-1.5 text-center sticky border-r border-b border-gray-200 z-30 text-gray-900 text-[10px] align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{(page - 1) * TEACHER_TABLE_PAGE_SIZE + index + 1}</td>
                       <td className={`sticky-student-id px-2 py-1.5 sticky border-r border-b border-gray-200 z-20 text-xs font-mono font-semibold text-sidebar align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{row.student.student_id}</td>
                       <td className={`sticky-student-name px-2 py-1.5 sticky border-r-2 border-b border-border z-20 text-xs font-medium text-sidebar align-middle ${highlightedRowId === row.student.id ? '!bg-green-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} onClick={e => { e.stopPropagation(); setHighlightedRowId(highlightedRowId === row.student.id ? null : row.student.id); }}>{row.student.student_name}</td>
                       {TERMS.map(term => {

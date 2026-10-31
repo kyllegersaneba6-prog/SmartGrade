@@ -4,7 +4,7 @@ import { API_BASE } from '../utils/api';
 import stiWestNegrosLogo from '../assets/sti-west-negros-logo.png';
 import {
   User, Lock, AlertCircle, ArrowRight,
-  Eye, EyeOff, ShieldCheck, BarChart3, ClipboardCheck, Users, TrendingUp
+  Eye, EyeOff, ShieldCheck, BarChart3, ClipboardCheck, Users, TrendingUp, Sparkles
 } from 'lucide-react';
 
 const features = [
@@ -12,6 +12,7 @@ const features = [
   { icon: <ClipboardCheck className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Attendance Tracking', desc: 'Track student attendance with AM/PM session support' },
   { icon: <Users className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Class & Teacher Management', desc: 'Manage sections, subjects, and teacher assignments' },
   { icon: <TrendingUp className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Performance Reports', desc: 'Generate grade summaries with grade-point conversion' },
+  { icon: <Sparkles className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'AI Student Summary', desc: 'Generate narrative behavioural insights powered by AI' },
 ];
 
 const OFFLINE_MESSAGE = 'You are currently offline. Please check your Wi-Fi or ethernet connection and try again.';
@@ -92,33 +93,33 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex font-sans bg-slate-900">
+    <div className="min-h-screen flex font-sans" style={{ backgroundImage: 'linear-gradient(135deg, #FFFFFF 0%, #F3F6FA 50%, #E2E8F0 100%)' }}>
       {/* Background decorative elements (shared) */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-15%] left-[-8%] w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle,rgba(209,166,56,0.04)_0%,transparent_60%)]" />
-        <div className="absolute bottom-[-15%] right-[-8%] w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.04)_0%,transparent_60%)]" />
+        <div className="absolute top-[-15%] left-[-8%] w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle,rgba(12,25,37,0.04)_0%,transparent_60%)]" />
+        <div className="absolute bottom-[-15%] right-[-8%] w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle,rgba(245,166,35,0.06)_0%,transparent_60%)]" />
       </div>
 
       {/* ===== LEFT COLUMN — Login Form ===== */}
       <div
         className="w-full lg:w-[42%] flex items-center justify-center p-4 sm:p-6 lg:p-10 relative z-10"
-        style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}
+        style={{ backgroundImage: 'linear-gradient(135deg, #FFFFFF 0%, #F3F6FA 50%, #E2E8F0 100%)' }}
       >
         <div
-          className="w-full max-w-[420px] backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 md:p-10 shadow-2xl shadow-[#0c1925]/30"
-          style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}
+          className="w-full max-w-[420px] rounded-2xl p-8 md:p-10 shadow-[0_18px_50px_-10px_rgba(71,85,105,0.45)]"
+          style={{ backgroundImage: 'linear-gradient(135deg, #FFFFFF 0%, #F3F6FA 50%, #E2E8F0 100%)' }}
         >
           {/* Brand logos */}
           <div className="flex items-center justify-center gap-3 mb-8">
             <img src="/src/assets/logo.png" className="w-14 h-14 shrink-0 object-contain" alt="SmartGrade Logo" />
             <div className="min-w-0">
-              <h1 className="text-amber-300 font-extrabold text-2xl tracking-wide">SmartGrade</h1>
-              <p className="text-slate-300 text-sm mt-1">Academic Management System</p>
+              <h1 className="text-[#0c1925] font-extrabold text-2xl tracking-wide">SmartGrade</h1>
+              <p className="text-gray-500 text-sm mt-1">Academic Management System</p>
             </div>
           </div>
 
           {error && (
-            <div className="mb-6 p-3 bg-red-900/30 border border-red-800/50 rounded-xl flex items-center gap-3 text-red-400">
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-600">
               <AlertCircle className="w-5 h-5 shrink-0" />
               <p className="text-sm font-semibold">{error}</p>
             </div>
@@ -126,44 +127,44 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
                 Username
               </label>
               <div className="relative login-field">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <User className="w-5 h-5 text-white login-icon" />
+                  <User className="w-5 h-5 text-gray-900 login-icon" />
                 </div>
                 <input
                   type="text"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="login-input block w-full pl-11 pr-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-sm font-medium text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-gold/50 focus:border-gold/50 transition-all outline-none"
+                  className="login-input block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-[#0c1925] placeholder-gray-400 focus:ring-2 focus:ring-[#0c1925]/20 focus:border-[#0c1925] transition-all outline-none"
                   placeholder="Enter your username"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
                 Password
               </label>
               <div className="relative login-field">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <Lock className="w-5 h-5 text-white login-icon" />
+                  <Lock className="w-5 h-5 text-gray-900 login-icon" />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="login-input block w-full pl-11 pr-11 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-sm font-medium text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-gold/50 focus:border-gold/50 transition-all outline-none"
+                  className="login-input block w-full pl-11 pr-11 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-[#0c1925] placeholder-gray-400 focus:ring-2 focus:ring-[#0c1925]/20 focus:border-[#0c1925] transition-all outline-none"
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors login-icon"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors login-icon"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -175,10 +176,10 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-amber-300 hover:bg-amber-300 text-black font-bold py-3 px-4 rounded-xl transition-all transform active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-gold/25"
+              className="w-full bg-amber-300 hover:bg-amber-400 text-[#0c1925] font-bold py-3 px-4 rounded-xl transition-all transform active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-[#0c1925] border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
                   <span>Sign In</span>
@@ -188,8 +189,8 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-700/50">
-            <div className="flex items-center justify-center gap-2 text-slate-500">
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-center gap-2 text-gray-500">
               <ShieldCheck className="w-4 h-4" />
               <span className="text-xs font-semibold">Institutional Access Only</span>
             </div>
@@ -211,7 +212,7 @@ const Login = () => {
           }}
         />
         {/* Dark overlay so text stays legible over the photo */}
-        <div className="absolute inset-0 bg-slate-900/60" />
+        <div className="absolute inset-0 bg-gray-800/60" />
 
         {/* Content */}
         <div className="relative z-10 w-full max-w-lg p-8">
@@ -222,7 +223,7 @@ const Login = () => {
             <img src="/src/assets/logo.png" className="w-14 h-14 shrink-0 object-contain" alt="SmartGrade Logo" />
             <div>
               <h2 className="text-3xl font-extrabold text-white tracking-wide stroke-text">SmartGrade</h2>
-              <p className="text-white text-sm stroke-text-sm">Academic Management Platform</p>
+              <p className="text-white text-sm stroke-text-sm">Academic Management System</p>
             </div>
           </div>
 
@@ -236,7 +237,7 @@ const Login = () => {
           <div className="space-y-5">
             {features.map((feature, i) => (
               <div key={i} className="flex items-start gap-4 group">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-300/20 to-amber-600/10 border border-black/80 flex items-center justify-center shrink-0 group-hover:border-amber-300/40 group-hover:from-amber-300/30 group-hover:to-amber-600/20 transition-all shadow-md">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-300/30 to-amber-600/20 border border-amber-300/40 flex items-center justify-center shrink-0 shadow-md">
                   {feature.icon}
                 </div>
                 <div>

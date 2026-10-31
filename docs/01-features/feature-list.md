@@ -49,12 +49,12 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Copy components from PRELIMS | Done | Activities are not copied |
 | Automatic grade computation | Done | `frontend/src/utils/gradeCalculations.js` |
 | Grade summary across 4 terms | Done | 20/20/20/40, renormalized when terms are missing |
-| Grade-point conversion + remarks | Done | 1.00–5.00, Excellent → Failed |
+| Grade-point conversion + remarks | Done | 1.00–5.00 with the `grade-point.md` ranges; legend is numeric-only |
 | Behavioral analytics | Done | Performance, submission rate, attendance, trend |
 | AI student summary | Done | Read-only narrative; AI never computes grades |
 | Excel export | Done | Class record, summary, admin/teacher lists. Class Record export stays disabled until component weights total 100% |
 | PDF export | Done | Class record, summary. Class Record export stays disabled until component weights total 100% |
-| Non-numeric marks (DRP / P / F) | Planned | Documented in `formula.md`, not implemented |
+| Non-numeric marks (DRP / P / F) | In Progress | Modeled in `gradeCalculations.js` (`SPECIAL_MARKS` + string support in `gradeToPoint()`); no score-entry UI, hidden from the Grade Summary legend |
 
 ## Operations
 

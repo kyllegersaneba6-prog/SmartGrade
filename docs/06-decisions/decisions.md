@@ -2,6 +2,9 @@
 
 | Decision | Reason | Date |
 |---|---|---|
+| Teacher landing page renamed Dashboard → **Overview** (`/teacher/overview`, `TeacherOverview.jsx`) | "Overview" better describes the assigned-classes summary, and it keeps the route name distinct from the admin/superadmin dashboards | 2026-10-31 |
+| Grade-point special marks modeled but hidden | `SPECIAL_MARKS` (DRP/P/F) exist in `gradeCalculations.js` and `gradeToPoint()` accepts them, but there is no entry UI, so the legend stays numeric-only to match what the app can actually produce | 2026-10-31 |
+| Grade Summary reuses `TEACHER_TABLE_PAGE_SIZE` | One page-size constant keeps Attendance, Class Record, Analytics, and Grade Summary row counts consistent | 2026-10-31 |
 | Supabase for database | Serverless PostgreSQL with easy JS client | 2026-06-02 |
 | No TypeScript | Faster development, smaller team | 2026-06-02 |
 | No state management library | Simple app, React hooks sufficient | 2026-06-02 |
