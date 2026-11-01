@@ -614,16 +614,14 @@ const ClassRecord = () => {
   }
 
   return (
-    <div className="teacher-class-record-page space-y-6">
-      <div className="class-record-horizontal-anchor class-record-heading-anchor">
-        <TeacherPageHeading
-          eyebrow="Grade management"
-          title="Class Record"
-          description="View and manage student grades, assessment components, and class performance."
-          actions={<ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} disabled={!weightsBalanced} disabledReason={weightsBalanced ? '' : 'Export unlocks at 100% total weight.'} exporting={exporting} error={exportError} />}
-        />
-      </div>
-      <div className="class-record-horizontal-anchor flex flex-wrap items-center gap-3">
+    <div className="space-y-6">
+      <TeacherPageHeading
+        eyebrow="Grade management"
+        title="Class Record"
+        description="View and manage student grades, assessment components, and class performance."
+        actions={<ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} disabled={!weightsBalanced} disabledReason={weightsBalanced ? '' : 'Export unlocks at 100% total weight.'} exporting={exporting} error={exportError} />}
+      />
+      <div className="flex flex-wrap items-center gap-3">
         <AssignmentSelector />
         <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
           {TERMS.map((t) => (
@@ -644,20 +642,20 @@ const ClassRecord = () => {
       </div>
 
       {error && (
-        <div className="class-record-horizontal-anchor flex items-center gap-2 px-5 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-bold">
+        <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-bold">
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
           <span>{error}</span>
         </div>
       )}
       {isReadOnly && (
-        <div className="class-record-horizontal-anchor flex items-center gap-2 px-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs font-bold">
+        <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs font-bold">
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10m9.364-9.364a9 9 0 11-12.728 0 9 9 0 0112.728 0z" /></svg>
           <span>This term is closed. Viewing only.</span>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover">
-        <div className="class-record-horizontal-anchor flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-border bg-gray-50">
+      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-x-auto">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-border bg-gray-50">
           <div className="flex items-center gap-3 text-xs text-gray-600">
             <span className="font-bold text-sidebar">Grading components</span>
             <span className={`font-extrabold ${totalWeight === 100 ? 'text-green-700' : 'text-amber-700'}`}>Total weight: {totalWeight}%</span>
@@ -693,19 +691,19 @@ const ClassRecord = () => {
           </div>
         </div>
         {components.length > 0 && totalWeight === 100 && !hasUnreadyActivity && (
-          <div className="class-record-horizontal-anchor flex items-center gap-2 px-5 py-2.5 bg-green-50 border-b border-green-200 text-green-700 text-xs font-bold">
+          <div className="flex items-center gap-2 px-5 py-2.5 bg-green-50 border-b border-green-200 text-green-700 text-xs font-bold">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
             <span>Component weights total 100%. Grade computation is balanced — you can now enter scores.</span>
           </div>
         )}
         {components.length > 0 && totalWeight === 100 && hasUnreadyActivity && (
-          <div className="class-record-horizontal-anchor flex items-center gap-2 px-5 py-2.5 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs font-bold">
+          <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs font-bold">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
             <span>Name each activity and set its max score before entering scores.</span>
           </div>
         )}
         {components.length > 0 && totalWeight !== 100 && (
-          <div className="class-record-horizontal-anchor flex items-center gap-2 px-5 py-2.5 bg-red-50 border-b border-red-200 text-red-700 text-xs font-bold">
+          <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 border-b border-red-200 text-red-700 text-xs font-bold">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
             <span>Component weights must total 100% before you can enter scores. Current: {totalWeight}%</span>
           </div>
@@ -937,7 +935,7 @@ const ClassRecord = () => {
           </div>
         )}
         {components.length > 0 && (
-          <div className="class-record-horizontal-anchor">
+          <div>
             <Pagination
               currentPage={page}
               totalPages={Math.ceil((searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length) / TEACHER_TABLE_PAGE_SIZE)}

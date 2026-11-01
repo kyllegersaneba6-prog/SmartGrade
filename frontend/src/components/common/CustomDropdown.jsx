@@ -85,9 +85,9 @@ const CustomDropdown = ({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
-        className={`w-full flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 text-left text-xs bg-white border rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`w-full flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 text-left text-xs bg-white border rounded-lg shadow-sm transition-all duration-300 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed ${
           error
-            ? 'border-red-500 ring-1 ring-red-500 focus:ring-red-500'
+            ? 'border-red-500 ring-2 ring-red-200 focus:ring-red-200'
             : open
               ? 'border-[#0c1925] ring-2 ring-[#0c1925]/15'
               : 'border-gray-200 hover:border-[#0c1925]/50 focus:ring-[#0c1925]/30'
