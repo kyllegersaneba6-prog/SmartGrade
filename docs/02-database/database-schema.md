@@ -71,7 +71,14 @@ There is **no migration runner and no applied-order manifest**. Apply files manu
 ## Data-Integrity Notes
 
 ### Denormalized department
-`staff_users.department` is plain `TEXT`, not a FK. Renaming a department manually updates `staff_users`; deleting one sets users' department to `NULL` ("Unassigned"). Section/subject/assignment ownership uses `created_by`, not department.
+`staff_users.department` is plain `TEXT`, not a FK. Renaming a department manually updates `staff_users`; deleting one sets users' department to `NULL` ("Unassigned"). Phase 1 checks that this name resolves to a department at login and on every authenticated admin/teacher request. Structural ownership still uses `created_by`, with additional department checks through course/creator relationships; it is not a departmental-ownership schema redesign.
+
+### Phase 1 application checks (no migration)
+
+- Account course → department and assignment teacher/section/subject compatibility are validated by Express before writes.
+- Score/attendance student → assignment section equality is checked for every batch row before the upsert. Separate foreign keys alone do **not** enforce this equality for direct SQL/restores.
+- Session invalidation compares a keyed digest of current account security fields; no session table or `session_version` column was added.
+- These checks do not repair existing inconsistent rows, preserve transfer history, or make multi-request operations transactional; those remain later-phase work.
 
 ### One admin per department
 Enforced in `POST /api/users` and `PATCH /api/users/:id`, and by the partial unique index `idx_staff_users_one_admin_per_department` on `lower(trim(department))` where `system_role = 'admin'`. Direct SQL and restores can no longer create a second admin in the same department (NULL/blank departments are exempt).
@@ -92,8 +99,8 @@ Enforced in `POST /api/users` and `PATCH /api/users/:id`, and by the partial uni
 ### Attendance unique constraint
 The final shape is `UNIQUE(teacher_assignment_id, student_id, date, session, type, term)` — required by the upsert's `onConflict`. `migrate_attendance_final.sql` is the canonical, idempotent migration: it adds the missing columns and drops every older 3-column/5-column unique constraint (whatever its name) before ensuring the 6-column constraint exists. Postgres truncates the long constraint identifier to `attendance_teacher_assignment_id_student_id_date_session_type_t`; the migration protects both the full and truncated spellings so a re-run never drops and recreates it. The old `alter_attendance_unique.sql`, `alter_attendance_session_type.sql`, `alter_attendance_term.sql`, and `migrate_attendance_v2.sql` files are deprecated. Note that NULL `session`/`type`/`term` values make rows distinct in Postgres.
 
-### Legacy `admin_users`
-`routes/auth.js` falls back to an `admin_users` table for legacy superadmin logins, but no SQL file in this repo defines it. Its shape cannot be verified from source.
+### Login account source
+Login uses `staff_users` only. The legacy `USR-` alias resolves a unique UUID prefix in that same table; `admin_users` is not queried.
 
 ### Remaining no DB-level checks
 - Component weights must total exactly 100 before scores are entered — this stays a UI/workflow rule; the DB only caps the total at 100.

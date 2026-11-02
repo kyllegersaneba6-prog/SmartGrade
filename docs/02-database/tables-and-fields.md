@@ -42,6 +42,8 @@ Constraint legend: PK primary key · FK foreign key · UQ unique · NN not null
 
 **Indexes:** `idx_staff_users_username`, `idx_staff_users_role`, unique `idx_staff_users_staff_id`, unique partial `idx_staff_users_one_admin_per_department` on `lower(trim(department))` where `system_role = 'admin'`
 
+**API security:** Admin/teacher accounts require an existing department name; an optional course must belong to it. `system_role`, direct `username`, `id`, and `created_by` edits are not accepted by the account API. Current security fields are used for session-fingerprint verification; there is no added session column.
+
 ## sections
 
 | Column | Type | Notes |
@@ -72,6 +74,8 @@ Constraint legend: PK primary key · FK foreign key · UQ unique · NN not null
 | created_at | TIMESTAMPTZ | |
 
 **Constraints:** `UNIQUE(section_id, student_id)` · **Index:** `idx_students_section(section_id)`
+
+**API relationship rule:** A score/attendance student's `section_id` must equal its assignment's `section_id`. This is an Express batch-validation rule, not a new database constraint. Student lookup scopes repeated institutional IDs to accessible enrollments and prefers the active term.
 
 ## academic_terms
 
@@ -193,4 +197,4 @@ No FKs or indexes. Created at startup by `index.js` via an RPC if it does not ex
 
 | Table | Status |
 |---|---|
-| `admin_users` | Queried by `routes/auth.js` as a superadmin fallback; **no SQL definition in this repo** |
+| `admin_users` | No SQL definition and not queried by current login; all roles and legacy UUID aliases use `staff_users` |

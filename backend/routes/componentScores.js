@@ -2,7 +2,7 @@ const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { sendServerError } = require('../middleware/errors');
-const { canAccessAssignment } = require('../middleware/access');
+const { canAccessAssignment, studentsBelongToAssignments } = require('../middleware/access');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -64,7 +64,7 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
     return res.status(400).json({ message: 'scores array is required' });
   }
   if (scores.length === 0) return res.json([]);
-  if (scores.some(s => !s.activity_id || !s.student_id)) {
+  if (scores.some(s => !s || !s.activity_id || !s.student_id)) {
     return res.status(400).json({ message: 'Every score requires activity_id and student_id' });
   }
 
@@ -118,6 +118,15 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
     }
     if (!assignments || assignments.length !== assignmentIds.length) {
       return res.status(403).json({ message: 'Access denied.' });
+    }
+    for (const assignmentId of assignmentIds) {
+      if (!(await canAccessAssignment(assignmentId, req.user))) return res.status(403).json({ message: 'Access denied.' });
+    }
+    const componentAssignment = new Map(components.map(c => [c.id, c.teacher_assignment_id]));
+    const pairs = scores.map(s => ({ student_id: s.student_id,
+      assignment_id: componentAssignment.get(activityById.get(s.activity_id).component_id) }));
+    if (!(await studentsBelongToAssignments(pairs))) {
+      return res.status(403).json({ message: 'Every student must belong to the assignment section.' });
     }
 
     const { data: activeTerm, error: termError } = await supabase

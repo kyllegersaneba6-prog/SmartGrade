@@ -8,6 +8,7 @@ Public. Two-column split:
 - **Right (hero, `lg+` only):** blurred `STI_Background.png` with brand lockup ("Academic Management System") and the five feature blocks (Grade Computation & Analytics, Attendance Tracking, Class & Teacher Management, Performance Reports, AI Student Summary) placed directly on the photo (no card/panel behind them); feature icons carry a thin black outline (`.stroke-icon`), "© 2026 SmartGrade Educational Systems."
 - Network failures show "Cannot connect to the server. Please check your connection and try again."
 - Redirect: teacher → `/teacher/overview`, admin → `/admin`, superadmin → `/superadmin`.
+- After Phase 1 deployment, old tokens require login again. Password/security-field changes or account deletion trigger the existing 401 redirect on the next API call; missing department is a 403, not a forced logout.
 
 ## Not Found (`*`)
 
@@ -37,14 +38,15 @@ Standalone page (no app shell) rendered for any unmatched URL, including unknown
 | `/admin` | `AdminDashboard` | Welcome header, Total Teachers / Courses / Activity metrics, Teacher Overview with subject counts, Recent Activities feed |
 | `/admin/teachers` | `AdminTeachers` | Teacher table (ID, Name, Username, Assigned Course, Actions); Add Teacher, row menu (Assign, View Assigned, Edit, Delete); assignment modals with Active/Historical grouping |
 | `/admin/teachers/create` | `CreateAdminTeacher` | Full-screen create-teacher form with auto-generated username preview |
-| `/admin/sections` | `AdminSections` | Course + year filters; sections panel (**+ Add** and **Transfer student** modal with student ID lookup, read-only student info summary, and target year/section selection), delete, labels shown as `BSCS-1A`; roster panel (Add Student, Add Multiple, Import, pagination); Excel import preview |
-| `/admin/subjects` | `AdminSubjects` | Course + semester filters; four year-level columns; add multiple subjects; assigned-subjects modal; delete |
+| `/admin/sections` | `AdminSections` | Course + year filters; sections panel (**+ Add** with course-selection validation tooltip and **Transfer student** modal with student ID lookup, read-only student info summary, and target year/section selection), delete, labels shown as `BSCS-1A`; roster panel (Add Student, Add Multiple, Import, pagination); Excel import preview |
+| `/admin/subjects` | `AdminSubjects` | Course + semester filters; four year-level columns; Add Subject with course-selection validation tooltip and 1-second course dropdown red-border alert; add multiple subjects; assigned-subjects modal; delete |
 | `/admin/bulk-students` | `BulkStudentImport` | Excel-template builder (`firstname`, `lastname`, `middle initial`, `student id`, `gender`); downloads blank or filled `.xlsx`; shared admin shell shows its route title |
 | `/admin/settings` | `AdminSettings` | Active term card, term history, archive entry/exit with confirmation modal |
 
 Admin pages use the shared white page heading and bordered card/table styling from the Teacher and Superadmin interfaces. Existing page actions, filters, forms, archive controls, and data behavior are unchanged.
 
 Notes:
+- Teacher/course/section/subject choices are scoped by the backend. A direct request cannot grant foreign access; account role/username/creator edits are not supported. Student transfers require owned, same-department source and destination sections in the active term.
 - `/admin/bulk-students` is not linked from the sidebar.
 - `CreateAdminTeacher` is also used as a modal from `/admin/teachers`; when opened as a direct route, Cancel and Done navigate back to `/admin/teachers`.
 

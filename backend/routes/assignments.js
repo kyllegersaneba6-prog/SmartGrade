@@ -2,6 +2,7 @@ const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { sendServerError } = require('../middleware/errors');
+const { canAccessAssignment, canAccessSection, canManageSubject, canManageTeacher, filterAccessible, getRow } = require('../middleware/access');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -24,8 +25,8 @@ router.get('/', async (req, res) => {
       .select('*, sections(name, year_level, courses(abbreviation)), subjects(name, code), teacher:teacher_id(full_name)');
 
     if (teacher_id && role === 'admin') query = query.eq('teacher_id', teacher_id);
-    else if (role === 'teacher') query = query.eq('teacher_id', id);
-    else if (role === 'admin') query = query.eq('created_by', id);
+    if (role === 'teacher') query = query.eq('teacher_id', id);
+    if (role === 'admin') query = query.eq('created_by', id);
 
     if (subject_id && role === 'admin') query = query.eq('subject_id', subject_id);
     if (school_year) query = query.eq('school_year', school_year);
@@ -33,7 +34,7 @@ router.get('/', async (req, res) => {
 
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) return sendServerError(res, error);
-    res.json(data);
+    res.json(await filterAccessible(data, canAccessAssignment, req.user));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -50,6 +51,20 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
     return res.status(400).json({ message: 'School year and semester are required' });
   }
   try {
+    if (!semesters.includes(semester)) return res.status(400).json({ message: 'Invalid semester.' });
+    if (!(await canManageTeacher(teacher_id, req.user)) || !(await canAccessSection(section_id, req.user)) ||
+        !(await canManageSubject(subject_id, req.user))) {
+      return res.status(403).json({ message: 'Teacher, section, and subject must belong to you and your department.' });
+    }
+    const section = await getRow('sections', section_id);
+    const subject = await getRow('subjects', subject_id);
+    const teacher = await getRow('staff_users', teacher_id, 'course_id');
+    if (!section || !subject || !teacher) return res.status(403).json({ message: 'Access denied.' });
+    if (section.school_year !== school_year || section.semester !== semester || (subject.semester && subject.semester !== semester) ||
+        subject.year_level !== section.year_level || (subject.course_id && subject.course_id !== section.course_id) ||
+        (teacher.course_id && teacher.course_id !== section.course_id)) {
+      return res.status(400).json({ message: 'Teacher course, subject, section, year level, and term must be compatible.' });
+    }
     const { data: activeTerm } = await supabase
       .from('academic_terms')
       .select('*')
@@ -88,6 +103,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
 // DELETE /api/assignments/:id
 router.delete('/:id', authorizeRole('admin'), async (req, res) => {
   try {
+    if (!(await canAccessAssignment(req.params.id, req.user))) return res.status(403).json({ message: 'Access denied.' });
     const { data: assignment } = await supabase.from('teacher_assignments').select('created_by, school_year, semester').eq('id', req.params.id).single();
     if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
     if (assignment.created_by !== req.user.id) return res.status(403).json({ message: 'You can only delete your own assignments.' });

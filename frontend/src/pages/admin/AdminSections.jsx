@@ -99,6 +99,8 @@ const AdminSections = () => {
   const [transferError, setTransferError] = useState('');
   const [transferSuccess, setTransferSuccess] = useState('');
   const [emptySectionBorderError, setEmptySectionBorderError] = useState(false);
+  const [emptySectionMissing, setEmptySectionMissing] = useState(false);
+  const emptySectionErrorTimeoutRef = useRef(null);
 
   const handleSearchStudentForTransfer = async (idVal) => {
     const formatted = formatStudentId(idVal);
@@ -667,32 +669,48 @@ const AdminSections = () => {
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (isArchiveMode) return;
-                  if (!selectedSection || students.length === 0) {
-                    setEmptySectionBorderError(true);
-                    setTimeout(() => setEmptySectionBorderError(false), 1000);
-                    return;
-                  }
-                  setEmptySectionBorderError(false);
-                  setShowTransferModal(true);
-                  setTransferStudentId('');
-                  setTransferFoundStudent(null);
-                  setTransferSourceSection(null);
-                  setTransferTargetYear('1st');
-                  setTransferTargetSectionId('');
-                  setTransferTargetSections([]);
-                  setTransferError('');
-                  setTransferSuccess('');
-                }}
-                disabled={isArchiveMode}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-[#0c1925] rounded-lg shadow-sm hover:scale-105 transition-transform cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: '#fbbf24' }}
-              >
-                <ArrowRightLeft size={13} /> Transfer student
-              </button>
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isArchiveMode) return;
+                    if (!selectedSection || students.length === 0) {
+                      setEmptySectionMissing(true);
+                      setEmptySectionBorderError(false);
+                      setTimeout(() => {
+                        setEmptySectionBorderError(true);
+                        if (emptySectionErrorTimeoutRef.current) clearTimeout(emptySectionErrorTimeoutRef.current);
+                        emptySectionErrorTimeoutRef.current = setTimeout(() => {
+                          setEmptySectionBorderError(false);
+                          setEmptySectionMissing(false);
+                        }, 1000);
+                      }, 0);
+                      return;
+                    }
+                    setEmptySectionMissing(false);
+                    setEmptySectionBorderError(false);
+                    setShowTransferModal(true);
+                    setTransferStudentId('');
+                    setTransferFoundStudent(null);
+                    setTransferSourceSection(null);
+                    setTransferTargetYear('1st');
+                    setTransferTargetSectionId('');
+                    setTransferTargetSections([]);
+                    setTransferError('');
+                    setTransferSuccess('');
+                  }}
+                  disabled={isArchiveMode}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-[#0c1925] rounded-lg shadow-sm hover:scale-105 transition-transform cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: '#fbbf24' }}
+                >
+                  <ArrowRightLeft size={13} /> Transfer student
+                </button>
+                {!isArchiveMode && emptySectionMissing && (!selectedSection || students.length === 0) && (
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    Please select a section with students first
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

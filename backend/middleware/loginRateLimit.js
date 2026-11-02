@@ -80,6 +80,10 @@ module.exports = {
   checkUsernameLimit: (username) => status(usernameKey(username), USERNAME_MAX),
   recordUsernameFailure: (username) => record(usernameKey(username)),
   clearUsernameFailures: (username) => { attempts.delete(usernameKey(username)); },
+  // All login aliases for one database account share this separate bucket.
+  checkAccountLimit: (id) => status(`account:${id}`, USERNAME_MAX),
+  recordAccountFailure: (id) => record(`account:${id}`),
+  clearAccountFailures: (id) => { attempts.delete(`account:${id}`); },
   // One audit row per scope+key per minute, so a sustained attack cannot flood
   // activity_log while the block is active.
   shouldLogRateLimitEvent: (scopeKey) => {

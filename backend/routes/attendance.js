@@ -2,7 +2,7 @@ const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { sendServerError } = require('../middleware/errors');
-const { canAccessAssignment } = require('../middleware/access');
+const { canAccessAssignment, studentsBelongToAssignments } = require('../middleware/access');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -10,16 +10,6 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 router.use(authenticateToken);
-
-async function verifyAssignmentOwnership(assignmentId, userId) {
-  const { data } = await supabase
-    .from('teacher_assignments')
-    .select('id')
-    .eq('id', assignmentId)
-    .eq('teacher_id', userId)
-    .maybeSingle();
-  return !!data;
-}
 
 async function checkTermClosedByAssignment(assignmentId) {
   const { data: assign } = await supabase
@@ -94,6 +84,7 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
     if (!teacher_assignment_id || !date || !records || !Array.isArray(records)) {
       return res.status(400).json({ message: 'teacher_assignment_id, date, and records[] are required' });
     }
+    if (records.some(r => !r || !r.student_id)) return res.status(400).json({ message: 'Every record requires student_id.' });
 
     const invalidScore = records.some((r) => {
       if (r.score === null || r.score === undefined || r.score === '') return false;
@@ -108,8 +99,12 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
 
-    const owned = await verifyAssignmentOwnership(teacher_assignment_id, req.user.id);
+    const owned = await canAccessAssignment(teacher_assignment_id, req.user);
     if (!owned) return res.status(403).json({ message: 'Access denied.' });
+    if (!records.length) return res.json([]);
+    if (!(await studentsBelongToAssignments(records.map(r => ({ student_id: r.student_id, assignment_id: teacher_assignment_id }))))) {
+      return res.status(403).json({ message: 'Every student must belong to the assignment section.' });
+    }
 
     const rows = records.map((r) => ({
       teacher_assignment_id,
@@ -185,7 +180,7 @@ router.delete('/date', authorizeRole('teacher'), async (req, res) => {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
 
-    const owned = await verifyAssignmentOwnership(teacher_assignment_id, req.user.id);
+    const owned = await canAccessAssignment(teacher_assignment_id, req.user);
     if (!owned) return res.status(403).json({ message: 'Access denied.' });
 
     let query = supabase

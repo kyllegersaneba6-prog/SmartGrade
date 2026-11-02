@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { VALID_ROLES, sessionFingerprint, accountDepartment } = require('../services/session');
 const { createClient } = require('@supabase/supabase-js');
 const {
   checkIpLimit,
@@ -8,6 +9,9 @@ const {
   checkUsernameLimit,
   recordUsernameFailure,
   clearUsernameFailures,
+  checkAccountLimit,
+  recordAccountFailure,
+  clearAccountFailures,
   shouldLogRateLimitEvent,
 } = require('../middleware/loginRateLimit');
 const router = express.Router();
@@ -18,6 +22,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const OFFLINE_MESSAGE = 'You are currently offline. Please check your Wi-Fi or ethernet connection and try again.';
 const RATE_LIMIT_MESSAGE = 'Too many login attempts. Please try again later.';
+
+const uuidPrefixBounds = (prefix) => {
+  const shape = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';
+  if (prefix.length < 4 || prefix.length > shape.length || [...prefix].some((char, index) =>
+    shape[index] === '-' ? char !== '-' : !/[0-9a-f]/.test(char))) return null;
+  const pad = (digit) => [...shape].map((char, index) => prefix[index] ?? (char === '-' ? '-' : digit)).join('');
+  return { lower: pad('0'), upper: pad('f') };
+};
 
 // Supabase is remote, so a dropped internet connection surfaces as a fetch /
 // network error while the local API server itself stays reachable. Detect it so
@@ -119,6 +131,10 @@ router.post('/login', async (req, res) => {
   // window; blocked requests do not extend it.
   recordIpAttempt(clientIp);
 
+  if (!username || typeof password !== 'string' || !password) {
+    return res.status(400).json({ message: 'Username and password are required.' });
+  }
+
   try {
     let user;
     let role;
@@ -129,11 +145,12 @@ router.post('/login', async (req, res) => {
       .from('staff_users')
       .select('*, courses(name)')
       .eq('username', username)
-      .single();
+      .maybeSingle();
 
     if (isOfflineError(staffError)) {
       return res.status(503).json({ message: OFFLINE_MESSAGE });
     }
+    if (staffError) return res.status(503).json({ message: 'Unable to verify your account. Please try again.' });
 
     if (staffUser) {
       user = staffUser;
@@ -142,18 +159,14 @@ router.post('/login', async (req, res) => {
     } else if (username.toUpperCase().startsWith('USR-')) {
       // 2. Fallback: match staff_users by ID prefix
       const shortId = username.substring(4).toLowerCase();
-      const { data: staffUsers, error: staffListError } = await supabase
-        .from('staff_users')
-        .select('*');
-
-      if (isOfflineError(staffListError)) {
-        return res.status(503).json({ message: OFFLINE_MESSAGE });
-      }
-
-      if (staffUsers && staffUsers.length > 0) {
-        const matched = staffUsers.find(u =>
-          shortId.length > 0 && u.id.substring(0, shortId.length).toLowerCase() === shortId
-        );
+      const bounds = uuidPrefixBounds(shortId);
+      if (bounds) {
+        // UUID range filtering checks ambiguity in the database, not a capped
+        // full-table response. Fetch at most two rows, including the legacy alias.
+        const { data: matches, error: staffListError } = await supabase.from('staff_users')
+          .select('*, courses(name)').gte('id', bounds.lower).lte('id', bounds.upper).limit(2);
+        if (staffListError) return res.status(503).json({ message: 'Unable to verify your account. Please try again.' });
+        const matched = matches?.length === 1 ? matches[0] : null;
         if (matched) {
           user = matched;
           role = matched.system_role;
@@ -170,17 +183,37 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid username ' });
     }
 
+    const accountLimit = checkAccountLimit(user.id);
+    if (accountLimit.limited) {
+      return sendRateLimited(res, 'account', user.username || `USR-${user.id.substring(0, 4).toUpperCase()}`, accountLimit.retryAfterSeconds);
+    }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       recordUsernameFailure(username);
-      await logFailedLogin(username, user.department || null);
+      recordAccountFailure(user.id);
+      await logFailedLogin(user.username || dbUsername, user.department || null);
       return res.status(401).json({ message: 'Invalid password' });
     }
 
     clearUsernameFailures(username);
+    clearAccountFailures(user.id);
+
+    if (!VALID_ROLES.includes(role)) {
+      return res.status(403).json({ message: 'Invalid account role. Contact your administrator.' });
+    }
+    let department;
+    try {
+      department = await accountDepartment(supabase, user);
+    } catch (error) {
+      console.error('Login department verification failed:', error.message);
+      return res.status(503).json({ message: 'Unable to verify your account. Please try again.' });
+    }
+    if (role !== 'superadmin' && !department) {
+      return res.status(403).json({ message: 'A valid department is required. Contact your administrator.' });
+    }
 
     const token = jwt.sign(
-      { id: user.id, username: dbUsername, role, department: user.department },
+      { id: user.id, username: dbUsername, role, department: user.department, session: sessionFingerprint(user) },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );

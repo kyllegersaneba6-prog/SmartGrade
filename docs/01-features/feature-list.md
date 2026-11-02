@@ -6,8 +6,11 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 
 | Feature | Status | Notes |
 |---|---|---|
-| Login / JWT authentication | Done | 1-day tokens; bcrypt |
-| Role-based access control (Superadmin/Admin/Teacher) | Done | `authorizeRole`, shared read scoping (`middleware/access.js`), inline write checks |
+| Login / JWT authentication | Done | 1-day tokens; bcrypt; fresh account/security fingerprint on every authenticated request |
+| Role-based access control (Superadmin/Admin/Teacher) | Done | Shared read/write ownership and department checks; account roles/ownership cannot be patched |
+| Stale-session rejection | Done | Deletes and changed security fields invalidate prior fingerprints; invalid department fails closed; DB verification outages return 503 |
+| Bulk student relationship checks | Done | Entire score/attendance batch rejected before writing if any student is outside its assignment section |
+| Login alias lockout | Done | Unique UUID-prefix aliases only; aliases share the account's failed-login bucket |
 | Account provisioning with 9-digit staff ID | Done | `staff_id` validated `^[0-9]{9}$`, unique |
 | Auto-generated username | Done | `lastname.<digits 3–7 of staff ID>@sg` |
 | One admin per department | Done | Enforced in `POST`/`PATCH /api/users` and by unique partial index `idx_staff_users_one_admin_per_department` |
@@ -66,6 +69,8 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Backup validate / preview | Done | Checksums, per-table counts, conflict preview |
 | Backup restore (merge / replace / full) | Done | Typed `CONFIRM` / `FULL RESTORE`; restore lock |
 | Configurable API base URL | Done | `VITE_API_BASE_URL` (default `http://<hostname>:5000`); pages pass relative `/api/...` paths |
+| Environment-file tracking cleanup | Done | Local file preserved, JWT secret rotated; sanitized `backend/.env.example` added |
+| Previously committed provider credential rotation | In Progress | Supabase/AI key rotation and deployed-secret updates require operator access |
 | 404 page + catch-all route | Done | `NotFound` page for any unknown URL; links to the role dashboard or login |
 | Student Excel template builder | In Progress | `/admin/bulk-students` exists but is not linked from Manage Sections; the shared Admin header now labels the direct route "Bulk Student Import" |
 | Broadcast notification | Not Wired | Forms + success banner only; no API call |

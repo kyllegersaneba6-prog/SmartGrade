@@ -17,12 +17,12 @@ npm install
 
 # Frontend
 cd ../frontend
-npm install
+npm ci --allow-remote=root
 ```
 
 ## Configuration
 
-Only the backend reads environment variables. Create `backend/.env`:
+Copy `backend/.env.example` to `backend/.env` and set real values. Never commit this file. The frontend uses a separate, optional build-time variable below.
 
 ```env
 PORT=5000
@@ -30,6 +30,18 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 JWT_SECRET=your-secret-key
 ```
+
+- Generate `JWT_SECRET` using at least 32 random bytes; keep the same value across backend instances. Changing it logs out everyone after the processes restart.
+- `xlsx` is pinned to SheetJS's official `0.20.3` CDN tarball (the npm-registry release is outdated). `--allow-remote=root` permits only direct URL dependencies in `package.json` on npm versions with remote-package restrictions; the lockfile records integrity.
+- For deployment, set `CORS_ORIGINS` to comma-separated frontend origins. Set `TRUST_PROXY` only when a trusted reverse proxy is present.
+
+### Credential rotation after Phase 1
+
+The local JWT secret was rotated and the local environment file preserved. Restart the backend and log in again. Removing a tracked file does **not** remove old Git history.
+
+1. Rotate any previously committed Supabase service-role/secret key and AI gateway key in their provider dashboards; revoke the old credentials.
+2. Update the ignored local environment and deployment secret stores, then restart every backend instance. Rotate the deployed `JWT_SECRET` too.
+3. Verify login and AI access with new keys, and confirm revoked keys no longer work. No provider-side rotation or history rewrite was performed by Phase 1.
 
 Optional AI settings (required only for the AI summary feature):
 
@@ -92,10 +104,12 @@ npm run dev
 | `relation "public.departments" does not exist` | Run `schema.sql` first |
 | `add_db_constraints.sql` aborts with "Multiple active terms", "Multiple admins", "weight totals exceed 100", or "score(s) outside" | Fix the rows named in the error, then re-run. The migration never rewrites data |
 | Port already in use | Change `PORT` in `backend/.env` |
-| CORS errors | CORS is wide open (`app.use(cors())`); the usual cause is calling the wrong host/port |
-| 403 on every request | Expired/invalid JWT now returns **401**, and `utils/api.js` clears the session and redirects to `/login`. Log in again; tokens last 1 day |
+| CORS errors | Check the frontend origin against `CORS_ORIGINS`; defaults allow local/LAN development origins, not every origin |
+| 401 after upgrading or editing an account | Log in again. Legacy tokens, deleted accounts, and changed password/username/role/department/course/creator fingerprints are rejected |
+| 403 "A valid department is required" | Repair the admin/teacher's department to match an existing `departments.name`; requests fail closed instead of showing all records |
+| 503 "Unable to verify your account" | Restore database connectivity/permissions and retry; this is not a bad-password response and does not clear an existing frontend session |
 | 403 "Insufficient permissions" | Wrong role for the endpoint (e.g. admin calling a teacher-only grading write). The session stays active |
 | `permission denied for table ...` when using the Supabase anon/publishable key | Expected: RLS is enabled with no policies. All data access must go through the Express backend (service-role key), not directly from the browser |
 | AI summary always fails | `OMNIROUTE_API_KEY` unset or gateway down — check `GET /api/ai/status` |
 | Frontend requests fail after deploying | Set `VITE_API_BASE_URL` in `frontend/.env` to the reachable backend origin, then rebuild. Without it, the frontend targets `http://<current-hostname>:5000` |
-| Login works, all else 403 | Admin/teacher deleted or restored from backup while a stale token is still in `localStorage` |
+| `EALLOWREMOTE` during frontend install | Use `npm ci --allow-remote=root` for the approved official SheetJS tarball; do not replace it with registry `xlsx@0.18.5` |

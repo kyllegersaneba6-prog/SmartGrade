@@ -21,16 +21,32 @@ Notes:
 - Superadmin gets **403** on section, subject, and assignment writes (admin-only routes).
 - Admin/superadmin get **403** on every grading, score, and attendance write (teacher-only routes).
 - `GET /api/users` is scoped per role, not role-gated.
+- Admin reads/writes require both existing `created_by` ownership and matching department relationships. Teachers see only their assignments, sections, and subjects; course lists are department-scoped. Query filters can narrow scope, never replace it.
 - **401 vs 403:** an expired/invalid token returns **401**, which makes `frontend/src/utils/api.js` clear the session and redirect to `/login`. A valid session that lacks permission (wrong role, closed term, another teacher's data) returns **403**, which keeps the user signed in and lets the page show the error. A 403 must never end the session.
+
+### Session checks
+
+- Every authenticated request verifies an HS256 JWT with expiry, reloads `staff_users`, and compares a keyed security fingerprint. Legacy tokens without the fingerprint require login again.
+- Fingerprint inputs: ID, bcrypt hash, role, username, department, course, creator. Only the HMAC digest—not the password/hash—is in the token.
+- Deleted/changed accounts return 401; missing/nonexistent admin/teacher department returns 403; account/department query failures return 503.
+- `USR-` UUID-prefix login requires at least four canonical UUID characters and exactly one database match. All aliases share one account lockout bucket as well as existing username/IP limits.
 
 ## Account Provisioning
 
 - Staff ID is exactly **9 digits**. The UI masks it as `00000-0000`; the server strips non-digits.
 - Username is never typed by the user. It is derived as `lastname.<digits 3–7>@sg`, e.g. `"Santos"` + `123451234` → `santos.4512@sg`.
 - Username is re-derived when last name or staff ID changes on `PATCH /api/users/:id`.
-- Admins inherit the creator's department; superadmin picks the department for each admin.
+- Teachers inherit their admin's department; superadmin picks an existing department for each admin. A supplied course must belong to that department.
+- Editable account fields: names, staff ID, course, password; only superadmin may additionally change an admin's department. Role, direct username, ID, and creator changes are rejected. Usernames remain server-derived.
 - Default password in the creation forms is `smartgrade123`.
 - Deleting a user first nulls `created_by` references in `staff_users`, `sections`, `subjects`, and `teacher_assignments`.
+
+### Structural and roster relationships
+
+- New sections require a course in the admin's department. Subject courses, when supplied, must also belong there; course-less department-wide subjects remain supported.
+- New assignments require an owned teacher, section, and subject in the same department, compatible courses/year level/semester, and a section matching the requested active academic term. Legacy subjects with NULL semester apply across semesters.
+- Student lookup returns only accessible enrollments, preferring the current academic term; ambiguous accessible matches return 409. Foreign matches are hidden as 404.
+- Student add/import/delete require section access. Transfers require access to **both** sections and both must be in the active term, even without archive headers. Historical-enrollment preservation remains a later-phase task.
 
 ## Academic Terms
 
@@ -56,6 +72,7 @@ Notes:
 ## Attendance
 
 - Columns are created per **date + session (AM/PM) + type (Lecture/Laboratory)**.
+- Before a batch write, every student UUID must belong to the assignment's section; one invalid/foreign student rejects the whole batch without an upsert.
 - Each cell is scored `0` Absent, `1` Late, `2` Present.
 - Per-term total is the sum of marks; column max is `2 × number of columns`.
 - Autosave: **800 ms** debounce, flushes through `POST /api/attendance/bulk`.
@@ -72,7 +89,7 @@ Notes:
 - Each component holds sub-activities with a `max_score` (default 100).
 - Formula: `equiv = (total / max_total) × 50 + 50`; `weighted = equiv × weight / 100`; term grade = sum of weighted values.
 - Components can be reordered (drag-drop → `POST /api/grading-components/reorder`) and copied from PRELIMS (activities are **not** copied; target term must be empty).
-- Score saves are debounced **800 ms** and bulk-posted to `POST /api/component-scores/bulk`. The backend resolves every activity → component → assignment, rejects the whole batch if any row is out of scope or the term is closed, and validates every score against the activity's `max_score`.
+- Score saves are debounced **800 ms** and bulk-posted to `POST /api/component-scores/bulk`. The backend resolves every activity → component → assignment → section/student relationship, rejects the whole batch if any row is out of scope or the term is closed, and validates every score against the activity's `max_score`.
 - Typing a value above `max_score` clamps it and shows an amber border + dot for 3 seconds.
 - Keyboard navigation: arrows, Enter, Tab/Shift+Tab across score cells.
 - Closed terms: inputs disabled, add/delete hidden, amber banner.

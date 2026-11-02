@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Trash2, X, BookOpen, GraduationCap, CalendarDays } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
@@ -31,6 +31,9 @@ const AdminSubjects = () => {
   const [subjectToDelete, setSubjectToDelete] = useState(null);
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [courseDropdownError, setCourseDropdownError] = useState(false);
+  const [courseMissing, setCourseMissing] = useState(false);
+  const courseErrorTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (currentTerm?.semester) setSemesterFilter(currentTerm.semester);
@@ -80,7 +83,18 @@ const AdminSubjects = () => {
   const addSubjects = async () => {
     if (adding) return;
     if (!selectedCourseId) {
-      setError('Please select a specific course before adding a subject.');
+      setError('');
+      setCodeError('');
+      setCourseMissing(true);
+      setCourseDropdownError(false);
+      setTimeout(() => {
+        setCourseDropdownError(true);
+        if (courseErrorTimeoutRef.current) clearTimeout(courseErrorTimeoutRef.current);
+        courseErrorTimeoutRef.current = setTimeout(() => {
+          setCourseDropdownError(false);
+          setCourseMissing(false);
+        }, 1000);
+      }, 0);
       return;
     }
     const rows = subjectRows.filter((r) => r.name.trim());
@@ -152,7 +166,7 @@ const AdminSubjects = () => {
           <div className="w-[400px] max-w-full">
             <CustomDropdown
               value={selectedCourseId}
-              onChange={(v) => { setSelectedCourseId(v); if (v) setError(''); }}
+              onChange={(v) => { setSelectedCourseId(v); setCourseDropdownError(false); setCourseMissing(false); if (v) setError(''); }}
               options={[
                 { value: '', label: 'All Courses', sublabel: 'Show every course' },
                 ...courses.map((c) => ({
@@ -166,6 +180,7 @@ const AdminSubjects = () => {
               searchable={courses.length > 5}
               searchPlaceholder="Search courses…"
               emptyMessage="No courses found."
+              error={courseDropdownError}
             />
           </div>
         )}
@@ -183,22 +198,29 @@ const AdminSubjects = () => {
             emptyMessage="No semesters found."
           />
         </div>
-        <div className="relative group inline-block sm:shrink-0">
-          <button
-            onClick={() => { if (isArchiveMode) return; if (!selectedCourseId) { setError('Please select a specific course before adding a subject.'); return; } setSelectedYear('1st'); setShowAdd(true); setSubjectRows([{ code: '', name: '' }]); setError(''); setCodeError(''); }}
-            disabled={isArchiveMode}
-            className={`w-full sm:w-auto h-full px-4 py-2 text-xs font-bold text-white rounded-lg shadow-sm flex items-center justify-center transition-transform ${
-              isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-            }`}
-            style={{ background: '#0c1925' }}
-          >
-            Add Subject
-          </button>
-          {isArchiveMode && (
-            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Cannot modify while viewing archives
-            </div>
-          )}
+        <div className="relative flex flex-col items-start sm:items-end sm:shrink-0">
+          <div className="relative group inline-block">
+            <button
+              onClick={() => { if (isArchiveMode) return; if (!selectedCourseId) { setError(''); setCodeError(''); setCourseMissing(true); setCourseDropdownError(false); setTimeout(() => { setCourseDropdownError(true); if (courseErrorTimeoutRef.current) clearTimeout(courseErrorTimeoutRef.current); courseErrorTimeoutRef.current = setTimeout(() => { setCourseDropdownError(false); setCourseMissing(false); }, 1000); }, 0); return; } setCourseMissing(false); setCourseDropdownError(false); setSelectedYear('1st'); setShowAdd(true); setSubjectRows([{ code: '', name: '' }]); setError(''); setCodeError(''); }}
+              disabled={isArchiveMode}
+              className={`w-full sm:w-auto h-full px-4 py-2 text-xs font-bold text-white rounded-lg shadow-sm flex items-center justify-center transition-transform ${
+                isArchiveMode ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+              }`}
+              style={{ background: '#0c1925' }}
+            >
+              Add Subject
+            </button>
+            {isArchiveMode && (
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                Cannot modify while viewing archives
+              </div>
+            )}
+            {!isArchiveMode && courseMissing && !selectedCourseId && (
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                Please select a course first
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

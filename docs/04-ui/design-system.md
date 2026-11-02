@@ -83,6 +83,7 @@ There is **no per-role color palette**. Admin, teacher, and superadmin share nav
 | Read-only notice | Amber banner "This term is closed. Viewing only." |
 | Archive banner | `bg-amber-600/90 text-white`, Archive icon, "Exit Archive" |
 | Clamp warning | Amber border + dot for 3 s when a score/weight is clamped |
+| Course selection required tooltip | Dark tooltip (`bg-gray-800 text-white text-[10px] rounded`) shown above Add button (`Please select a course first`) for 1 s along with a 1-second red ring on the courses dropdown on click in Sections and Subjects |
 
 ## Grade Color Coding
 

@@ -4,6 +4,8 @@ const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { sendServerError } = require('../middleware/errors');
+const { accountDepartment } = require('../services/session');
+const { canAccessCourse } = require('../middleware/access');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -35,6 +37,24 @@ const omitPassword = (row) => {
 // All routes require authentication
 router.use(authenticateToken);
 
+// Reject malformed account payloads before string handling or password hashing.
+router.use((req, res, next) => {
+  if (!['POST', 'PATCH'].includes(req.method)) return next();
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return res.status(400).json({ message: 'An account object is required.' });
+  for (const field of ['first_name', 'last_name', 'full_name', 'department', 'password', 'system_role']) {
+    if (body[field] !== undefined && (typeof body[field] !== 'string' || !body[field].trim())) {
+      return res.status(400).json({ message: `${field} must be a nonempty string.` });
+    }
+  }
+  for (const field of ['staff_id', 'course_id']) {
+    if (body[field] !== undefined && body[field] !== null && typeof body[field] !== 'string') {
+      return res.status(400).json({ message: `${field} must be a string or null.` });
+    }
+  }
+  return next();
+});
+
 // GET /api/users — list users based on role
 router.get('/', async (req, res) => {
   try {
@@ -49,13 +69,8 @@ router.get('/', async (req, res) => {
     if (role === 'superadmin') {
       query = query.in('system_role', ['superadmin', 'admin', 'teacher']);
     } else if (role === 'admin') {
-      const { data: adminUser } = await supabase
-        .from('staff_users')
-        .select('department')
-        .eq('id', userId)
-        .single();
-      query = query.eq('system_role', 'teacher');
-      if (adminUser?.department) query = query.eq('department', adminUser.department);
+      if (!req.user.department_id) return res.status(403).json({ message: 'A valid department is required.' });
+      query = query.eq('system_role', 'teacher').eq('department', req.user.department).eq('created_by', userId);
     } else if (role === 'teacher') {
       query = query.eq('id', userId);
     }
@@ -99,11 +114,15 @@ const usernameFromLastNameAndId = (lastName, raw9) => {
 
 // Staff ID: raw 9 digits stored (leading zeros preserved as TEXT).
 // Accepts dashed display form too ("00000-1234" -> "000001234").
-const normalizeStaffId = (value) => String(value || '').replace(/\D/g, '').slice(0, 9);
+const normalizeStaffId = (value) => String(value || '').replace(/\D/g, '');
 const isValidStaffId = (value) => /^[0-9]{9}$/.test(String(value || ''));
 
 // POST /api/users — create user (superadmin creates admin, admin creates teacher)
-router.post('/', async (req, res) => {
+router.post('/', authorizeRole('superadmin', 'admin'), async (req, res) => {
+  const allowed = ['first_name', 'last_name', 'full_name', 'staff_id', 'department', 'course_id', 'system_role', 'password'];
+  if (!req.body || Object.keys(req.body).some(key => !allowed.includes(key))) {
+    return res.status(400).json({ message: 'Unsupported account field.' });
+  }
   const { first_name, last_name, full_name, department, course_id, system_role, password } = req.body;
   const staffId = normalizeStaffId(req.body.staff_id);
   const { role: requesterRole } = req.user;
@@ -132,17 +151,14 @@ router.post('/', async (req, res) => {
     // The creator row must still exist: created_by references it, so a
     // stale token (deleted/recreated admin, restored backup) would otherwise
     // surface as a raw 23503 FK violation on insert.
-    let resolvedDepartment = department;
-    if (requesterRole === 'admin') {
-      const { data: adminUser } = await supabase
-        .from('staff_users')
-        .select('department')
-        .eq('id', req.user.id)
-        .single();
-      if (!adminUser) {
-        return res.status(401).json({ message: 'Session expired. Please log out and log in again.' });
-      }
-      if (adminUser.department) resolvedDepartment = adminUser.department;
+    const resolvedDepartment = requesterRole === 'admin' ? req.user.department : department;
+    if (requesterRole === 'admin' && department !== undefined && department !== req.user.department) {
+      return res.status(403).json({ message: 'Teachers must belong to your department.' });
+    }
+    const dept = await accountDepartment(supabase, { department: resolvedDepartment });
+    if (!dept) return res.status(400).json({ message: 'A valid department is required.' });
+    if (course_id && !(await canAccessCourse(course_id, { role: 'admin', department_id: dept.id }))) {
+      return res.status(400).json({ message: 'Course must belong to the selected department.' });
     }
 
     const { data: existingUser, error: checkError } = await supabase
@@ -150,6 +166,7 @@ router.post('/', async (req, res) => {
       .select('id')
       .ilike('full_name', resolvedFullName.trim())
       .limit(1);
+    if (checkError) return sendServerError(res, checkError);
 
     if (existingUser && existingUser.length > 0) {
       return res.status(400).json({ message: 'A user with this name already exists' });
@@ -258,9 +275,14 @@ router.post('/', async (req, res) => {
 });
 
 // PATCH /api/users/:id — update user
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', authorizeRole('superadmin', 'admin'), async (req, res) => {
+  const allowed = ['full_name', 'first_name', 'last_name', 'staff_id', 'course_id', 'password'];
+  if (req.user.role === 'superadmin') allowed.push('department');
+  if (!req.body || Object.keys(req.body).some(key => !allowed.includes(key))) {
+    return res.status(403).json({ message: 'Account field cannot be edited. Roles, usernames, and ownership are server-controlled.' });
+  }
   const { id } = req.params;
-  const { full_name, first_name, last_name, course_id, department, system_role, username, password } = req.body;
+  const { full_name, first_name, last_name, course_id, department, password } = req.body;
   const { role: requesterRole } = req.user;
 
   try {
@@ -280,7 +302,7 @@ router.patch('/:id', async (req, res) => {
     if (requesterRole === 'admin' && targetUser.system_role !== 'teacher') {
       return res.status(403).json({ message: 'Admin can only edit teacher accounts.' });
     }
-    if (requesterRole === 'admin' && targetUser.created_by !== req.user.id) {
+    if (requesterRole === 'admin' && (targetUser.created_by !== req.user.id || targetUser.department !== req.user.department)) {
       return res.status(403).json({ message: 'You can only edit teachers you created.' });
     }
     if (requesterRole === 'teacher') {
@@ -300,16 +322,12 @@ router.patch('/:id', async (req, res) => {
         return res.status(400).json({ message: 'An admin already exists in this department.' });
       }
     }
-    if (targetUser.system_role !== 'admin' && system_role === 'admin' && targetUser.department) {
-      const { data: existingAdmin } = await supabase
-        .from('staff_users')
-        .select('id')
-        .eq('system_role', 'admin')
-        .eq('department', targetUser.department)
-        .limit(1);
-      if (existingAdmin && existingAdmin.length > 0) {
-        return res.status(400).json({ message: 'An admin already exists in this department.' });
-      }
+    const effectiveDepartment = department !== undefined ? department : targetUser.department;
+    const dept = await accountDepartment(supabase, { department: effectiveDepartment });
+    if (!dept) return res.status(400).json({ message: 'A valid department is required.' });
+    const effectiveCourse = course_id !== undefined ? course_id : targetUser.course_id;
+    if (effectiveCourse && !(await canAccessCourse(effectiveCourse, { role: 'admin', department_id: dept.id }))) {
+      return res.status(400).json({ message: 'Course must belong to the selected department.' });
     }
 
     const updates = {};
@@ -394,9 +412,6 @@ router.patch('/:id', async (req, res) => {
       const salt = await bcrypt.genSalt(10);
       updates.password = await bcrypt.hash(password, salt);
     }
-    if (system_role !== undefined) {
-      updates.system_role = system_role;
-    }
 
     const { data: updatedUser, error } = await supabase
       .from('staff_users')
@@ -464,14 +479,14 @@ router.patch('/:id', async (req, res) => {
 });
 
 // DELETE /api/users/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authorizeRole('superadmin', 'admin'), async (req, res) => {
   const { id } = req.params;
   const { role: requesterRole } = req.user;
 
   try {
     const { data: userToDelete } = await supabase
       .from('staff_users')
-      .select('full_name, system_role, created_by')
+      .select('full_name, system_role, created_by, department')
       .eq('id', id)
       .single();
 
@@ -485,7 +500,7 @@ router.delete('/:id', async (req, res) => {
     if (requesterRole === 'admin' && userToDelete.system_role !== 'teacher') {
       return res.status(403).json({ message: 'Admin can only delete teacher accounts.' });
     }
-    if (requesterRole === 'admin' && userToDelete.created_by !== req.user.id) {
+    if (requesterRole === 'admin' && (userToDelete.created_by !== req.user.id || userToDelete.department !== req.user.department)) {
       return res.status(403).json({ message: 'You can only delete teachers you created.' });
     }
     if (requesterRole === 'teacher') {

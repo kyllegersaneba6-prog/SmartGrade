@@ -86,8 +86,8 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
     return res.status(400).json({ message: 'Weight must be between 0 and 100.' });
   }
   try {
-    // One batch: assignment lookup (ownership + term data), active term,
-    // max sort_order, and the current weight total are independent.
+    if (!(await canAccessAssignment(teacher_assignment_id, req.user))) return res.status(403).json({ message: 'Access denied.' });
+    // After authorization, fetch term data, sort order, and weights together.
     const [assignRes, termRes, maxOrderRes, weightsRes] = await Promise.all([
       supabase
         .from('teacher_assignments')
@@ -176,6 +176,7 @@ router.post('/reorder', authorizeRole('teacher'), async (req, res) => {
 
     const assign = assignRes.data;
     const activeTerm = termRes.data;
+    if (!(await canAccessAssignment(teacher_assignment_id, req.user))) return res.status(403).json({ message: 'Access denied.' });
     if (!assign || !activeTerm || activeTerm.school_year !== assign.school_year || activeTerm.semester !== assign.semester) {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
@@ -208,6 +209,7 @@ router.put('/:id', authorizeRole('teacher'), async (req, res) => {
       .eq('id', req.params.id)
       .single();
     if (!comp) return res.status(404).json({ message: 'Component not found' });
+    if (!(await canAccessAssignment(comp.teacher_assignment_id, req.user))) return res.status(403).json({ message: 'Access denied.' });
 
     if (await checkTermClosed(comp.teacher_assignment_id)) {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
@@ -275,6 +277,7 @@ router.post('/copy-from-prelims', authorizeRole('teacher'), async (req, res) => 
     return res.status(400).json({ message: 'Cannot copy from PRELIMS to PRELIMS' });
   }
   try {
+    if (!(await canAccessAssignment(teacher_assignment_id, req.user))) return res.status(403).json({ message: 'Access denied.' });
     if (await checkTermClosed(teacher_assignment_id)) {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
@@ -354,6 +357,7 @@ router.delete('/:id', authorizeRole('teacher'), async (req, res) => {
       .eq('id', req.params.id)
       .single();
     if (!comp) return res.status(404).json({ message: 'Component not found' });
+    if (!(await canAccessAssignment(comp.teacher_assignment_id, req.user))) return res.status(403).json({ message: 'Access denied.' });
 
     if (await checkTermClosed(comp.teacher_assignment_id)) {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });

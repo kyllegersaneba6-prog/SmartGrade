@@ -3,6 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { sendServerError } = require('../middleware/errors');
 const { assertActiveTerm } = require('../middleware/termLock');
+const { canAccessCourse, canManageSubject, canAccessAssignment, filterAccessible } = require('../middleware/access');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -22,10 +23,20 @@ router.get('/', async (req, res) => {
     if (role === 'admin') query = query.eq('created_by', id);
     if (year) query = query.eq('year_level', year);
     if (semester) query = query.eq('semester', semester);
+    if (course_id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(course_id)) {
+      return res.status(400).json({ message: 'Invalid course ID.' });
+    }
     if (course_id) query = query.or(`course_id.eq.${course_id},course_id.is.null`);
+    if (role === 'teacher') {
+      const { data: assignments, error } = await supabase.from('teacher_assignments').select('id, subject_id').eq('teacher_id', id);
+      if (error) return sendServerError(res, error);
+      const accessible = await filterAccessible(assignments, canAccessAssignment, req.user);
+      if (!accessible.length) return res.json([]);
+      query = query.in('id', [...new Set(accessible.map(row => row.subject_id))]);
+    }
     const { data, error } = await query;
     if (error) return sendServerError(res, error);
-    res.json(data);
+    res.json(role === 'admin' ? await filterAccessible(data, canManageSubject, req.user) : data);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -47,6 +58,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
   }
   try {
     if (!(await assertActiveTerm(res, { semester }))) return;
+    if (course_id && !(await canAccessCourse(course_id, req.user))) return res.status(403).json({ message: 'Course must belong to your department.' });
     let dupQuery = supabase.from('subjects').select('id').eq('name', name);
     if (course_id) {
       dupQuery = dupQuery.eq('course_id', course_id);
@@ -74,6 +86,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
 // DELETE /api/subjects/:id — delete a subject
 router.delete('/:id', authorizeRole('admin'), async (req, res) => {
   try {
+    if (!(await canManageSubject(req.params.id, req.user))) return res.status(403).json({ message: 'Access denied.' });
     const { data: subject } = await supabase.from('subjects').select('created_by, semester').eq('id', req.params.id).single();
     if (!subject) return res.status(404).json({ message: 'Subject not found' });
     if (subject.created_by !== req.user.id) return res.status(403).json({ message: 'You can only delete your own subjects.' });

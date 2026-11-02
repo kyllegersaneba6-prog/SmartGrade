@@ -18,6 +18,10 @@ router.get('/', async (req, res) => {
       .from('courses')
       .select('*, departments(name)')
       .order('name', { ascending: true });
+    if (req.user.role !== 'superadmin') {
+      if (!req.user.department_id) return res.status(403).json({ message: 'A valid department is required.' });
+      query = query.eq('department_id', req.user.department_id);
+    }
     if (department_id) query = query.eq('department_id', department_id);
     const { data, error } = await query;
     if (error) return sendServerError(res, error);

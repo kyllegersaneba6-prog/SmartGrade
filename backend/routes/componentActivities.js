@@ -11,7 +11,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 router.use(authenticateToken);
 
-async function verifyOwnership(componentId, userId) {
+async function verifyOwnership(componentId, user) {
+  if (!(await canAccessComponent(componentId, user))) return null;
   const { data: comp } = await supabase
     .from('grading_components')
     .select('id, teacher_assignment_id')
@@ -22,7 +23,7 @@ async function verifyOwnership(componentId, userId) {
     .from('teacher_assignments')
     .select('id')
     .eq('id', comp.teacher_assignment_id)
-    .eq('teacher_id', userId)
+    .eq('teacher_id', user.id)
     .maybeSingle();
   if (!assign) return null;
   return comp;
@@ -93,8 +94,8 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
     return res.status(400).json({ message: 'Max score must be greater than 0.' });
   }
   try {
-    // One batch: component lookup, active term, and max sort_order are
-    // independent — run in parallel, not sequentially.
+    if (!(await canAccessComponent(component_id, req.user))) return res.status(403).json({ message: 'Access denied.' });
+    // After authorization, fetch the component, active term, and sort order together.
     const [compRes, termRes, maxOrderRes] = await Promise.all([
       supabase
         .from('grading_components')
@@ -165,7 +166,7 @@ router.put('/:id', authorizeRole('teacher'), async (req, res) => {
       .single();
     if (!act) return res.status(404).json({ message: 'Activity not found' });
 
-    const comp = await verifyOwnership(act.component_id, req.user.id);
+    const comp = await verifyOwnership(act.component_id, req.user);
     if (!comp) return res.status(403).json({ message: 'Access denied.' });
 
     const updates = {};
@@ -221,7 +222,7 @@ router.delete('/:id', authorizeRole('teacher'), async (req, res) => {
       .single();
     if (!act) return res.status(404).json({ message: 'Activity not found' });
 
-    const comp = await verifyOwnership(act.component_id, req.user.id);
+    const comp = await verifyOwnership(act.component_id, req.user);
     if (!comp) return res.status(403).json({ message: 'Access denied.' });
 
     const { error } = await supabase.from('component_activities').delete().eq('id', req.params.id);

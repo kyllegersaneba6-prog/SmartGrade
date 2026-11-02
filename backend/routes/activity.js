@@ -21,6 +21,8 @@ router.get('/', async (req, res) => {
     if (role === 'superadmin') {
       // superadmin sees all — no filter
     } else if (role === 'admin') {
+      if (!req.user.department_id) return res.status(403).json({ message: 'A valid department is required.' });
+      query = query.eq('department', department);
       // Get superadmin usernames to exclude
       const { data: superAdmins } = await supabase
         .from('staff_users')

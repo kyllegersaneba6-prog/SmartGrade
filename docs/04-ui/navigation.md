@@ -93,6 +93,8 @@ Defined in `frontend/src/App.jsx`:
 
 Root `/` uses `localStorage.token` presence before computing the redirect target.
 
+These client guards are navigation conveniences, not authorization. Every API call rechecks the current database account and security fingerprint; a 401 clears the stored session and returns to Login. A 403 (wrong scope/missing department) or 503 (account verification unavailable) keeps the session. Phase 1 adds no routes or navigation items.
+
 Unmatched URLs are handled by the top-level `*` route and render `NotFound` without a layout (see Unknown Routes below).
 
 ## Header Title Mapping

@@ -9,6 +9,8 @@ Content-Type: application/json
 
 Tokens are issued at login and expire after **1 day**.
 
+Tokens also contain an opaque `session` fingerprint. Each request reloads the account; deleted accounts, changed security fields, and pre-Phase-1 tokens return 401. A database verification outage returns 503; an admin/teacher without an existing department gets 403. Never decode token claims as a substitute for backend authorization.
+
 Status convention: **401** = no/expired/invalid session (the frontend `utils/api.js` clears the token and redirects to `/login`); **403** = valid session but the action is not allowed (closed term, wrong role, cross-scope). A 403 leaves the user signed in so the page can display the message.
 
 ## Archive Write Guard
@@ -48,6 +50,8 @@ Body: { "username": "admin", "password": "admin123" }
 Failures:
 - Unknown username → `401 { "message": "Invalid username " }` (trailing space is in the source)
 - Wrong password → `401 { "message": "Invalid password" }`
+- Existing account without a valid department → `403 { "message": "A valid department is required. Contact your administrator." }`
+- Account or alias rate limit → `429 { "message": "Too many login attempts. Please try again later." }` with `Retry-After`; different aliases cannot bypass the account bucket
 - Supabase unreachable (no internet) → `503 { "message": "You are currently offline. Please check your Wi-Fi or ethernet connection and try again." }`
 
 Login lookup errors caused by a dropped connection are detected explicitly, so an offline attempt never reports "Invalid username". Only an existing account's failed password attempt is written to the audit log.
@@ -81,6 +85,20 @@ never sent to the browser. Required response columns: `id`, `first_name`,
 `department` is inherited from the calling admin. Superadmin must supply `department` when creating an admin.
 400 cases: duplicate full name, invalid staff ID, missing fields, admin already exists in the department.
 
+An explicit foreign department is rejected with 403; a course outside the inherited department is rejected with 400. An admin cannot create another admin/superadmin, regardless of body fields.
+
+## Update an Account
+
+```json
+PATCH /api/users/<owned-teacher-id>
+{ "first_name": "John", "last_name": "Santos", "staff_id": "123451234" }
+```
+
+- Admin: owned teachers in the same department only. Superadmin: admin accounts only.
+- Allowed: names, `staff_id`, `course_id`, optional nonblank `password`. Superadmin may also change `department` to an existing department.
+- Sending `system_role`, `username`, `created_by`, `id`, or another unsupported field returns **403**, even alongside valid fields. No partial profile update occurs.
+- Passwords/hashes are not returned. Changing a fingerprinted field makes the account's previous tokens fail on their next request.
+
 ## Create Section
 
 `name` is only the section letter — the server prefixes the course abbreviation and year number.
@@ -97,10 +115,11 @@ Body:
   "semester": "1st Semester"
 }
 
-201: { "id": "uuid", "name": "BSIT 1-A", "year_level": "1st", ... }
+201: { "id": "uuid", "name": "BSIT-1A", "year_level": "1st", ... }
 ```
 
 Duplicate → `400 { "message": "A section with this name already exists in this course." }`
+Missing/foreign course → 403; new sections require a course in the admin's department.
 
 ## Create Teacher Assignment
 
@@ -120,6 +139,22 @@ Body:
 ```
 
 Term must be the active term, otherwise `403`. The section+subject+term combination must be unassigned.
+The teacher, section, and subject must be owned and department-compatible. Incompatible course/year/semester relationships return 400; foreign ownership returns 403. Subject `course_id = null` means department-wide; a legacy NULL semester permits any semester.
+
+## Batch Student Membership
+
+Both `POST /api/component-scores/bulk` and `POST /api/attendance/bulk` resolve **every** student's UUID to its current section before writing:
+
+```json
+403: { "message": "Every student must belong to the assignment section." }
+```
+
+One foreign, nonexistent, or different-section student rejects the entire batch; no valid prefix of the batch is saved. Being the teacher for two assignments does not make their rosters interchangeable.
+
+## Student Lookup and Transfer
+
+- `GET /api/sections/find-student?student_id=...`: only accessible enrollments are returned, preferring the active term. Missing/foreign student → 404; multiple remaining accessible enrollments → 409.
+- `PATCH /api/sections/students/<student-uuid>/transfer` with `{ "target_section_id": "uuid" }`: checks source and destination ownership/department and verifies **both** are active-term sections. No archive headers are needed for these checks.
 
 ## Create Grading Component
 

@@ -20,7 +20,7 @@
 
 - CommonJS (`require`, `module.exports`).
 - One router per file in `backend/routes/`, mounted in `backend/index.js` under `/api/<name>`.
-- Auth middleware in `backend/middleware/auth.js`: `authenticateToken` + `authorizeRole(...)`. Read scoping helpers live in `backend/middleware/access.js` (`canAccessAssignment`, `canAccessComponent`, `canAccessSection`). Term locks live in `backend/middleware/termLock.js` (`assertActiveTerm`, `rejectArchivedWrites`).
+- Auth middleware in `backend/middleware/auth.js`: `authenticateToken` + `authorizeRole(...)`. Shared read/write checks live in `backend/middleware/access.js` (assignment/component/section/course access, teacher/subject ownership, batch student membership). Term locks live in `backend/middleware/termLock.js` (`assertActiveTerm`, `rejectArchivedWrites`).
 - Role strings are exactly `superadmin`, `admin`, `teacher`.
 - Every router calls `router.use(authenticateToken)` except `/api/auth` (login is public).
 - Use the shared term lock for new mutating routes: `await assertActiveTerm(res, { schoolYear, semester })` and return early when it yields `false`. The global `rejectArchivedWrites` middleware already covers every write made from an archived-term view.
@@ -28,9 +28,12 @@
 - The Supabase client uses the **service-role key**, which has `BYPASSRLS`. RLS is enabled on all tables with no policies, so the backend is the only supported data path. Authorization must be enforced in route code; never expose the service-role key to the browser.
 - Error responses use one shape: `{ message }`. Log the underlying DB/provider error server-side and return a generic message; never send `err.message` to the client.
 - Mutating endpoints that touch a term must verify the row's `school_year`/`semester` matches the active term and return 403 otherwise.
-- Ownership rule: teachers must own the `teacher_assignment` (or teach the section); admins must be the `created_by` of the row; superadmin bypasses. Read helpers enforce this and fail closed.
-- Bulk writes must validate **every** row before the first write (activity → component → assignment). Never treat `scores[0]` as representative; reject the whole batch on any out-of-scope row.
+- Ownership rule: teachers must own the assignment; admins must be `created_by` AND relationships must match their current department. Superadmin bypasses read scope only, not role-gated writes. Missing records/departments and query errors never grant access.
+- Bulk writes must validate **every** row before the first write (activity → component → assignment → student's section). Never treat `scores[0]` as representative; reject the whole batch on any out-of-scope row.
 - Never trust identity fields (`user_name`, `department`, `role`, `created_by`) from the request body. Derive them from `req.user` or a DB lookup keyed by `req.user.id`.
+- Account mutations use explicit field allowlists; roles/ownership/direct usernames are not editable. Validate optional course references against the effective department.
+- `req.user` is built from a fresh account lookup, not JWT role snapshots. Keep authorization memoization request-local; never cache permissions across requests. Account/department lookup outages return 503, not authentication success or false bad credentials.
+- Session fingerprints live in `services/session.js`; never return hashes or log bearer tokens. Keep `.env` ignored, use `.env.example`, and rotate deployed secrets after any suspected exposure.
 
 ## AI (`/api/ai`)
 

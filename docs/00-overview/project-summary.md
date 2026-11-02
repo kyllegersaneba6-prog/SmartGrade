@@ -14,7 +14,7 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 |---|---|
 | Backend | Node.js (v20+), Express.js 5 |
 | Database | PostgreSQL (Supabase), accessed with `@supabase/supabase-js` service-role key |
-| Auth | bcryptjs + JWT (`expiresIn: '1d'`) |
+| Auth | bcryptjs + 1-day JWT; current-account/security-fingerprint verification on every request |
 | Frontend | React 19, Vite 8, Tailwind CSS 4 |
 | Routing | React Router DOM 7 |
 | Charts | Recharts |
@@ -67,6 +67,8 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 Functional MVP. Core grading, attendance, and user management work end to end. Database access is locked down: RLS is enabled on all 13 public tables with no policies, and only the backend's service-role key can read or write.
 
 Known gaps (see `05-development/notes.md`):
+- Phase 1 authorization hardening is implemented: protected account fields, same-department ownership, scoped rosters, relationship validation, and stale-session rejection. Provider-side Supabase/AI credential rotation remains an operator task.
+- `backend/.env` is no longer tracked; a sanitized `.env.example` is provided. Production dependency audits are clean; development-tool advisories remain.
 - No tests, no TypeScript, no centralized API client (pages call a thin `utils/api.js` wrapper with relative `/api/...` paths and a configurable base URL).
 - Superadmin "Broadcast Notification" UI is not wired to an API.
 - Grade computation, grade-point conversion, and all Excel/PDF work live in the frontend, not the backend.
