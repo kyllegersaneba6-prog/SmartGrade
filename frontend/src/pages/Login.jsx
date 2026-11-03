@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE } from '../utils/api';
+import { checkBackendAvailability } from '../utils/backendAvailability';
 import stiWestNegrosLogo from '../assets/sti-west-negros-logo.png';
 import {
   User, Lock, AlertCircle, ArrowRight,
@@ -83,6 +84,7 @@ const Login = () => {
       if (!navigator.onLine) {
         setError(OFFLINE_MESSAGE);
       } else if (isNetwork) {
+        void checkBackendAvailability();
         setError('Cannot connect to the server. Please check your connection and try again.');
       } else {
         setError(err.message || 'Login failed');
@@ -229,7 +231,7 @@ const Login = () => {
 
           <p className="text-base text-white leading-relaxed mb-10 stroke-text-sm">
             SmartGrade unifies grade computation, attendance tracking, and
-            behavioral analytics in one academic platform — with AI-powered
+            behavioral analytics in one academic system — with AI-powered
             insights that help teachers understand every learner.
           </p>
 

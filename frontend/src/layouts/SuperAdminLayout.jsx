@@ -15,9 +15,9 @@ const SuperAdminLayout = () => {
   const getTitle = () => {
     switch (location.pathname) {
       case '/superadmin': return 'Dashboard';
-      case '/superadmin/security': return 'Security & Audit Logs';
-      case '/superadmin/users': return 'Admin Management';
-      case '/superadmin/users/create': return 'Create New Admin';
+      case '/superadmin/audit': return 'Audit Logs';
+      case '/superadmin/admins': return 'Admin Management';
+      case '/superadmin/admins/create': return 'Create New Admin';
       case '/superadmin/departments': return 'Departments & Courses';
       case '/superadmin/settings': return 'Settings';
       default: return 'Super Admin';

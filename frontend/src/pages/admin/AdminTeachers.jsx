@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, UserCheck, BookOpen, GraduationCap, Calendar,
-CheckCircle, Eye, EyeOff, X, Lock, Cog } from 'lucide-react';
+import { UserPlus, Trash2, Pencil, UserCheck, BookOpen, GraduationCap, Calendar,
+CheckCircle, Eye, EyeOff, X, Lock, Bolt, Search } from 'lucide-react';
 import CreateAdminTeacher from './CreateAdminTeacher';
 import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
 import { displayStaffId, formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
 import { SkeletonList } from '../../components/common/Skeleton';
 import AdminPageHeading from '../../components/admin/AdminPageHeading';
-
-const USERS_PER_PAGE = 10;
 
 const getCurrentSchoolYear = () => {
   const now = new Date();
@@ -26,7 +24,8 @@ const AdminTeachers = () => {
   const [teacherToDelete, setTeacherToDelete] = useState(null);
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
-  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const tableScrollRef = useRef(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [teacherToEdit, setTeacherToEdit] = useState(null);
   const [editForm, setEditForm] = useState({ first_name: '', last_name: '', staff_id: '', username: '', password: '' });
@@ -290,8 +289,22 @@ const AdminTeachers = () => {
     finally { setAssignLoading(false); }
   };
 
-  const totalPages = Math.max(1, Math.ceil(teachers.length / USERS_PER_PAGE));
-  const paginated = teachers.slice((page - 1) * USERS_PER_PAGE, page * USERS_PER_PAGE);
+  const filteredTeachers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return teachers;
+    return teachers.filter((u) => {
+      const staffId = displayStaffId(u.staffId).toLowerCase();
+      return staffId.includes(q)
+        || String(u.staffId || '').toLowerCase().includes(q)
+        || u.name?.toLowerCase().includes(q)
+        || u.username?.toLowerCase().includes(q);
+    });
+  }, [teachers, searchQuery]);
+
+  const updateSearch = (value) => {
+    setSearchQuery(value);
+    if (tableScrollRef.current) tableScrollRef.current.scrollTop = 0;
+  };
   const menuTeacher = teachers.find((x) => x.rawId === openMenuId) || null;
 
   return (
@@ -304,28 +317,45 @@ const AdminTeachers = () => {
       />
 
       <div className="rounded-2xl p-5 shadow-sm border border-gray-200 card-hover bg-white">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Teacher Accounts</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0c1925', borderColor: '#0c1925' }}><UserPlus size={14} /> Add Teacher</button>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by ID, name, or username..."
+                value={searchQuery}
+                onChange={(e) => updateSearch(e.target.value)}
+                className="w-full sm:w-64 pl-9 pr-8 py-2 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
+              />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+              {searchQuery && (
+                <button onClick={() => updateSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Clear search">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="table-responsive"><table className="w-full text-xs min-w-[600px]">
+        <div ref={tableScrollRef} role="region" aria-label="Teacher accounts" tabIndex={0} className="max-h-[min(480px,60vh)] overflow-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0c1925]"><table className="w-full text-xs min-w-[600px]">
           <thead>
             <tr className="border-b bg-gray-50" style={{ borderColor: '#e5e7eb' }}>
-              {['ID', 'NAME', 'USERNAME', 'ASSIGNED COURSE', 'ACTIONS'].map((h) => (<th key={h} className="text-left px-3 py-3 font-bold text-gray-600 text-[10px] uppercase tracking-wide">{h}</th>))}
+              {['ID', 'NAME', 'USERNAME', 'ASSIGNED COURSE', 'ACTIONS'].map((h) => (<th key={h} scope="col" className="sticky top-0 z-10 bg-gray-50 text-left px-3 py-3 font-bold text-gray-600 text-[10px] uppercase tracking-wide">{h}</th>))}
             </tr>
           </thead>
           <tbody>
-            {paginated.length === 0 && (
+            {filteredTeachers.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-10 text-center text-xs text-gray-500">
-                  No teachers have been added yet. Click <strong>Add Teacher</strong> to create the first account.
+                  {searchQuery.trim()
+                    ? 'No teachers match your search.'
+                    : <>No teachers have been added yet. Click <strong>Add Teacher</strong> to create the first account.</>}
                 </td>
               </tr>
             )}
-            {paginated.map((u) => (
+            {filteredTeachers.map((u) => (
               <tr key={u.rawId} className="border-b last:border-0 hover:bg-gray-50" style={{ borderColor: '#e5e7eb' }}>
                 <td className="px-3 py-3 font-mono text-[12px] text-gray-900">{displayStaffId(u.staffId)}</td>
                 <td className="px-3 py-3 font-bold text-gray-900">{u.name}</td>
@@ -342,7 +372,7 @@ const AdminTeachers = () => {
                   )}
                 </td>
                 <td className="px-3 py-3">
-                  <button onClick={(e) => openMenu(u, e)} className="text-gray-900   hover:text-[#0c1925] transition-colors p-1 rounded-md hover:bg-gray-100" title="Actions"><Cog size={20} /></button>
+                  <button onClick={(e) => openMenu(u, e)} className="text-gray-900   hover:text-[#0c1925] transition-colors p-1 rounded-md hover:bg-gray-100" title="Actions"><Bolt size={20} /></button>
                 </td>
               </tr>
             ))}
@@ -350,12 +380,7 @@ const AdminTeachers = () => {
         </table></div>
 
         <div className="flex items-center justify-between mt-4 pt-3 border-t text-xs" style={{ borderColor: '#f0ede6' }}>
-          <span className="text-gray-900">Showing {Math.min((page - 1) * USERS_PER_PAGE + 1, teachers.length)}–{Math.min(page * USERS_PER_PAGE, teachers.length)} of {teachers.length}</span>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded border text-gray-500 hover:text-sidebar hover:border-gray-900 disabled:opacity-40" style={{ borderColor: '#e5e0d5' }}><ChevronLeft size={14} /></button>
-            <span className="text-gray-900 font-medium">Page {page} of {totalPages}</span>
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded border text-gray-500 hover:text-sidebar hover:border-gray-900 disabled:opacity-40" style={{ borderColor: '#e5e0d5' }}><ChevronRight size={14} /></button>
-          </div>
+          <span className="text-gray-900">Showing {filteredTeachers.length} of {teachers.length} teachers</span>
         </div>
       </div>
 
@@ -377,7 +402,7 @@ const AdminTeachers = () => {
           <div className="bg-white rounded-xl modal-surface p-6 max-w-lg w-full mx-4 border border-gray-100 max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-blue-50"><Eye size={20} className="text-blue-600" /></div>
+                <div className="p-2 rounded-lg bg-amber-300/10"><Eye size={20} className="text-amber-300" /></div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Assigned Subjects</h3>
                   <p className="text-sm text-gray-900">{teacherToView?.name}</p>

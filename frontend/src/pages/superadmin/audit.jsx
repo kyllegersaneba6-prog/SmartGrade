@@ -14,7 +14,7 @@ const outputFormats = [
   { label: 'EXECUTIVE PDF', sub: 'Audit Ready', pct: 28, icon: BookOpen, color: '#9a8a7a' },
 ];
 
-const SecurityAudit = () => {
+const Audit = () => {
   const [page, setPage] = useState(1);
   const auditSectionRef = useRef(null);
   const scrollAnimationFrameRef = useRef(null);
@@ -181,7 +181,7 @@ const SecurityAudit = () => {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <SuperAdminPageHeading
         eyebrow="Security"
-        title="Security & Audit"
+        title="Audit Logs"
         description="Review critical alerts and trace every system access in the institutional audit trail."
       />
 
@@ -250,7 +250,7 @@ const SecurityAudit = () => {
                     <td className="whitespace-pre px-3 py-3 font-mono text-[12px]" style={{ color: '#0c1925' }}>{row.ts}</td>
                     <td className="px-3 py-3 text-[12px] font-bold text-gray-800">{row.user === '-' ? <span className="text-gray-900">-</span> : row.user}</td>
                     <td className="px-3 py-3">{row.role === '-' ? <span className="text-gray-900 font-semibold text-[12px]">-</span> : <span className={`px-2 py-0.5 rounded text-[12px] font-bold ${!row.role ? '' : row.role === 'admin' ? 'text-black' : 'text-white'}`} style={row.role ? { background: row.roleColor } : undefined}>{row.role}</span>}</td>
-                    <td className="px-3 py-3 font-mono text-[12px] font-bold" style={{ color: row.action.includes('DELET') || row.action.includes('FAIL') ? '#dc2626' : row.action.includes('UPDAT') ? '#2563eb' : row.action.includes('CREAT') || row.action.includes('SUCCESS') ? '#16a34a' : '#4b5563' }}>{row.action}</td>
+                    <td className="px-3 py-3 font-mono text-[12px] font-bold" style={{ color: row.action.includes('DELET') || row.action.includes('FAIL') || row.action === 'RATE_LIMITED_LOGIN' ? '#dc2626' : row.action.includes('UPDAT') ? '#2563eb' : row.action.includes('CREAT') || row.action.includes('SUCCESS') ? '#16a34a' : '#4b5563' }}>{row.action}</td>
                     <td className="max-w-[300px] px-3 py-3 text-[12px] text-gray-700" title={row.desc}>
                       {row.split ? (
                         <span className="block break-words whitespace-normal">
@@ -284,6 +284,6 @@ const SecurityAudit = () => {
   );
 };
 
-export default SecurityAudit;
+export default Audit;
 
 

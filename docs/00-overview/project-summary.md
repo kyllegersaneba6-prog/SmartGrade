@@ -58,6 +58,7 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 - AI student narrative summary (read-only; AI never computes grades)
 
 **Data & operations**
+- App-wide backend-unavailable screen with automatic recovery, manual retry, and an anonymous process-health check
 - Activity/audit logging, role-scoped (superadmin all; admin department-only; teacher empty)
 - Backup/restore (`.backup.sg`), checksummed, optional AES-256-GCM encryption, merge/replace/full modes
 - Excel and PDF export for class records, summaries, and account lists

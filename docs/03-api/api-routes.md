@@ -5,7 +5,7 @@ Base URL: `http://localhost:5000`. All responses are JSON, including unmatched r
 ## Authentication & Authorization
 
 - Header: `Authorization: Bearer <jwt>`.
-- Every router calls `router.use(authenticateToken)` **except** `/api/auth` (login is public) and `GET /`.
+- Every router calls `router.use(authenticateToken)` **except** `/api/auth` (login is public); `GET /` and `GET /api/health` are also public application routes.
 - Missing token → **401** `{ "message": "Access denied. No token provided." }`
 - Invalid/expired token → **401** `{ "message": "Invalid or expired token. Please log in again." }`
 - Wrong role → **403** `{ "message": "Access denied. Insufficient permissions." }`
@@ -20,6 +20,14 @@ Base URL: `http://localhost:5000`. All responses are JSON, including unmatched r
 - Malformed JSON body → **400** `{ "message": "Invalid JSON body." }`.
 - Unhandled server/database error → **500** `{ "message": "Server error" }`; details are logged server-side only.
 - Error responses use one shape: `{ message }`. Backup validation is the exception, returning `{ ok: false, errors: [...] }`.
+
+## Process Health
+
+| Method | Route | Auth | Notes |
+|---|---|---|---|
+| GET | `/api/health` | Public | `200 { "status": "ok", "service": "smartgrade-api" }`; `Cache-Control: no-store`; registered before archive/auth routers; no database/account/AI lookup |
+
+Used by the global availability screen. Invalid JSON, another service's response, non-2xx, timeout, or connection failure count as unavailable. A running API can still report database-specific errors on other routes; process health is not a database-readiness guarantee.
 
 ## Auth
 
@@ -73,7 +81,7 @@ PATCH accepts `full_name`, `first_name`, `last_name`, `staff_id`, `course_id`, `
 | PATCH | `/api/sections/students/:id/transfer` | Admin | `{ target_section_id }`; both sections owned/in department and active-term; source and destination checked without archive headers |
 | POST | `/api/sections/:sectionId/students` | Admin | One student; section ownership/department checked; term-locked |
 | DELETE | `/api/sections/students/:id` | Admin | Student's section ownership/department checked; term-locked |
-| POST | `/api/sections/:sectionId/students/bulk` | Admin | `{ students: [...] }` → `{ added, skipped[] }`; section ownership/department checked; term-locked |
+| POST | `/api/sections/:sectionId/students/bulk` | Admin | `{ students: [...] }` → `{ added, skipped[] }`; IDs must be strings matching `##-####-###` (digits/hyphens), invalid rows skipped with a reason; section ownership/department checked; term-locked |
 
 There is **no** `POST /api/sections/seed` route (only the preview).
 

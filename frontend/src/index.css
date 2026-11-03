@@ -79,6 +79,12 @@
   .card-hover:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   }
+  /* KPI cards and key teacher controls keep the elevated shadow at all
+     times, including hover. */
+  .kpi-card,
+  .shadow-elevated {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
   /* Admin header cards: uniform height matching Manage Sections
      (title + two subtitle lines ≈ 106px mobile / 118px sm+).
      Apply via the `admin-header-card` class on admin page headers. */

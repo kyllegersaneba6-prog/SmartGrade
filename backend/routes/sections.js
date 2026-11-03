@@ -349,6 +349,10 @@ router.post('/:sectionId/students/bulk', authorizeRole('admin'), async (req, res
         skipped.push({ student_id, reason: 'Missing required fields (Student ID, First Name, Last Name)' });
         continue;
       }
+      if (typeof student_id !== 'string' || student_id.length !== 11 || !/^\d{2}-\d{4}-\d{3}$/.test(student_id)) {
+        skipped.push({ student_id, reason: 'Student ID must use ##-####-### format (e.g. 26-1234-001).' });
+        continue;
+      }
       if (existingIds.has(student_id)) {
         skipped.push({ student_id, reason: 'Duplicate ID' });
         continue;

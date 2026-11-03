@@ -11,7 +11,7 @@ import GradeSummary from './pages/teacher/GradeSummary';
 import TeacherSettings from './pages/teacher/TeacherSettings';
 
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
-import SecurityAudit from './pages/superadmin/SecurityAudit';
+import Audit from './pages/superadmin/audit';
 import SuperAdminUsers from './pages/superadmin/SuperAdminUsers';
 import CreateSuperAdminUser from './pages/superadmin/CreateSuperAdminUser';
 import ManageDepartments from './pages/superadmin/ManageDepartments';
@@ -92,9 +92,9 @@ function App() {
           }
         >
           <Route index element={<SuperAdminDashboard />} />
-          <Route path="security" element={<SecurityAudit />} />
-          <Route path="users" element={<SuperAdminUsers />} />
-          <Route path="users/create" element={<CreateSuperAdminUser />} />
+          <Route path="audit" element={<Audit />} />
+          <Route path="admins" element={<SuperAdminUsers />} />
+          <Route path="admins/create" element={<CreateSuperAdminUser />} />
           <Route path="departments" element={<ManageDepartments />} />
           <Route path="settings" element={<SuperAdminSettings />} />
         </Route>

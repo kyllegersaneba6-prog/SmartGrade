@@ -399,7 +399,7 @@ const Attendance = () => {
       />
       <div className="flex flex-wrap items-center gap-3">
         <AssignmentSelector />
-        <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
+        <div className="flex items-center bg-bg-light border border-border rounded-lg p-1 shadow-elevated">
           {TERMS.map((t) => (
               <button
                 key={t}
@@ -464,6 +464,7 @@ const Attendance = () => {
                       placeholder="Select session"
                       icon={Clock}
                       emptyMessage="No sessions found."
+                      sublabelClassName="text-gray-900"
                     />
                   </div>
                   <div className="flex-1">

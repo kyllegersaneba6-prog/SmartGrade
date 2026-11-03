@@ -69,6 +69,7 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Backup validate / preview | Done | Checksums, per-table counts, conflict preview |
 | Backup restore (merge / replace / full) | Done | Typed `CONFIRM` / `FULL RESTORE`; restore lock |
 | Configurable API base URL | Done | `VITE_API_BASE_URL` (default `http://<hostname>:5000`); pages pass relative `/api/...` paths |
+| Global backend-availability screen | Done | All routes, including Login/404; anonymous health probe, 5 s polling/timeout, manual retry; mounted pages and session retained during later outages |
 | Environment-file tracking cleanup | Done | Local file preserved, JWT secret rotated; sanitized `backend/.env.example` added |
 | Previously committed provider credential rotation | In Progress | Supabase/AI key rotation and deployed-secret updates require operator access |
 | 404 page + catch-all route | Done | `NotFound` page for any unknown URL; links to the role dashboard or login |

@@ -4,9 +4,10 @@
 
 - No TypeScript — plain JavaScript throughout.
 - No tests — do not add test files.
-- No state management library — React hooks only (`useState`, `useEffect`, `useCallback`, `useMemo`, `useContext`, `createContext`).
+- No state management library — native React hooks (`useState`, `useEffect`, `useCallback`, `useMemo`, `useContext`, `createContext`, `useSyncExternalStore`).
 - No centralized API client library. `frontend/src/utils/api.js` is a thin fetch wrapper that resolves relative `/api/...` paths against `API_BASE` (`VITE_API_BASE_URL`, default `http://<current-hostname>:5000`), adds the bearer token, forwards the viewed term as `X-View-Term-School-Year` / `X-View-Term-Semester`, and logs out only on 401. A 403 keeps the session and is shown by the page. Pass relative paths; do not hardcode `localhost:5000`.
 - Shared state lives in `frontend/src/contexts/` as React Context providers.
+- Backend reachability is a small shared subscription in `utils/backendAvailability.js`, read with `useSyncExternalStore` by the app-wide boundary. It deduplicates/cancels probes and never replays writes or clears sessions. API origin is defined once in `utils/apiBase.js` and re-exported from `utils/api.js` for compatibility.
 - Teacher assignment/term state: `TeacherContext` (`useTeacher()`).
 - Admin term/archive state: `AdminContext` (`useAdmin()`).
 - `currentTerm` means `viewTerm || activeTerm` in both contexts.
@@ -23,6 +24,7 @@
 - Auth middleware in `backend/middleware/auth.js`: `authenticateToken` + `authorizeRole(...)`. Shared read/write checks live in `backend/middleware/access.js` (assignment/component/section/course access, teacher/subject ownership, batch student membership). Term locks live in `backend/middleware/termLock.js` (`assertActiveTerm`, `rejectArchivedWrites`).
 - Role strings are exactly `superadmin`, `admin`, `teacher`.
 - Every router calls `router.use(authenticateToken)` except `/api/auth` (login is public).
+- `GET /api/health` is a public, no-store liveness endpoint registered before archive/auth routers. Keep it free of account/database/AI calls; it is not a readiness check or authorization shortcut.
 - Use the shared term lock for new mutating routes: `await assertActiveTerm(res, { schoolYear, semester })` and return early when it yields `false`. The global `rejectArchivedWrites` middleware already covers every write made from an archived-term view.
 - All queries use raw Supabase JS (`.select()`, `.insert()`, `.update()`, `.upsert()`, `.delete()`), not SQL strings.
 - The Supabase client uses the **service-role key**, which has `BYPASSRLS`. RLS is enabled on all tables with no policies, so the backend is the only supported data path. Authorization must be enforced in route code; never expose the service-role key to the browser.

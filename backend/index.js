@@ -21,6 +21,11 @@ if (process.env.TRUST_PROXY) {
 app.use(cors(createCorsOptions(PORT)));
 app.use(express.json({ limit: '55mb' }));
 
+// Public process liveness only: no credentials, account lookup, or database probe.
+app.get('/api/health', (req, res) => {
+  res.set('Cache-Control', 'no-store').json({ status: 'ok', service: 'smartgrade-api' });
+});
+
 const { rejectArchivedWrites } = require('./middleware/termLock');
 app.use(rejectArchivedWrites);
 

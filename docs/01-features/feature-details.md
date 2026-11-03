@@ -1,5 +1,15 @@
 # Feature Details
 
+## Backend Availability
+
+- `BackendAvailability` wraps `App` in `main.jsx`, covering Login, every role page, redirects, and unknown URLs.
+- Startup waits for `GET /api/health` before mounting routes. While that first check is pending, the UI shows **Connecting to Service** rather than a false outage.
+- Failed/unreachable/invalid health response shows **Service Unavailable** and exactly: **The service could not be started. We're unable to process your request at this time.**
+- Checks use the configured API base, no bearer/archive headers, a 5 s timeout, and 5 s polling; window focus, the browser's online event, and **Try Again** also trigger a check. In-flight checks are deduplicated.
+- API network/5xx failures request a health check rather than directly declaring a global outage. Aborted requests do not. Login's raw fetch shares this detection.
+- On a later outage, already-mounted routes are hidden/inert, not unmounted. Recovery reveals them without changing the URL, clearing sessions, reloading forms, or automatically replaying writes. Existing page-level retry/autosave behavior is unchanged.
+- Health proves API-process reachability only; database/AI readiness is not checked. Bad credentials, forbidden actions, and database errors do not show the global screen while process health remains valid.
+
 ## Role Permissions
 
 | Action | Superadmin | Admin | Teacher |
@@ -30,6 +40,7 @@ Notes:
 - Fingerprint inputs: ID, bcrypt hash, role, username, department, course, creator. Only the HMAC digest—not the password/hash—is in the token.
 - Deleted/changed accounts return 401; missing/nonexistent admin/teacher department returns 403; account/department query failures return 503.
 - `USR-` UUID-prefix login requires at least four canonical UUID characters and exactly one database match. All aliases share one account lockout bucket as well as existing username/IP limits.
+- Wrong-password responses include remaining attempts from the tightest username/account/IP limit after recording the failure. The Login page displays this server-provided message directly. Successful login still clears username/account failures, while IP attempts expire via the existing sliding window; unknown-username/offline responses are unchanged.
 
 ## Account Provisioning
 
@@ -47,6 +58,7 @@ Notes:
 - New assignments require an owned teacher, section, and subject in the same department, compatible courses/year level/semester, and a section matching the requested active academic term. Legacy subjects with NULL semester apply across semesters.
 - Student lookup returns only accessible enrollments, preferring the current academic term; ambiguous accessible matches return 409. Foreign matches are hidden as 404.
 - Student add/import/delete require section access. Transfers require access to **both** sections and both must be in the active term, even without archive headers. Historical-enrollment preservation remains a later-phase task.
+- The Transfer Student UI matches a complete nine-digit ID against the selected section's loaded roster, then loads course/year/term-filtered destinations once. A centered search indicator hides the student/destination panels until the request completes. Changing ID/year or closing the modal invalidates old responses; search loading and transfer submission use separate states.
 
 ## Academic Terms
 
@@ -89,6 +101,7 @@ Notes:
 - Each component holds sub-activities with a `max_score` (default 100).
 - Formula: `equiv = (total / max_total) × 50 + 50`; `weighted = equiv × weight / 100`; term grade = sum of weighted values.
 - Components can be reordered (drag-drop → `POST /api/grading-components/reorder`) and copied from PRELIMS (activities are **not** copied; target term must be empty).
+- Component validation/API errors appear only inside the Add/Edit grading component modal; Class Record renders no page-level error banner under the assignment selector.
 - Score saves are debounced **800 ms** and bulk-posted to `POST /api/component-scores/bulk`. The backend resolves every activity → component → assignment → section/student relationship, rejects the whole batch if any row is out of scope or the term is closed, and validates every score against the activity's `max_score`.
 - Typing a value above `max_score` clamps it and shows an amber border + dot for 3 seconds.
 - Keyboard navigation: arrows, Enter, Tab/Shift+Tab across score cells.
@@ -147,6 +160,7 @@ Notes:
 - Subjects persist across school years; `school_year` is retained but no longer used for filtering.
 - Semester is required on create (`1st Semester`, `2nd Semester`, `Summer`). The DB column allows NULL, but the route rejects it.
 - Manage Subjects has a semester filter and a four-column year-level board.
+- Add Subjects errors display only inside the modal. Identical errors from multiple rows are deduplicated, so a closed-term response appears once. Partial success updates the board and retains only failed rows in the open modal for retry.
 - Create and delete are term-locked: `POST` compares the requested semester, `DELETE` compares the subject's semester, and both return **403** when it is not the active term. In archive mode, add/delete are also disabled in the UI.
 
 ## Students
@@ -159,9 +173,12 @@ Notes:
 ## Excel Import / Template
 
 - **Import** in Manage Sections accepts `.xlsx`/`.xls`, parsed client-side with `xlsx`.
-- Required headers, exactly: `Student ID`, `First Name`, `Last Name`, `MI`, `Gender`.
+- Required headers: `firstname`, `lastname`, `middle initial`, `student id`, `gender` (case-insensitive/trimmed). Legacy aliases such as `First Name`, `Last Name`, and `MI` remain accepted.
 - Header mismatch shows expected vs found headers.
-- Preview splits into *Students to Add* and *Skipped (Duplicate ID)*, then posts to `POST /api/sections/:sectionId/students/bulk`.
+- Preview lists rows with include checkboxes and status badges, then posts selected rows to `POST /api/sections/:sectionId/students/bulk`.
+- Imported Student IDs must match `##-####-###` exactly using digits and hyphens (e.g. `26-1234-001`). File values are trimmed, not auto-reformatted; numeric/unhyphenated IDs, wrong group lengths, and letters are invalid. Preserve leading zeros by storing IDs as text in Excel.
+- Invalid IDs are flagged, unchecked, and disabled in both uploaded-file and manual-grid previews. Neither individual toggles nor **Select all** can include them; submit revalidates the selected IDs. Duplicate/incomplete row checks remain in place.
+- The bulk API also skips invalid IDs with a format reason, allowing other valid rows to continue. This is import validation only; no schema change or rewrite of existing student IDs.
 - Backend returns `{ added, skipped[] }`; skipped rows include a reason.
 - `/admin/bulk-students` is a separate Excel-template builder (`firstname`, `lastname`, `middle initial`, `student id`, `gender`) that downloads a blank or completed `.xlsx`. It is not yet linked from the Sections page.
 
@@ -200,7 +217,7 @@ Shared UI: `frontend/src/components/teacher/ExportButtons.jsx` (per-format spinn
   - **Teacher** — forced empty result.
 - Logged events include logins (success/failure), user CRUD, department/course CRUD, and backup export/restore.
 - `POST /api/activity` derives `user_name` and `department` from the verified JWT; any client-supplied values are ignored, so audit rows cannot be attributed to another user.
-- `SecurityAudit.jsx` filters by action type, paginates 10 rows, and auto-refreshes every 10 s while the tab is visible.
+- `audit.jsx` filters by action type, paginates 50 rows, and auto-refreshes every 10 s while the tab is visible.
 
 ## Notifications
 

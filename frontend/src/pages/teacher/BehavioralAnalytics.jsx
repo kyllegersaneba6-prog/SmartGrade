@@ -438,7 +438,7 @@ const BehavioralAnalytics = () => {
       />
       <div className="flex flex-wrap items-center gap-3">
         <AssignmentSelector />
-        <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
+        <div className="flex items-center bg-bg-light border border-border rounded-lg p-1 shadow-elevated">
           {TERMS.map((t) => (
             <button
               key={t}
@@ -456,25 +456,25 @@ const BehavioralAnalytics = () => {
       {/* Summary KPI Cards */}
       {hasComponents && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover">
+          <div className="bg-white p-5 rounded-2xl border border-gray-50 kpi-card">
             <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Final Grade</div>
             <div className={`text-2xl font-extrabold ${summary.avgGrade >= 75 ? 'text-green-700' : 'text-red-600'}`}>
               {summary.avgGrade.toFixed(2)}
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover">
+          <div className="bg-white p-5 rounded-2xl border border-gray-50 kpi-card">
             <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Submission Rate</div>
             <div className={`text-2xl font-extrabold ${summary.avgSubRate >= 0.9 ? 'text-green-700' : summary.avgSubRate >= 0.75 ? 'text-amber-600' : 'text-red-600'}`}>
               {(summary.avgSubRate * 100).toFixed(1)}%
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover">
+          <div className="bg-white p-5 rounded-2xl border border-gray-50 kpi-card">
             <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Attendance Rate</div>
             <div className={`text-2xl font-extrabold ${summary.avgAttendanceRate >= 0.9 ? 'text-green-700' : summary.avgAttendanceRate >= 0.75 ? 'text-amber-600' : 'text-red-600'}`}>
               {(summary.avgAttendanceRate * 100).toFixed(1)}%
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 card-hover">
+          <div className="bg-white p-5 rounded-2xl border border-gray-50 kpi-card">
             <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Overall Performance</div>
             <div className={`text-2xl font-extrabold ${summary.avgPerformance >= 75 ? 'text-green-700' : summary.avgPerformance >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
               {summary.avgPerformance.toFixed(1)}%

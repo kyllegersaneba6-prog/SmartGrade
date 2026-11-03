@@ -64,20 +64,33 @@ There is **no per-role color palette**. Admin, teacher, and superadmin share nav
 | Pattern | Implementation |
 |---|---|
 | Page heading | White `rounded-2xl` card with an uppercase eyebrow, navy title, muted description, and optional count / filter / action chips; Admin, teacher, and superadmin use the same pattern |
-| Card | `bg-white rounded-2xl border border-gray-200 shadow-sm`, optional `card-hover` |
+| Card | `bg-white rounded-2xl border border-gray-200 shadow-sm`, optional `card-hover`. Behavioral Analytics KPI cards skip `card-hover` and use `.kpi-card` to keep the elevated shadow permanently. Teacher Overview year columns use `auto-rows-fr` + fixed `h-[420px]` for equal expanded height whether or not subjects are assigned; the subject list becomes vertically scrollable at 5+ subjects (`max-h-[17rem]`) |
 | Data table | `.table-responsive` wrapper, light-gray header row, uppercase 10–12 px labels, thin gray borders, pagination footer |
+| Teacher Accounts table | Replaces pagination with an `overflow-auto` region capped at `min(480px, 60vh)`, all filtered teachers rendered, and opaque `bg-gray-50 sticky top-0` column headers. Search resets vertical scroll; footer shows matching and total teacher counts. Actions use a 20 px Lucide `Bolt` icon; row menus remain portaled and close on scroll |
+| Student import ID validation | IDs must match `##-####-###`; invalid rows use the flagged red background and an `Invalid ID (##-####-###)` status badge, with a disabled include checkbox and format guidance above the preview |
+| Assigned Subjects modal icon | Header eye icon uses `text-amber-300` on a `bg-amber-300/10` rounded badge, keeping the icon visible against the lightly tinted background |
+| Assigned Teachers modal search | Upper-right bordered search input beside the close button, with search/clear icons; header wraps on smaller screens. Filters teacher names, sections, and year levels case-insensitively; resets when the modal opens. Results retain the existing scrollable body and loading/empty states |
+| Audit action text | `RATE_LIMITED_LOGIN` uses red `#dc2626`, matching failed-login and delete actions; update actions remain blue and create/success actions remain green |
+| Add Subjects errors | One modal-local `role="alert"` red error block; identical response messages are deduplicated across rows (including closed-term errors). No page-level add-error banner. Partial failures keep the modal open with failed rows only |
 | Teacher grade grid | Class Record and Attendance use page scrolling for vertical movement and horizontal scrolling for wide grids; their student columns remain frozen. Attendance fixes the sticky row offsets and keeps frozen header cells opaque above student data. Class Record anchors its heading, controls, alerts, and pagination during horizontal movement; its explicit `<colgroup>` keeps student columns and the spanning header aligned, with 1px black separators at component boundaries and below MAX SCORE. Grade Summary keeps its own `.table-scroll` wrapper with a sticky `<thead>`. |
 | Class Record sticky layers | `.class-record-horizontal-anchor` is sticky at `z-index: 20`. The heading wrapper adds `.class-record-heading-anchor` (`z-index: 40`) so the Export dropdown (second item hangs over the toolbar row) stays clickable; without it, later `z-index: 20` toolbar rows swallow the click and only Excel works. |
 | Primary button | Navy `#0c1925`/`#142a3f`, white text, `rounded-lg`, hover `scale-105`; global base rule gives every enabled `button`/`[role="button"]`/submit input/`select`/`summary` a pointer cursor (disabled ones get `not-allowed`) |
 | Gold button | `#fbbf24` with dark text (Export, Import) |
 | Destructive button | `bg-red-600` (disabled `bg-red-300`) + typed `Confirm` |
 | Input / select | `bg-gray-100` or `#fbf8f1`, border `#e5e0d5`, `rounded-lg`, focus `ring-2 ring-[#142a3f]` |
+| Search input | `border border-gray-900 rounded-lg`, focus `ring-2 ring-[#0c1925] focus:border-[#0c1925]`, leading search icon, trailing clear button when non-empty (Attendance, Teacher Overview, Admin Teacher Accounts) |
 | Table row number | `text-gray-900 text-[10px]`, frozen left column, `bg-white` (or `bg-gray-50` on zebra rows), `bg-green-200` when the row is selected — identical in Attendance, Class Record, Analytics, Grade Summary |
 | Pills | `rounded-full text-[10px] font-bold uppercase`; amber = active/role, green = open/success, gray = closed, red = critical |
 | Settings surfaces | Active term card / active history row: `bg-amber-300 border-amber-200` (badge `bg-amber-100 text-amber-700`); viewing/archive row: `bg-amber-50 border-amber-300 ring-1 ring-amber-300`; inactive row: `bg-gray-50 border-gray-200` |
 | Modal | Fixed overlay `rgba(0,0,0,0.6)` + 2 px blur at `z-index: 100` (`.modal-backdrop`, above frozen table columns), `rounded-xl` surface, Escape/outside close |
-| Dropdown | Custom trigger with icon tile, optional search, `max-h-56` scroll panel, check mark on selection |
+| Add/Edit grading component modal | All body, label, helper, empty-state, and action text uses `text-gray-900` (disabled subcomponent option adds `opacity-60` instead of a lighter gray). Weight input accepts digits/decimal only and silently caps typed values at the remaining term weight (max 100), so the "no more than" error is not shown. The modal's Add Component/Save Changes button stays enabled with an empty name; clicking it shows "Enter a component name" inside this modal. Component validation/API errors render only inside the modal — no error banner under the Class Record assignment selector |
+| Transfer Student modal sizing | `max-w-lg w-full min-w-0`, `h-[520px] max-h-[90dvh]`; non-shrinking header/footer with a `min-h-0 flex-1 overflow-y-auto` body so lookup states do not resize the dialog |
+| Transfer Student ID focus | Matching navy border and 2 px inset focus ring (`focus:ring-inset`) keep the focus indicator inside the input, avoiding clipping/overlap at the scrollable body's edges |
+| Transfer Student search loading | Modal-relative `absolute inset-0` flex centering, a navy `LoaderCircle` rotating continuously every 1000 ms (slowed to 2 s under reduced motion) and `role="status"` message; no duplicate inline loader or student/destination panels while searching. Overlay is pointer-events-none, so ID correction and Cancel remain available |
+| Dropdown | Custom trigger with icon tile, optional search, `max-h-56` scroll panel, check mark on selection. Sublabels default to `text-gray-400`; `sublabelClassName` overrides them (Attendance session uses `text-gray-900` for "Morning session" / "Afternoon session"). Teacher assignment-selector triggers use `.shadow-elevated` permanently |
+| Teacher term tabs | Segmented `bg-bg-light border border-border rounded-lg p-1` container with `shadow-elevated`; selected tab `bg-[#0c1925] text-white shadow-sm` |
 | Empty state | Centered icon at 30% opacity + short title + hint |
+| Backend unavailable | App-wide fixed `inset-0 z-[1000]` gradient screen; centered `max-w-lg rounded-2xl` status card, logo/server-off icon on a `bg-gray-50 border-gray-800` badge, exact requested title/message, amber **Try Again** button; mounted routes hidden/inert underneath. Icon strokes use a unique-ID SVG gradient equivalent to `linear-gradient(to right, #0c1925, #102132, #142a3f)` |
 | Skeleton | `.skeleton-shimmer` blocks; presets in `components/common/Skeleton.jsx` |
 | Pagination | `components/common/Pagination.jsx` — range label with configurable item label, ellipsis, prev/next; hidden at one page |
 | Read-only notice | Amber banner "This term is closed. Viewing only." |
@@ -103,6 +116,6 @@ There is **no per-role color palette**. Admin, teacher, and superadmin share nav
 
 ## Known Inconsistencies
 
-- `SecurityAudit.jsx` role tags give admin and teacher nearly identical gold; the admin value also contains stray spaces.
+- `audit.jsx` role tags give admin and teacher nearly identical gold; the admin value also contains stray spaces.
 - `SuperAdminUsers.jsx` declares an unused violet role color.
 - `--color-bg-light` is white, though older docs/changelog mention a pearl (`#F0EAD6`) background.

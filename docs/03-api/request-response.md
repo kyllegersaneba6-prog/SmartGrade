@@ -13,6 +13,25 @@ Tokens also contain an opaque `session` fingerprint. Each request reloads the ac
 
 Status convention: **401** = no/expired/invalid session (the frontend `utils/api.js` clears the token and redirects to `/login`); **403** = valid session but the action is not allowed (closed term, wrong role, cross-scope). A 403 leaves the user signed in so the page can display the message.
 
+## Public Process Health
+
+```text
+GET /api/health
+No authentication or archive headers
+
+200 OK
+Cache-Control: no-store
+{ "status": "ok", "service": "smartgrade-api" }
+```
+
+The UI validates both fields, with 5 s polling and a 5 s timeout. When this endpoint cannot be reached/validated, every route shows:
+
+> **Service Unavailable**
+>
+> The service could not be started. We're unable to process your request at this time.
+
+**Try Again** requests another health check; recovery restores the current UI/session without replaying the failed request. A database-route 503 alone does not trigger this screen if process health remains available.
+
 ## Archive Write Guard
 
 While browsing an archived term, the client sends `X-View-Term-School-Year` and `X-View-Term-Semester` on every request. Any mutating method (`POST`, `PUT`, `PATCH`, `DELETE`) whose headers differ from the active term returns:
@@ -49,7 +68,7 @@ Body: { "username": "admin", "password": "admin123" }
 
 Failures:
 - Unknown username → `401 { "message": "Invalid username " }` (trailing space is in the source)
-- Wrong password → `401 { "message": "Invalid password" }`
+- Wrong password → `401 { "message": "Invalid password. 4 attempts remaining." }` (example after the first failure with default limits and no prior attempts). Uses singular `1 attempt remaining`; at zero: `Invalid password. 0 attempts remaining. Please try again later.` The count is the smallest remaining username/account/IP budget after recording this attempt, never negative; it is not hardcoded to five. Subsequent blocked requests still return 429.
 - Existing account without a valid department → `403 { "message": "A valid department is required. Contact your administrator." }`
 - Account or alias rate limit → `429 { "message": "Too many login attempts. Please try again later." }` with `Retry-After`; different aliases cannot bypass the account bucket
 - Supabase unreachable (no internet) → `503 { "message": "You are currently offline. Please check your Wi-Fi or ethernet connection and try again." }`
@@ -285,19 +304,22 @@ POST /api/sections/:sectionId/students/bulk
 Auth: admin
 Body: {
   "students": [
-    { "student_id": "26-01234", "first_name": "Juan", "last_name": "Dela Cruz", "mi": "M", "gender": "Male" }
+    { "student_id": "26-1234-001", "first_name": "Juan", "last_name": "Dela Cruz", "mi": "M", "gender": "Male" },
+    { "student_id": "261234002", "first_name": "Ana", "last_name": "Cruz", "mi": "", "gender": "Female" }
   ]
 }
 
 200: {
-  "added": 10,
+  "added": [
+    { "id": "uuid", "student_id": "26-1234-001", "student_name": "Dela Cruz, Juan M.", "first_name": "Juan", "last_name": "Dela Cruz", "mi": "M", "gender": "Male", "section_id": "section-uuid" }
+  ],
   "skipped": [
-    { "student_id": "26-01235", "reason": "Student ID already exists in section" }
+    { "student_id": "261234002", "reason": "Student ID must use ##-####-### format (e.g. 26-1234-001)." }
   ]
 }
 ```
 
-Duplicates are checked against the section's existing `student_id` values.
+Student IDs must be strings with exactly two digits, a hyphen, four digits, a hyphen, and three digits (`##-####-###`). Invalid rows are skipped before insert; valid rows continue. The API does not auto-format IDs. Preserve leading zeros. Duplicates are checked against the section's existing `student_id` values and earlier successful inserts in this batch (`reason: "Duplicate ID"`). The UI trims uploaded values before validation and disables invalid-format rows in the preview, including for **Select all**.
 
 ## Delete Student
 

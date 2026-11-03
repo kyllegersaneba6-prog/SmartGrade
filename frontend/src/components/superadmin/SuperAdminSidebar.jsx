@@ -6,8 +6,8 @@ import clsx from 'clsx';
 const navItems = [
   { name: 'Dashboard', path: '/superadmin', icon: LayoutDashboard, exact: true },
   { name: 'Dept & Courses', path: '/superadmin/departments', icon: Building2 },
-  { name: 'Admin Management', path: '/superadmin/users', icon: Users },
-  { name: 'Security & Audit', path: '/superadmin/security', icon: ShieldCheck },
+  { name: 'Admin Management', path: '/superadmin/admins', icon: Users },
+  { name: 'Audit Logs', path: '/superadmin/audit', icon: ShieldCheck },
   { name: 'Settings', path: '/superadmin/settings', icon: Settings },
 ];
 

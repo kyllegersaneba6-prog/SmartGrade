@@ -2,6 +2,8 @@
 
 ## App Shell
 
+`main.jsx` wraps the entire `App`/router in `BackendAvailability`. Routes do not mount until the first successful public health check. An unavailable backend shows the same status screen at every URL, without navigating away; later outages hide/inert the existing route tree and reveal it again on recovery.
+
 All three layouts share the same skeleton:
 
 | Part | Detail |
@@ -19,8 +21,8 @@ Sidebar styling: gradient `to right, #0c1925 → #102132 → #142a3f`; active it
 |---|---|---|
 | Dashboard | `/superadmin` | `LayoutDashboard` |
 | Dept & Courses | `/superadmin/departments` | `Building2` |
-| Admin Management | `/superadmin/users` | `Users` |
-| Security & Audit | `/superadmin/security` | `ShieldCheck` |
+| Admin Management | `/superadmin/admins` | `Users` |
+| Audit Logs | `/superadmin/audit` | `ShieldCheck` |
 | Settings | `/superadmin/settings` | `Settings` |
 
 Header: page title and a System Administration badge, in the shared white-header style. Nav labels are `text-sm`.
@@ -59,9 +61,9 @@ Defined in `frontend/src/App.jsx`:
 /                                 → redirect (token → role dashboard, else /login)
 
 /superadmin                       → SuperAdminLayout → SuperAdminDashboard
-/superadmin/security              → SecurityAudit
-/superadmin/users                 → SuperAdminUsers
-/superadmin/users/create          → CreateSuperAdminUser
+/superadmin/audit                 → Audit (audit.jsx)
+/superadmin/admins                → SuperAdminUsers
+/superadmin/admins/create         → CreateSuperAdminUser
 /superadmin/departments           → ManageDepartments
 /superadmin/settings              → SuperAdminSettings
 
@@ -109,9 +111,9 @@ Unmatched URLs are handled by the top-level `*` route and render `NotFound` with
 | `/admin/bulk-students` | Bulk Student Import |
 | `/admin/settings` (and anything unmatched) | Settings |
 | `/superadmin` | Dashboard |
-| `/superadmin/security` | Security & Audit Logs |
-| `/superadmin/users` | Admin Management |
-| `/superadmin/users/create` | Create New Admin |
+| `/superadmin/audit` | Audit Logs |
+| `/superadmin/admins` | Admin Management |
+| `/superadmin/admins/create` | Create New Admin |
 | `/superadmin/departments` | Departments & Courses |
 | `/superadmin/settings` | Settings |
 | `/teacher` or `/teacher/overview` | Overview |

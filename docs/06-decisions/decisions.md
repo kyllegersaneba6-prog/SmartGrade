@@ -2,6 +2,7 @@
 
 | Decision | Reason | Date |
 |---|---|---|
+| One app-wide backend-availability boundary and process-health probe | Ensures Login, all roles, and unknown URLs use the same outage message without redirects/logout. Native React subscription shares 5 s polling/timeout and manual/focus/online retries; mounted forms survive later outages. Chose dedicated anonymous `/api/health` over authenticated/database-backed probes so permission/DB errors are not mislabeled as a stopped process. No automatic mutation replay. | 2026-11-03 |
 | Fresh-account JWT verification with a keyed security fingerprint | Reject deleted accounts and changed password/role/username/department/course/creator fields on the next request without a schema migration. Legacy tokens require re-login; DB outages return 503; missing admin/teacher department fails closed. State-based fingerprinting is not a permanent revocation ledger across identical restores. | 2026-11-02 |
 | Shared ownership plus department/relationship validation | Keep existing `created_by` policy while closing filter bypasses, foreign roster mutations, and mixed student batches. Transfers check both active-term sections. Authorization lookup caches live only on the request's fresh user object. | 2026-11-02 |
 | Account field allowlists; no role transitions through profile PATCH | Admin can manage only owned same-department teachers, superadmin only admins. Server-derived usernames and fixed roles prevent privilege escalation through extra body fields. | 2026-11-02 |

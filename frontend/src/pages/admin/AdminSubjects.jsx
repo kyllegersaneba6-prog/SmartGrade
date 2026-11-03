@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, X, BookOpen, GraduationCap, CalendarDays } from 'lucide-react';
+import { Plus, Trash2, X, BookOpen, GraduationCap, CalendarDays, Search } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
 import { SkeletonList, SkeletonTable } from '../../components/common/Skeleton';
@@ -26,6 +26,7 @@ const AdminSubjects = () => {
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
   const [subjectAssignments, setSubjectAssignments] = useState([]);
+  const [assignmentSearch, setAssignmentSearch] = useState('');
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [subjectToDelete, setSubjectToDelete] = useState(null);
@@ -110,6 +111,7 @@ const AdminSubjects = () => {
     setCodeError('');
     const errors = [];
     const added = [];
+    const failedRows = [];
     for (const { code, name } of rows) {
       try {
         const res = await api('/api/subjects', {
@@ -121,21 +123,30 @@ const AdminSubjects = () => {
         } else {
           const data = await res.json();
           errors.push(data.message || data.error || `Failed to add "${name}"`);
+          failedRows.push({ code, name });
         }
-      } catch { errors.push(`Network error adding "${name}"`); }
+      } catch {
+        errors.push(`Network error adding "${name}"`);
+        failedRows.push({ code, name });
+      }
     }
     if (added.length > 0) {
       setSubjects((prev) => [...prev, ...added].sort((a, b) => a.name.localeCompare(b.name)));
+    }
+    if (errors.length > 0) {
+      setSubjectRows(failedRows);
+      setError([...new Set(errors)].join('\n'));
+    } else {
       setSubjectRows([{ code: '', name: '' }]);
       setCodeError('');
       setShowAdd(false);
     }
-    if (errors.length > 0) setError(errors.join('\n'));
     setAdding(false);
   };
 
   const openAssignModal = async (subject) => {
     setSelectedSubject(subject);
+    setAssignmentSearch('');
     setAssignModalOpen(true);
     setAssignLoading(true);
     try {
@@ -152,6 +163,12 @@ const AdminSubjects = () => {
   }));
 
   const maxRows = Math.max(...grouped.map((g) => g.subjects.length), 0);
+
+  const assignmentQuery = assignmentSearch.trim().toLowerCase();
+  const filteredSubjectAssignments = subjectAssignments.filter((assignment) =>
+    [assignment.teacher?.full_name, assignment.sections?.name, `${assignment.sections?.year_level || ''} Year`]
+      .some((value) => String(value || '').toLowerCase().includes(assignmentQuery))
+  );
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -224,8 +241,6 @@ const AdminSubjects = () => {
         </div>
       </div>
 
-      {error && <div className="w-fit max-w-full bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-pre-line">{error}</div>}
-
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 card-hover overflow-x-auto">
         {loading ? (
           <div aria-busy="true"><SkeletonTable cols={4} rows={6} /></div>
@@ -286,6 +301,7 @@ const AdminSubjects = () => {
             <div className="mb-4 px-3 py-2 rounded-lg bg-gray-100 text-xs text-gray-700">
               Adding to <strong>{selectedCourseId ? (courses.find(c => c.id === selectedCourseId)?.abbreviation || courses.find(c => c.id === selectedCourseId)?.name || 'Selected course') : 'All Courses'}</strong> • <strong>{semesterFilter || '—'}</strong>
             </div>
+            {error && <div role="alert" className="mb-4 bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-pre-line">{error}</div>}
             <div className="mb-4">
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Year Level</label>
               <select
@@ -363,17 +379,35 @@ const AdminSubjects = () => {
       {assignModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0c1925]/20">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 border border-gray-100 h-[480px] flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0">
+              <div className="flex min-w-0 items-center gap-2">
                 <div className="p-2 rounded-lg bg-green-50"><GraduationCap size={20} className="text-green-600" /></div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Assigned Teachers</h3>
                   <p className="text-xs text-gray-900">{selectedSubject?.code && <span className="font-mono mr-1">{selectedSubject.code}</span>}{selectedSubject?.name}</p>
                 </div>
               </div>
-              <button onClick={() => { setAssignModalOpen(false); setSubjectAssignments([]); setSelectedSubject(null); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <div className="ml-auto flex items-center gap-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    aria-label="Search assigned teachers"
+                    placeholder="Search teachers or sections..."
+                    value={assignmentSearch}
+                    onChange={(e) => setAssignmentSearch(e.target.value)}
+                    className="w-52 max-w-full pl-9 pr-8 py-2 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white text-gray-900"
+                  />
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+                  {assignmentSearch && (
+                    <button type="button" onClick={() => setAssignmentSearch('')} aria-label="Clear assigned teachers search" className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <button onClick={() => { setAssignModalOpen(false); setSubjectAssignments([]); setSelectedSubject(null); }} aria-label="Close assigned teachers" className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto pr-1">
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
               {assignLoading ? (
                 <div aria-busy="true"><SkeletonList rows={3} avatar /></div>
               ) : subjectAssignments.length === 0 ? (
@@ -381,9 +415,11 @@ const AdminSubjects = () => {
                   <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
                   <p className="text-sm font-medium">No teachers assigned to this subject.</p>
                 </div>
+              ) : filteredSubjectAssignments.length === 0 ? (
+                <p role="status" className="text-center py-12 text-sm font-medium text-gray-500">No assigned teachers match your search.</p>
               ) : (
                 <div className="space-y-3">
-                  {subjectAssignments.map((a) => (
+                  {filteredSubjectAssignments.map((a) => (
                     <div key={a.id} className="flex items-center justify-between px-4 py-3 rounded-lg border border-gray-100 bg-gray-50">
                       <div className="space-y-0.5">
                         <p className="text-sm font-semibold text-gray-800">{a.teacher?.full_name}</p>

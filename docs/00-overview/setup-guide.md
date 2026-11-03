@@ -100,6 +100,7 @@ npm run dev
 
 | Error | Fix |
 |---|---|
+| **Service Unavailable** on every page | In a separate terminal run `cd backend` then `npm run start` (or `npm run dev`). The UI checks again every 5 s or via **Try Again**. If it persists, check `VITE_API_BASE_URL`, backend port/CORS, and whether `GET /api/health` returns the SmartGrade health JSON. Restart the backend after upgrading to include this endpoint |
 | `supabaseUrl is required` | `backend/.env` missing/empty, or variable named `SUPABASE_KEY` instead of `SUPABASE_SERVICE_ROLE_KEY` |
 | `relation "public.departments" does not exist` | Run `schema.sql` first |
 | `add_db_constraints.sql` aborts with "Multiple active terms", "Multiple admins", "weight totals exceed 100", or "score(s) outside" | Fix the rows named in the error, then re-run. The migration never rewrites data |
@@ -113,3 +114,5 @@ npm run dev
 | AI summary always fails | `OMNIROUTE_API_KEY` unset or gateway down — check `GET /api/ai/status` |
 | Frontend requests fail after deploying | Set `VITE_API_BASE_URL` in `frontend/.env` to the reachable backend origin, then rebuild. Without it, the frontend targets `http://<current-hostname>:5000` |
 | `EALLOWREMOTE` during frontend install | Use `npm ci --allow-remote=root` for the approved official SheetJS tarball; do not replace it with registry `xlsx@0.18.5` |
+
+The unavailable screen indicates that this browser cannot reach/validate the backend health endpoint; it cannot prove whether a terminal command was run. Network/CORS/configuration failures can produce the same screen. The health endpoint checks the API process only, not database or AI readiness; ordinary API 401/403/500/503 responses retain their existing page-level handling when health is reachable.

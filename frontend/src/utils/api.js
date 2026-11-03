@@ -1,8 +1,8 @@
-const DEFAULT_API_BASE = `http://${window.location.hostname}:5000`;
+import { API_BASE } from './apiBase';
+import { checkBackendAvailability } from './backendAvailability';
 
-// Deployments that serve the API elsewhere set VITE_API_BASE_URL
-// (see frontend/.env.example). The default matches the local/LAN setup.
-export const API_BASE = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE).replace(/\/+$/, '');
+// Preserve the existing import path for pages such as Login.
+export { API_BASE } from './apiBase';
 
 // Pages call api('/api/...'); absolute URLs still pass through unchanged.
 const resolveUrl = (url) => (url.startsWith('/') ? `${API_BASE}${url}` : url);
@@ -40,16 +40,23 @@ const handle401 = () => {
 const api = async (url, options = {}) => {
   const token = getToken();
   const viewTerm = getViewTerm();
-  const res = await fetch(resolveUrl(url), {
-    ...options,
-    headers: {
-      ...options.headers,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(viewTerm?.school_year ? { 'X-View-Term-School-Year': viewTerm.school_year } : {}),
-      ...(viewTerm?.semester ? { 'X-View-Term-Semester': viewTerm.semester } : {}),
-      'Content-Type': 'application/json',
-    },
-  });
+  let res;
+  try {
+    res = await fetch(resolveUrl(url), {
+      ...options,
+      headers: {
+        ...options.headers,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(viewTerm?.school_year ? { 'X-View-Term-School-Year': viewTerm.school_year } : {}),
+        ...(viewTerm?.semester ? { 'X-View-Term-Semester': viewTerm.semester } : {}),
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (error) {
+    if (error?.name !== 'AbortError') void checkBackendAvailability();
+    throw error;
+  }
+  if (res.status >= 500) void checkBackendAvailability();
 
   // 403 = authenticated but not allowed (closed term, role restriction,
   // cross-scope access). Keep the session; the caller shows the message.

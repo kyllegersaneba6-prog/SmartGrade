@@ -109,12 +109,12 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
   const handleClose = () => {
     if (createdUsername && onSuccess) onSuccess();
     if (onClose) onClose();
-    else navigate('/superadmin/users');
+    else navigate('/superadmin/admins');
   };
 
   const handleCancel = () => {
     if (onClose) onClose();
-    else navigate('/superadmin/users');
+    else navigate('/superadmin/admins');
   };
 
   if (createdUsername) {

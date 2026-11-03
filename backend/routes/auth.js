@@ -192,7 +192,12 @@ router.post('/login', async (req, res) => {
       recordUsernameFailure(username);
       recordAccountFailure(user.id);
       await logFailedLogin(user.username || dbUsername, user.department || null);
-      return res.status(401).json({ message: 'Invalid password' });
+      // Report the tightest remaining budget, including the shared account
+      // bucket for aliases and the IP bucket for attempts on other accounts.
+      const limits = [checkUsernameLimit(username), checkAccountLimit(user.id), checkIpLimit(clientIp)];
+      const remaining = Math.max(0, Math.min(...limits.map(({ max, count }) => max - count)));
+      const message = `Invalid password. ${remaining} ${remaining === 1 ? 'attempt' : 'attempts'} remaining.${remaining === 0 ? ' Please try again later.' : ''}`;
+      return res.status(401).json({ message });
     }
 
     clearUsernameFailures(username);

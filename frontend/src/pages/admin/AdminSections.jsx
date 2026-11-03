@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Trash2, X, UserPlus, Layers, Upload, FileSpreadsheet, CheckCircle, ArrowRightLeft } from 'lucide-react';
+import { Plus, Trash2, X, UserPlus, Layers, Upload, FileSpreadsheet, CheckCircle, ArrowRightLeft, LoaderCircle } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import CustomDropdown from '../../components/common/CustomDropdown';
 import { GraduationCap, CalendarDays } from 'lucide-react';
@@ -17,6 +17,9 @@ const formatStudentId = (value) => {
 };
 
 const yearLevels = ['1st', '2nd', '3rd', '4th'];
+
+const isValidImportedStudentId = (value) => typeof value === 'string'
+  && value.length === 11 && /^\d{2}-\d{4}-\d{3}$/.test(value);
 
 import api from '../../utils/api';
 
@@ -95,6 +98,7 @@ const AdminSections = () => {
   const [transferTargetYear, setTransferTargetYear] = useState('1st');
   const [transferTargetSectionId, setTransferTargetSectionId] = useState('');
   const [transferTargetSections, setTransferTargetSections] = useState([]);
+  const [transferSearching, setTransferSearching] = useState(false);
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState('');
   const [transferSuccess, setTransferSuccess] = useState('');
@@ -102,55 +106,33 @@ const AdminSections = () => {
   const [emptySectionMissing, setEmptySectionMissing] = useState(false);
   const emptySectionErrorTimeoutRef = useRef(null);
 
-  const handleSearchStudentForTransfer = async (idVal) => {
+  const handleSearchStudentForTransfer = (idVal) => {
     const formatted = formatStudentId(idVal);
+    if (formatted === transferStudentId) return;
     setTransferStudentId(formatted);
     setTransferError('');
     setTransferSuccess('');
+    setTransferFoundStudent(null);
+    setTransferSourceSection(null);
+    setTransferTargetSections([]);
+    setTransferTargetSectionId('');
     if (!formatted || formatted.replace(/-/g, '').length < 9) {
-      setTransferFoundStudent(null);
-      setTransferSourceSection(null);
-      setTransferTargetSections([]);
-      setTransferTargetSectionId('');
+      setTransferSearching(false);
       return;
     }
-    setTransferLoading(true);
-    try {
-      const localMatch = students.find(s => s.student_id === formatted);
-      if (localMatch && selectedSection) {
-        setTransferFoundStudent(localMatch);
-        setTransferSourceSection(selectedSection);
-        setTransferTargetYear(selectedSection.year_level || '1st');
-        const params = new URLSearchParams({ year: selectedSection.year_level || '1st' });
-        if (schoolYear) params.set('school_year', schoolYear);
-        if (semester) params.set('semester', semester);
-        if (selectedSection.course_id) params.set('course_id', selectedSection.course_id);
-        const secRes = await api(`/api/sections?${params.toString()}`);
-        if (secRes.ok) {
-          const list = await secRes.json();
-          const valid = list.filter(s => s.id !== selectedSection.id);
-          setTransferTargetSections(valid);
-          if (valid.length > 0) {
-            setTransferTargetSectionId(valid[0].id);
-          } else {
-            setTransferTargetSectionId('');
-          }
-        }
-      } else {
-        setTransferFoundStudent(null);
-        setTransferSourceSection(null);
-        setTransferTargetSections([]);
-        setTransferTargetSectionId('');
-      }
-    } catch {
-      setTransferError('Unable to search for transfer destinations. Please try again.');
-    } finally {
-      setTransferLoading(false);
+    const localMatch = students.find(s => s.student_id === formatted);
+    if (!localMatch || !selectedSection) {
+      setTransferSearching(false);
+      return;
     }
+    setTransferSearching(true);
+    setTransferFoundStudent(localMatch);
+    setTransferSourceSection(selectedSection);
+    setTransferTargetYear(selectedSection.year_level || '1st');
   };
 
   const executeTransfer = async () => {
-    if (!transferFoundStudent || !transferTargetSectionId) return;
+    if (!transferFoundStudent || !transferTargetSectionId || transferSearching || transferLoading || transferSuccess) return;
     setTransferLoading(true);
     setTransferError('');
     try {
@@ -194,32 +176,34 @@ const AdminSections = () => {
   };
 
   useEffect(() => {
-    if (!transferFoundStudent) return;
+    if (!showTransferModal || !transferFoundStudent || !transferSourceSection) return;
+    let cancelled = false;
     const fetchTargetSections = async () => {
+      setTransferSearching(true);
+      setTransferError('');
+      setTransferTargetSections([]);
+      setTransferTargetSectionId('');
       try {
         const params = new URLSearchParams({ year: transferTargetYear });
         if (schoolYear) params.set('school_year', schoolYear);
         if (semester) params.set('semester', semester);
-        if (transferFoundStudent.sections?.course_id) params.set('course_id', transferFoundStudent.sections.course_id);
+        if (transferSourceSection.course_id) params.set('course_id', transferSourceSection.course_id);
         const res = await api(`/api/sections?${params.toString()}`);
-        if (res.ok) {
-          const list = await res.json();
-          const valid = list.filter(s => s.id !== transferFoundStudent.section_id);
-          setTransferTargetSections(valid);
-          if (valid.length > 0) {
-            setTransferTargetSectionId(valid[0].id);
-          } else {
-            setTransferTargetSectionId('');
-          }
-        } else {
-          setTransferError('Unable to load destination sections. Please try again.');
-        }
+        if (!res.ok) throw new Error('Destination lookup failed');
+        const list = await res.json();
+        if (cancelled) return;
+        const valid = list.filter(s => s.id !== transferSourceSection.id);
+        setTransferTargetSections(valid);
+        setTransferTargetSectionId(valid[0]?.id || '');
       } catch {
-        setTransferError('Unable to load destination sections. Please try again.');
+        if (!cancelled) setTransferError('Unable to load destination sections. Please try again.');
+      } finally {
+        if (!cancelled) setTransferSearching(false);
       }
     };
     fetchTargetSections();
-  }, [transferTargetYear, transferFoundStudent, schoolYear, semester]);
+    return () => { cancelled = true; };
+  }, [showTransferModal, transferTargetYear, transferFoundStudent, transferSourceSection, schoolYear, semester]);
 
   const fetchSections = useCallback(async () => {
     setLoadingSections(true);
@@ -428,10 +412,11 @@ const AdminSections = () => {
         });
         const flagged = rawRows.map((r) => {
           const missingFields = !r.student_id || !r.first_name || !r.last_name;
+          const invalidStudentId = !isValidImportedStudentId(r.student_id);
           const duplicateInFile = !!r.student_id && (counts[r.student_id] || 0) > 1;
           const duplicateInSystem = !!r.student_id && existingIds.has(r.student_id);
-          const hasIssue = missingFields || duplicateInFile || duplicateInSystem;
-          return { ...r, missingFields, duplicateInFile, duplicateInSystem, included: !hasIssue };
+          const hasIssue = missingFields || invalidStudentId || duplicateInFile || duplicateInSystem;
+          return { ...r, missingFields, invalidStudentId, duplicateInFile, duplicateInSystem, included: !hasIssue };
         });
         setImportRows(flagged);
         setImportSkipped([]);
@@ -450,6 +435,10 @@ const AdminSections = () => {
     const selected = importRows.filter((r) => r.included);
     if (selected.length === 0) {
       setImportError('Select at least one row to import.');
+      return;
+    }
+    if (selected.some((r) => !isValidImportedStudentId(r.student_id))) {
+      setImportError('Student ID must use ##-####-### format (e.g. 26-1234-001).');
       return;
     }
     setImporting(true);
@@ -481,15 +470,15 @@ const AdminSections = () => {
   };
 
   const toggleImportRow = (rowNum) => {
-    setImportRows((prev) => prev.map((r) => (r.rowNum === rowNum ? { ...r, included: !r.included } : r)));
+    setImportRows((prev) => prev.map((r) => (r.rowNum === rowNum && !r.invalidStudentId ? { ...r, included: !r.included } : r)));
   };
 
   const selectCleanImportRows = () => {
-    setImportRows((prev) => prev.map((r) => ({ ...r, included: !(r.missingFields || r.duplicateInFile || r.duplicateInSystem) })));
+    setImportRows((prev) => prev.map((r) => ({ ...r, included: !(r.missingFields || r.invalidStudentId || r.duplicateInFile || r.duplicateInSystem) })));
   };
 
   const selectAllImportRows = () => {
-    setImportRows((prev) => prev.map((r) => ({ ...r, included: true })));
+    setImportRows((prev) => prev.map((r) => ({ ...r, included: !r.invalidStudentId })));
   };
 
   const updateExcelCell = (i, field, val) => {
@@ -538,13 +527,14 @@ const AdminSections = () => {
       const mi = String(r['middle initial'] || '').trim().toUpperCase().slice(0, 1);
       const gender = String(r.gender || '').trim();
       const missingFields = !student_id || !first_name || !last_name;
+      const invalidStudentId = !isValidImportedStudentId(student_id);
       const duplicateInFile = !!student_id && (counts[student_id] || 0) > 1;
       const duplicateInSystem = !!student_id && existingIds.has(student_id);
       return {
         rowNum: idx + 2,
         student_id, first_name, last_name, mi, gender,
-        missingFields, duplicateInFile, duplicateInSystem,
-        included: !(missingFields || duplicateInFile || duplicateInSystem),
+        missingFields, invalidStudentId, duplicateInFile, duplicateInSystem,
+        included: !(missingFields || invalidStudentId || duplicateInFile || duplicateInSystem),
       };
     });
     setImportRows(flagged);
@@ -696,6 +686,7 @@ const AdminSections = () => {
                     setTransferTargetYear('1st');
                     setTransferTargetSectionId('');
                     setTransferTargetSections([]);
+                    setTransferSearching(false);
                     setTransferError('');
                     setTransferSuccess('');
                   }}
@@ -1122,12 +1113,16 @@ const AdminSections = () => {
                     {importRows.some((r) => r.missingFields) && (
                       <span className="ml-2 text-red-500">{importRows.filter((r) => r.missingFields).length} incomplete</span>
                     )}
+                    {importRows.some((r) => r.invalidStudentId) && (
+                      <span className="ml-2 text-red-500">{importRows.filter((r) => r.invalidStudentId).length} invalid ID format</span>
+                    )}
                   </p>
                   <div className="flex gap-2">
                     <button onClick={selectCleanImportRows} className="px-2.5 py-1 text-[11px] font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Select clean only</button>
                     <button onClick={selectAllImportRows} className="px-2.5 py-1 text-[11px] font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Select all</button>
                   </div>
                 </div>
+                <p className="text-xs text-gray-900 mb-3">Student IDs must use ##-####-### format (e.g. 26-1234-001). Rows with invalid IDs cannot be imported.</p>
                 {importError && <p className="text-xs font-semibold text-red-500 mb-3">{importError}</p>}
                 <div className="flex-1 overflow-y-auto">
                   <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -1144,11 +1139,11 @@ const AdminSections = () => {
                       </thead>
                       <tbody>
                         {importRows.map((row) => {
-                          const flagged = row.missingFields || row.duplicateInFile || row.duplicateInSystem;
+                          const flagged = row.missingFields || row.invalidStudentId || row.duplicateInFile || row.duplicateInSystem;
                           return (
                             <tr key={row.rowNum} className={`border-b last:border-0 ${flagged ? 'bg-red-50/60' : ''}`} style={{ borderColor: '#f0ede6' }}>
                               <td className="px-3 py-1.5">
-                                <input type="checkbox" checked={!!row.included} onChange={() => toggleImportRow(row.rowNum)} className="h-3.5 w-3.5 accent-blue-600" />
+                                <input type="checkbox" checked={!!row.included} disabled={row.invalidStudentId} onChange={() => toggleImportRow(row.rowNum)} className="h-3.5 w-3.5 accent-blue-600 disabled:cursor-not-allowed disabled:opacity-50" />
                               </td>
                               <td className="px-3 py-1.5 text-gray-900">{row.rowNum - 1}</td>
                               <td className="px-3 py-1.5 font-mono text-gray-900">{row.student_id || '—'}</td>
@@ -1158,6 +1153,7 @@ const AdminSections = () => {
                                 <span className="flex flex-wrap gap-1">
                                   {!flagged && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-green-100 text-green-700">Ready</span>}
                                   {row.missingFields && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700">Incomplete</span>}
+                                  {row.invalidStudentId && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700">Invalid ID (##-####-###)</span>}
                                   {row.duplicateInFile && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700">Duplicate in file</span>}
                                   {row.duplicateInSystem && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-100 text-amber-800">Already in section</span>}
                                 </span>
@@ -1186,8 +1182,8 @@ const AdminSections = () => {
 
       {showTransferModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 w-full mx-4 border border-gray-100 max-w-lg max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between mb-4">
+          <div className="relative bg-white rounded-xl modal-surface p-6 w-full min-w-0 mx-4 border border-gray-100 max-w-lg h-[520px] max-h-[90dvh] flex flex-col">
+            <div className="flex shrink-0 items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <ArrowRightLeft size={18} /> Transfer Student
               </h3>
@@ -1195,7 +1191,15 @@ const AdminSections = () => {
                 <X size={20} />
               </button>
             </div>
-            <div className="space-y-4">
+            {transferSearching && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 text-[#0c1925]">
+                  <LoaderCircle size={28} className="animate-spin [animation-duration:1000ms] motion-reduce:[animation-duration:2s]" aria-hidden="true" />
+                  <p className="text-xs font-semibold">Searching student...</p>
+                </div>
+              </div>
+            )}
+            <div aria-busy={transferSearching} className="min-h-0 flex-1 overflow-y-auto space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Student ID</label>
                 <input
@@ -1203,12 +1207,12 @@ const AdminSections = () => {
                   value={transferStudentId}
                   onChange={(e) => handleSearchStudentForTransfer(e.target.value)}
                   placeholder="00-0000-000"
-                  className="w-full px-3 py-2 text-sm font-mono border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925]"
+                  disabled={transferLoading || !!transferSuccess}
+                  className="w-full px-3 py-2 text-sm font-mono border border-gray-300 rounded-lg focus:outline-none focus:border-[#0c1925] focus:ring-2 focus:ring-inset focus:ring-[#0c1925]"
                   autoFocus
                 />
               </div>
-              {transferLoading && <p className="text-xs text-gray-500 italic">Searching student...</p>}
-              {transferFoundStudent ? (
+              {!transferSearching && transferFoundStudent ? (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
                   <div className="text-xs font-bold text-[#0c1925] uppercase tracking-wider mb-1">Student Information (Read-only)</div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
@@ -1218,10 +1222,10 @@ const AdminSections = () => {
                     <div><span className="text-gray-500 font-semibold">Current Section:</span> <span className="text-gray-900 font-bold">{formatSectionName(transferSourceSection?.name) || '—'}</span></div>
                   </div>
                 </div>
-              ) : transferStudentId.replace(/-/g, '').length >= 9 && !transferLoading ? (
+              ) : transferStudentId.replace(/-/g, '').length >= 9 && !transferSearching && !transferError ? (
                 <p className="text-xs text-red-500 font-semibold">Student not found in the currently selected section.</p>
               ) : null}
-              {transferFoundStudent && (
+              {!transferSearching && transferFoundStudent && (
                 <div className="space-y-3 pt-2 border-t border-gray-100">
                   <div className="text-xs font-bold text-[#0c1925] uppercase tracking-wider">Destination</div>
                   <div className="grid grid-cols-2 gap-3">
@@ -1229,7 +1233,10 @@ const AdminSections = () => {
                       <label className="block text-xs font-bold text-gray-700 mb-1">Target Year Level</label>
                       <select
                         value={transferTargetYear}
-                        onChange={(e) => setTransferTargetYear(e.target.value)}
+                        onChange={(e) => {
+                          setTransferSearching(true);
+                          setTransferTargetYear(e.target.value);
+                        }}
                         className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white font-semibold"
                       >
                         {yearLevels.map(y => <option key={y} value={y}>{year === '1st' && y === '1st' ? '1st Year' : y === '1st' ? y + ' Year' : y.replace('st','st').replace('nd','nd').replace('rd','rd').replace('th','th')} {yearLabels && yearLabels[y] ? '' : ''}</option>)}
@@ -1253,14 +1260,14 @@ const AdminSections = () => {
                   </div>
                 </div>
               )}
-              {transferError && <p className="text-xs font-semibold text-red-500">{transferError}</p>}
-              {transferSuccess && <p className="text-xs font-semibold text-green-600">{transferSuccess}</p>}
+              {!transferSearching && transferError && <p className="text-xs font-semibold text-red-500">{transferError}</p>}
+              {!transferSearching && transferSuccess && <p className="text-xs font-semibold text-green-600">{transferSuccess}</p>}
             </div>
-            <div className="flex justify-end gap-3 mt-6 pt-3 border-t border-gray-100">
+            <div className="flex shrink-0 justify-end gap-3 mt-6 pt-3 border-t border-gray-100">
               <button onClick={() => setShowTransferModal(false)} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
               <button
                 onClick={executeTransfer}
-                disabled={!transferFoundStudent || !transferTargetSectionId || transferLoading || transferSuccess}
+                disabled={!transferFoundStudent || !transferTargetSectionId || transferSearching || transferLoading || transferSuccess}
                 className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50"
                 style={{ background: '#0c1925' }}
               >

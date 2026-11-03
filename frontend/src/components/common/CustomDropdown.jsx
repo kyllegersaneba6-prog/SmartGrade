@@ -17,6 +17,7 @@ import { Check, ChevronDown, Search } from 'lucide-react';
  * - disabled
  * - emptyMessage
  * - renderOptionSuffix: (option) => ReactNode (e.g. row actions)
+ * - sublabelClassName: color class for option sublabels (default text-gray-400)
  */
 const CustomDropdown = ({
   value,
@@ -31,6 +32,7 @@ const CustomDropdown = ({
   disabled = false,
   emptyMessage = 'No options found.',
   renderOptionSuffix,
+  sublabelClassName = 'text-gray-400',
 }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -103,7 +105,7 @@ const CustomDropdown = ({
             <>
               <span className="block font-bold text-gray-900 truncate leading-tight">{selected.label}</span>
               {selected.sublabel && (
-                <span className="block text-[10px] text-gray-400 truncate leading-tight">{selected.sublabel}</span>
+                <span className={`block text-[10px] ${sublabelClassName} truncate leading-tight`}>{selected.sublabel}</span>
               )}
             </>
           ) : (
@@ -157,7 +159,7 @@ const CustomDropdown = ({
                         {o.label}
                       </span>
                       {o.sublabel && (
-                        <span className="block text-[10px] text-gray-400 truncate">{o.sublabel}</span>
+                        <span className={`block text-[10px] ${sublabelClassName} truncate`}>{o.sublabel}</span>
                       )}
                     </span>
                     {renderOptionSuffix?.(o)}

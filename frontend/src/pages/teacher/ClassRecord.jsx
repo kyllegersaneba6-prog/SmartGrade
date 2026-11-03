@@ -249,10 +249,9 @@ const ClassRecord = () => {
     const existing = componentModal.mode === 'edit'
       ? components.find((comp) => comp.id === componentModal.componentId)
       : null;
-    const weightAvailable = 100 - components.reduce((sum, comp) => sum + (comp.id === existing?.id ? 0 : Number(comp.weight || 0)), 0);
     if (!name) return setError('Enter a component name.');
-    if (!Number.isFinite(weight) || weight <= 0 || weight > weightAvailable) {
-      return setError(`Weight must be greater than 0 and no more than ${weightAvailable}%.`);
+    if (!Number.isFinite(weight) || weight <= 0) {
+      return setError('Weight must be greater than 0.');
     }
     if (components.some((comp) => comp.id !== existing?.id && comp.name?.toLowerCase() === name.toLowerCase())) {
       return setError('A component with this name already exists for this term.');
@@ -623,7 +622,7 @@ const ClassRecord = () => {
       />
       <div className="flex flex-wrap items-center gap-3">
         <AssignmentSelector />
-        <div className="flex items-center bg-bg-light border border-border rounded-lg p-1">
+        <div className="flex items-center bg-bg-light border border-border rounded-lg p-1 shadow-elevated">
           {TERMS.map((t) => (
             <button
               key={t}
@@ -641,12 +640,6 @@ const ClassRecord = () => {
         </div>
       </div>
 
-      {error && (
-        <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-bold">
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
-          <span>{error}</span>
-        </div>
-      )}
       {isReadOnly && (
         <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs font-bold">
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10m9.364-9.364a9 9 0 11-12.728 0 9 9 0 0112.728 0z" /></svg>
@@ -952,14 +945,14 @@ const ClassRecord = () => {
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
               <div>
                 <h3 className="text-base font-extrabold text-sidebar">{componentModal.mode === 'add' ? 'Add grading component' : 'Edit grading component'}</h3>
-                <p className="text-xs text-gray-500 mt-1">Set its weight and subcomponents for this term.</p>
+                <p className="text-xs text-gray-900 mt-1">Set its weight and subcomponents for this term.</p>
               </div>
-              <button type="button" onClick={() => setComponentModal(null)} disabled={savingComponent} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-50" aria-label="Close"><X size={18} /></button>
+              <button type="button" onClick={() => setComponentModal(null)} disabled={savingComponent} className="p-1.5 rounded-lg text-gray-900 hover:bg-gray-100 disabled:opacity-50" aria-label="Close"><X size={18} /></button>
             </div>
             <div className="p-5 overflow-y-auto space-y-4">
               {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{error}</div>}
               {!componentModal.componentId && (
-                <label className="block text-xs font-bold text-gray-700">Component type
+                <label className="block text-xs font-bold text-gray-900">Component type
                   <select value={componentDraft.is_attendance ? 'attendance' : 'regular'} onChange={(e) => { setCustomNameMode(false); setComponentDraft((draft) => ({ ...draft, is_attendance: e.target.value === 'attendance', name: e.target.value === 'attendance' ? 'Attendance' : '' })); }} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]">
                     <option value="regular">Grading component</option>
                     <option value="attendance" disabled={hasAttendance}>Attendance{hasAttendance ? ' (already added)' : ''}</option>
@@ -967,7 +960,7 @@ const ClassRecord = () => {
                 </label>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
-                <label className="block text-xs font-bold text-gray-700">Component name
+                <label className="block text-xs font-bold text-gray-900">Component name
                   {componentDraft.is_attendance ? (
                     <input value="Attendance" disabled className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925] disabled:bg-gray-100" />
                   ) : customNameMode ? (
@@ -977,7 +970,7 @@ const ClassRecord = () => {
                         onClick={() => { setCustomNameMode(false); setComponentDraft((draft) => ({ ...draft, name: '' })); }}
                         title="Back to component name list"
                         aria-label="Back to component name list"
-                        className="shrink-0 inline-flex items-center justify-center w-9 h-[42px] rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100"
+                        className="shrink-0 inline-flex items-center justify-center w-9 h-[42px] rounded-lg border border-gray-300 text-gray-900 hover:bg-gray-100"
                       >
                         <ChevronLeft size={16} />
                       </button>
@@ -1012,51 +1005,51 @@ const ClassRecord = () => {
                     </select>
                   )}
                 </label>
-                <label className="block text-xs font-bold text-gray-700">Weight (%)
-                  <input type="text" inputMode="decimal" value={componentDraft.weight} onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); const parts = raw.split('.'); const cleaned = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : raw; setComponentDraft((draft) => ({ ...draft, weight: cleaned })); }} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]" />
+                <label className="block text-xs font-bold text-gray-900">Weight (%)
+                  <input type="text" inputMode="decimal" value={componentDraft.weight} onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); const parts = raw.split('.'); const cleaned = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : raw; const remaining = 100 - components.reduce((sum, comp) => sum + (comp.id === componentModal.componentId ? 0 : Number(comp.weight || 0)), 0); const cap = Math.max(0, Math.min(100, remaining)); const numeric = Number.parseFloat(cleaned); const capped = Number.isFinite(numeric) && numeric > cap ? String(Math.round(cap * 100) / 100) : cleaned; setComponentDraft((draft) => ({ ...draft, weight: capped })); }} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]" />
                 </label>
               </div>
               {!componentDraft.is_attendance && (
                 <section className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <div><h4 className="text-xs font-extrabold text-sidebar">Subcomponents</h4><p className="text-[11px] text-gray-500">Add an activity or include attendance.</p></div>
+                    <div><h4 className="text-xs font-extrabold text-sidebar">Subcomponents</h4><p className="text-[11px] text-gray-900">Add an activity or include attendance.</p></div>
                     <div className="relative">
                       <button type="button" onClick={() => setShowSubcomponentChoices((visible) => !visible)} aria-expanded={showSubcomponentChoices} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-sidebar text-xs font-bold hover:bg-gray-200"><Plus size={13} /> Add</button>
                       {showSubcomponentChoices && (
                         <div className="absolute right-0 top-full z-10 mt-1 w-40 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                          <button type="button" onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: '', max_score: '100', is_attendance: false }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50">Activity</button>
-                          <button type="button" disabled={hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance)} onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: 'Attendance', max_score: '1', is_attendance: true }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400">Attendance{hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance) ? ' (already used)' : ''}</button>
+                          <button type="button" onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: '', max_score: '100', is_attendance: false }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50">Activity</button>
+                          <button type="button" disabled={hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance)} onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: 'Attendance', max_score: '1', is_attendance: true }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-900 disabled:opacity-60">Attendance{hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance) ? ' (already used)' : ''}</button>
                         </div>
                       )}
                     </div>
                   </div>
-                  {componentDraft.activities.length === 0 ? <p className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-xs text-gray-500">No subcomponents yet.</p> : componentDraft.activities.map((activity, index) => (
+                  {componentDraft.activities.length === 0 ? <p className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-xs text-gray-900">No subcomponents yet.</p> : componentDraft.activities.map((activity, index) => (
                     <div key={activity.id || activity.key} className="grid grid-cols-[1fr_105px_34px] gap-2 items-end rounded-lg border border-gray-200 bg-gray-50 p-2.5">
                       {activity.id ? (
-                        <label className="text-[11px] font-bold text-gray-600">{activity.is_attendance ? 'Attendance' : 'Name'}
+                        <label className="text-[11px] font-bold text-gray-900">{activity.is_attendance ? 'Attendance' : 'Name'}
                           {activity.is_attendance
-                            ? <div className="mt-1 rounded-md border border-gray-200 bg-gray-100 px-2.5 py-2 text-xs font-semibold text-gray-500">Attendance scores are computed automatically</div>
+                            ? <div className="mt-1 rounded-md border border-gray-200 bg-gray-100 px-2.5 py-2 text-xs font-semibold text-gray-900">Attendance scores are computed automatically</div>
                             : <input value={activity.name} onChange={(e) => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, name: e.target.value } : item) }))} placeholder="e.g. Quiz 1" className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2.5 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />}
                         </label>
                       ) : (
-                        <label className="text-[11px] font-bold text-gray-600">{activity.is_attendance ? 'Attendance' : 'Name'}
-                          {activity.is_attendance && <span className="mt-1 block rounded-md border border-gray-200 bg-gray-100 px-2.5 py-2 text-xs font-medium text-gray-500">Uses computed attendance scores</span>}
+                        <label className="text-[11px] font-bold text-gray-900">{activity.is_attendance ? 'Attendance' : 'Name'}
+                          {activity.is_attendance && <span className="mt-1 block rounded-md border border-gray-200 bg-gray-100 px-2.5 py-2 text-xs font-medium text-gray-900">Uses computed attendance scores</span>}
                           {!activity.is_attendance && <input value={activity.name} onChange={(e) => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, name: e.target.value } : item) }))} placeholder="e.g. Quiz 1" className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2.5 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />}
                         </label>
                       )}
                       {!activity.is_attendance && (
-                        <label className="text-[11px] font-bold text-gray-600">Max score
+                        <label className="text-[11px] font-bold text-gray-900">Max score
                           <input type="number" min="0.01" max="1000" step="any" value={activity.max_score} onChange={(e) => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, max_score: e.target.value } : item) }))} className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />
                         </label>
                       )}
-                      <button type="button" onClick={() => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.filter((_, i) => i !== index) }))} title="Remove subcomponent" aria-label="Remove subcomponent" className="mb-0.5 p-2 rounded-md text-gray-500 hover:bg-red-50 hover:text-red-600"><Trash2 size={14} /></button>
+                      <button type="button" onClick={() => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.filter((_, i) => i !== index) }))} title="Remove subcomponent" aria-label="Remove subcomponent" className="mb-0.5 p-2 rounded-md text-gray-900 hover:bg-red-50 hover:text-red-600"><Trash2 size={14} /></button>
                     </div>
                   ))}
                 </section>
               )}
             </div>
             <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200 bg-gray-50">
-              <button type="button" onClick={() => setComponentModal(null)} disabled={savingComponent} className="px-4 py-2 rounded-lg bg-white border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-100 disabled:opacity-50">Cancel</button>
+              <button type="button" onClick={() => setComponentModal(null)} disabled={savingComponent} className="px-4 py-2 rounded-lg bg-white border border-gray-300 text-xs font-bold text-gray-900 hover:bg-gray-100 disabled:opacity-50">Cancel</button>
               <button type="submit" disabled={savingComponent} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0c1925] text-white text-xs font-bold hover:bg-gray-800 disabled:opacity-50">
                 {savingComponent && <Loader size={13} className="animate-spin" />}{savingComponent ? 'Saving...' : componentModal.mode === 'add' ? 'Add Component' : 'Save Changes'}
               </button>

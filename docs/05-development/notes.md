@@ -28,6 +28,8 @@ Miscellaneous technical notes, known gaps, and follow-ups.
 
 ## Local Environment
 
+- Backend availability: `main.jsx` gates all routes through `BackendAvailability`; `GET /api/health` probes the process, not the database. A later outage hides mounted pages without deleting UI state or credentials. Recovery only reveals the UI; existing page retry/autosave behavior is unchanged.
+
 - Backend: `http://localhost:5000` (binds `0.0.0.0`).
 - Frontend: `http://localhost:5173`.
 - AI gateway default: `http://localhost:20128/v1` (OmniRoute).
@@ -44,6 +46,10 @@ Miscellaneous technical notes, known gaps, and follow-ups.
 - Local `.env` remains on disk but is removed from the Git index; sanitized example added and local JWT secret rotated. No provider keys were rotated, Git history rewritten, or remote schema/data changed.
 - Fingerprints are state-based, not a durable revocation ledger: restoring identical security fields can make an unexpired token match again. Rotate `JWT_SECRET` after a security-sensitive restore; durable session versions/revocation are follow-up work.
 - All seven documentation folders were reviewed; existing unrelated UI changes were preserved.
+
+## Backend Availability Verification — 2026-11-03
+
+**26 isolated checks passed**, including public liveness, an isolated HTTP server stop/restart, timeout/deduplication/StrictMode cleanup, exact outage copy, all-route wrapping, retained form markup, and unchanged API auth/archive behavior. New monitor/boundary/helper files pass targeted lint; frontend build and backend entry syntax checks passed. No credentials or remote database were accessed. Temporary checks live outside the repository, not in a maintained suite.
 
 ## Where to Put Things
 

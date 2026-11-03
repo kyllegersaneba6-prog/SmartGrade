@@ -55,7 +55,7 @@ const TeacherOverview = () => {
               placeholder="Search by subject or section..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-64 pl-9 pr-8 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white text-gray-900 font-semibold shadow-sm"
+              className="w-full sm:w-64 pl-9 pr-8 py-2 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white text-gray-900 font-semibold shadow-sm"
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             {searchQuery && (
@@ -89,19 +89,19 @@ const TeacherOverview = () => {
             <p className="text-xs mt-1">Try searching with a different subject or section name.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4">
             {yearOrder.map((year) => {
               const items = groupedByYear[year] || [];
               return (
-                <div key={year} className="bg-white rounded-xl p-5 shadow-sm border border-gray-50 card-hover">
+                <div key={year} className="bg-white rounded-xl p-5 shadow-sm border border-gray-50 card-hover flex h-[420px] flex-col">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">{yearLabels[year]}</h4>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{items.length}</span>
                   </div>
                   {items.length === 0 ? (
-                    <p className="text-xs text-gray-400 py-3">No assigned subjects.</p>
+                    <p className="flex flex-1 items-center justify-center text-xs text-gray-400 py-3">No assigned subjects.</p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className={`flex-1 min-h-0 space-y-2 overflow-y-auto pr-1 ${items.length >= 5 ? 'max-h-[17rem]' : ''}`}>
                       {items.map((a) => (
                         <div key={a.id} className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-300">
                           <p className="text-sm font-semibold text-gray-900">

@@ -34,7 +34,7 @@ const FloatingAssignmentSelector = () => {
     <div ref={ref} className="relative inline-flex items-center gap-1">
       <button
         onClick={() => setOpen(!open)}
-        className={`flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 text-left text-xs bg-white border rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 cursor-pointer ${
+        className={`flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 text-left text-xs bg-white border rounded-lg shadow-elevated transition-all focus:outline-none focus:ring-2 cursor-pointer ${
           isArchiveMode
             ? 'bg-amber-50 border-amber-300 focus:ring-amber-300/30'
             : open
