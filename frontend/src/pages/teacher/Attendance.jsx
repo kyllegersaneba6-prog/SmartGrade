@@ -399,12 +399,12 @@ const Attendance = () => {
       />
       <div className="flex flex-wrap items-center gap-3">
         <AssignmentSelector />
-        <div className="flex items-center bg-bg-light border border-border rounded-lg p-1 shadow-elevated">
+        <div className="flex h-11 items-center bg-bg-light border border-border rounded-lg p-1 shadow-elevated">
           {TERMS.map((t) => (
               <button
                 key={t}
                 onClick={() => { if (t !== selectedTerm) { setGradingTerm(t); setColumns([]); setAttendanceMap({}); } }}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                className={`h-full px-3 rounded-md text-xs font-bold transition-all cursor-pointer ${
                   selectedTerm === t
                     ? 'bg-[#0c1925] text-white shadow-sm'
                     : 'text-text-muted hover:text-[#0c1925]'

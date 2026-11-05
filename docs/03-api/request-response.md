@@ -281,62 +281,49 @@ Body: {
 }
 ```
 
-## Add Student
+Legacy single-student entry `POST /api/sections/:sectionId/students` returns 403 for admins.
+
+## Legacy Admin Roster Routes
+
+`POST /api/sections/:sectionId/students/bulk`, single-student entry, student deletion, and manual section management return **403** for admins. Teacher class lists are imported from My Students.
+
+## Teacher PDF Roster Import
 
 ```
-POST /api/sections/:sectionId/students
-Auth: admin
+POST /api/assignments/import-class-list
+Auth: teacher
 Body: {
-  "student_id": "26-01234",
-  "first_name": "Juan",
-  "last_name": "Dela Cruz",
-  "mi": "M",
-  "gender": "Male"
-}
-
-201: { "id": "uuid", "student_name": "Dela Cruz, Juan M.", ... }
-```
-
-## Bulk Import Students (from Excel)
-
-```
-POST /api/sections/:sectionId/students/bulk
-Auth: admin
-Body: {
+  "pdf_metadata": {
+    "subject_code": "COSC1003",
+    "descriptive_title": "Data Structure and Algorithms",
+    "section": "BSIT 2H",
+    "course": "B.S.I.T.",
+    "year_level": "2",
+    "school_year": "2026-2027",
+    "semester": "1st Semester"
+  },
   "students": [
-    { "student_id": "26-1234-001", "first_name": "Juan", "last_name": "Dela Cruz", "mi": "M", "gender": "Male" },
-    { "student_id": "261234002", "first_name": "Ana", "last_name": "Cruz", "mi": "", "gender": "Female" }
+    { "row_num": 1, "student_id": "25-3032-210", "first_name": "RAHDZ CESAR", "last_name": "ADLAON", "mi": "P", "gender": "Male", "course": "B.S.I.T.", "year_level": "2" }
   ]
 }
 
-200: {
-  "added": [
-    { "id": "uuid", "student_id": "26-1234-001", "student_name": "Dela Cruz, Juan M.", "first_name": "Juan", "last_name": "Dela Cruz", "mi": "M", "gender": "Male", "section_id": "section-uuid" }
-  ],
-  "skipped": [
-    { "student_id": "261234002", "reason": "Student ID must use ##-####-### format (e.g. 26-1234-001)." }
-  ]
-}
+201: { "assignment": {...}, "section": {...}, "subject": {...}, "added": [...], "skipped": [...] }
 ```
 
-Student IDs must be strings with exactly two digits, a hyphen, four digits, a hyphen, and three digits (`##-####-###`). Invalid rows are skipped before insert; valid rows continue. The API does not auto-format IDs. Preserve leading zeros. Duplicates are checked against the section's existing `student_id` values and earlier successful inserts in this batch (`reason: "Duplicate ID"`). The UI trims uploaded values before validation and disables invalid-format rows in the preview, including for **Select all**.
+The active term and a course belonging to the teacher's department are required. The server creates or reuses the section, subject, and assignment, then imports students into the shared section roster. IDs are validated; invalid rows and IDs already in the section are returned in `skipped`.
+
+The legacy `POST /api/assignments/:assignmentId/students/bulk` remains available for teachers importing into an existing assignment.
 
 ## Delete Student
 
-```
-DELETE /api/sections/students/:id
-Auth: admin
-200: { "message": "Student deleted successfully" }
-```
-
-Cascades `component_scores` and `attendance` rows.
+Legacy student deletion `DELETE /api/sections/students/:id` returns 403 for admins.
 
 ## Scoped Read Access
 
 Assignment-level and section-level reads are scoped to the caller:
 
 - **superadmin** — every record
-- **admin** — records created by that admin (`created_by`)
+- **admin** — teacher accounts and own grading-related assignment data; section and roster lists are blocked
 - **teacher** — only their own assignments (`teacher_id`) and sections they teach
 
 ```

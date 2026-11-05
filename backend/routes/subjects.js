@@ -13,12 +13,19 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 router.use(authenticateToken);
 
 const yearLevels = ['1st', '2nd', '3rd', '4th'];
+const blockAdminSubjectManagement = (req, res, next) => {
+  if (req.user.role === 'admin') {
+    return res.status(403).json({ message: 'Teachers create or reuse subjects from their class-list PDF import.' });
+  }
+  return next();
+};
 
 // GET /api/subjects — list all subjects, optionally filtered
 router.get('/', async (req, res) => {
   try {
     const { year, semester, course_id } = req.query;
     const { role, id } = req.user;
+    if (role === 'admin') return res.status(403).json({ message: 'Subject lists are managed by teachers through their class-list imports.' });
     let query = supabase.from('subjects').select('*').order('name', { ascending: true });
     if (role === 'admin') query = query.eq('created_by', id);
     if (year) query = query.eq('year_level', year);
@@ -44,7 +51,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/subjects — create a subject
-router.post('/', authorizeRole('admin'), async (req, res) => {
+router.post('/', authorizeRole('admin'), blockAdminSubjectManagement, async (req, res) => {
   const { name, code, year_level, semester, course_id: rawCourseId } = req.body;
   const course_id = rawCourseId || null;
   if (!name || !year_level) {
@@ -84,7 +91,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
 });
 
 // DELETE /api/subjects/:id — delete a subject
-router.delete('/:id', authorizeRole('admin'), async (req, res) => {
+router.delete('/:id', authorizeRole('admin'), blockAdminSubjectManagement, async (req, res) => {
   try {
     if (!(await canManageSubject(req.params.id, req.user))) return res.status(403).json({ message: 'Access denied.' });
     const { data: subject } = await supabase.from('subjects').select('created_by, semester').eq('id', req.params.id).single();

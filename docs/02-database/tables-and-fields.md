@@ -57,7 +57,7 @@ Constraint legend: PK primary key · FK foreign key · UQ unique · NN not null
 | created_by | UUID | FK → `staff_users(id)` ON DELETE SET NULL |
 | created_at | TIMESTAMPTZ | |
 
-**Constraints:** `UNIQUE(course_id, name, school_year)` · **Index:** `idx_sections_year(year_level)`
+**Constraints:** `UNIQUE(course_id, name, school_year, semester)` · **Index:** `idx_sections_year(year_level)`
 
 ## students
 

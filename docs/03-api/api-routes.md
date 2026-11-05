@@ -72,16 +72,16 @@ PATCH accepts `full_name`, `first_name`, `last_name`, `staff_id`, `course_id`, `
 
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
-| GET | `/api/sections/seed/preview` | Any auth | Preview auto-generated names for `course_id` + `year_level` |
-| GET | `/api/sections` | Any auth | Admin: owned, department-valid sections; teacher: taught sections only; filters `year`, `course_id`, `school_year`, `semester` |
-| POST | `/api/sections` | Admin | `name` is the section letter; requires own-department course; server builds `<abbr>-<year><letter>`; term-locked |
-| DELETE | `/api/sections/:id` | Admin | Owner-only; term-locked; cascades students |
-| GET | `/api/sections/:sectionId/students` | Any auth | Roster; superadmin: all; admin: sections they created; teacher: sections they teach |
-| GET | `/api/sections/find-student` | Any auth | `?student_id=`; accessible enrollment only; current term preferred; 404 hidden/missing, 409 ambiguous |
-| PATCH | `/api/sections/students/:id/transfer` | Admin | `{ target_section_id }`; both sections owned/in department and active-term; source and destination checked without archive headers |
-| POST | `/api/sections/:sectionId/students` | Admin | One student; section ownership/department checked; term-locked |
-| DELETE | `/api/sections/students/:id` | Admin | Student's section ownership/department checked; term-locked |
-| POST | `/api/sections/:sectionId/students/bulk` | Admin | `{ students: [...] }` → `{ added, skipped[] }`; IDs must be strings matching `##-####-###` (digits/hyphens), invalid rows skipped with a reason; section ownership/department checked; term-locked |
+| GET | `/api/sections/seed/preview` | Teacher/Superadmin | Preview auto-generated names for `course_id` + `year_level`; Admin receives 403 |
+| GET | `/api/sections` | Teacher/Superadmin | Lists accessible sections; filters `year`, `course_id`, `school_year`, `semester`; Admin receives 403 |
+| POST | `/api/sections` | Admin blocked | Legacy manual section creation returns 403; teacher imports class-list PDFs instead |
+| DELETE | `/api/sections/:id` | Admin blocked | Legacy section deletion returns 403 |
+| GET | `/api/sections/:sectionId/students` | Teacher/Superadmin | Roster for an accessible section; Admin receives 403 |
+| GET | `/api/sections/find-student` | Teacher/Superadmin | `?student_id=`; accessible enrollment only; current term preferred; Admin receives 403 |
+| PATCH | `/api/sections/students/:id/transfer` | Admin blocked | Legacy student transfer returns 403 |
+| POST | `/api/sections/:sectionId/students` | Admin blocked | Legacy single-student entry returns 403 |
+| DELETE | `/api/sections/students/:id` | Admin blocked | Legacy student deletion returns 403 |
+| POST | `/api/sections/:sectionId/students/bulk` | Admin blocked | Legacy admin bulk import returns 403 |
 
 There is **no** `POST /api/sections/seed` route (only the preview).
 
@@ -89,17 +89,19 @@ There is **no** `POST /api/sections/seed` route (only the preview).
 
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
-| GET | `/api/subjects` | Any auth | Admin: owned, department-valid subjects; teacher: assigned subjects; filters `year`, `semester`, UUID `course_id` (matches course or NULL) |
-| POST | `/api/subjects` | Admin | Requires `name`, `year_level`, `semester`; optional course must be in department; duplicate name-per-course check; term-locked |
-| DELETE | `/api/subjects/:id` | Admin | Owner-only; term-locked against the subject's semester |
+| GET | `/api/subjects` | Teacher/Superadmin | Teacher sees subjects on own assignments; filters `year`, `semester`, UUID `course_id`; Admin receives 403 |
+| POST | `/api/subjects` | Admin blocked | Teacher PDF import creates or reuses the subject |
+| DELETE | `/api/subjects/:id` | Admin blocked | Subject deletion is no longer available to Admin |
 
 ## Teacher Assignments
 
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
-| GET | `/api/assignments` | Any auth | Superadmin: all; Teacher: own; Admin: owned with valid department relationships; `?teacher_id=`/`?subject_id=` never replace ownership scope |
-| POST | `/api/assignments` | Admin | Owned same-department teacher/section/subject; compatible courses/year/semester; section matches requested active term; rejects existing section+subject+term |
-| DELETE | `/api/assignments/:id` | Admin | Owner-only; term-locked |
+| GET | `/api/assignments` | Teacher/Superadmin | Teacher sees own assignments; Admin receives 403 |
+| POST | `/api/assignments/import-class-list` | Teacher | `{ pdf_metadata, students[] }`; active term and department course checked; creates/reuses section, subject, assignment; validates section/course/year/term and student rows; duplicate IDs skipped |
+| POST | `/api/assignments/:assignmentId/students/bulk` | Teacher | `{ pdf_metadata, students: [...] }`; assignment must belong to the teacher and be in the active term; PDF subject/section/course/year metadata is matched to the assignment; inserts are scoped to the assignment section; IDs use `##-####-###`; duplicate IDs are skipped |
+| POST | `/api/assignments` | Admin blocked | Teacher PDF import creates assignments |
+| DELETE | `/api/assignments/:id` | Admin blocked | Assignment deletion is no longer available to Admin |
 
 ## Academic Terms
 

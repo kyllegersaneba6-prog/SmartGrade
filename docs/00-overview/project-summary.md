@@ -6,7 +6,7 @@ SmartGrade is a full-stack academic grading and classroom management web applica
 
 ## Main Purpose
 
-Replace paper-based or spreadsheet-based grading with a centralized, role-based web platform. Teachers record attendance and compute grades; admins manage sections, subjects, and teacher assignments; superadmins oversee the entire institution and own academic-term control.
+Replace paper-based or spreadsheet-based grading with a centralized, role-based web platform. Teachers import their official class lists and manage their own rosters, attendance, and grades; admins provision teacher accounts; superadmins oversee the institution and academic terms.
 
 ## Tech Stack
 
@@ -27,8 +27,8 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 | Role | Scope |
 |---|---|
 | Superadmin | Institution-wide. Departments, courses, admin accounts, academic terms, audit trail, backup/restore. |
-| Admin | One department. Teachers, sections, students, subjects, teacher assignments. No grading writes. |
-| Teacher | Own assignments only. Attendance, grading components, scores, analytics, grade summary. No structural writes. |
+| Admin | One department. Teacher account creation and maintenance, settings, and activity monitoring. No section or student roster management. |
+| Teacher | Own imported classes only. Creates or reuses sections, subjects, and assignments by importing a class-list PDF; manages rosters, attendance, grading components, scores, analytics, and grade summaries. |
 
 ## Main Features
 
@@ -36,9 +36,9 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 - Department + course management with abbreviations
 - Admin accounts (one per department, enforced in app code + DB unique index)
 - Teacher accounts with 9-digit staff ID and auto-generated username
-- Section auto-naming (`<course abbr> <year>-<section letter>`) with duplicate checks
+- Teacher class-list import creates or reuses a section, subject, and assignment for the active term
 - Student records with structured fields (First Name, Last Name, MI, Gender)
-- Excel student import with duplicate detection and preview
+- PDF class-list import for teachers, with metadata checks, preview, and duplicate detection
 
 **Terms & access**
 - Superadmin-only academic term create/end (no date auto-detection)
@@ -48,8 +48,7 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 - Failed-login audit entries (deduped per username per 60 s)
 
 **Teaching & grading**
-- Subjects persist across school years, semester-scoped (1st/2nd/Summer/All)
-- Teacher assignment to section + subject per term (additive, never overwrites)
+- Subject and teacher assignment are created from the imported PDF for the active term
 - Attendance: date columns with AM/PM session and Lecture/Laboratory type, 0/1/2 scoring
 - Class record: weighted components, sub-activities, per-activity scores, drag-drop reorder, copy-from-PRELIMS
 - Auto-computed totals, 50-base transmutation, weighted equivalents, final term grade

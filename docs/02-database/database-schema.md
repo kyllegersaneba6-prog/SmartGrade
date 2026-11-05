@@ -61,6 +61,7 @@ activity_log     (standalone; no FKs)
 | `alter_staff_users_add_staff_id.sql` | `staff_users.staff_id` + format CHECK + unique index |
 | `alter_students_add_details.sql` | `students.first_name/last_name/mi/gender` |
 | `alter_add_school_year_semester.sql` | `school_year` / `semester` on sections + assignments |
+| `migrate_sections_include_semester.sql` | Lets a section have a separate roster record per semester; preserves existing rows |
 | `alter_subjects_*.sql` | Subject `course_id`, term persistence, semester NULL allowance |
 | `alter_remove_3rd_semester.sql` | Drops the 3rd-semester option |
 | `alter_activity_department.sql` | `activity_log.department` |

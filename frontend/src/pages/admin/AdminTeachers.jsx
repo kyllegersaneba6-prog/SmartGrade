@@ -1,170 +1,136 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { UserPlus, Trash2, Pencil, UserCheck, BookOpen, GraduationCap, Calendar,
-CheckCircle, Eye, EyeOff, X, Lock, Bolt, Search } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { BookOpen, Pencil, Search, Trash2, UserPlus, X, Eye, EyeOff } from 'lucide-react';
 import CreateAdminTeacher from './CreateAdminTeacher';
-import { useAdmin } from '../../contexts/AdminContext';
 import api from '../../utils/api';
 import { displayStaffId, formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
-import { SkeletonList } from '../../components/common/Skeleton';
 import AdminPageHeading from '../../components/admin/AdminPageHeading';
-
-const getCurrentSchoolYear = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
-  return month >= 8 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
-};
-
-const semesters = ['1st Semester', '2nd Semester', 'Summer'];
 
 const AdminTeachers = () => {
   const [teachers, setTeachers] = useState([]);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [teacherToDelete, setTeacherToDelete] = useState(null);
-  const [confirmText, setConfirmText] = useState('');
-  const [deleting, setDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const tableScrollRef = useRef(null);
-  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [teacherToEdit, setTeacherToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', staff_id: '', username: '', password: '' });
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', staff_id: '', password: '' });
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const [menuPos, setMenuPos] = useState(null);
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [teacherToAssign, setTeacherToAssign] = useState(null);
-  const [assignYear, setAssignYear] = useState('');
-  const [sectionsList, setSectionsList] = useState([]);
-  const [subjectsList, setSubjectsList] = useState([]);
-  const [coursesList, setCoursesList] = useState([]);
-  const [assignCourse, setAssignCourse] = useState('');
-  const [assignSection, setAssignSection] = useState('');
-  const [assignSubject, setAssignSubject] = useState('');
-  const [assignLoading, setAssignLoading] = useState(false);
-  const [assignSuccess, setAssignSuccess] = useState(false);
-  const [assignError, setAssignError] = useState('');
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [teacherToView, setTeacherToView] = useState(null);
-  const [teacherAssignments, setTeacherAssignments] = useState([]);
-  const [viewLoading, setViewLoading] = useState(false);
-  const [removeAssignOpen, setRemoveAssignOpen] = useState(false);
-  const [assignmentToRemove, setAssignmentToRemove] = useState(null);
-  const [confirmAssignText, setConfirmAssignText] = useState('');
-  const [removingAssignment, setRemovingAssignment] = useState(false);
-  const [allAssignments, setAllAssignments] = useState([]);
-  const { isArchiveMode, currentTerm, activeTerm } = useAdmin();
-
-  const closeMenu = () => { setOpenMenuId(null); setMenuPos(null); };
-
-  const openMenu = (u, e) => {
-    if (openMenuId === u.rawId) { closeMenu(); return; }
-    const rect = e.currentTarget.getBoundingClientRect();
-    const MENU_W = 176;
-    const MENU_H = 152;
-    const left = Math.max(8, Math.min(rect.right - MENU_W, window.innerWidth - MENU_W - 8));
-    const top = rect.bottom + MENU_H + 8 > window.innerHeight
-      ? Math.max(8, rect.top - MENU_H - 6)
-      : rect.bottom + 6;
-    setMenuPos({ top, left });
-    setOpenMenuId(u.rawId);
-  };
-
-  // Keep the portaled menu glued correctly — close it on scroll/resize
-  useEffect(() => {
-    if (!openMenuId) return;
-    window.addEventListener('scroll', closeMenu, true);
-    window.addEventListener('resize', closeMenu);
-    return () => {
-      window.removeEventListener('scroll', closeMenu, true);
-      window.removeEventListener('resize', closeMenu);
-    };
-  }, [openMenuId]);
-
-  const teacherCourses = useMemo(() => {
-    const target = currentTerm;
-    if (!target) return {};
-    const filtered = allAssignments.filter(a =>
-      a.school_year === target.school_year && a.semester === target.semester
-    );
-    const courseMap = {};
-    filtered.forEach(a => {
-      const tid = a.teacher_id;
-      const abbrev = a.sections?.courses?.abbreviation;
-      if (tid && abbrev) {
-        if (!courseMap[tid]) courseMap[tid] = new Set();
-        courseMap[tid].add(abbrev);
-      }
-    });
-    const serialized = {};
-    Object.keys(courseMap).forEach(key => { serialized[key] = [...courseMap[key]]; });
-    return serialized;
-  }, [allAssignments, currentTerm]);
-
-  const yearLevels = ['1st', '2nd', '3rd', '4th'];
-  const yearLabels = { '1st': '1st Year', '2nd': '2nd Year', '3rd': '3rd Year', '4th': '4th Year' };
-
-
+  const [teacherToDelete, setTeacherToDelete] = useState(null);
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [classesTeacher, setClassesTeacher] = useState(null);
+  const [teacherClasses, setTeacherClasses] = useState([]);
+  const [classesLoading, setClassesLoading] = useState(false);
+  const [classesError, setClassesError] = useState('');
+  const classesRequestId = useRef(0);
 
   const fetchTeachers = async () => {
     try {
-      const [response, assignRes] = await Promise.all([
-        api('/api/users'),
-        api('/api/assignments'),
-      ]);
-      if (response.ok) {
-        const data = await response.json();
-        const mapped = data.map((u) => ({
-          rawId: u.id,
-          name: u.full_name,
-          firstName: u.first_name || '',
-          lastName: u.last_name || '',
-          staffId: u.staff_id || '',
-          username: u.username || 'N/A',
-          dept: u.department || 'N/A',
-          createdAt: u.created_at
-        }));
-        setTeachers(mapped);
-      }
-      if (assignRes.ok) setAllAssignments(await assignRes.json());
-    } catch (err) { console.error(err); }
+      const response = await api('/api/users');
+      if (response.ok) setTeachers(await response.json());
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchTeachers(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    api('/api/users')
+      .then(async (response) => {
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled) setTeachers(data);
+      })
+      .catch((error) => console.error(error))
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
-    const handler = async () => { await fetchTeachers(); window.dispatchEvent(new CustomEvent('app:reload-done')); };
+    const handler = async () => {
+      await fetchTeachers();
+      window.dispatchEvent(new CustomEvent('app:reload-done'));
+    };
     window.addEventListener('app:reload', handler);
     return () => window.removeEventListener('app:reload', handler);
   }, []);
 
-  const openEditModal = (u) => {
-    setTeacherToEdit(u);
-    let firstName = u.firstName || '';
-    let lastName = u.lastName || '';
-    if (!firstName && !lastName && u.name) {
-      const parts = String(u.name).trim().split(/\s+/).filter(Boolean);
-      firstName = parts.length > 1 ? parts[0] : (parts[0] || '');
-      lastName = parts.length > 1 ? parts.slice(1).join(' ') : '';
-    }
+  const filteredTeachers = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return teachers;
+    return teachers.filter((teacher) => displayStaffId(teacher.staff_id).toLowerCase().includes(query)
+      || String(teacher.staff_id || '').toLowerCase().includes(query)
+      || teacher.full_name?.toLowerCase().includes(query)
+      || teacher.username?.toLowerCase().includes(query));
+  }, [teachers, searchQuery]);
+
+  const openEdit = (teacher) => {
+    setTeacherToEdit(teacher);
     setEditForm({
-      first_name: firstName,
-      last_name: lastName,
-      staff_id: formatStaffId(u.staffId || ''),
-      username: u.username === 'N/A' ? '' : u.username,
-      password: ''
+      first_name: teacher.first_name || '',
+      last_name: teacher.last_name || '',
+      staff_id: formatStaffId(teacher.staff_id || ''),
+      password: '',
     });
-    setShowEditPassword(false);
     setEditError('');
-    setEditModalOpen(true);
+    setShowEditPassword(false);
   };
 
-  const handleEditSave = async () => {
-    if (!teacherToEdit?.rawId) return;
-    if (editForm.staff_id.trim() && !isValidStaffId(editForm.staff_id)) {
+  const openClasses = async (teacher) => {
+    const requestId = ++classesRequestId.current;
+    setClassesTeacher(teacher);
+    setTeacherClasses([]);
+    setClassesError('');
+    setClassesLoading(true);
+    try {
+      const response = await api(`/api/assignments?teacher_id=${encodeURIComponent(teacher.id)}`);
+      const data = await response.json().catch(() => []);
+      if (!response.ok) throw new Error(data.message || 'Could not load this teacher’s classes.');
+      if (requestId === classesRequestId.current) setTeacherClasses(Array.isArray(data) ? data : []);
+    } catch (error) {
+      if (requestId === classesRequestId.current) setClassesError(error.message || 'Network error. Please try again.');
+    } finally {
+      if (requestId === classesRequestId.current) setClassesLoading(false);
+    }
+  };
+
+  const closeClasses = () => {
+    classesRequestId.current += 1;
+    setClassesTeacher(null);
+    setTeacherClasses([]);
+    setClassesError('');
+    setClassesLoading(false);
+  };
+
+  const uniqueClasses = useMemo(() => {
+    const sections = new Map();
+    teacherClasses.forEach((assignment) => {
+      const section = assignment.sections;
+      if (!section) return;
+      const key = [assignment.section_id || section.name, assignment.school_year, assignment.semester].join('|');
+      if (!sections.has(key)) {
+        sections.set(key, {
+          sectionId: assignment.section_id,
+          sectionName: section.name || 'Unnamed section',
+          yearLevel: section.year_level || '',
+          course: section.courses?.abbreviation || '',
+          schoolYear: assignment.school_year || '',
+          semester: assignment.semester || '',
+        });
+      }
+    });
+    return [...sections.values()].sort((a, b) => (
+      b.schoolYear.localeCompare(a.schoolYear)
+      || a.semester.localeCompare(b.semester)
+      || a.sectionName.localeCompare(b.sectionName)
+    ));
+  }, [teacherClasses]);
+
+  const saveEdit = async () => {
+    if (!teacherToEdit) return;
+    if (!isValidStaffId(editForm.staff_id)) {
       setEditError('ID must contain exactly 9 digits (format 00000-0000).');
       return;
     }
@@ -174,499 +140,189 @@ const AdminTeachers = () => {
       setEditError('First name and last name are required.');
       return;
     }
+
     setEditLoading(true);
     setEditError('');
     try {
-      const body = { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`, staff_id: staffIdToDigits(editForm.staff_id) };
-      const res = await api(`/api/users/${teacherToEdit.rawId}`, {
+      const body = {
+        first_name: firstName,
+        last_name: lastName,
+        full_name: `${firstName} ${lastName}`,
+        staff_id: staffIdToDigits(editForm.staff_id),
+      };
+      const response = await api(`/api/users/${teacherToEdit.id}`, {
         method: 'PATCH',
-        body: JSON.stringify(editForm.password.trim() ? { ...body, password: editForm.password } : body)
+        body: JSON.stringify(editForm.password.trim() ? { ...body, password: editForm.password } : body),
       });
-      if (res.ok) {
-        const updated = await res.json();
-        setTeachers(prev => prev.map(u => u.rawId !== teacherToEdit.rawId ? u : { ...u, name: updated.full_name, firstName: updated.first_name || '', lastName: updated.last_name || '', staffId: updated.staff_id || '', username: updated.username || u.username }));
-        setEditModalOpen(false);
-        setTeacherToEdit(null);
-        setEditError('');
-      } else {
-        const data = await res.json();
-        setEditError(data.message || data.error || 'Failed to update teacher');
-      }
-    } catch (err) { console.error(err); setEditError('Network error. Please try again.'); }
-    finally { setEditLoading(false); }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Failed to update teacher.');
+      setTeachers((current) => current.map((teacher) => teacher.id === teacherToEdit.id ? { ...teacher, ...data } : teacher));
+      setTeacherToEdit(null);
+    } catch (error) {
+      setEditError(error.message || 'Network error. Please try again.');
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const confirmDelete = async () => {
     if (confirmText !== 'Confirm' || !teacherToDelete) return;
     setDeleting(true);
     try {
-      const response = await api(`/api/users/${teacherToDelete.rawId}`, { method: 'DELETE' });
-      if (response.ok) setTeachers(teachers.filter(u => u.rawId !== teacherToDelete.rawId));
-    } catch (err) { console.error(err); }
-    finally { setDeleting(false); setDeleteModalOpen(false); setTeacherToDelete(null); setConfirmText(''); }
+      const response = await api(`/api/users/${teacherToDelete.id}`, { method: 'DELETE' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Failed to delete teacher.');
+      setTeachers((current) => current.filter((teacher) => teacher.id !== teacherToDelete.id));
+      setTeacherToDelete(null);
+      setConfirmText('');
+    } catch (error) {
+      setConfirmText('');
+      window.alert(error.message || 'Failed to delete teacher.');
+    } finally {
+      setDeleting(false);
+    }
   };
-
-  const openViewModal = async (teacher) => {
-    setTeacherToView(teacher);
-    setViewModalOpen(true);
-    setViewLoading(true);
-    try {
-      const res = await api(`/api/assignments?teacher_id=${teacher.rawId}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (currentTerm) {
-          setTeacherAssignments(data.filter(a =>
-            a.school_year === currentTerm.school_year && a.semester === currentTerm.semester
-          ));
-        } else {
-          setTeacherAssignments(data);
-        }
-      } else setTeacherAssignments([]);
-    } catch { setTeacherAssignments([]); }
-    finally { setViewLoading(false); }
-  };
-
-  const openAssignModal = async (teacher) => {
-    setTeacherToAssign(teacher);
-    setAssignYear('');
-    setAssignCourse('');
-    setAssignSection('');
-    setAssignSubject('');
-    setAssignSuccess(false);
-    setAssignError('');
-    setAssignModalOpen(true);
-    try {
-      const termParams = currentTerm ? `?school_year=${currentTerm.school_year}&semester=${currentTerm.semester}` : '';
-      const adminDept = JSON.parse(localStorage.getItem('user') || '{}')?.department;
-      let deptId = '';
-      if (adminDept) {
-        const deptRes = await api('/api/departments');
-        if (deptRes.ok) {
-          const depts = await deptRes.json();
-          const match = depts.find(d => d.name === adminDept);
-          if (match) deptId = match.id;
-        }
-      }
-      const [secRes, subRes, courseRes] = await Promise.all([
-        api(`/api/sections${termParams}`),
-        api(`/api/subjects${currentTerm ? `?semester=${currentTerm.semester}` : ''}`),
-        deptId ? api(`/api/courses?department_id=${deptId}`) : api('/api/courses'),
-      ]);
-      if (secRes.ok) setSectionsList(await secRes.json());
-      if (subRes.ok) setSubjectsList(await subRes.json());
-      if (courseRes.ok) setCoursesList(await courseRes.json());
-    } catch (err) { console.error(err); }
-  };
-
-  const filteredSections = sectionsList.filter((s) => s.year_level === assignYear && (!assignCourse || s.course_id === assignCourse || !s.course_id));
-  const filteredSubjects = subjectsList.filter((s) => s.year_level === assignYear && (!assignCourse || s.course_id === assignCourse || !s.course_id));
-
-  const handleAssign = async () => {
-    if (!assignSection || !assignSubject || !assignYear || !teacherToAssign || !currentTerm) return;
-    setAssignLoading(true);
-    setAssignError('');
-    try {
-      const res = await api('/api/assignments', {
-        method: 'POST',
-        body: JSON.stringify({
-          teacher_id: teacherToAssign.rawId,
-          section_id: assignSection,
-          subject_id: assignSubject,
-          school_year: currentTerm.school_year,
-          semester: currentTerm.semester,
-        }),
-      });
-      if (res.ok) {
-        setAssignSuccess(true);
-        // Silently refresh teachers + assignments so the Assigned Course
-        // column updates immediately without a page refresh.
-        fetchTeachers();
-      } else {
-        const data = await res.json();
-        setAssignError(data.message || 'Failed to assign');
-      }
-    } catch { setAssignError('Network error'); }
-    finally { setAssignLoading(false); }
-  };
-
-  const filteredTeachers = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return teachers;
-    return teachers.filter((u) => {
-      const staffId = displayStaffId(u.staffId).toLowerCase();
-      return staffId.includes(q)
-        || String(u.staffId || '').toLowerCase().includes(q)
-        || u.name?.toLowerCase().includes(q)
-        || u.username?.toLowerCase().includes(q);
-    });
-  }, [teachers, searchQuery]);
-
-  const updateSearch = (value) => {
-    setSearchQuery(value);
-    if (tableScrollRef.current) tableScrollRef.current.scrollTop = 0;
-  };
-  const menuTeacher = teachers.find((x) => x.rawId === openMenuId) || null;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <AdminPageHeading
         eyebrow="Accounts"
         title="Teacher Management"
-        description="Provision, edit, and manage all teacher accounts."
+        description="Create and maintain teacher accounts. Teachers set up their own sections by importing the class-list PDF they receive."
         actions={<span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-700">{teachers.length} teachers</span>}
       />
 
-      <div className="rounded-2xl p-5 shadow-sm border border-gray-200 card-hover bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Teacher Accounts</h2>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-base font-bold text-[#0c1925]">Teacher Accounts</h2>
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => setCreateModalOpen(true)} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform" style={{ background: '#0c1925', borderColor: '#0c1925' }}><UserPlus size={14} /> Add Teacher</button>
-            <div className="relative">
+            <button onClick={() => setCreateModalOpen(true)} className="flex h-9 items-center gap-1.5 rounded-lg border border-[#0c1925] bg-[#0c1925] px-3 text-xs font-bold text-white shadow-sm transition hover:bg-[#142a3f]"><UserPlus size={14} /> Add Teacher</button>
+            <label className="relative">
+              <span className="sr-only">Search teachers</span>
               <input
                 type="text"
                 placeholder="Search by ID, name, or username..."
                 value={searchQuery}
-                onChange={(e) => updateSearch(e.target.value)}
-                className="w-full sm:w-64 pl-9 pr-8 py-2 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-8 text-xs focus:border-[#0c1925] focus:outline-none focus:ring-2 focus:ring-[#0c1925] sm:w-64"
               />
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
-              {searchQuery && (
-                <button onClick={() => updateSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Clear search">
-                  <X size={14} />
-                </button>
-              )}
-            </div>
+              {searchQuery && <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Clear search"><X size={14} /></button>}
+            </label>
           </div>
         </div>
 
-        <div ref={tableScrollRef} role="region" aria-label="Teacher accounts" tabIndex={0} className="max-h-[min(480px,60vh)] overflow-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0c1925]"><table className="w-full text-xs min-w-[600px]">
-          <thead>
-            <tr className="border-b bg-gray-50" style={{ borderColor: '#e5e7eb' }}>
-              {['ID', 'NAME', 'USERNAME', 'ASSIGNED COURSE', 'ACTIONS'].map((h) => (<th key={h} scope="col" className="sticky top-0 z-10 bg-gray-50 text-left px-3 py-3 font-bold text-gray-600 text-[10px] uppercase tracking-wide">{h}</th>))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTeachers.length === 0 && (
-              <tr>
-                <td colSpan={5} className="py-10 text-center text-xs text-gray-500">
-                  {searchQuery.trim()
-                    ? 'No teachers match your search.'
-                    : <>No teachers have been added yet. Click <strong>Add Teacher</strong> to create the first account.</>}
-                </td>
+        <div className="max-h-[min(520px,65vh)] overflow-auto rounded-lg border border-gray-100">
+          <table className="w-full min-w-[700px] text-xs">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                {['ID', 'NAME', 'USERNAME', 'DATE ADDED', 'ACTIONS'].map((heading) => <th key={heading} scope="col" className="sticky top-0 z-10 bg-gray-50 px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-gray-600">{heading}</th>)}
               </tr>
-            )}
-            {filteredTeachers.map((u) => (
-              <tr key={u.rawId} className="border-b last:border-0 hover:bg-gray-50" style={{ borderColor: '#e5e7eb' }}>
-                <td className="px-3 py-3 font-mono text-[12px] text-gray-900">{displayStaffId(u.staffId)}</td>
-                <td className="px-3 py-3 font-bold text-gray-900">{u.name}</td>
-                <td className="px-3 py-3 text-gray-900 text-[12px]">{u.username}</td>
-                <td className="px-3 py-3">
-                  {teacherCourses[u.rawId]?.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {teacherCourses[u.rawId].map((c, i) => (
-                        <span key={i} className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-900 ">{c}</span>
-                      ))}
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={5} className="py-10 text-center text-gray-500">Loading teacher accounts…</td></tr>
+              ) : filteredTeachers.length === 0 ? (
+                <tr><td colSpan={5} className="py-10 text-center text-gray-500">{searchQuery.trim() ? 'No teachers match your search.' : <>No teachers have been added yet. Click <strong>Add Teacher</strong> to create the first account.</>}</td></tr>
+              ) : filteredTeachers.map((teacher) => (
+                <tr key={teacher.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                  <td className="px-3 py-3 font-mono text-[12px] text-gray-900">{displayStaffId(teacher.staff_id)}</td>
+                  <td className="px-3 py-3 font-bold text-gray-900">{teacher.full_name}</td>
+                  <td className="px-3 py-3 text-[12px] text-gray-700">{teacher.username || '—'}</td>
+                  <td className="px-3 py-3 text-gray-600">{teacher.created_at ? new Date(teacher.created_at).toLocaleDateString() : '—'}</td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <button type="button" onClick={() => openClasses(teacher)} className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 font-semibold text-emerald-700 hover:bg-emerald-50" title="View courses, year levels, and sections"><BookOpen size={13} /> Classes</button>
+                      <button type="button" onClick={() => openEdit(teacher)} className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 font-semibold text-blue-700 hover:bg-blue-50" title="Edit teacher"><Pencil size={13} /> Edit</button>
+                      <button type="button" onClick={() => { setTeacherToDelete(teacher); setConfirmText(''); }} className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 font-semibold text-red-600 hover:bg-red-50" title="Delete teacher"><Trash2 size={13} /> Delete</button>
                     </div>
-                  ) : (
-                    <span className="text-[10px] text-gray-500">—</span>
-                  )}
-                </td>
-                <td className="px-3 py-3">
-                  <button onClick={(e) => openMenu(u, e)} className="text-gray-900   hover:text-[#0c1925] transition-colors p-1 rounded-md hover:bg-gray-100" title="Actions"><Bolt size={20} /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-
-        <div className="flex items-center justify-between mt-4 pt-3 border-t text-xs" style={{ borderColor: '#f0ede6' }}>
-          <span className="text-gray-900">Showing {filteredTeachers.length} of {teachers.length} teachers</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
+        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-500">
+          <span>Showing {filteredTeachers.length} of {teachers.length} teachers</span>
+        </div>
+      </section>
 
-      {openMenuId && menuTeacher && menuPos && createPortal(
-        <>
-          <div className="fixed inset-0 z-40" onClick={closeMenu} />
-          <div className="fixed z-50 w-44 rounded-xl border border-gray-100 bg-white shadow-xl py-1 overflow-hidden" style={{ top: menuPos.top, left: menuPos.left }}>
-            <button onClick={() => { if (isArchiveMode) return; closeMenu(); openAssignModal(menuTeacher); }} disabled={isArchiveMode} className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold transition-colors ${isArchiveMode ? 'text-gray-600 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'}`} title={isArchiveMode ? 'Cannot assign while viewing archives' : 'Assign'}><UserCheck size={13} className={isArchiveMode ? 'text-gray-300' : 'text-[#0c1925]'} /> Assign</button>
-            <button onClick={() => { closeMenu(); openViewModal(menuTeacher); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-amber-50 hover:text-amber-600 transition-colors"><Eye size={13} className="text-amber-600" /> View Assigned</button>
-            <button onClick={() => { closeMenu(); openEditModal(menuTeacher); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"><Pencil size={13} className="text-blue-600" /> Edit</button>
-            <button onClick={() => { closeMenu(); setTeacherToDelete(menuTeacher); setConfirmText(''); setDeleteModalOpen(true); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 size={13} className="text-red-500" /> Delete</button>
+      {teacherToEdit && (
+        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center">
+          <div className="modal-surface mx-4 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-gray-100 bg-white p-6">
+            <h3 className="mb-4 text-lg font-bold text-gray-900">Edit Teacher</h3>
+            <div className="space-y-4">
+              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">ID</label><input value={editForm.staff_id} onChange={(event) => setEditForm({ ...editForm, staff_id: formatStaffId(event.target.value) })} maxLength={10} inputMode="numeric" className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 font-mono text-sm" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">First Name</label><input value={editForm.first_name} onChange={(event) => setEditForm({ ...editForm, first_name: event.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" /></div>
+                <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Last Name</label><input value={editForm.last_name} onChange={(event) => setEditForm({ ...editForm, last_name: event.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" /></div>
+              </div>
+              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Username (auto-generated)</label><input readOnly value={usernameFromLastNameAndId(editForm.last_name, editForm.staff_id) || teacherToEdit.username || ''} className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 font-mono text-sm text-gray-600" /></div>
+              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">New Password (leave blank to keep current)</label><div className="relative"><input type={showEditPassword ? 'text' : 'password'} value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm" /><button type="button" onClick={() => setShowEditPassword(!showEditPassword)} aria-label={showEditPassword ? 'Hide password' : 'Show password'} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></div>
+            </div>
+            {editError && <p className="mt-4 text-sm font-semibold text-red-600">{editError}</p>}
+            <div className="mt-6 flex justify-end gap-3"><button onClick={() => setTeacherToEdit(null)} disabled={editLoading} className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-200">Cancel</button><button onClick={saveEdit} disabled={editLoading} className="rounded-lg bg-[#0c1925] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{editLoading ? 'Saving…' : 'Save Changes'}</button></div>
           </div>
-        </>,
-        document.body
+        </div>
       )}
 
-      {viewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-lg w-full mx-4 border border-gray-100 max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-amber-300/10"><Eye size={20} className="text-amber-300" /></div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Assigned Subjects</h3>
-                  <p className="text-sm text-gray-900">{teacherToView?.name}</p>
-                </div>
+      {teacherToDelete && (
+        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center">
+          <div className="modal-surface mx-4 w-full max-w-sm rounded-xl border border-gray-100 bg-white p-6">
+            <h3 className="mb-2 text-lg font-bold text-gray-900">Delete Teacher</h3>
+            <p className="mb-4 text-sm text-gray-600">Are you sure you want to delete <strong>{teacherToDelete.full_name}</strong>?</p>
+            <label className="mb-1 block text-xs font-bold text-gray-700">Type <strong>Confirm</strong> to delete</label>
+            <input value={confirmText} onChange={(event) => setConfirmText(event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Confirm" />
+            <div className="mt-5 flex justify-end gap-3"><button onClick={() => { setTeacherToDelete(null); setConfirmText(''); }} disabled={deleting} className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-200">Cancel</button><button onClick={confirmDelete} disabled={confirmText !== 'Confirm' || deleting} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{deleting ? 'Deleting…' : 'Delete'}</button></div>
+          </div>
+        </div>
+      )}
+
+      {classesTeacher && (
+        <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) closeClasses(); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="teacher-classes-title" className="modal-surface w-full max-w-2xl overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl">
+            <header className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Teacher classes</p>
+                <h3 id="teacher-classes-title" className="mt-1 text-lg font-bold text-gray-900">{classesTeacher.full_name}</h3>
+                <p className="mt-1 text-xs text-gray-500">Courses, year levels, and sections handled by this teacher.</p>
               </div>
-              <button onClick={() => { setViewModalOpen(false); setTeacherToView(null); setTeacherAssignments([]); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {viewLoading ? (
-                <div aria-busy="true"><SkeletonList rows={3} avatar /></div>
-              ) : teacherAssignments.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-medium">No subjects assigned yet.</p>
+              <button type="button" onClick={closeClasses} aria-label="Close class list" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"><X size={18} /></button>
+            </header>
+            <div className="max-h-[65vh] overflow-y-auto p-6">
+              {classesLoading ? (
+                <p className="py-10 text-center text-sm text-gray-500">Loading class assignments…</p>
+              ) : classesError ? (
+                <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{classesError}</div>
+              ) : uniqueClasses.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-300 px-4 py-10 text-center">
+                  <BookOpen size={22} className="mx-auto text-gray-400" />
+                  <p className="mt-2 text-sm font-semibold text-gray-700">No class sections yet</p>
+                  <p className="mt-1 text-xs text-gray-500">The teacher’s imported class sections will appear here.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {(() => {
-                    const groups = {};
-                    teacherAssignments.forEach(a => {
-                      const gk = `${a.school_year}|${a.semester}`;
-                      if (!groups[gk]) groups[gk] = { school_year: a.school_year, semester: a.semester, items: [] };
-                      groups[gk].items.push(a);
-                    });
-                    return Object.keys(groups).map((gk) => {
-                      const group = groups[gk];
-                      const isActive = activeTerm && group.school_year === activeTerm.school_year && group.semester === activeTerm.semester;
-                      return (
-                        <div key={gk}>
-                          <div className={`px-3 py-1.5 text-[12px] font-bold uppercase tracking-wider rounded-t-lg border-b ${
-                            isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'
-                          }`}>
-                            {group.school_year} | {group.semester}
-                            {isActive ? <span className="ml-1.5 text-green-600 bg-green-100 px-1.5 py-0.5 rounded text-[9px]">Active</span> : <span className="ml-1.5 text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded text-[9px]">Historical</span>}
-                          </div>
-                          <div className="space-y-2 mt-2">
-                            {group.items.map(a => (
-                              <div key={a.id} className="flex items-center justify-between px-4 py-3 rounded-lg border border-gray-100 bg-gray-50">
-                                <div className="space-y-0.5">
-                                  <p className="text-sm font-semibold text-gray-900">{a.subjects?.code ? <span className="text-gray-900 font-mono text-[11px] mr-1.5">{a.subjects.code}</span> : null}{a.subjects?.name}</p>
-                                  <p className="text-xs text-gray-900">{a.sections?.name}</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {isActive ? (
-                                    <button
-                                      onClick={() => { setAssignmentToRemove(a); setConfirmAssignText(''); setRemoveAssignOpen(true); }}
-                                      className="text-red-400 hover:text-red-600 transition-colors"
-                                      title="Remove assignment (deletes grading & attendance data)"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  ) : (
-                                    <Lock size={14} className="text-gray-300" title="Historical assignment — read-only" />
-                                  )}
-                                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: '#f5a623' }}>
-                                    {a.sections?.year_level} Year
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {uniqueClasses.map((item) => (
+                    <article key={`${item.sectionId || item.sectionName}-${item.schoolYear}-${item.semester}`} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500">Section</p>
+                          <h4 className="mt-0.5 text-base font-extrabold text-[#0c1925]">{item.sectionName}</h4>
                         </div>
-                      );
-                    });
-                  })()}
+                        {item.course && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800">{item.course}</span>}
+                      </div>
+                      <p className="mt-2 text-xs font-semibold text-gray-700">{item.yearLevel ? `${item.yearLevel} Year` : 'Year level not set'}</p>
+                      <p className="mt-0.5 text-[11px] text-gray-500">{[item.schoolYear, item.semester].filter(Boolean).join(' · ') || 'Academic term not set'}</p>
+                    </article>
+                  ))}
                 </div>
               )}
             </div>
-            <div className="flex justify-end mt-4 pt-3 border-t border-gray-100">
-              <button onClick={() => { setViewModalOpen(false); setTeacherToView(null); setTeacherAssignments([]); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {editModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Teacher</h3>
-            <div className="space-y-4">
-              <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">ID</label><input type="text" value={editForm.staff_id} onChange={(e) => setEditForm({ ...editForm, staff_id: formatStaffId(e.target.value) })} placeholder="00000-0000" maxLength={10} inputMode="numeric" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm font-mono" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">First Name</label><input type="text" value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} placeholder="First name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
-                <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Last Name</label><input type="text" value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} placeholder="Last name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Username (auto-generated)</label>
-                <input type="text" value={usernameFromLastNameAndId(editForm.last_name, editForm.staff_id) || editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-900 cursor-not-allowed font-mono" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">New Password (leave blank to keep current)</label>
-                <div className="relative">
-                  <input type={showEditPassword ? "text" : "password"} value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep current" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm pr-10" />
-                  <button type="button" onClick={() => setShowEditPassword(!showEditPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
-                </div>
-              </div>
-            </div>
-            {editError && <p className="mt-4 text-sm font-semibold text-red-500">{editError}</p>}
-            <div className="flex gap-3 justify-end mt-6">
-              <button onClick={() => { setEditModalOpen(false); setTeacherToEdit(null); setEditError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={editLoading}>Cancel</button>
-              <button onClick={handleEditSave} disabled={editLoading} className="px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors shadow-md disabled:opacity-50" style={{ background: '#0c1925' }}>{editLoading ? 'Saving...' : 'Save Changes'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {assignModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-lg w-full mx-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-5">
-              <div className="p-2 rounded-lg bg-gray-100"><UserCheck size={22} className="text-[#0c1925]" /></div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Assign Teacher</h3>
-                <p className="text-xs text-gray-900">Assign <strong className="text-gray-700">{teacherToAssign?.name}</strong> to a class</p>
-              </div>
-            </div>
-
-            {assignSuccess ? (
-              <div className="text-center py-8">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 mb-4"><CheckCircle size={28} className="text-emerald-600" /></div>
-                <h4 className="text-base font-bold text-gray-900 mb-1">Successfully Assigned!</h4>
-                <p className="text-xs text-gray-900">{teacherToAssign?.name} has been assigned.</p>
-                <button onClick={() => { setAssignModalOpen(false); setTeacherToAssign(null); }} className="mt-6 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#142a3f' }}>Done</button>
-              </div>
-            ) : (
-              <>
-                <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-3 mb-5 space-y-1">
-                  <p className="text-xs text-amber-700 font-medium">
-                    Select the year level, section, and subject to assign this teacher.
-                  </p>
-                  <p className="text-[11px] text-amber-600 font-semibold">
-                    This creates a <strong>new</strong> assignment. The teacher's existing assignments and their data remain unchanged.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider mb-1.5"><BookOpen size={14} /> Course</label>
-                    <select
-                      value={assignCourse}
-                      onChange={(e) => { setAssignCourse(e.target.value); setAssignSection(''); setAssignSubject(''); }}
-                      className="w-full px-3 py-2 border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-gray-100  text-sm"
-                    >
-                      <option value="" disabled>-- Select Course --</option>
-                      {coursesList.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.abbreviation})</option>)}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider mb-1.5"><Calendar size={14} /> Year Level</label>
-                    <select
-                      value={assignYear}
-                      onChange={(e) => { setAssignYear(e.target.value); setAssignSection(''); setAssignSubject(''); }}
-                      disabled={!assignCourse}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] text-sm ${!assignCourse ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-900'}`}
-                    >
-                      <option value="" disabled>-- Select Year Level --</option>
-                      {yearLevels.map((y) => <option key={y} value={y}>{yearLabels[y]}</option>)}
-                    </select>
-                    {!assignCourse && (
-                      <p className="text-[10px] text-gray-900 mt-1">Select a course first.</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider mb-1.5"><GraduationCap size={14} /> Section</label>
-                    <select
-                      value={assignSection}
-                      onChange={(e) => { setAssignSection(e.target.value); setAssignSubject(''); }}
-                      disabled={!assignCourse || !assignYear}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] text-sm ${!assignCourse || !assignYear ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100'}`}
-                    >
-                      <option value="" disabled>-- Select Section --</option>
-                      {filteredSections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                    {!assignCourse || !assignYear ? (
-                      <p className="text-[10px] text-gray-900 mt-1">Select a course and year level first.</p>
-                    ) : filteredSections.length === 0 ? (
-                      <p className="text-[10px] text-gray-500 mt-1">No sections found for {yearLabels[assignYear]} and selected course.</p>
-                    ) : null}
-                  </div>
-
-                  <div>
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-gray-900 uppercase tracking-wider mb-1.5"><BookOpen size={14} /> Subject</label>
-                    <select
-                      value={assignSubject}
-                      onChange={(e) => setAssignSubject(e.target.value)}
-                      disabled={!assignCourse || !assignYear || !assignSection}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] text-sm ${!assignCourse || !assignYear || !assignSection ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100'}`}
-                    >
-                      <option value="" disabled>-- Select Subject --</option>
-                      {filteredSubjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                    {!assignCourse || !assignYear ? (
-                      <p className="text-[10px] text-gray-900 mt-1">Select a course and year level first.</p>
-                    ) : !assignSection ? (
-                      <p className="text-[10px] text-gray-900 mt-1">Select a section first.</p>
-                    ) : filteredSubjects.length === 0 ? (
-                      <p className="text-[10px] text-gray-500 mt-1">No subjects found for {yearLabels[assignYear]} and selected course.</p>
-                    ) : null}
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
-                  <p className="text-xs text-gray-900">
-                    <span className="font-semibold text-gray-700">Summary:</span>{' '}
-                      {teacherToAssign?.name} will be assigned to{' '}
-                      <strong className="text-gray-700">{sectionsList.find((s) => s.id === assignSection)?.name || '___'}</strong>
-                      {' '}—{' '}
-                      <strong className="text-gray-700">{subjectsList.find((s) => s.id === assignSubject)?.name || '___'}</strong>
-                      {' '}({yearLabels[assignYear] || '___'}) — {currentTerm?.school_year} {currentTerm?.semester}.
-                    </p>
-                  </div>
-                </div>
-
-                {assignError && <p className="text-xs font-semibold text-red-500 mt-4">{assignError}</p>}
-                <div className="flex justify-end gap-3 mt-4">
-                  <button onClick={() => { setAssignModalOpen(false); setTeacherToAssign(null); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-                  <button
-                    onClick={handleAssign}
-                    disabled={!assignSection || !assignSubject || assignLoading}
-                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50"
-                    style={{ background: '#0c1925' }}
-                  >
-                    {assignLoading ? 'Assigning...' : <><UserCheck size={16} /> Assign</>}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {deleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Teacher</h3>
-            <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{teacherToDelete?.name}</strong>?</p>
-            <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
-              <input type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
-            </div>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => { setDeleteModalOpen(false); setTeacherToDelete(null); setConfirmText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deleting}>Cancel</button>
-              <button onClick={confirmDelete} disabled={confirmText !== 'Confirm' || deleting} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmText === 'Confirm' && !deleting ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deleting ? 'Deleting...' : 'Delete'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {removeAssignOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Remove Assignment</h3>
-            <p className="text-sm text-gray-900 mb-1">Remove <strong>{assignmentToRemove?.subjects?.name}</strong> from <strong>{assignmentToRemove?.sections?.name}</strong>?</p>
-            <p className="text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
-              This permanently deletes all grading components, scores, and attendance records for this assignment. This action cannot be undone.
-            </p>
-            <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to remove</label>
-              <input type="text" value={confirmAssignText} onChange={(e) => setConfirmAssignText(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
-            </div>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => { setRemoveAssignOpen(false); setAssignmentToRemove(null); setConfirmAssignText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={removingAssignment}>Cancel</button>
-              <button onClick={async () => { if (!assignmentToRemove) return; setRemovingAssignment(true); try { const res = await api(`/api/assignments/${assignmentToRemove.id}`, { method: 'DELETE' }); if (res.ok) setTeacherAssignments((prev) => prev.filter((a) => a.id !== assignmentToRemove.id)); } catch (err) { console.error(err); } finally { setRemovingAssignment(false); setRemoveAssignOpen(false); setAssignmentToRemove(null); setConfirmAssignText(''); } }} disabled={confirmAssignText !== 'Confirm' || removingAssignment} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmAssignText === 'Confirm' && !removingAssignment ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{removingAssignment ? 'Removing...' : 'Remove'}</button>
-            </div>
-          </div>
+            <footer className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
+              <span className="text-xs text-gray-500">{classesLoading ? 'Loading…' : `${uniqueClasses.length} ${uniqueClasses.length === 1 ? 'section' : 'sections'}`}</span>
+              <button type="button" onClick={closeClasses} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Close</button>
+            </footer>
+          </section>
         </div>
       )}
 
@@ -676,5 +332,3 @@ const AdminTeachers = () => {
 };
 
 export default AdminTeachers;
-
-

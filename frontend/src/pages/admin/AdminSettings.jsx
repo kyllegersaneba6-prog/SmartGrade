@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Archive, X, Lock } from 'lucide-react';
+import { Archive, X } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import { SkeletonSettingsCard } from '../../components/common/Skeleton';
 import AdminPageHeading from '../../components/admin/AdminPageHeading';
@@ -60,7 +60,7 @@ const AdminSettings = () => {
               <div>
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Active Term</span>
                 <p className="text-lg font-extrabold text-gray-900 mt-2">{activeTerm.school_year} — {activeTerm.semester}</p>
-                <p className="text-xs text-gray-900 mt-0.5">Sections and assignments can only be added to this term.</p>
+                <p className="text-xs text-gray-900 mt-0.5">Teachers can import class lists only for the active term.</p>
               </div>
             </div>
           </div>

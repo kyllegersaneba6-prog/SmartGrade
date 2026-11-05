@@ -18,9 +18,8 @@
 | Create admins | ✅ | — | — |
 | Create teachers | — | ✅ | — |
 | Academic terms (create/end) | ✅ | — | — |
-| Sections + students CRUD | — | ✅ | — |
-| Subjects CRUD | — | ✅ | — |
-| Teacher assignments CRUD | — | ✅ | — |
+| Sections, subjects, and assignments via PDF import | — | — | ✅ |
+| Student roster import | — | — | ✅ |
 | Grading components / activities / scores | — | — | ✅ |
 | Attendance writes | — | — | ✅ |
 | AI student summary | — | — | ✅ |
@@ -28,7 +27,7 @@
 | Read audit log | All | Own department | Empty |
 
 Notes:
-- Superadmin gets **403** on section, subject, and assignment writes (admin-only routes).
+- Admin gets **403** on legacy section, subject, and assignment management routes; teacher PDF import owns class setup.
 - Admin/superadmin get **403** on every grading, score, and attendance write (teacher-only routes).
 - `GET /api/users` is scoped per role, not role-gated.
 - Admin reads/writes require both existing `created_by` ownership and matching department relationships. Teachers see only their assignments, sections, and subjects; course lists are department-scoped. Query filters can narrow scope, never replace it.
@@ -155,13 +154,9 @@ Notes:
 
 ## Subjects
 
-- Subjects can be created with `course_id = null` ("All Courses (Department-wide)").
-- `GET /api/subjects` matches a specific `course_id` **or** NULL, so department-wide subjects appear everywhere.
-- Subjects persist across school years; `school_year` is retained but no longer used for filtering.
-- Semester is required on create (`1st Semester`, `2nd Semester`, `Summer`). The DB column allows NULL, but the route rejects it.
-- Manage Subjects has a semester filter and a four-column year-level board.
-- Add Subjects errors display only inside the modal. Identical errors from multiple rows are deduplicated, so a closed-term response appears once. Partial success updates the board and retains only failed rows in the open modal for retry.
-- Create and delete are term-locked: `POST` compares the requested semester, `DELETE` compares the subject's semester, and both return **403** when it is not the active term. In archive mode, add/delete are also disabled in the UI.
+- Teacher PDF import matches a subject by course, code, year level, school year, and semester, reusing a compatible existing subject when possible.
+- The subject's course and term are checked against the signed-in teacher and active academic term.
+- Admin subject-list/create/delete routes are blocked; teachers create or reuse subjects while importing their class lists.
 
 ## Students
 
@@ -169,18 +164,23 @@ Notes:
 - `student_name` is computed on the backend as `"Last, First M."` for compatibility with teacher pages.
 - Uniqueness is per section: `UNIQUE(section_id, student_id)`.
 - The roster table shows `#`, Student ID, Student Name, Gender, Action.
+- Student records are section-wide and appear in each subject assigned to the same section.
 
-## Excel Import / Template
+### Teacher My Students / PDF Import
 
-- **Import** in Manage Sections accepts `.xlsx`/`.xls`, parsed client-side with `xlsx`.
-- Required headers: `firstname`, `lastname`, `middle initial`, `student id`, `gender` (case-insensitive/trimmed). Legacy aliases such as `First Name`, `Last Name`, and `MI` remain accepted.
-- Header mismatch shows expected vs found headers.
-- Preview lists rows with include checkboxes and status badges, then posts selected rows to `POST /api/sections/:sectionId/students/bulk`.
-- Imported Student IDs must match `##-####-###` exactly using digits and hyphens (e.g. `26-1234-001`). File values are trimmed, not auto-reformatted; numeric/unhyphenated IDs, wrong group lengths, and letters are invalid. Preserve leading zeros by storing IDs as text in Excel.
-- Invalid IDs are flagged, unchecked, and disabled in both uploaded-file and manual-grid previews. Neither individual toggles nor **Select all** can include them; submit revalidates the selected IDs. Duplicate/incomplete row checks remain in place.
-- The bulk API also skips invalid IDs with a format reason, allowing other valid rows to continue. This is import validation only; no schema change or rewrite of existing student IDs.
-- Backend returns `{ added, skipped[] }`; skipped rows include a reason.
-- `/admin/bulk-students` is a separate Excel-template builder (`firstname`, `lastname`, `middle initial`, `student id`, `gender`) that downloads a blank or completed `.xlsx`. It is not yet linked from the Sections page.
+- **My Students** is available at `/teacher/my-students` and in the teacher sidebar.
+- A section selector lists the teacher's existing section rosters. Import does not require an existing assignment.
+- The browser reads text-based PDF class lists locally using PDF.js. It accepts the official class-list layout (up to 25 pages, 25 MB, and 500 student rows); scanned/image-only PDFs are not OCR-processed.
+- The PDF's Subject Code, Descriptive Title, Section, Course, Year Level, Semester, and School Year are read from its header and roster. The term must match the active academic term; the course must already exist for the teacher's department.
+- On import, the backend creates or reuses the matching section, subject, and teacher assignment, then writes students to that section. Existing records are retained; a conflicting assignment owned by another teacher is rejected.
+- The preview allows editing student fields, normalizes `M`/`F`, preserves the full M.I., and flags malformed IDs, missing names, invalid gender, duplicates in the PDF, and students already in the section. Student IDs must match `##-####-###`.
+- Import is disabled for archived or inactive terms. The API verifies the signed-in teacher, department course, active term, roster metadata, and section ownership before writing; duplicate section IDs are ignored.
+
+## Admin class-management routes
+
+- Admin no longer has section, subject, student roster, or teacher-assignment pages. Existing class records remain in the database.
+- Admin retains teacher account creation, editing, and deletion. Teacher class setup and roster import happen in My Students.
+- The legacy admin Excel import page is no longer routed; new student lists are imported from the official PDF by teachers.
 
 ## Exports
 

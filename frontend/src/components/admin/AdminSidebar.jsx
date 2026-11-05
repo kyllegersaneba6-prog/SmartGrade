@@ -1,27 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, GraduationCap, BookOpen, Settings, X, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, X, User, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 
 const navItems = [
   { name: 'Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
-  { name: 'Manage Sections', path: '/admin/sections', icon: GraduationCap },
-  { name: 'Manage Subjects', path: '/admin/subjects', icon: BookOpen },
   { name: 'Teacher Management', path: '/admin/teachers', icon: Users },
   { name: 'Settings', path: '/admin/settings', icon: Settings },
 ];
 
 const AdminSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }) => {
   const location = useLocation();
-  const [userData, setUserData] = useState(null);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-
-  useEffect(() => {
+  const [userData] = useState(() => {
     const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try { setUserData(JSON.parse(userStr)); } catch (e) {}
-    }
-  }, []);
+    if (!userStr) return null;
+    try { return JSON.parse(userStr); } catch { return null; }
+  });
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('token');

@@ -1,18 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { BookOpen, Activity, Clock, CheckCircle, Trash2, RefreshCw, UsersRound, GraduationCap, UserRoundCheck, UserRoundX, Filter, Check } from 'lucide-react';
-import { useAdmin } from '../../contexts/AdminContext';
+import { useState, useEffect, useCallback } from 'react';
+import { Activity, Clock, CheckCircle, Trash2, RefreshCw, UsersRound, UserRoundCheck, UserRoundX, Filter, Check } from 'lucide-react';
 import api from '../../utils/api';
 import { splitUpdateDescription, isSentenceDescription } from '../../utils/auditText';
 import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../components/common/Skeleton';
 import AdminPageHeading from '../../components/admin/AdminPageHeading';
 
 const AdminDashboard = () => {
-  const { currentTerm, isArchiveMode } = useAdmin();
   const [teachers, setTeachers] = useState([]);
   const [activityLog, setActivityLog] = useState([]);
-  const [coursesCount, setCoursesCount] = useState(0);
-  const [subjectCounts, setSubjectCounts] = useState({});
   const [initialLoading, setInitialLoading] = useState(true);
+  const [currentTime] = useState(() => Date.now());
 
   const loadData = useCallback(async () => {
     try {
@@ -27,34 +24,6 @@ const AdminDashboard = () => {
           try {
             const res = await api('/api/activity');
             if (res.ok) { const data = await res.json(); setActivityLog(data); }
-          } catch (err) { console.error(err); }
-        })(),
-        (async () => {
-          try {
-            const res = await api('/api/assignments');
-            if (res.ok) {
-              const data = await res.json();
-              const counts = {};
-              data.forEach(a => { counts[a.teacher_id] = (counts[a.teacher_id] || 0) + 1; });
-              setSubjectCounts(counts);
-            }
-          } catch (err) { console.error(err); }
-        })(),
-        (async () => {
-          try {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const deptRes = await api('/api/departments');
-            if (deptRes.ok) {
-              const depts = await deptRes.json();
-              const match = depts.find(d => d.name === user.department);
-              if (match) {
-                const coursesRes = await api(`/api/courses?department_id=${match.id}`);
-                if (coursesRes.ok) {
-                  const courses = await coursesRes.json();
-                  setCoursesCount(courses.length);
-                }
-              }
-            }
           } catch (err) { console.error(err); }
         })(),
       ]);
@@ -99,14 +68,14 @@ const AdminDashboard = () => {
       <AdminPageHeading
         eyebrow="Dashboard"
         title={`Welcome, ${JSON.parse(localStorage.getItem('user') || '{}')?.full_name || 'Admin'}`}
-        description="Manage departments, teachers, and monitor activity logs."
+        description="Manage teacher accounts and monitor activity logs."
       />
 
       
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {initialLoading ? (
-          <div className="md:col-span-3" aria-busy="true"><SkeletonMetricCards count={3} /></div>
+          <div className="md:col-span-2" aria-busy="true"><SkeletonMetricCards count={2} /></div>
         ) : (
         <>
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
@@ -116,15 +85,6 @@ const AdminDashboard = () => {
             <span className="text-[11px] text-gray-900">Registered faculty members</span>
           </div>
           <div className="p-3.5 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#142a3f15', color: '#142a3f' }}><UsersRound size={24} /></div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Courses</span>
-            <div className="text-3xl font-extrabold text-[#142a3f]">{coursesCount}</div>
-            <span className="text-[11px] text-gray-900">Active courses</span>
-          </div>
-          <div className="p-3.5 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#142a3f15', color: '#142a3f' }}><GraduationCap size={24} /></div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
@@ -157,20 +117,14 @@ const AdminDashboard = () => {
                 <thead>
                   <tr className="border-b sticky top-0 bg-gray-50 z-10" style={{ borderColor: '#e5e7eb' }}>
                     <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Name</th>
-                    <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Subjects Assigned</th>
+                    <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Username</th>
                   </tr>
                 </thead>
                 <tbody>
                   {teachers.map((t) => (
                     <tr key={t.id} className="border-b last:border-0 hover:bg-gray-50" style={{ borderColor: '#e5e7eb' }}>
                       <td className="py-3 pr-3 font-bold text-gray-900">{t.full_name}</td>
-                      <td className="py-3 pr-3">
-                        <span
-                          className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-3xl bg-white border border-[#142a3f] text-[#142a3f]"
-                        >
-                          <BookOpen size={16} style={{ color: '#142a3f' }} /> {subjectCounts[t.id] || 0}
-                        </span>
-                      </td>
+                      <td className="py-3 pr-3 text-gray-600">{t.username || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -213,7 +167,7 @@ const AdminDashboard = () => {
               {activityLogToDisplay.map((log) => {
                 const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
                 const isOwn = log.user_name === currentUser?.username;
-                const diff = Date.now() - new Date(log.created_at).getTime();
+                const diff = currentTime - new Date(log.created_at).getTime();
                 const minutes = Math.floor(diff / 60000);
                 const hours = Math.floor(minutes / 60);
                 const days = Math.floor(hours / 24);

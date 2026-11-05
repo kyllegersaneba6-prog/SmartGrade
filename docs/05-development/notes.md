@@ -8,7 +8,6 @@ Miscellaneous technical notes, known gaps, and follow-ups.
 |---|---|---|
 | CORS | Local/LAN allowlist exists; deployments must set `CORS_ORIGINS` | Verify allowed origins rather than relying on development defaults |
 | Notifications | Broadcast form only logs to the console | Feature appears to work but sends nothing |
-| Bulk import page | `/admin/bulk-students` is not linked from the sidebar; its header now correctly says "Bulk Student Import" when opened directly | Discoverability bug |
 | Credential exposure | Removing `backend/.env` from tracking does not erase Git history | Supabase/AI provider keys and deployment secrets still require operator rotation |
 | Historical ownership | Creator-based ownership is retained, now with department checks | Replacing/deleting an admin can orphan access; repair/migration belongs to the history-preservation phase |
 
@@ -20,8 +19,9 @@ Miscellaneous technical notes, known gaps, and follow-ups.
 - **Department scoping is enforced by the backend.** `staff_users.department` remains text, but auth resolves it on every admin/teacher request. Shared read/write helpers check creator ownership and course/creator department relationships. Teachers are limited to their own assignments/rosters/subjects; query filters never override ownership.
 - **Teacher-only writes.** Grading, scores, and attendance mutations are `authorizeRole('teacher')`; admins and superadmins get 403.
 - **DB constraints are a backstop.** `sql/add_db_constraints.sql` enforces the single active term, one admin per department, score/weight ranges, and the weight total at the database. Routes still validate first so the client receives a 400; the migration aborts on pre-existing violations instead of rewriting data.
-- **Migration state is partially tracked.** The live project's `supabase_migrations.schema_migrations` has the four original entries plus `enable_row_level_security`, `baseline_attendance_final`, and `baseline_db_constraints`. The two baselines were recorded by re-running the idempotent SQL; there is still no runner and no manifest for the remaining `backend/sql/` change files.
-- **Admin-only structure.** Sections, students, subjects, and assignments are `authorizeRole('admin')`; superadmin gets 403.
+- **Migration state is partially tracked.** The live project's `supabase_migrations.schema_migrations` includes the baseline entries and `allow_section_per_semester`; there is still no runner or manifest for the remaining `backend/sql/` change files.
+- **Teacher-managed class setup.** Admins provision teacher accounts. Admin class, section, subject, assignment, and roster routes return 403; teachers create/reuse class records by importing PDFs in My Students.
+- **Section term scope.** The live `sections` unique constraint is `(course_id, name, school_year, semester)` so a class can have a separate roster per semester. Existing rows were preserved.
 - **Excel/PDF is client-side.** No spreadsheet libraries exist in the backend.
 - **Backups run in-process.** `restoreInProgress` is a module-level flag, so it protects one server process only.
 - **RLS is deny-all.** `sql/enable_row_level_security.sql` enables RLS on all 13 `public` tables with no policies. `anon` and `authenticated` also have no table grants, so the publishable/anon key gets `401 permission denied` from PostgREST (verified live). The backend is unaffected because `service_role` has `BYPASSRLS`. The Supabase `RLS Enabled No Policy` advisory is informational and expected. Trigger functions still have mutable `search_path` (advisor WARN) — candidate for a follow-up hardening pass.

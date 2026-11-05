@@ -22,7 +22,6 @@
 - Complete Supabase/AI credential rotation after removing the tracked environment file; rotate deployment JWT secrets and verify old keys are revoked
 - Add durable session-version/revocation tracking if permanent revocation across restores or individual device logout is required; current sessions use a fresh-account security fingerprint
 - Resolve development-only minimatch advisories in the ESLint/nodemon chains without unsafe forced upgrades
-- Link `/admin/bulk-students` from Manage Sections; its route title is already fixed
 - Automated / scheduled backups (manual export/restore exists)
 - AI: persist summaries, add a batch/class-level view, add prompt/version tracking
 - Tests and a migration runner

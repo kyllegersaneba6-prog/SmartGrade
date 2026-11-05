@@ -59,6 +59,7 @@ const ClassRecord = () => {
   const [showSubcomponentChoices, setShowSubcomponentChoices] = useState(false);
   const [savingComponent, setSavingComponent] = useState(false);
   const [copyingPrelims, setCopyingPrelims] = useState(false);
+  const [confirmCopyPrelimsOpen, setConfirmCopyPrelimsOpen] = useState(false);
   const [error, setError] = useState('');
   const [clampWarnings, setClampWarnings] = useState({});
   const [scoreDrafts, setScoreDrafts] = useState({});
@@ -323,7 +324,7 @@ const ClassRecord = () => {
   };
 
   const copyFromPrelims = async () => {
-    if (!selectedAssignment) return;
+    if (!selectedAssignment || copyingPrelims) return;
     setCopyingPrelims(true);
     try {
       const res = await api('/api/grading-components/copy-from-prelims', {
@@ -334,12 +335,17 @@ const ClassRecord = () => {
         const comps = await res.json();
         setComponents(comps);
         setError('');
+        setConfirmCopyPrelimsOpen(false);
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         setError(err.message || 'Failed to copy from PRELIMS');
         setTimeout(() => setError(''), 4000);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setError('Network error. Please try again.');
+      setTimeout(() => setError(''), 4000);
+    }
     finally { setCopyingPrelims(false); }
   };
 
@@ -622,12 +628,12 @@ const ClassRecord = () => {
       />
       <div className="flex flex-wrap items-center gap-3">
         <AssignmentSelector />
-        <div className="flex items-center bg-bg-light border border-border rounded-lg p-1 shadow-elevated">
+        <div className="flex h-11 items-center bg-bg-light border border-border rounded-lg p-1 shadow-elevated">
           {TERMS.map((t) => (
             <button
               key={t}
               onClick={() => setGradingTerm(t)}
-              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+              className={`h-full px-3 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 selectedTerm === t
                   ? 'bg-[#0c1925] text-white shadow-sm'
                   : 'text-text-muted hover:text-sidebar'
@@ -655,7 +661,7 @@ const ClassRecord = () => {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {selectedTerm !== 'PRELIMS' && !isReadOnly && !dataLoading && components.length === 0 && (
-              <button onClick={copyFromPrelims} disabled={copyingPrelims} className="px-3 py-2 text-xs font-bold text-amber-800 bg-amber-100 border border-amber-200 rounded-lg hover:bg-amber-200 disabled:opacity-50">
+              <button onClick={() => setConfirmCopyPrelimsOpen(true)} disabled={copyingPrelims} className="px-3 py-2 text-xs font-bold text-amber-800 bg-amber-100 border border-amber-200 rounded-lg hover:bg-amber-200 disabled:opacity-50">
                 {copyingPrelims ? 'Copying...' : 'Copy from PRELIMS'}
               </button>
             )}
@@ -1055,6 +1061,21 @@ const ClassRecord = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+      {confirmCopyPrelimsOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !copyingPrelims) setConfirmCopyPrelimsOpen(false); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="copy-prelims-title" className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
+            <h3 id="copy-prelims-title" className="text-lg font-bold text-gray-900 mb-2">Copy from PRELIMS?</h3>
+            <p className="text-sm text-gray-900 mb-4">Copy grading components from PRELIMS to <strong>{selectedTerm}</strong>? Activities are not copied and will need to be added separately.</p>
+            <div className="flex gap-3 justify-end">
+              <button type="button" onClick={() => setConfirmCopyPrelimsOpen(false)} disabled={copyingPrelims} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">No</button>
+              <button type="button" onClick={copyFromPrelims} disabled={copyingPrelims} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md transition-colors bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                {copyingPrelims && <Loader size={14} className="animate-spin" />}
+                {copyingPrelims ? 'Copying...' : 'Yes'}
+              </button>
+            </div>
+          </section>
         </div>
       )}
       {deleteModal && (

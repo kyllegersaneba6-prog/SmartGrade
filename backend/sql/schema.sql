@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS public.sections (
   semester TEXT NOT NULL DEFAULT '1st Semester' CHECK (semester IN ('1st Semester', '2nd Semester', 'Summer')),
   created_by UUID REFERENCES public.staff_users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(course_id, name, school_year)
+  UNIQUE(course_id, name, school_year, semester)
 );
 
 -- 7. Students table
@@ -116,6 +116,13 @@ ALTER TABLE public.subjects ADD CONSTRAINT subjects_semester_check
 
 -- Add semester column if upgrading existing schema
 ALTER TABLE public.sections ADD COLUMN IF NOT EXISTS semester TEXT DEFAULT '1st Semester' CHECK (semester IN ('1st Semester', '2nd Semester', 'Summer'));
+
+-- Keep historical sections but allow one row for each semester of a school year.
+ALTER TABLE public.sections DROP CONSTRAINT IF EXISTS sections_course_id_name_school_year_key;
+ALTER TABLE public.sections DROP CONSTRAINT IF EXISTS sections_course_id_name_school_year_semester_key;
+ALTER TABLE public.sections
+  ADD CONSTRAINT sections_course_id_name_school_year_semester_key
+  UNIQUE (course_id, name, school_year, semester);
 
 -- Add student detail columns if upgrading existing schema
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS first_name TEXT;

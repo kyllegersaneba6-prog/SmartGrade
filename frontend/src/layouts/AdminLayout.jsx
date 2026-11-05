@@ -22,9 +22,6 @@ const AdminLayoutInner = () => {
       case '/admin': return 'Dashboard';
       case '/admin/teachers': return 'Teacher Management';
       case '/admin/teachers/create': return 'Create New Teacher';
-      case '/admin/sections': return 'Manage Sections';
-      case '/admin/subjects': return 'Manage Subjects';
-      case '/admin/bulk-students': return 'Bulk Student Import';
       case '/admin/settings': return 'Settings';
       default: return 'Admin';
     }

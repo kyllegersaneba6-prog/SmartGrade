@@ -19,10 +19,17 @@ const sectionsByYear = {
   '3rd': ['Section G', 'Section H', 'Section I'],
   '4th': ['Section J', 'Section K', 'Section L'],
 };
+const blockAdminRosterManagement = (req, res, next) => {
+  if (req.user.role === 'admin') {
+    return res.status(403).json({ message: 'Teachers create sections and manage rosters by importing the class-list PDF in My Students.' });
+  }
+  return next();
+};
 
 // GET /api/sections/seed/preview — preview seed data without inserting
 router.get('/seed/preview', async (req, res) => {
   try {
+    if (req.user.role === 'admin') return res.status(403).json({ message: 'Teachers create their sections from the class-list PDF.' });
     const { course_id, year_level } = req.query;
     if (!course_id || !year_level) return res.status(400).json({ message: 'course_id and year_level are required' });
     if (!(await canAccessCourse(course_id, req.user))) return res.status(403).json({ message: 'Access denied.' });
@@ -41,6 +48,7 @@ router.get('/seed/preview', async (req, res) => {
 // GET /api/sections/find-student — find a student across sections by student_id
 router.get('/find-student', async (req, res) => {
   try {
+    if (req.user.role === 'admin') return res.status(403).json({ message: 'Student records are available from teacher class lists.' });
     const { student_id } = req.query;
     if (!student_id) return res.status(400).json({ message: 'student_id is required' });
     const { data: matches, error } = await supabase
@@ -70,7 +78,7 @@ router.get('/find-student', async (req, res) => {
 });
 
 // PATCH /api/sections/students/:id/transfer — transfer a student to another section
-router.patch('/students/:id/transfer', authorizeRole('admin'), async (req, res) => {
+router.patch('/students/:id/transfer', authorizeRole('admin'), blockAdminRosterManagement, async (req, res) => {
   try {
     const { target_section_id } = req.body;
     if (!target_section_id) return res.status(400).json({ message: 'target_section_id is required' });
@@ -107,6 +115,7 @@ router.get('/', async (req, res) => {
   try {
     const { year, course_id, school_year, semester } = req.query;
     const { role, id } = req.user;
+    if (role === 'admin') return res.status(403).json({ message: 'Section lists are managed by teachers through their class-list imports.' });
     let query = supabase.from('sections').select('*, courses(abbreviation)').order('name', { ascending: true });
     if (role === 'admin') query = query.eq('created_by', id);
     if (role === 'teacher') {
@@ -129,7 +138,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/sections — create a section
-router.post('/', authorizeRole('admin'), async (req, res) => {
+router.post('/', authorizeRole('admin'), blockAdminRosterManagement, async (req, res) => {
   const { name, year_level, course_id, school_year, semester } = req.body;
   if (!name || !year_level) {
     return res.status(400).json({ message: 'Name and year level are required' });
@@ -190,7 +199,7 @@ router.post('/', authorizeRole('admin'), async (req, res) => {
 });
 
 // DELETE /api/sections/:id — delete a section (cascades to students)
-router.delete('/:id', authorizeRole('admin'), async (req, res) => {
+router.delete('/:id', authorizeRole('admin'), blockAdminRosterManagement, async (req, res) => {
   try {
     if (!(await canAccessSection(req.params.id, req.user))) return res.status(403).json({ message: 'Access denied.' });
     const { data: section } = await supabase.from('sections').select('created_by, school_year, semester').eq('id', req.params.id).single();
@@ -216,6 +225,7 @@ router.delete('/:id', authorizeRole('admin'), async (req, res) => {
 // GET /api/sections/:sectionId/students
 router.get('/:sectionId/students', async (req, res) => {
   try {
+    if (req.user.role === 'admin') return res.status(403).json({ message: 'Student rosters are managed by teachers through My Students.' });
     if (!(await canAccessSection(req.params.sectionId, req.user))) {
       return res.status(403).json({ message: 'Access denied.' });
     }
@@ -232,35 +242,57 @@ router.get('/:sectionId/students', async (req, res) => {
   }
 });
 
-// POST /api/sections/:sectionId/students — add a student
-router.post('/:sectionId/students', authorizeRole('admin'), async (req, res) => {
-  const { student_id, first_name, last_name, mi, gender } = req.body;
+// POST /api/sections/:sectionId/students — add a student to a teacher's section
+router.post('/:sectionId/students', authorizeRole('teacher'), async (req, res) => {
+  const { student_id, first_name, last_name, mi, gender, course, year_level } = req.body;
   if (!student_id || !first_name || !last_name) {
     return res.status(400).json({ message: 'Student ID, first name, and last name are required' });
   }
-  const student_name = [last_name, `${first_name}${mi ? ' ' + mi + '.' : ''}`].join(', ');
+  if (typeof student_id !== 'string' || !/^\d{2}-\d{4}-\d{3}$/.test(student_id.trim())) {
+    return res.status(400).json({ message: 'Student ID must use ##-####-### format (e.g. 26-1234-001).' });
+  }
+  if (typeof first_name !== 'string' || typeof last_name !== 'string' || !first_name.trim() || !last_name.trim()) {
+    return res.status(400).json({ message: 'First name and last name are required.' });
+  }
+  const normalizedId = student_id.trim();
+  const normalizedFirstName = first_name.trim();
+  const normalizedLastName = last_name.trim();
+  const normalizedMi = typeof mi === 'string' ? mi.trim().replace(/[.\s]+$/g, '').toUpperCase() : '';
+  const normalizedGender = typeof gender === 'string' ? gender.trim() : '';
+  const normalizedCourse = typeof course === 'string' ? course.trim() : '';
+  const normalizedYearLevel = typeof year_level === 'string' ? year_level.trim() : '';
+  if (!['Male', 'Female'].includes(normalizedGender)) {
+    return res.status(400).json({ message: 'Select a valid gender.' });
+  }
+  if (!['BSIT', 'BSCS'].includes(normalizedCourse) || !['1st', '2nd', '3rd', '4th'].includes(normalizedYearLevel)) {
+    return res.status(400).json({ message: 'Select a valid course and year level.' });
+  }
+  const student_name = [normalizedLastName, `${normalizedFirstName}${normalizedMi ? ` ${normalizedMi}.` : ''}`].join(', ');
   try {
     if (!(await canAccessSection(req.params.sectionId, req.user))) return res.status(403).json({ message: 'Access denied.' });
-    const { data: section } = await supabase
+    const { data: section, error: sectionError } = await supabase
       .from('sections')
-      .select('school_year, semester')
+      .select('school_year, semester, year_level, courses(abbreviation)')
       .eq('id', req.params.sectionId)
       .single();
+    if (sectionError) return sendServerError(res, sectionError);
     if (!section) return res.status(403).json({ message: 'Unable to verify section access.' });
-    if (section) {
-      const { data: activeTerm } = await supabase
-        .from('academic_terms')
-        .select('*')
-        .eq('is_active', true)
-        .maybeSingle();
-      if (!activeTerm || activeTerm.school_year !== section.school_year || activeTerm.semester !== section.semester) {
-        return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
-      }
+    if (section.courses?.abbreviation !== normalizedCourse || section.year_level !== normalizedYearLevel) {
+      return res.status(400).json({ message: 'Course and Year Level must match the selected section.' });
+    }
+    const { data: activeTerm, error: activeTermError } = await supabase
+      .from('academic_terms')
+      .select('*')
+      .eq('is_active', true)
+      .maybeSingle();
+    if (activeTermError) return sendServerError(res, activeTermError);
+    if (!activeTerm || activeTerm.school_year !== section.school_year || activeTerm.semester !== section.semester) {
+      return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
     const { data: existing } = await supabase
       .from('students')
       .select('id')
-      .eq('student_id', student_id)
+      .eq('student_id', normalizedId)
       .eq('section_id', req.params.sectionId)
       .maybeSingle();
     if (existing) {
@@ -268,7 +300,15 @@ router.post('/:sectionId/students', authorizeRole('admin'), async (req, res) => 
     }
     const { data, error } = await supabase
       .from('students')
-      .insert([{ student_id, student_name, first_name, last_name, mi, gender, section_id: req.params.sectionId }])
+      .insert([{
+        student_id: normalizedId,
+        student_name,
+        first_name: normalizedFirstName,
+        last_name: normalizedLastName,
+        mi: normalizedMi || null,
+        gender: normalizedGender,
+        section_id: req.params.sectionId,
+      }])
       .select()
       .single();
     if (error) return sendServerError(res, error);
@@ -279,8 +319,61 @@ router.post('/:sectionId/students', authorizeRole('admin'), async (req, res) => 
   }
 });
 
+// DELETE /api/sections/:sectionId/students/bulk — delete selected students from a teacher's section
+router.delete('/:sectionId/students/bulk', authorizeRole('teacher'), async (req, res) => {
+  const { student_ids } = req.body || {};
+  if (!Array.isArray(student_ids) || student_ids.length === 0 || student_ids.length > 500
+    || student_ids.some((id) => typeof id !== 'string' || !id.trim())) {
+    return res.status(400).json({ message: 'Select between 1 and 500 valid student records to delete.' });
+  }
+  const studentIds = [...new Set(student_ids.map((id) => id.trim()))];
+  try {
+    if (!(await canAccessSection(req.params.sectionId, req.user))) return res.status(403).json({ message: 'Access denied.' });
+
+    const { data: section, error: sectionError } = await supabase
+      .from('sections')
+      .select('school_year, semester')
+      .eq('id', req.params.sectionId)
+      .single();
+    if (sectionError) return sendServerError(res, sectionError);
+    if (!section) return res.status(404).json({ message: 'Section not found.' });
+
+    const { data: activeTerm, error: activeTermError } = await supabase
+      .from('academic_terms')
+      .select('*')
+      .eq('is_active', true)
+      .maybeSingle();
+    if (activeTermError) return sendServerError(res, activeTermError);
+    if (!activeTerm || activeTerm.school_year !== section.school_year || activeTerm.semester !== section.semester) {
+      return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
+    }
+
+    const { data: selectedStudents, error: lookupError } = await supabase
+      .from('students')
+      .select('id')
+      .eq('section_id', req.params.sectionId)
+      .in('id', studentIds);
+    if (lookupError) return sendServerError(res, lookupError);
+    if ((selectedStudents || []).length !== studentIds.length) {
+      return res.status(400).json({ message: 'One or more selected students do not belong to this section.' });
+    }
+
+    const { data: deletedStudents, error: deleteError } = await supabase
+      .from('students')
+      .delete()
+      .eq('section_id', req.params.sectionId)
+      .in('id', studentIds)
+      .select('id');
+    if (deleteError) return sendServerError(res, deleteError);
+    res.json({ deleted: deletedStudents?.length || 0 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // DELETE /api/sections/students/:id — delete a single student
-router.delete('/students/:id', authorizeRole('admin'), async (req, res) => {
+router.delete('/students/:id', authorizeRole('admin'), blockAdminRosterManagement, async (req, res) => {
   try {
     const { data: student } = await supabase
       .from('students')
@@ -315,7 +408,7 @@ router.delete('/students/:id', authorizeRole('admin'), async (req, res) => {
 });
 
 // POST /api/sections/:sectionId/students/bulk — bulk add students (import)
-router.post('/:sectionId/students/bulk', authorizeRole('admin'), async (req, res) => {
+router.post('/:sectionId/students/bulk', authorizeRole('admin'), blockAdminRosterManagement, async (req, res) => {
   const { students } = req.body;
   if (!Array.isArray(students) || students.length === 0) {
     return res.status(400).json({ message: 'Students array is required' });

@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, LayoutDashboard, Users, BookOpen, Download, X, FileSpreadsheet, CalendarCheck, LogOut, User, Settings, Summary } from 'lucide-react';
+import { BarChart3, LayoutDashboard, Users, X, FileSpreadsheet, CalendarCheck, LogOut, User, Settings, Summary } from 'lucide-react';
 import clsx from 'clsx';
 
 const navItems = [
   { name: 'Overview', path: '/teacher/overview', icon: LayoutDashboard },
+  { name: 'My Classes', path: '/teacher/my-students', icon: Users },
   { name: 'Attendance', path: '/teacher/attendance', icon: CalendarCheck },
   { name: 'Class Record', path: '/teacher/class-record', icon: FileSpreadsheet },
   { name: 'Analytics', path: '/teacher/analytics', icon: BarChart3 },
@@ -14,15 +15,12 @@ const navItems = [
 
 const TeacherSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }) => {
   const location = useLocation();
-  const [userData, setUserData] = useState(null);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-
-  useEffect(() => {
+  const [userData] = useState(() => {
     const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try { setUserData(JSON.parse(userStr)); } catch (e) {}
-    }
-  }, []);
+    if (!userStr) return null;
+    try { return JSON.parse(userStr); } catch { return null; }
+  });
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('token');

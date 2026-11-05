@@ -170,7 +170,8 @@ const BehavioralAnalytics = () => {
   };
 
   const getComponentTrend = (studentId, comp) => {
-    const scored = getComponentActivityScores(studentId, comp);
+    const scored = getComponentActivityScores(studentId, comp)
+      .filter(({ activity }) => !activity.is_attendance);
     if (scored.length < 2) return 'stable';
     const values = scored.map(x => x.pct);
     const indices = values.map((_, i) => i);
@@ -438,12 +439,12 @@ const BehavioralAnalytics = () => {
       />
       <div className="flex flex-wrap items-center gap-3">
         <AssignmentSelector />
-        <div className="flex items-center bg-bg-light border border-border rounded-lg p-1 shadow-elevated">
+        <div className="flex h-11 items-center bg-bg-light border border-border rounded-lg p-1 shadow-elevated">
           {TERMS.map((t) => (
             <button
               key={t}
               onClick={() => changeTerm(t)}
-              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+              className={`h-full px-3 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 selectedTerm === t ? 'bg-sidebar text-white shadow-sm' : 'text-text-muted hover:text-sidebar'
               }`}
             >
@@ -830,7 +831,7 @@ const BehavioralAnalytics = () => {
                             </div>
                           );
                         })}
-                        {cd.activities.length >= 2 && (
+                        {cd.activities.filter(({ activity }) => !activity.is_attendance).length >= 2 && (
                           <div className={`flex items-center gap-2 text-sm font-bold mt-2 pt-2 border-t border-gray-100 ${
                             cd.trend === 'improving' ? 'text-green-700' : cd.trend === 'declining' ? 'text-red-600' : 'text-gray-600'
                           }`}>

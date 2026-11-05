@@ -22,10 +22,8 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 |---|---|---|
 | Department management (CRUD) + abbreviation | Done | Superadmin only; rename cascades to `staff_users.department` |
 | Course management (CRUD) + abbreviation | Done | Superadmin only; delete blocked while referenced |
-| Section management (auto-named) | Done | Admin only; `"<abbr> <year>-<letter>"`; duplicate check |
-| Section name preview | Done | `GET /api/sections/seed/preview` |
-| Subject management (persist across terms) | Done | Semester-scoped; `course_id = null` = department-wide |
-| Teacher assignment to sections/subjects | Done | Admin only; additive; one teacher per section+subject+term |
+| Teacher class-list import | In Progress | My Students extracts subject, section, course, year, term, and student details; provisions/reuses the class and imports its roster. Live Supabase term-aware section constraint is applied; live roster import is not exercised |
+| Admin teacher account management | Done | Admin can create, edit, and delete teacher accounts; section, subject, assignment, and student roster management is removed from admin UI/API |
 
 ## Terms & Read-Only
 
@@ -73,7 +71,6 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Environment-file tracking cleanup | Done | Local file preserved, JWT secret rotated; sanitized `backend/.env.example` added |
 | Previously committed provider credential rotation | In Progress | Supabase/AI key rotation and deployed-secret updates require operator access |
 | 404 page + catch-all route | Done | `NotFound` page for any unknown URL; links to the role dashboard or login |
-| Student Excel template builder | In Progress | `/admin/bulk-students` exists but is not linked from Manage Sections; the shared Admin header now labels the direct route "Bulk Student Import" |
 | Broadcast notification | Not Wired | Forms + success banner only; no API call |
 | Student portal / self-service | Planned | |
 | Multi-institution support | Planned | |

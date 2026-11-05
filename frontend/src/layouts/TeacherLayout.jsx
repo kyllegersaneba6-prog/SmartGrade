@@ -22,6 +22,7 @@ const TeacherLayoutInner = () => {
       case '/teacher': return 'Overview';
       case '/teacher/overview': return 'Overview';
       case '/teacher/class-record': return 'Class Record';
+      case '/teacher/my-students': return 'My Students';
       case '/teacher/attendance': return 'Attendance';
       case '/teacher/grade-summary': return 'Grade Summary';
       case '/teacher/analytics': return 'Analytics';

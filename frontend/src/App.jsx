@@ -9,6 +9,7 @@ import Attendance from './pages/teacher/Attendance';
 import BehavioralAnalytics from './pages/teacher/BehavioralAnalytics';
 import GradeSummary from './pages/teacher/GradeSummary';
 import TeacherSettings from './pages/teacher/TeacherSettings';
+import MyStudents from './pages/teacher/MyStudents';
 
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
 import Audit from './pages/superadmin/audit';
@@ -20,9 +21,6 @@ import SuperAdminSettings from './pages/superadmin/SuperAdminSettings';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminTeachers from './pages/admin/AdminTeachers';
 import CreateAdminTeacher from './pages/admin/CreateAdminTeacher';
-import AdminSections from './pages/admin/AdminSections';
-import BulkStudentImport from './pages/admin/BulkStudentImport';
-import AdminSubjects from './pages/admin/AdminSubjects';
 import AdminSettings from './pages/admin/AdminSettings';
 
 import Login from './pages/Login';
@@ -36,18 +34,17 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
+  let userRole;
   try {
     const user = JSON.parse(userStr);
-    const userRole = user?.role || user?.system_role;
-
-    if (!allowedRoles.includes(userRole)) {
-      if (userRole === 'teacher') return <Navigate to="/teacher" replace />;
-      if (userRole === 'admin') return <Navigate to="/admin" replace />;
-      if (userRole === 'superadmin') return <Navigate to="/superadmin" replace />;
-      return <Navigate to="/login" replace />;
-    }
-  } catch (e) {
+    userRole = user?.role || user?.system_role;
+  } catch {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!allowedRoles.includes(userRole)) {
+    const destination = ({ teacher: '/teacher', admin: '/admin', superadmin: '/superadmin' })[userRole] || '/login';
+    return <Navigate to={destination} replace />;
   }
 
   return children;
@@ -60,7 +57,7 @@ const getRedirectPath = () => {
     if (role === 'teacher') return '/teacher';
     if (role === 'admin') return '/admin';
     return '/superadmin';
-  } catch (e) {
+  } catch {
     return '/superadmin';
   }
 };
@@ -111,9 +108,6 @@ function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="teachers" element={<AdminTeachers />} />
           <Route path="teachers/create" element={<CreateAdminTeacher />} />
-          <Route path="sections" element={<AdminSections />} />
-          <Route path="subjects" element={<AdminSubjects />} />
-          <Route path="bulk-students" element={<BulkStudentImport />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
 
@@ -129,6 +123,7 @@ function App() {
           <Route index element={<TeacherOverview />} />
           <Route path="overview" element={<TeacherOverview />} />
           <Route path="class-record" element={<ClassRecord />} />
+          <Route path="my-students" element={<MyStudents />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="analytics" element={<BehavioralAnalytics />} />
           <Route path="grade-summary" element={<GradeSummary />} />
