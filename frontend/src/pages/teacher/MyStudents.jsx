@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronDown, FileText, FileUp, LoaderCircle, Trash2, UserPlus, Users, X } from 'lucide-react';
 import { useTeacher } from '../../contexts/TeacherContext';
 import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
 import FloatingSectionSelector from '../../components/common/FloatingSectionSelector';
 import api from '../../utils/api';
+import { SkeletonTable } from '../../components/common/Skeleton';
 
 const normalize = (value) => String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const digits = (value) => (String(value || '').match(/\d+/) || [''])[0];
@@ -19,8 +20,9 @@ const MyStudents = () => {
   const { assignments, loading: assignmentsLoading, activeTerm, isArchiveMode, setViewTerm, refreshAssignments } = useTeacher();
   const fileInputRef = useRef(null);
   const importDropdownRef = useRef(null);
+  const classListHeaderRef = useRef(null);
+  const [classListHeaderHeight, setClassListHeaderHeight] = useState(0);
   const [sectionId, setSectionId] = useState('');
-  const [sectionSelectorWidth, setSectionSelectorWidth] = useState(null);
   const [selectedBySection, setSelectedBySection] = useState({});
   const selectAllCheckboxRef = useRef(null);
   const [importMenuOpen, setImportMenuOpen] = useState(false);
@@ -40,16 +42,23 @@ const MyStudents = () => {
   const [deletingStudents, setDeletingStudents] = useState(false);
   const [studentForm, setStudentForm] = useState({ student_id: '', last_name: '', first_name: '', mi: '', gender: '', course: '', year_level: '' });
 
-  const syncSectionSelectorWidth = useCallback((width) => {
-    setSectionSelectorWidth((current) => current === width ? current : width);
-  }, []);
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (importDropdownRef.current && !importDropdownRef.current.contains(event.target)) setImportMenuOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const header = classListHeaderRef.current;
+    if (!header) return undefined;
+
+    const measureHeader = () => setClassListHeaderHeight(Math.ceil(header.getBoundingClientRect().height));
+    measureHeader();
+    const observer = new ResizeObserver(measureHeader);
+    observer.observe(header);
+    return () => observer.disconnect();
   }, []);
 
   const sections = useMemo(() => {
@@ -77,7 +86,7 @@ const MyStudents = () => {
   const rosterSectionId = currentParsed ? targetSectionId : effectiveSectionId;
   const students = rosterState.sectionId === rosterSectionId ? rosterState.students : [];
   const rosterError = rosterState.sectionId === rosterSectionId ? rosterState.error : '';
-  const rosterLoading = Boolean(rosterSectionId && rosterState.sectionId !== rosterSectionId);
+  const rosterLoading = assignmentsLoading || Boolean(rosterSectionId && rosterState.sectionId !== rosterSectionId);
   const selectedStudentIds = selectedBySection[rosterSectionId] || [];
   const selectedStudentIdSet = new Set(selectedStudentIds);
   const allStudentsSelected = students.length > 0 && students.every((student) => selectedStudentIdSet.has(studentKey(student)));
@@ -407,28 +416,26 @@ const MyStudents = () => {
           <div>
             <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-700" htmlFor="student-section">My sections</label>
             {assignmentsLoading ? (
-              <div className="h-11 animate-pulse rounded-xl bg-gray-100" />
+              <div className="flex h-12 items-center rounded-lg border border-gray-200 bg-white px-4 text-sm text-gray-500">Loading sections…</div>
             ) : sections.length ? (
               <FloatingSectionSelector
                 value={effectiveSectionId}
                 onChange={handleSectionChange}
                 sections={sections}
-                activeTerm={activeTerm}
                 isArchiveMode={isArchiveMode}
                 onExitArchive={() => setViewTerm(null)}
-                onWidthChange={syncSectionSelectorWidth}
               />
             ) : (
               <div className="rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500">No imported sections yet. Upload a class-list PDF to create your first section.</div>
             )}
           </div>
-          <div className="relative w-fit" ref={importDropdownRef} style={sectionSelectorWidth ? { width: `${sectionSelectorWidth}px` } : undefined}>
+          <div className="relative w-fit" ref={importDropdownRef}>
             <input ref={fileInputRef} type="file" accept=".pdf,application/pdf" onChange={handleFile} className="hidden" />
             <button
               type="button"
               onClick={() => setImportMenuOpen((current) => !current)}
               disabled={isReadOnly || parsing || saving}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0c1925] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#142a3f] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 w-fit items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#0c1925] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#142a3f] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {parsing ? <LoaderCircle size={17} className="animate-spin" /> : <FileUp size={17} />}
               {parsing ? 'Reading PDF...' : 'Import Class-List'}
@@ -453,8 +460,8 @@ const MyStudents = () => {
         {parseError && <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{parseError}</p>}
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div ref={classListHeaderRef} className="sticky top-0 z-20 flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-sm font-bold text-gray-900">Class List</h2>
@@ -490,28 +497,27 @@ const MyStudents = () => {
           </div>
         </div>
 
-        <div className="max-h-[65vh] overflow-auto">
-          <table className="w-full min-w-[960px] border-collapse text-left text-xs">
-            <thead className="sticky top-0 z-10 bg-[#142a3f] text-white">
+        <div>
+          {rosterLoading ? <SkeletonTable cols={9} rows={8} bare /> : (
+          <table className="w-full min-w-[960px] border-separate border-spacing-0 text-left text-xs">
+            <thead className="bg-[#142a3f] text-white">
               <tr>
-                <th className="px-4 py-3">#</th>
-                <th className="w-10 px-3 py-3">
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] px-4 py-3">#</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 w-10 bg-[#142a3f] px-3 py-3">
                   <input ref={selectAllCheckboxRef} type="checkbox" aria-label="Select all students" checked={allStudentsSelected} disabled={!students.length || rosterLoading || Boolean(rosterError)} onChange={(event) => toggleAllStudentSelection(event.target.checked)} className="h-4 w-4 rounded accent-[#0c1925] disabled:cursor-not-allowed" />
                 </th>
-                <th className="px-4 py-3">Student ID</th>
-                <th className="px-4 py-3">Last Name</th>
-                <th className="py-3 pl-4 pr-1">First Name</th>
-                <th className="py-3 pl-1 pr-4">MI</th>
-                <th className="px-4 py-3">Course</th>
-                <th className="px-4 py-3">Year Level</th>
-                <th className="px-4 py-3">Gender</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] px-4 py-3">Student ID</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] px-4 py-3">Last Name</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] py-3 pl-4 pr-1">First Name</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] py-3 pl-1 pr-4">MI</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] px-4 py-3">Course</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] px-4 py-3">Year Level</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] px-4 py-3">Gender</th>
               </tr>
             </thead>
             <tbody>
               {!selectedSectionAssignment ? (
                 <tr><td colSpan={9} className="px-4 py-12 text-center text-sm text-gray-500">Import a class-list PDF to create your first section.</td></tr>
-              ) : rosterLoading ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-sm text-gray-500"><LoaderCircle size={18} className="mr-2 inline animate-spin" />Loading students…</td></tr>
               ) : rosterError ? (
                 <tr><td colSpan={9} className="px-4 py-12 text-center text-sm text-red-600">{rosterError}</td></tr>
               ) : students.length === 0 ? (
@@ -533,6 +539,7 @@ const MyStudents = () => {
               ))}
             </tbody>
           </table>
+          )}
         </div>
       </section>
 

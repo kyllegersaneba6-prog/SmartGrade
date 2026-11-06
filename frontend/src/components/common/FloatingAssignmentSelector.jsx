@@ -30,11 +30,26 @@ const FloatingAssignmentSelector = () => {
   });
   const groupKeys = Object.keys(groups);
 
+  const getAssignmentDisplay = (assignment) => {
+    const sectionName = assignment.sections?.name || 'Section';
+    const yearLevel = assignment.sections?.year_level;
+    return {
+      title: assignment.subjects?.name || sectionName,
+      details: [
+        assignment.subjects?.code,
+        `${sectionName}${yearLevel ? ` (${yearLevel})` : ''}`,
+      ].filter(Boolean).join(' — '),
+    };
+  };
+
   return (
     <div ref={ref} className="relative inline-flex items-center gap-1">
       <button
+        type="button"
+        aria-label="Select class"
+        aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className={`flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 text-left text-xs bg-white border rounded-lg shadow-elevated transition-all focus:outline-none focus:ring-2 cursor-pointer ${
+        className={`flex h-12 w-72 sm:w-80 items-center gap-2 px-4 text-left text-xs bg-white border rounded-lg shadow-elevated transition-all focus:outline-none focus:ring-2 cursor-pointer ${
           isArchiveMode
             ? 'bg-amber-50 border-amber-300 focus:ring-amber-300/30'
             : open
@@ -48,8 +63,8 @@ const FloatingAssignmentSelector = () => {
         <span className="flex-1 min-w-0">
           {currentAssignment ? (
             <>
-              <span className="block font-bold text-gray-900 truncate leading-tight">{currentAssignment.subjects?.code} — {currentAssignment.sections?.name}</span>
-              <span className="block text-[10px] text-gray-900 truncate leading-tight">{currentAssignment.school_year} | {currentAssignment.semester}</span>
+              <span className="block font-bold text-gray-900 truncate leading-tight">{getAssignmentDisplay(currentAssignment).title}</span>
+              <span className="block text-[10px] text-gray-900 truncate leading-tight">{getAssignmentDisplay(currentAssignment).details}</span>
             </>
           ) : (
             <span className="block font-semibold text-gray-900 truncate">Select Subject</span>
@@ -71,18 +86,16 @@ const FloatingAssignmentSelector = () => {
             const isActive = isActiveTerm(group.school_year, group.semester);
             return (
               <div key={gk}>
-                <div className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider border-b border-border sticky top-0 z-10 ${
-                  isActive ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-900'
-                }`}>
-                  {group.school_year} | {group.semester}
-                  {isActive ? <span className="ml-1.5 text-green-600">(Active)</span> : <span className="ml-1.5 text-gray-900">(Archive)</span>}
-                </div>
                 {group.items.map((a) => {
                   const isItemActive = String(a.id) === String(selectedAssignment);
                   const isViewingOtherTerm = viewTerm && (viewTerm.school_year !== group.school_year || viewTerm.semester !== group.semester);
+                  const display = getAssignmentDisplay(a);
                   return (
                     <button
                       key={a.id}
+                      type="button"
+                      role="option"
+                      aria-selected={isItemActive}
                       onClick={() => {
                         setSelectedAssignment(a.id);
                         if (isArchiveMode && isViewingOtherTerm) {
@@ -92,7 +105,7 @@ const FloatingAssignmentSelector = () => {
                         }
                         setOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2.5 border-b last:border-0 border-gray-100 transition-colors flex items-center gap-2 cursor-pointer ${
+                      className={`h-12 w-full text-left px-4 border-b last:border-0 border-gray-100 transition-colors flex items-center gap-2 cursor-pointer ${
                         isItemActive ? 'bg-[#0c1925]/5' : 'hover:bg-gray-100'
                       }`}
                     >
@@ -100,8 +113,8 @@ const FloatingAssignmentSelector = () => {
                         {isItemActive ? <Check size={15} /> : <BookOpen size={15} />}
                       </span>
                       <span className="flex-1 min-w-0">
-                        <span className={`block text-xs truncate ${isItemActive ? 'font-bold text-[#0c1925]' : 'font-semibold text-gray-900'}`}>{a.subjects?.name}</span>
-                        <span className="block text-[10px] text-gray-900 truncate">{a.subjects?.code} — {a.sections?.name} ({a.sections?.year_level})</span>
+                        <span className={`block text-xs truncate ${isItemActive ? 'font-bold text-[#0c1925]' : 'font-semibold text-gray-900'}`}>{display.title}</span>
+                        <span className="block text-[10px] text-gray-900 truncate">{display.details}</span>
                       </span>
                       {isItemActive && <Check size={14} className="shrink-0 font-bold" style={{ color: '#0c1925' }} />}
                     </button>
@@ -112,6 +125,7 @@ const FloatingAssignmentSelector = () => {
           })}
           {isArchiveMode && (
             <button
+              type="button"
               onClick={() => { setViewTerm(null); setOpen(false); }}
               className="w-full text-left px-4 py-2.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border-t border-amber-200 transition-colors flex items-center gap-2"
             >

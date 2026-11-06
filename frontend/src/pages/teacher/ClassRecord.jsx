@@ -5,7 +5,7 @@ import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
 import ExportButtons from '../../components/teacher/ExportButtons';
 import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
-import { SkeletonHeaderCard, SkeletonList, SkeletonTable } from '../../components/common/Skeleton';
+import { SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
 import { buildTeacherFilename, TEACHER_TERM_TOKENS } from '../../utils/exportFilenames';
@@ -598,17 +598,7 @@ const ClassRecord = () => {
     }
   };
 
-  if (ctxLoading) {
-    return (
-      <div className="space-y-6" aria-busy="true">
-        <AssignmentSelector />
-        <SkeletonHeaderCard />
-        <SkeletonList rows={3} />
-      </div>
-    );
-  }
-
-  if (!currentAssignment) {
+  if (!currentAssignment && !ctxLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-gray-500">
         <FileSpreadsheet size={48} className="mb-3 opacity-30" />
@@ -624,7 +614,7 @@ const ClassRecord = () => {
         eyebrow="Grade management"
         title="Class Record"
         description="View and manage student grades, assessment components, and class performance."
-        actions={<ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} disabled={!weightsBalanced} disabledReason={weightsBalanced ? '' : 'Export unlocks at 100% total weight.'} exporting={exporting} error={exportError} />}
+        actions={<ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} disabled={!weightsBalanced || ctxLoading || !currentAssignment} disabledReason={weightsBalanced ? '' : 'Export unlocks at 100% total weight.'} exporting={exporting} error={exportError} />}
       />
       <div className="flex flex-wrap items-center gap-3">
         <AssignmentSelector />
@@ -653,19 +643,19 @@ const ClassRecord = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-x-auto">
+      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover">
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-border bg-gray-50">
           <div className="flex items-center gap-3 text-xs text-gray-600">
             <span className="font-bold text-sidebar">Grading components</span>
             <span className={`font-extrabold ${totalWeight === 100 ? 'text-green-700' : 'text-amber-700'}`}>Total weight: {totalWeight}%</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {selectedTerm !== 'PRELIMS' && !isReadOnly && !dataLoading && components.length === 0 && (
+            {currentAssignment && !ctxLoading && selectedTerm !== 'PRELIMS' && !isReadOnly && !dataLoading && components.length === 0 && (
               <button onClick={() => setConfirmCopyPrelimsOpen(true)} disabled={copyingPrelims} className="px-3 py-2 text-xs font-bold text-amber-800 bg-amber-100 border border-amber-200 rounded-lg hover:bg-amber-200 disabled:opacity-50">
                 {copyingPrelims ? 'Copying...' : 'Copy from PRELIMS'}
               </button>
             )}
-            {!isReadOnly && (
+            {currentAssignment && !ctxLoading && !isReadOnly && (
               <button onClick={openAddComponent} disabled={totalWeight >= 100 || savingComponent} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-[#0c1925] rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
                 <Plus size={14} /> Add Component
               </button>
@@ -707,8 +697,8 @@ const ClassRecord = () => {
             <span>Component weights must total 100% before you can enter scores. Current: {totalWeight}%</span>
           </div>
         )}
-        {dataLoading && components.length === 0 ? (
-          <div aria-busy="true"><SkeletonTable cols={6} rows={8} /></div>
+        {ctxLoading || dataLoading ? (
+          <SkeletonTable cols={6} rows={8} bare />
         ) : components.length === 0 ? (
           <div className="py-12 text-center text-gray-400">
             <p className="text-sm font-medium">Add grading components to set up the class record table.</p>

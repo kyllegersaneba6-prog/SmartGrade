@@ -7,7 +7,7 @@ import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
 import ExportButtons from '../../components/teacher/ExportButtons';
 import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
-import { SkeletonHeaderCard, SkeletonTable } from '../../components/common/Skeleton';
+import { SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
 import { buildTeacherFilename } from '../../utils/exportFilenames';
@@ -186,17 +186,7 @@ const GradeSummary = () => {
 
   const hasAnyData = Object.values(termData).some(td => td?.components?.some(c => c.is_attendance || c.activities?.length > 0));
 
-  if (ctxLoading) {
-    return (
-      <div className="space-y-6" aria-busy="true">
-        <AssignmentSelector />
-        <SkeletonHeaderCard />
-        <SkeletonTable cols={8} rows={8} />
-      </div>
-    );
-  }
-
-  if (!currentAssignment) {
+  if (!currentAssignment && !ctxLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-gray-500">
         <Summary size={48} className="mb-3 opacity-30" />
@@ -441,7 +431,7 @@ const GradeSummary = () => {
         eyebrow="Student outcomes"
         title="Grade Summary"
         description="Review final grades and semester outcomes for your assigned classes."
-        actions={hasAnyData && !dataLoading && <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />}
+        actions={hasAnyData && !dataLoading && !ctxLoading && currentAssignment && <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />}
       />
       <AssignmentSelector />
 
@@ -464,9 +454,9 @@ const GradeSummary = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover overflow-x-auto">
-        {dataLoading && !hasAnyData ? (
-          <div aria-busy="true"><SkeletonTable cols={8} rows={8} /></div>
+      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover">
+        {ctxLoading || dataLoading ? (
+          <SkeletonTable cols={8} rows={8} bare />
         ) : !hasAnyData ? (
           <div className="py-12 text-center text-gray-500">
             <BarChart3 size={36} className="mx-auto mb-3 opacity-30" />
@@ -474,7 +464,7 @@ const GradeSummary = () => {
             <p className="text-xs mt-1">Set up components and scores in Class Record first.</p>
           </div>
         ) : (
-          <div className="table-scroll w-full rounded-lg overflow-x-auto" style={{ scrollbarWidth: 'auto' }}>
+          <div className="table-scroll w-full rounded-lg" style={{ scrollbarWidth: 'auto' }}>
             <table className="sticky-cols sticky-cols-compact min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>

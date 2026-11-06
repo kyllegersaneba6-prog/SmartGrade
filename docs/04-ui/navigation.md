@@ -25,7 +25,7 @@ Sidebar styling: gradient `to right, #0c1925 → #102132 → #142a3f`; active it
 | Audit Logs | `/superadmin/audit` | `ShieldCheck` |
 | Settings | `/superadmin/settings` | `Settings` |
 
-Header: page title and a System Administration badge, in the shared white-header style. Nav labels are `text-sm`.
+Header: page title, in the shared white-header style. Nav labels are `text-sm`.
 
 ## Admin Sidebar
 
@@ -44,7 +44,7 @@ Header: page title, department badge (`bg-[#0c1925]`, `text-amber-300`), term pi
 | Overview | `/teacher/overview` | `LayoutDashboard` |
 | Attendance | `/teacher/attendance` | `CalendarCheck` |
 | Class Record | `/teacher/class-record` | `FileSpreadsheet` |
-| My Students | `/teacher/my-students` | `Users` |
+| My Classes | `/teacher/my-students` | `Users` |
 | Analytics | `/teacher/analytics` | `BarChart3` |
 | Grade Summary | `/teacher/grade-summary` | `Summary` |
 | Settings | `/teacher/settings` | `Settings` |
@@ -112,7 +112,7 @@ Unmatched URLs are handled by the top-level `*` route and render `NotFound` with
 | `/superadmin/settings` | Settings |
 | `/teacher` or `/teacher/overview` | Overview |
 | `/teacher/class-record` | Class Record |
-| `/teacher/my-students` | My Students |
+| `/teacher/my-students` | My Classes |
 | `/teacher/attendance` | Attendance |
 | `/teacher/grade-summary` | Grade Summary |
 | `/teacher/analytics` | Analytics |

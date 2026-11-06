@@ -83,6 +83,7 @@ Notes:
 ## Attendance
 
 - Columns are created per **date + session (AM/PM) + type (Lecture/Laboratory)**.
+- Adding a date immediately persists blank attendance rows for the assignment's students, so the column remains visible after navigating away and back before scores are entered.
 - Before a batch write, every student UUID must belong to the assignment's section; one invalid/foreign student rejects the whole batch without an upsert.
 - Each cell is scored `0` Absent, `1` Late, `2` Present.
 - Per-term total is the sum of marks; column max is `2 × number of columns`.
@@ -166,12 +167,12 @@ Notes:
 - The roster table shows `#`, Student ID, Student Name, Gender, Action.
 - Student records are section-wide and appear in each subject assigned to the same section.
 
-### Teacher My Students / PDF Import
+### Teacher My Classes / PDF Import
 
-- **My Students** is available at `/teacher/my-students` and in the teacher sidebar.
+- **My Classes** is available at `/teacher/my-students` and in the teacher sidebar.
 - A section selector lists the teacher's existing section rosters. Import does not require an existing assignment.
 - The browser reads text-based PDF class lists locally using PDF.js. It accepts the official class-list layout (up to 25 pages, 25 MB, and 500 student rows); scanned/image-only PDFs are not OCR-processed.
-- The PDF's Subject Code, Descriptive Title, Section, Course, Year Level, Semester, and School Year are read from its header and roster. The term must match the active academic term; the course must already exist for the teacher's department.
+- The PDF's Subject Code, Descriptive Title, Section, Course, Year Level, Semester, and School Year are read from its header and roster. The term must match the active academic term. The section identifies the roster's course/year cohort; individual student rows may list different courses or year levels and are still imported into that section.
 - On import, the backend creates or reuses the matching section, subject, and teacher assignment, then writes students to that section. Existing records are retained; a conflicting assignment owned by another teacher is rejected.
 - The preview allows editing student fields, normalizes `M`/`F`, preserves the full M.I., and flags malformed IDs, missing names, invalid gender, duplicates in the PDF, and students already in the section. Student IDs must match `##-####-###`.
 - Import is disabled for archived or inactive terms. The API verifies the signed-in teacher, department course, active term, roster metadata, and section ownership before writing; duplicate section IDs are ignored.
@@ -179,7 +180,7 @@ Notes:
 ## Admin class-management routes
 
 - Admin no longer has section, subject, student roster, or teacher-assignment pages. Existing class records remain in the database.
-- Admin retains teacher account creation, editing, and deletion. Teacher class setup and roster import happen in My Students.
+- Admin retains teacher account creation, editing, and deletion. Teacher class setup and roster import happen in My Classes.
 - The legacy admin Excel import page is no longer routed; new student lists are imported from the official PDF by teachers.
 
 ## Exports

@@ -66,9 +66,9 @@ export const SkeletonMetricCards = ({ count = 4, className = '' }) => (
 );
 
 /** Table inside the app's standard rounded card shell. */
-export const SkeletonTable = ({ cols = 5, rows = 8, className = '' }) => (
+export const SkeletonTable = ({ cols = 5, rows = 8, className = '', bare = false }) => (
   <Shell
-    className={`bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden ${className}`}
+    className={`${bare ? '' : 'bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden'} ${className}`}
     label="Loading table data"
   >
     <div className="overflow-x-auto">

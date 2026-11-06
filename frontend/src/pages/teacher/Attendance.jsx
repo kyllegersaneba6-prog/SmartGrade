@@ -6,7 +6,7 @@ import AssignmentSelector from '../../components/common/FloatingAssignmentSelect
 import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
 import CustomDropdown from '../../components/common/CustomDropdown';
 import Pagination from '../../components/common/Pagination';
-import { SkeletonHeaderCard, SkeletonTable } from '../../components/common/Skeleton';
+import { SkeletonTable } from '../../components/common/Skeleton';
 import api from '../../utils/api';
 import { TEACHER_TABLE_PAGE_SIZE } from '../../utils/teacherTable';
 
@@ -83,6 +83,7 @@ const Attendance = () => {
   const [attendanceMap, setAttendanceMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [addDateOpen, setAddDateOpen] = useState(false);
+  const [savingDate, setSavingDate] = useState(false);
   const [newDate, setNewDate] = useState(todayStr());
   const [newSession, setNewSession] = useState('AM');
   const [newType, setNewType] = useState('Lecture');
@@ -274,11 +275,16 @@ const Attendance = () => {
     return dateStr < today;
   };
 
-  const addDate = () => {
+  const addDate = async () => {
+    if (savingDate) return;
     if (!newDate) return;
     if (isPastDate(newDate)) {
       setError('Cannot add a past date.');
       setTimeout(() => setError(''), 3000);
+      return;
+    }
+    if (students.length === 0) {
+      setError('Add at least one student to this class before adding an attendance date.');
       return;
     }
     const key = makeKey(newDate, newSession, newType);
@@ -287,12 +293,36 @@ const Attendance = () => {
       setTimeout(() => setError(''), 3000);
       return;
     }
-    setColumns((prev) => [...prev, key].sort());
-    const defaults = {};
-    students.forEach((s) => { defaults[s.id] = null; });
-    setAttendanceMap((prev) => ({ ...prev, [key]: defaults }));
-    setAddDateOpen(false);
+    setSavingDate(true);
     setError('');
+    try {
+      const res = await api('/api/attendance/bulk', {
+        method: 'POST',
+        body: JSON.stringify({
+          teacher_assignment_id: selectedAssignment,
+          date: newDate,
+          records: students.map((student) => ({ student_id: student.id, score: null })),
+          session: newSession,
+          type: newType,
+          term: selectedTerm,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setError(err.message || 'Failed to save attendance date. Please try again.');
+        return;
+      }
+      setColumns((prev) => [...prev, key].sort());
+      const defaults = {};
+      students.forEach((s) => { defaults[s.id] = null; });
+      setAttendanceMap((prev) => ({ ...prev, [key]: defaults }));
+      setAddDateOpen(false);
+    } catch (err) {
+      console.error('Failed to save attendance date:', err);
+      setError('Failed to save attendance date. Please check your connection and try again.');
+    } finally {
+      setSavingDate(false);
+    }
   };
 
   const removeColumn = async () => {
@@ -370,17 +400,7 @@ const Attendance = () => {
     return sum;
   };
 
-  if (ctxLoading || loading) {
-    return (
-      <div className="space-y-6" aria-busy="true">
-        <AssignmentSelector />
-        <SkeletonHeaderCard />
-        <SkeletonTable cols={6} rows={8} />
-      </div>
-    );
-  }
-
-  if (!currentAssignment) {
+  if (!currentAssignment && !ctxLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-gray-500">
         <CalendarCheck size={48} className="mb-3 opacity-30" />
@@ -482,8 +502,8 @@ const Attendance = () => {
                     />
                   </div>
                 </div>
-                <button onClick={addDate} className="w-full text-xs font-bold px-3 py-2 rounded-lg text-[#0c1925]" style={{ background: '#f5a623' }}>
-                  Add to Table
+                <button onClick={addDate} disabled={savingDate} className="w-full text-xs font-bold px-3 py-2 rounded-lg text-[#0c1925] disabled:cursor-not-allowed disabled:opacity-60" style={{ background: '#f5a623' }}>
+                  {savingDate ? 'Saving...' : 'Add to Table'}
                 </button>
               </div>
             )}
@@ -507,7 +527,9 @@ const Attendance = () => {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-border card-hover">
-        {columns.length === 0 ? (
+        {ctxLoading || loading ? (
+          <SkeletonTable cols={6} rows={8} bare />
+        ) : columns.length === 0 ? (
           <div className="py-12 text-center text-gray-500">
             <CalendarCheck size={36} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm font-medium">No attendance dates yet.</p>
@@ -543,8 +565,8 @@ const Attendance = () => {
                           <div className="text-center leading-tight">
                             <div className="text-xs font-bold">{formatDate(key)}</div>
                             <div className="flex items-center justify-center gap-1 mt-1">
-                              <span style={{ backgroundColor: session === 'AM' ? '#059e00' : '#ff0000', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px' }}>{session}</span>
-                              <span style={{ backgroundColor: type === 'Laboratory' ? '#0029b0' : '#f97316', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px' }}>{type === 'Laboratory' ? 'LAB' : 'LEC'}</span>
+                              <span className="rounded bg-white/10 px-1.5 py-px text-[9px] font-bold text-white">{session}</span>
+                              <span className="rounded bg-white/10 px-1.5 py-px text-[9px] font-bold text-white">{type === 'Laboratory' ? 'LAB' : 'LEC'}</span>
                             </div>
                           </div>
                         </div>

@@ -20,7 +20,7 @@ Miscellaneous technical notes, known gaps, and follow-ups.
 - **Teacher-only writes.** Grading, scores, and attendance mutations are `authorizeRole('teacher')`; admins and superadmins get 403.
 - **DB constraints are a backstop.** `sql/add_db_constraints.sql` enforces the single active term, one admin per department, score/weight ranges, and the weight total at the database. Routes still validate first so the client receives a 400; the migration aborts on pre-existing violations instead of rewriting data.
 - **Migration state is partially tracked.** The live project's `supabase_migrations.schema_migrations` includes the baseline entries and `allow_section_per_semester`; there is still no runner or manifest for the remaining `backend/sql/` change files.
-- **Teacher-managed class setup.** Admins provision teacher accounts. Admin class, section, subject, assignment, and roster routes return 403; teachers create/reuse class records by importing PDFs in My Students.
+- **Teacher-managed class setup.** Admins provision teacher accounts. Admin class, section, subject, assignment, and roster routes return 403; teachers create/reuse class records by importing PDFs in My Classes.
 - **Section term scope.** The live `sections` unique constraint is `(course_id, name, school_year, semester)` so a class can have a separate roster per semester. Existing rows were preserved.
 - **Excel/PDF is client-side.** No spreadsheet libraries exist in the backend.
 - **Backups run in-process.** `restoreInProgress` is a module-level flag, so it protects one server process only.

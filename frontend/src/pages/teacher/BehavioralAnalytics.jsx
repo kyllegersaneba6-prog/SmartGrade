@@ -5,7 +5,7 @@ import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
 import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
 import Pagination from '../../components/common/Pagination';
-import { SkeletonHeaderCard, SkeletonMetricCards, SkeletonTable } from '../../components/common/Skeleton';
+import { SkeletonTable } from '../../components/common/Skeleton';
 import api from '../../utils/api';
 import { TEACHER_TABLE_PAGE_SIZE } from '../../utils/teacherTable';
 import {
@@ -407,18 +407,7 @@ const BehavioralAnalytics = () => {
     }
   };
 
-  if (ctxLoading) {
-    return (
-      <div className="space-y-6" aria-busy="true">
-        <AssignmentSelector />
-        <SkeletonHeaderCard />
-        <SkeletonMetricCards count={4} />
-        <SkeletonTable cols={7} rows={8} />
-      </div>
-    );
-  }
-
-  if (!currentAssignment) {
+  if (!currentAssignment && !ctxLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-gray-500">
         <BarChart3 size={48} className="mb-3 opacity-30" />
@@ -504,8 +493,8 @@ const BehavioralAnalytics = () => {
 
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-border card-hover">
-        {dataLoading && !hasComponents ? (
-          <div aria-busy="true"><SkeletonTable cols={7} rows={8} /></div>
+        {ctxLoading || dataLoading ? (
+          <SkeletonTable cols={7} rows={8} bare />
         ) : !hasComponents ? (
           <div className="py-12 text-center text-gray-500">
             <BarChart3 size={36} className="mx-auto mb-3 opacity-30" />

@@ -44,9 +44,6 @@ const SuperAdminLayout = () => {
               <Menu size={20} />
             </button>
             <h1 className="truncate text-sm font-bold text-sidebar sm:text-base">{getTitle()}</h1>
-            <span className="hidden whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-bold text-amber-800 sm:inline-flex">
-              System Administration
-            </span>
           </div>
         </header>
         <main className="min-h-0 flex-1 overflow-auto">

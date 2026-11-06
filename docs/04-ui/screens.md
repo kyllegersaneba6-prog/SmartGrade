@@ -3,7 +3,7 @@
 ## Backend Availability (All Routes)
 
 - Shared `components/common/BackendAvailability.jsx`, outside the router via `main.jsx`; no dedicated URL.
-- Covers Login, all role pages, and Not Found while the backend health check fails. Full-screen white/gray gradient, SmartGrade logo, server-off icon with left-to-right navy gradient strokes (`#0c1925 → #102132 → #142a3f`) on a `bg-gray-50` badge with a `border-gray-800` border, centered status card.
+- Covers Login, all role pages, and Not Found while the backend health check fails. Full-screen white/gray gradient, server-off icon with left-to-right navy gradient strokes (`#0c1925 → #102132 → #142a3f`) on a `bg-gray-50` badge with a `border-gray-800` border, centered status card.
 - Title: **Service Unavailable**.
 - Paragraph: **The service could not be started. We're unable to process your request at this time.**
 - **Try Again** becomes **Checking Connection...** during a probe. Automatic checks run every 5 s and on focus/online; initial pending connection uses **Connecting to Service** with a spinner.
@@ -50,7 +50,7 @@ Standalone page (no app shell) rendered for any unmatched URL, including unknown
 | `/admin/teachers/create` | `CreateAdminTeacher` | Full-screen create-teacher form with auto-generated username preview |
 | `/admin/settings` | `AdminSettings` | Active term card, term history, archive entry/exit with confirmation modal |
 
-Admin pages use the shared white page heading and bordered card/table styling from the Teacher and Superadmin interfaces. Section and subject setup now happens when the teacher imports the official class-list PDF in My Students.
+Admin pages use the shared white page heading and bordered card/table styling from the Teacher and Superadmin interfaces. Section and subject setup now happens when the teacher imports the official class-list PDF in My Classes.
 
 Notes:
 - Teacher/course/section/subject choices are scoped by the backend. A direct request cannot grant foreign access; account role/username/creator edits are not supported.
@@ -73,7 +73,7 @@ Shared teacher-page elements:
 - **Term tabs** — PRELIMS / MIDTERMS / PRE-FINALS / FINALS, wrapped in a bordered segmented control that also keeps a permanent elevated shadow (`.shadow-elevated`).
 - **Read-only state** for closed terms: inputs disabled, mutate buttons hidden, banner "This term is closed. Viewing only."
 - **Amber archive banner** from `TeacherLayout` when a past term is being viewed.
-- **Pinned grade-grid header** — Grade Summary uses the `.table-scroll` wrapper (`max-height: min(480px, 60vh)`, scrolls both axes) with a sticky `<thead>`. Attendance and Class Record use page scrolling vertically and horizontal scrolling for wide tables. Attendance pins its three header rows with opaque frozen student columns. In Class Record, fixed `<colgroup>` widths keep the frozen student columns aligned with the "STUDENT INFORMATION" header, which layers above component headers; the heading, controls, alerts, and pagination stay anchored while the wide grid moves horizontally. Analytics has no inner vertical table scroll.
+- **Pinned teacher table headers** — Attendance, My Classes, Class Record, Analytics, and Grade Summary use page scrolling vertically, with sticky table headers that remain pinned as rows move. In My Classes, the Class List toolbar sticks at the layout top and the column headers stay immediately beneath it. Attendance pins its three header rows with opaque frozen student columns. Class Record keeps fixed `<colgroup>` widths to align frozen student columns and the "STUDENT INFORMATION" header.
 
 ## Screen States
 

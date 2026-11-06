@@ -22,7 +22,7 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 |---|---|---|
 | Department management (CRUD) + abbreviation | Done | Superadmin only; rename cascades to `staff_users.department` |
 | Course management (CRUD) + abbreviation | Done | Superadmin only; delete blocked while referenced |
-| Teacher class-list import | In Progress | My Students extracts subject, section, course, year, term, and student details; provisions/reuses the class and imports its roster. Live Supabase term-aware section constraint is applied; live roster import is not exercised |
+| Teacher class-list import | In Progress | My Classes extracts subject, section, course, year, term, and student details; provisions/reuses the class and imports its roster. Live Supabase term-aware section constraint is applied; live roster import is not exercised |
 | Admin teacher account management | Done | Admin can create, edit, and delete teacher accounts; section, subject, assignment, and student roster management is removed from admin UI/API |
 
 ## Terms & Read-Only

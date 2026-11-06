@@ -285,7 +285,7 @@ Legacy single-student entry `POST /api/sections/:sectionId/students` returns 403
 
 ## Legacy Admin Roster Routes
 
-`POST /api/sections/:sectionId/students/bulk`, single-student entry, student deletion, and manual section management return **403** for admins. Teacher class lists are imported from My Students.
+`POST /api/sections/:sectionId/students/bulk`, single-student entry, student deletion, and manual section management return **403** for admins. Teacher class lists are imported from My Classes.
 
 ## Teacher PDF Roster Import
 

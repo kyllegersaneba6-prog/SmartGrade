@@ -1,6 +1,5 @@
 import { useId, useSyncExternalStore } from 'react';
 import { LoaderCircle, RefreshCw, ServerOff } from 'lucide-react';
-import logo from '../../assets/logo.png';
 import {
   checkBackendAvailability, getBackendStatus, subscribeBackendStatus,
 } from '../../utils/backendAvailability';
@@ -32,7 +31,6 @@ const BackendAvailability = ({ children }) => {
             aria-labelledby="backend-status-title"
             className="my-auto w-full max-w-lg rounded-2xl p-8 md:p-10 text-center shadow-[0_18px_50px_-10px_rgba(71,85,105,0.45)]"
           >
-            <img src={logo} alt="SmartGrade Logo" className="mx-auto mb-6 h-16 w-16 object-contain" />
             <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-gray-800 bg-gray-50 text-amber-700">
               {unavailable ? (
                 <ServerOff size={28} stroke={`url(#${serverGradientId})`} aria-hidden="true">

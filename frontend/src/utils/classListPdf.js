@@ -6,6 +6,14 @@ pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 const COLUMN_BOUNDARIES = [54, 192, 288, 378, 404, 487, 529, 600];
 
 const normalizeLine = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+const normalizeClassValue = (value) => String(value || '').normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const mostCommonValue = (values) => {
+  const counts = new Map();
+  values.forEach((value) => counts.set(value, (counts.get(value) || 0) + 1));
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+};
 
 const groupItemsByLine = (items, pageWidth) => {
   const scaleX = 612 / pageWidth;
@@ -95,8 +103,17 @@ export const parseClassListPdf = async (file) => {
       const pageLines = groupItemsByLine((await page.getTextContent()).items, viewport.width);
       if (pageNumber === 1) allLines.push(...pageLines);
 
-      pageLines.forEach((line) => {
-        const cells = getCells(line.items);
+      const rowNumberLines = pageLines.filter((line) => /^\d+$/.test(getCells(line.items)[0]));
+      rowNumberLines.forEach((rowLine) => {
+        // Long first names can wrap onto a second PDF text line inside the
+        // same printed row. Collect nearby lines around the row number before
+        // mapping the cells so no name part is mistaken for the M.I. column.
+        const rowItems = pageLines
+          .filter((line) => Math.abs(line.y - rowLine.y) <= 8)
+          .sort((a, b) => b.y - a.y)
+          .flatMap((line) => line.items.map((item) => ({ ...item, y: line.y })))
+          .sort((a, b) => b.y - a.y || a.x - b.x);
+        const cells = getCells(rowItems);
         const studentId = cells[1].replace(/\s/g, '');
         const printedNumber = cells[0].match(/^\d+$/)?.[0];
         if (!printedNumber) return;
@@ -122,14 +139,19 @@ export const parseClassListPdf = async (file) => {
     if (!firstRow) {
       throw new Error('No student rows were found. This page reads text-based class lists, not scanned images.');
     }
-    metadata.course = firstRow.course;
-    metadata.year_level = firstRow.year_level;
+    const sectionKey = normalizeClassValue(metadata.section);
+    const courseFromSection = [...new Set(rows.map((row) => row.course).filter(Boolean))]
+      .sort((a, b) => normalizeClassValue(b).length - normalizeClassValue(a).length)
+      .find((course) => sectionKey.startsWith(normalizeClassValue(course)));
+    const sectionSuffix = courseFromSection
+      ? sectionKey.slice(normalizeClassValue(courseFromSection).length)
+      : sectionKey;
+    const yearFromSection = sectionSuffix.match(/^([1-4])(?:st|nd|rd|th)?[a-z]{1,3}$/i)?.[1];
 
-    const sameCourse = rows.every((row) => row.course === firstRow.course);
-    const sameYear = rows.every((row) => row.year_level === firstRow.year_level);
-    if (!sameCourse || !sameYear) {
-      throw new Error('The PDF contains more than one course or year level. Split it into one class list per PDF.');
-    }
+    // The section identifies the class cohort. Roster rows may legitimately
+    // include cross-enrolled or delayed students from other courses or years.
+    metadata.course = courseFromSection || mostCommonValue(rows.map((row) => row.course)) || firstRow.course;
+    metadata.year_level = yearFromSection || mostCommonValue(rows.map((row) => row.year_level)) || firstRow.year_level;
     return { metadata, rows };
   } finally {
     await loadingTask.destroy();

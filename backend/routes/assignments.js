@@ -40,6 +40,23 @@ const yearLevelFromValue = (value) => {
   return ({ 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' })[number] || '';
 };
 
+const yearLevelFromSectionValue = (sectionValue, course) => {
+  const sectionKey = normalizeClassValue(sectionValue);
+  const prefixes = [course?.abbreviation, course?.name]
+    .map(normalizeClassValue)
+    .filter((value) => value && sectionKey.startsWith(value))
+    .sort((a, b) => b.length - a.length);
+  if (!prefixes.length) return '';
+  const suffix = sectionKey.slice(prefixes[0].length);
+  const number = suffix.match(/^([1-4])(?:st|nd|rd|th)?[a-z]{1,3}$/i)?.[1];
+  return number ? yearLevelFromValue(number) : '';
+};
+
+const courseCodeFromSectionValue = (sectionValue) => {
+  const match = normalizeClassValue(sectionValue).match(/^(.+?)([1-4])(?:st|nd|rd|th)?[a-z]{1,3}$/i);
+  return match?.[1]?.toUpperCase() || '';
+};
+
 const getSectionName = (sectionValue, course, yearLevel) => {
   const compactSection = normalizeClassValue(sectionValue);
   const courseNames = [course.abbreviation, course.name]
@@ -103,7 +120,7 @@ router.post('/import-class-list', authorizeRole('teacher'), async (req, res) => 
   const subjectName = typeof metadata.descriptive_title === 'string' ? metadata.descriptive_title.trim() : '';
   const sectionValue = typeof metadata.section === 'string' ? metadata.section.trim() : '';
   const pdfCourse = typeof metadata.course === 'string' ? metadata.course.trim() : '';
-  const yearLevel = yearLevelFromValue(metadata.year_level);
+  let yearLevel = yearLevelFromValue(metadata.year_level);
   const schoolYear = typeof metadata.school_year === 'string' ? metadata.school_year.trim() : '';
   const semester = typeof metadata.semester === 'string' ? metadata.semester.trim() : '';
   if (!subjectCode || !subjectName || !sectionValue || !pdfCourse || !normalizeClassValue(pdfCourse) || !yearLevel || !schoolYear || !semesters.includes(semester)) {
@@ -136,11 +153,6 @@ router.post('/import-class-list', authorizeRole('teacher'), async (req, res) => 
     }
     if (firstName.length > 120 || lastName.length > 120 || mi.length > 20) {
       skipped.push({ student_id: studentId, row: sourceRow, reason: 'A name field exceeds the allowed length.' });
-      return;
-    }
-    if (normalizeClassValue(student?.course) !== normalizeClassValue(pdfCourse)
-      || digitsOnly(student?.year_level) !== digitsOnly(metadata.year_level)) {
-      skipped.push({ student_id: studentId, row: sourceRow, reason: 'Student course or year level does not match the class details.' });
       return;
     }
     if (seenIds.has(studentId)) {
@@ -185,14 +197,29 @@ router.post('/import-class-list', authorizeRole('teacher'), async (req, res) => 
       .select('id, name, abbreviation, department_id')
       .eq('department_id', req.user.department_id);
     if (coursesError) return sendServerError(res, coursesError);
+    const sectionCourseCode = courseCodeFromSectionValue(sectionValue);
     const pdfCourseKey = normalizeClassValue(pdfCourse);
-    const courseAbbreviation = courseAbbreviationFromValue(pdfCourse);
-    let matchingCourse = (courses || []).find((course) => (
+    const courseAbbreviation = sectionCourseCode && sectionCourseCode.length <= 12
+      ? sectionCourseCode
+      : courseAbbreviationFromValue(pdfCourse);
+    const sectionKey = normalizeClassValue(sectionValue);
+    const sectionPrefixCourse = (courses || [])
+      .filter((course) => [course.abbreviation, course.name].some((value) => {
+        const courseKey = normalizeClassValue(value);
+        return courseKey && sectionKey.startsWith(courseKey);
+      }))
+      .sort((a, b) => Math.max(normalizeClassValue(b.abbreviation).length, normalizeClassValue(b.name).length)
+        - Math.max(normalizeClassValue(a.abbreviation).length, normalizeClassValue(a.name).length))[0];
+    const exactSectionCourse = sectionCourseCode && (courses || []).find((course) => (
+      normalizeClassValue(course.abbreviation) === normalizeClassValue(sectionCourseCode)
+      || normalizeClassValue(course.name) === normalizeClassValue(sectionCourseCode)
+    ));
+    let matchingCourse = sectionPrefixCourse || exactSectionCourse || (!sectionCourseCode && (courses || []).find((course) => (
       normalizeClassValue(course.abbreviation) === pdfCourseKey
       || normalizeClassValue(course.name) === pdfCourseKey
       || normalizeClassValue(course.abbreviation) === normalizeClassValue(courseAbbreviation)
       || normalizeClassValue(course.name) === normalizeClassValue(courseAbbreviation)
-    ));
+    )));
     if (!matchingCourse) {
       const { data, error } = await supabase.from('courses')
         .insert([{ name: courseAbbreviation, abbreviation: courseAbbreviation, department_id: req.user.department_id }])
@@ -217,6 +244,8 @@ router.post('/import-class-list', authorizeRole('teacher'), async (req, res) => 
     if (!matchingCourse || !(await canAccessCourse(matchingCourse.id, req.user))) {
       return reject(403, 'The course from this PDF could not be matched to your department.');
     }
+
+    yearLevel = yearLevelFromSectionValue(sectionValue, matchingCourse) || yearLevel;
 
     const sectionName = getSectionName(sectionValue, matchingCourse, yearLevel);
     if (!sectionName) {

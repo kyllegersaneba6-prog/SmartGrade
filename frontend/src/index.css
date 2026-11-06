@@ -106,7 +106,13 @@
     background-clip: padding-box;
   }
   .teacher-sticky-table-2rows {
-    --teacher-header-row-one-height: 46px;
+    --teacher-header-row-one-height: 66px;
+  }
+  .teacher-sticky-table-2rows > thead > tr:first-child {
+    height: 66px;
+  }
+  .teacher-sticky-table-2rows > thead > tr:first-child > th {
+    z-index: 50;
   }
   .teacher-sticky-table-3rows.teacher-sticky-class-record {
     --teacher-header-row-one-height: 86px;
