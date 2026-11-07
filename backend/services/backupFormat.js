@@ -10,6 +10,7 @@ const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50MB upload cap
 // Dependency-ordered tables (parents first). Used for export + restore ordering.
 const TABLE_ORDER = [
   'departments',
+  'department_export_settings',
   'courses',
   'staff_users',
   'academic_terms',
@@ -27,6 +28,7 @@ const TABLE_ORDER = [
 // Allowlisted columns per table. Unknown fields in uploads are rejected.
 const TABLE_COLUMNS = {
   departments: ['id', 'name', 'abbr', 'created_at'],
+  department_export_settings: ['department_id', 'program_head_bsit', 'program_head_bscs', 'dean_cict', 'updated_at'],
   courses: ['id', 'name', 'abbreviation', 'department_id', 'created_at'],
   staff_users: ['id', 'first_name', 'last_name', 'full_name', 'username', 'department', 'course_id', 'system_role', 'staff_id', 'password', 'created_by', 'created_at'],
   academic_terms: ['id', 'school_year', 'semester', 'is_active', 'is_closed', 'created_at'],
@@ -42,7 +44,7 @@ const TABLE_COLUMNS = {
 };
 
 const CATEGORIES = [
-  { id: 'organization', label: 'Organization', description: 'Departments and courses/programs.', tables: ['departments', 'courses'], requires: [] },
+  { id: 'organization', label: 'Organization', description: 'Departments, courses/programs, and export signatories.', tables: ['departments', 'courses', 'department_export_settings'], requires: [] },
   { id: 'accounts', label: 'Accounts', description: 'Staff accounts incl. admins and teachers (password hashes preserved, never logged).', tables: ['staff_users'], requires: ['organization'], sensitive: true },
   { id: 'terms', label: 'Academic Terms', description: 'School years, semesters, active/closed flags.', tables: ['academic_terms'], requires: [] },
   { id: 'classes', label: 'Classes & Students', description: 'Sections and enrolled students.', tables: ['sections', 'students'], requires: ['organization', 'terms'], sensitive: true },

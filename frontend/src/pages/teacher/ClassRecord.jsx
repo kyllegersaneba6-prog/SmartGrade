@@ -9,6 +9,7 @@ import { SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
 import { buildTeacherFilename, TEACHER_TERM_TOKENS } from '../../utils/exportFilenames';
+import { fetchExportSettings } from '../../utils/exportSettings';
 import { exportClassRecordExcel, exportClassRecordPdf } from '../../utils/classRecordExport';
 import { TEACHER_TABLE_PAGE_SIZE } from '../../utils/teacherTable';
 
@@ -519,6 +520,9 @@ const ClassRecord = () => {
 
   // Keep incomplete legacy entries in the table so teachers can still edit them.
   const tableComponents = useMemo(() => components, [components]);
+  const getOrderedActivities = (comp) => [...(comp.activities || [])].sort(
+    (a, b) => Number(Boolean(b.is_attendance)) - Number(Boolean(a.is_attendance)),
+  );
 
   // Score-ready = activity has a name AND a max score above zero. Score cells
   // stay locked until both are set, so blank activities can't collect scores.
@@ -576,7 +580,8 @@ const ClassRecord = () => {
   const handleExportExcel = async () => {
     if (!currentAssignment || components.length === 0) return;
     if (!weightsBalanced) { setExportError(exportBlockedMessage); return; }
-    await exportClassRecordExcel({ assignment: currentAssignment, term: selectedTerm, students, components, scores, attendanceScores, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename: getExportFilename('xlsx') });
+    const exportSettings = await fetchExportSettings();
+    await exportClassRecordExcel({ assignment: currentAssignment, term: selectedTerm, students, components, scores, attendanceScores, exportSettings, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename: getExportFilename('xlsx') });
   };
 
   const handleExportPdf = async () => {
@@ -587,10 +592,11 @@ const ClassRecord = () => {
     try {
       const query = searchQuery.trim().toLowerCase();
       const filteredStudents = query ? students.filter((student) => student.student_name?.toLowerCase().includes(query) || student.student_id?.toLowerCase().includes(query)) : students;
-    await exportClassRecordPdf({ assignment: currentAssignment, term: selectedTerm, students: filteredStudents, components, scores, attendanceScores, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename: getExportFilename('pdf') });
+      const exportSettings = await fetchExportSettings();
+      await exportClassRecordPdf({ assignment: currentAssignment, term: selectedTerm, students: filteredStudents, components, scores, attendanceScores, exportSettings, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename: getExportFilename('pdf') });
     } catch (err) {
       console.error(err);
-      setExportError('PDF export failed. Please try again.');
+      setExportError(err.message || 'PDF export failed. Please try again.');
     } finally {
       setExporting(null);
     }
@@ -605,7 +611,7 @@ const ClassRecord = () => {
       await handleExportExcel();
     } catch (err) {
       console.error(err);
-      setExportError('Excel export failed. Please try again.');
+      setExportError(err.message || 'Excel export failed. Please try again.');
     } finally {
       setExporting(null);
     }
@@ -726,14 +732,14 @@ const ClassRecord = () => {
                 {tableComponents.flatMap((comp) => comp.is_attendance
                   ? [
                     <col key={`${comp.id}-total-col`} style={{ width: '64px' }} />,
-                    <col key={`${comp.id}-equiv-col`} style={{ width: '64px' }} />,
-                    <col key={`${comp.id}-weighted-col`} style={{ width: '80px' }} />,
+                    <col key={`${comp.id}-equiv-col`} style={{ width: '56px' }} />,
+                    <col key={`${comp.id}-weighted-col`} style={{ width: '72px' }} />,
                   ]
                   : [
-                    ...(comp.activities || []).map((activity) => <col key={`${activity.id}-col`} style={{ width: '48px' }} />),
+                    ...getOrderedActivities(comp).map((activity) => <col key={`${activity.id}-col`} style={{ width: '48px' }} />),
                     <col key={`${comp.id}-total-col`} style={{ width: '64px' }} />,
-                    <col key={`${comp.id}-equiv-col`} style={{ width: '64px' }} />,
-                    <col key={`${comp.id}-weighted-col`} style={{ width: '80px' }} />,
+                    <col key={`${comp.id}-equiv-col`} style={{ width: '56px' }} />,
+                    <col key={`${comp.id}-weighted-col`} style={{ width: '72px' }} />,
                   ])}
                 <col key="final-grade-col" style={{ width: '120px' }} />
               </colgroup>
@@ -791,16 +797,16 @@ const ClassRecord = () => {
                     if (comp.is_attendance) {
                       return [
                         <th key={`${comp.id}-total`} className="px-3 py-2.5 border-r border-gray-200 bg-gray-100 text-sidebar font-bold w-16 relative z-0">TOTAL</th>,
-                        <th key={`${comp.id}-equiv`} className="px-3 py-2.5 border-r-2 border-gray-300 bg-gray-100 text-sidebar font-bold w-16 relative z-0">EQUIV</th>,
-                        <th key={`${comp.id}-wt`} className="class-record-separator px-3 py-2.5 border-r bg-gray-100 text-sidebar font-extrabold w-20 relative z-0">W_TOTAL</th>
+                        <th key={`${comp.id}-equiv`} className="px-1 py-2.5 border-r-2 border-gray-300 bg-gray-100 text-sidebar font-bold w-14 relative z-0">EQUIV</th>,
+                        <th key={`${comp.id}-wt`} className="class-record-separator px-1 py-2.5 border-r bg-gray-100 text-sidebar font-extrabold w-[72px] relative z-0">W_TOTAL</th>
                       ];
                     }
-                    return (comp.activities || []).map((act) => (
-                      <th key={act.id} className="px-2 py-2.5 border-r border-gray-200 bg-gray-100 w-12 relative z-0" style={{ backgroundColor: color.light }}>{act.name}</th>
+                    return getOrderedActivities(comp).map((act) => (
+                      <th key={act.id} className="px-2 py-2.5 border-r border-gray-200 bg-gray-100 w-12 relative z-0" style={{ backgroundColor: color.light }}>{act.is_attendance ? 'Attend' : act.name}</th>
                     )).concat(
                       <th key={`${comp.id}-total`} className="px-3 py-2.5 border-r border-gray-200 bg-gray-100 text-sidebar font-bold w-16 relative z-0">TOTAL</th>,
-                      <th key={`${comp.id}-equiv`} className="px-3 py-2.5 border-r-2 border-gray-300 bg-gray-100 text-sidebar font-bold w-16 relative z-0">EQUIV</th>,
-                      <th key={`${comp.id}-wt`} className="class-record-separator px-3 py-2.5 border-r bg-gray-100 text-sidebar font-extrabold w-20 relative z-0">W_TOTAL</th>
+                      <th key={`${comp.id}-equiv`} className="px-1 py-2.5 border-r-2 border-gray-300 bg-gray-100 text-sidebar font-bold w-14 relative z-0">EQUIV</th>,
+                      <th key={`${comp.id}-wt`} className="class-record-separator px-1 py-2.5 border-r bg-gray-100 text-sidebar font-extrabold w-[72px] relative z-0">W_TOTAL</th>
                     );
                   })}
                   <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-sm w-28 relative z-0">FINAL</th>
@@ -815,11 +821,11 @@ const ClassRecord = () => {
                     if (comp.is_attendance) {
                       return [
                         <td key={`${comp.id}-total`} className="px-2 py-2 border-r border-b border-gray-200 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{maxTotal}</td>,
-                        <td key={`${comp.id}-equiv`} className="px-2 py-2 border-r-2 border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">100.00</td>,
-                        <td key={`${comp.id}-wt`} className="class-record-separator px-2 py-2 border-r border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{comp.weight.toFixed(2)}</td>
+                        <td key={`${comp.id}-equiv`} className="px-1 py-2 border-r-2 border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">100.00</td>,
+                        <td key={`${comp.id}-wt`} className="class-record-separator px-1 py-2 border-r border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{comp.weight.toFixed(2)}</td>
                       ];
                     }
-                    return (comp.activities || []).map((act) => (
+                    return getOrderedActivities(comp).map((act) => (
                       <td key={act.id} className="p-1 border-r border-b border-gray-200 bg-gray-50 relative z-0">
                         <div className="w-full text-center text-xs font-black text-sidebar p-1" title="Set the max score in the component setup above">
                           {act.is_attendance ? attendanceScores.max_total : (act.max_score || 0)}
@@ -827,8 +833,8 @@ const ClassRecord = () => {
                       </td>
                     )).concat(
                       <td key={`${comp.id}-total`} className="px-2 py-2 border-r border-b border-gray-200 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{maxTotal}</td>,
-                      <td key={`${comp.id}-equiv`} className="px-2 py-2 border-r-2 border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">100.00</td>,
-                      <td key={`${comp.id}-wt`} className="class-record-separator px-2 py-2 border-r border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{comp.weight.toFixed(2)}</td>
+                      <td key={`${comp.id}-equiv`} className="px-1 py-2 border-r-2 border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">100.00</td>,
+                      <td key={`${comp.id}-wt`} className="class-record-separator px-1 py-2 border-r border-b border-gray-300 bg-gray-100 font-extrabold text-sidebar text-center text-xs relative z-0">{comp.weight.toFixed(2)}</td>
                     );
                   })}
                   <td className="px-2 py-2 bg-gray-100 font-extrabold text-sidebar text-center text-sm relative z-0 border-b border-gray-200">100.00</td>
@@ -875,11 +881,11 @@ const ClassRecord = () => {
                           if (comp.is_attendance) {
                             return [
                               <td key={`${comp.id}-total-${student.id}`} className={`px-2 py-2 border-r border-b border-gray-200 text-center font-bold text-xs ${isSelected ? 'bg-green-200 text-sidebar' : 'bg-white text-sidebar'}`}>{componentTotal}</td>,
-                              <td key={`${comp.id}-equiv-${student.id}`} className={`px-2 py-2 border-r-2 border-b border-gray-300 text-center font-bold text-xs ${isSelected ? 'bg-green-200' : 'bg-white'} ${isFail ? 'text-red-600 font-extrabold' : 'text-sidebar'}`}>{componentEquiv.toFixed(2)}</td>,
-                              <td key={`${comp.id}-wt-${student.id}`} className={`class-record-separator px-2 py-2 border-r border-b border-gray-200 text-center font-bold text-sidebar text-xs ${isSelected ? 'bg-green-200' : 'bg-white'}`}>{componentWeighted.toFixed(2)}</td>
+                              <td key={`${comp.id}-equiv-${student.id}`} className={`px-1 py-2 border-r-2 border-b border-gray-300 text-center font-bold text-xs ${isSelected ? 'bg-green-200' : 'bg-white'} ${isFail ? 'text-red-600 font-extrabold' : 'text-sidebar'}`}>{componentEquiv.toFixed(2)}</td>,
+                              <td key={`${comp.id}-wt-${student.id}`} className={`class-record-separator px-1 py-2 border-r border-b border-gray-200 text-center font-bold text-sidebar text-xs ${isSelected ? 'bg-green-200' : 'bg-white'}`}>{componentWeighted.toFixed(2)}</td>
                             ];
                           }
-                          return (comp.activities || []).map((act) => {
+                          return getOrderedActivities(comp).map((act) => {
                             if (act.is_attendance) {
                               return <td key={act.id} className={`px-2 py-2 border-r border-b border-gray-200 text-center font-bold text-xs ${isSelected ? 'bg-green-200 text-sidebar' : 'bg-white text-sidebar'}`} title="Computed from attendance records">{attendanceScores.scores[student.id] ?? 0}</td>;
                             }
@@ -951,15 +957,15 @@ const ClassRecord = () => {
       {componentModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center modal-backdrop p-4" onMouseDown={(e) => { if (e.target === e.currentTarget && !savingComponent) setComponentModal(null); }}>
           <form onSubmit={saveComponentModal} className="bg-white rounded-2xl modal-surface w-full max-w-xl max-h-[90vh] overflow-hidden shadow-2xl border border-gray-200 flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+            <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-200">
               <div>
                 <h3 className="text-base font-extrabold text-sidebar">{componentModal.mode === 'add' ? 'Add grading component' : 'Edit grading component'}</h3>
                 <p className="text-xs text-gray-900 mt-1">Set its weight and subcomponents for this term.</p>
+                {error && <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{error}</div>}
               </div>
               <button type="button" onClick={() => setComponentModal(null)} disabled={savingComponent} className="p-1.5 rounded-lg text-gray-900 hover:bg-gray-100 disabled:opacity-50" aria-label="Close"><X size={18} /></button>
             </div>
             <div className="p-5 overflow-y-auto space-y-4">
-              {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{error}</div>}
               {!componentModal.componentId && (
                 <label className="block text-xs font-bold text-gray-900">Component type
                   <select value={componentDraft.is_attendance ? 'attendance' : 'regular'} onChange={(e) => { setCustomNameMode(false); setComponentDraft((draft) => ({ ...draft, is_attendance: e.target.value === 'attendance', name: e.target.value === 'attendance' ? 'Attendance' : '' })); }} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]">
@@ -1026,13 +1032,16 @@ const ClassRecord = () => {
                       <button type="button" onClick={() => setShowSubcomponentChoices((visible) => !visible)} aria-expanded={showSubcomponentChoices} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-sidebar text-xs font-bold hover:bg-gray-200"><Plus size={13} /> Add</button>
                       {showSubcomponentChoices && (
                         <div className="absolute right-0 top-full z-10 mt-1 w-40 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                          <button type="button" onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: '', max_score: '100', is_attendance: false }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50">Activity</button>
+                          <button type="button" onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: '', max_score: '', is_attendance: false }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50">Activity</button>
                           <button type="button" disabled={hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance)} onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: 'Attendance', max_score: '1', is_attendance: true }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-900 disabled:opacity-60">Attendance{hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance) ? ' (already used)' : ''}</button>
                         </div>
                       )}
                     </div>
                   </div>
-                  {componentDraft.activities.length === 0 ? <p className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-xs text-gray-900">No subcomponents yet.</p> : componentDraft.activities.map((activity, index) => (
+                  {componentDraft.activities.length === 0 ? <p className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-xs text-gray-900">No subcomponents yet.</p> : componentDraft.activities
+                    .map((activity, index) => ({ activity, index }))
+                    .sort((a, b) => Number(Boolean(b.activity.is_attendance)) - Number(Boolean(a.activity.is_attendance)))
+                    .map(({ activity, index }) => (
                     <div key={activity.id || activity.key} className="grid grid-cols-[1fr_105px_34px] gap-2 items-end rounded-lg border border-gray-200 bg-gray-50 p-2.5">
                       {activity.id ? (
                         <label className="text-[11px] font-bold text-gray-900">{activity.is_attendance ? 'Attendance' : 'Name'}
@@ -1048,7 +1057,7 @@ const ClassRecord = () => {
                       )}
                       {!activity.is_attendance && (
                         <label className="text-[11px] font-bold text-gray-900">Max score
-                          <input type="number" min="0.01" max="1000" step="any" value={activity.max_score} onChange={(e) => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, max_score: e.target.value } : item) }))} className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />
+                          <input type="text" inputMode="decimal" value={activity.max_score} onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); const parts = raw.split('.'); const cleaned = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : raw; setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, max_score: cleaned } : item) })); }} className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />
                         </label>
                       )}
                       <button type="button" onClick={() => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.filter((_, i) => i !== index) }))} title="Remove subcomponent" aria-label="Remove subcomponent" className="mb-0.5 p-2 rounded-md text-gray-900 hover:bg-red-50 hover:text-red-600"><Trash2 size={14} /></button>

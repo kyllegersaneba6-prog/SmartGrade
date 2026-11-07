@@ -86,12 +86,14 @@ Admins and teachers are created in-app. New accounts default to password `smartg
 ```bash
 # Terminal 1 — backend
 cd backend
-npm run dev      # nodemon; or: npm start
+node index.js        # or npm run dev / npm start
 
 # Terminal 2 — frontend
 cd frontend
-npm run dev
+npm.cmd run dev      # Windows PowerShell; other shells can use: npm run dev
 ```
+
+Some PowerShell/terminal hosts return to the prompt after printing `Server is running on port 5000`, even while the backend process remains active. Verify the server with `Invoke-RestMethod http://127.0.0.1:5000/api/health`; a response with `status: ok` means it is running. Check this before starting another backend instance.
 
 - Backend: `http://localhost:5000` (binds `0.0.0.0`)
 - Frontend: `http://localhost:5173`
@@ -100,7 +102,8 @@ npm run dev
 
 | Error | Fix |
 |---|---|
-| **Service Unavailable** on every page | In a separate terminal run `cd backend` then `npm run start` (or `npm run dev`). The UI checks again every 5 s or via **Try Again**. If it persists, check `VITE_API_BASE_URL`, backend port/CORS, and whether `GET /api/health` returns the SmartGrade health JSON. Restart the backend after upgrading to include this endpoint |
+| **Service Unavailable** on every page | In Windows PowerShell, run `cd backend` then `npm.cmd run start` (or `npm.cmd run dev`); other shells can use `npm run start` (or `npm run dev`). The UI checks again every 5 s or via **Try Again**. If it persists, check `VITE_API_BASE_URL`, backend port/CORS, and whether `GET /api/health` returns the SmartGrade health JSON. Restart the backend after upgrading to include this endpoint |
+| Prompt returns after backend startup | Check `Invoke-RestMethod http://127.0.0.1:5000/api/health`. If it returns `status: ok`, the server is still running; if the connection is refused, start it from `backend` with `node index.js` and check the terminal for startup errors |
 | `supabaseUrl is required` | `backend/.env` missing/empty, or variable named `SUPABASE_KEY` instead of `SUPABASE_SERVICE_ROLE_KEY` |
 | `relation "public.departments" does not exist` | Run `schema.sql` first |
 | `add_db_constraints.sql` aborts with "Multiple active terms", "Multiple admins", "weight totals exceed 100", or "score(s) outside" | Fix the rows named in the error, then re-run. The migration never rewrites data |

@@ -1,14 +1,82 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archive, X } from 'lucide-react';
+import { Archive, CheckCircle2, Save, X } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import { SkeletonSettingsCard } from '../../components/common/Skeleton';
 import AdminPageHeading from '../../components/admin/AdminPageHeading';
+import api from '../../utils/api';
+import { DEFAULT_EXPORT_SETTINGS } from '../../utils/exportSettings';
 
 const AdminSettings = () => {
   const { activeTerm, allTerms, viewTerm, setViewTerm, isArchiveMode, loading } = useAdmin();
   const [confirmTerm, setConfirmTerm] = useState(null);
+  const [exportSettings, setExportSettings] = useState(DEFAULT_EXPORT_SETTINGS);
+  const [exportSettingsLoading, setExportSettingsLoading] = useState(true);
+  const [savingExportSettings, setSavingExportSettings] = useState(false);
+  const [exportSettingsError, setExportSettingsError] = useState('');
+  const [exportSettingsSaved, setExportSettingsSaved] = useState(false);
+  const [showExportSaveConfirm, setShowExportSaveConfirm] = useState(false);
+  const [exportSaveConfirmation, setExportSaveConfirmation] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let active = true;
+    const loadExportSettings = async () => {
+      try {
+        const response = await api('/api/export-settings');
+        const data = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(data?.message || 'Could not load export settings.');
+        if (active) setExportSettings({ ...DEFAULT_EXPORT_SETTINGS, ...data });
+      } catch (error) {
+        if (active) setExportSettingsError(error.message || 'Could not load export settings.');
+      } finally {
+        if (active) setExportSettingsLoading(false);
+      }
+    };
+    loadExportSettings();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!exportSettingsSaved) return undefined;
+    const timeoutId = window.setTimeout(() => setExportSettingsSaved(false), 3000);
+    return () => window.clearTimeout(timeoutId);
+  }, [exportSettingsSaved]);
+
+  const handleSaveExportSettings = (event) => {
+    event.preventDefault();
+    if (savingExportSettings) return;
+    setExportSettingsError('');
+    setExportSettingsSaved(false);
+    setExportSaveConfirmation('');
+    setShowExportSaveConfirm(true);
+  };
+
+  const confirmSaveExportSettings = async (event) => {
+    event.preventDefault();
+    if (savingExportSettings || exportSaveConfirmation.trim() !== 'Confirm') return;
+    setSavingExportSettings(true);
+    setExportSettingsError('');
+    setExportSettingsSaved(false);
+    try {
+      const response = await api('/api/export-settings', {
+        method: 'PUT',
+        body: JSON.stringify(exportSettings),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.message || 'Could not save export settings.');
+      setExportSettings({ ...DEFAULT_EXPORT_SETTINGS, ...data });
+      setExportSettingsSaved(true);
+      setShowExportSaveConfirm(false);
+      setExportSaveConfirmation('');
+    } catch (error) {
+      setExportSettingsError(error.message || 'Could not save export settings.');
+      setShowExportSaveConfirm(false);
+      setExportSaveConfirmation('');
+    } finally {
+      setSavingExportSettings(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -23,7 +91,7 @@ const AdminSettings = () => {
       <AdminPageHeading
         eyebrow="Preferences"
         title="Settings"
-        description="View academic terms and browse archived semesters."
+        description="Manage export signatories, view academic terms, and browse archived semesters."
       />
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50 card-hover">
@@ -115,6 +183,34 @@ const AdminSettings = () => {
         )}
       </div>
 
+      <form onSubmit={handleSaveExportSettings} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50 card-hover">
+        <div className="mb-5">
+          <h2 className="text-sm font-bold text-gray-900">Exports</h2>
+          <p className="mt-1 text-xs text-gray-600">These names appear in Class Record and Grade Summary XLSX and PDF exports.</p>
+        </div>
+
+        {exportSettingsError && <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{exportSettingsError}</div>}
+        {exportSettingsSaved && <div role="status" className="mb-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-800"><CheckCircle2 size={14} /> Export signatories saved.</div>}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-xs font-bold text-gray-800">Program Head — BSIT
+            <input type="text" maxLength={160} required value={exportSettings.program_head_bsit} onChange={(event) => { setExportSettings((current) => ({ ...current, program_head_bsit: event.target.value })); setExportSettingsSaved(false); }} className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0c1925] disabled:bg-gray-100" disabled={exportSettingsLoading || savingExportSettings} />
+          </label>
+          <label className="block text-xs font-bold text-gray-800">Program Head — BSCS
+            <input type="text" maxLength={160} required value={exportSettings.program_head_bscs} onChange={(event) => { setExportSettings((current) => ({ ...current, program_head_bscs: event.target.value })); setExportSettingsSaved(false); }} className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0c1925] disabled:bg-gray-100" disabled={exportSettingsLoading || savingExportSettings} />
+          </label>
+          <label className="block text-xs font-bold text-gray-800 sm:col-span-2">Dean — CICT
+            <input type="text" maxLength={160} required value={exportSettings.dean_cict} onChange={(event) => { setExportSettings((current) => ({ ...current, dean_cict: event.target.value })); setExportSettingsSaved(false); }} className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0c1925] disabled:bg-gray-100" disabled={exportSettingsLoading || savingExportSettings} />
+          </label>
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <button type="submit" disabled={exportSettingsLoading || savingExportSettings} className="inline-flex items-center gap-2 rounded-lg bg-[#0c1925] px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[#142a3f] disabled:cursor-not-allowed disabled:opacity-50">
+            <Save size={14} /> {savingExportSettings ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </form>
+
       {confirmTerm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
@@ -148,6 +244,43 @@ const AdminSettings = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {showExportSaveConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop p-4">
+          <form onSubmit={confirmSaveExportSettings} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-gray-200">
+            <h3 id="export-save-confirm-title" className="text-lg font-bold text-gray-900">Confirm export settings</h3>
+            <p className="mt-2 text-sm text-gray-600">Type <strong>Confirm</strong> to save these signatory names.</p>
+            <label htmlFor="export-save-confirmation" className="mt-4 block text-xs font-bold text-gray-800">Type Confirm</label>
+            <input
+              id="export-save-confirmation"
+              type="text"
+              autoComplete="off"
+              autoFocus
+              value={exportSaveConfirmation}
+              onChange={(event) => setExportSaveConfirmation(event.target.value)}
+              className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0c1925]"
+              aria-labelledby="export-save-confirm-title"
+            />
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => { setShowExportSaveConfirm(false); setExportSaveConfirmation(''); }}
+                disabled={savingExportSettings}
+                className="rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={savingExportSettings || exportSaveConfirmation.trim() !== 'Confirm'}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#0c1925] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#142a3f] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Save size={14} /> {savingExportSettings ? 'Saving…' : 'Confirm'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

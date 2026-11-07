@@ -37,6 +37,8 @@ const assertActiveTerm = async (res, { schoolYear, semester } = {}) => {
 // active one. Requests without the headers (and all reads) pass through.
 const rejectArchivedWrites = async (req, res, next) => {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+  // Export signatories are department-wide settings, not term data.
+  if (req.method === 'PUT' && req.path === '/api/export-settings') return next();
   const schoolYear = req.get('X-View-Term-School-Year');
   const semester = req.get('X-View-Term-Semester');
   if (!schoolYear && !semester) return next();

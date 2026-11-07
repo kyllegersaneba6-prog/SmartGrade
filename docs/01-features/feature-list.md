@@ -53,8 +53,9 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Grade-point conversion + remarks | Done | 1.00–5.00 with the `grade-point.md` ranges; legend is numeric-only |
 | Behavioral analytics | Done | Performance, submission rate, attendance, trend |
 | AI student summary | Done | Read-only narrative; AI never computes grades |
-| Excel export | Done | Class record, summary, admin/teacher lists. Class Record export stays disabled until component weights total 100% |
-| PDF export | Done | Class record, summary. Class Record export stays disabled until component weights total 100% |
+| Excel export | Done | Class Record and Grade Summary exports use admin-configured BSIT/BSCS program-head and CICT dean signatories. Admin/teacher lists also export. Class Record export stays disabled until component weights total 100% |
+| PDF export | Done | Class Record and Grade Summary exports use admin-configured BSIT/BSCS program-head and CICT dean signatories. Class Record export stays disabled until component weights total 100% |
+| Export signatory settings | Done | Admin configures department-level BSIT program head, BSCS program head, and CICT dean names in Settings; confirmed saves are recorded in the activity log |
 | Non-numeric marks (DRP / P / F) | In Progress | Modeled in `gradeCalculations.js` (`SPECIAL_MARKS` + string support in `gradeToPoint()`); no score-entry UI, hidden from the Grade Summary legend |
 
 ## Operations

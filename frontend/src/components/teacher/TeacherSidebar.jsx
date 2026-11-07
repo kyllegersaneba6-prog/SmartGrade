@@ -5,7 +5,7 @@ import clsx from 'clsx';
 
 const navItems = [
   { name: 'Overview', path: '/teacher/overview', icon: LayoutDashboard },
-  { name: 'My Classes', path: '/teacher/my-students', icon: Users },
+  { name: 'My Class List', path: '/teacher/my-class-list', icon: Users },
   { name: 'Attendance', path: '/teacher/attendance', icon: CalendarCheck },
   { name: 'Class Record', path: '/teacher/class-record', icon: FileSpreadsheet },
   { name: 'Analytics', path: '/teacher/analytics', icon: BarChart3 },

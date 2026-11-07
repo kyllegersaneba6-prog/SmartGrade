@@ -44,7 +44,7 @@ Header: page title, department badge (`bg-[#0c1925]`, `text-amber-300`), term pi
 | Overview | `/teacher/overview` | `LayoutDashboard` |
 | Attendance | `/teacher/attendance` | `CalendarCheck` |
 | Class Record | `/teacher/class-record` | `FileSpreadsheet` |
-| My Classes | `/teacher/my-students` | `Users` |
+| My Class List | `/teacher/my-class-list` | `Users` |
 | Analytics | `/teacher/analytics` | `BarChart3` |
 | Grade Summary | `/teacher/grade-summary` | `Summary` |
 | Settings | `/teacher/settings` | `Settings` |
@@ -75,7 +75,7 @@ Defined in `frontend/src/App.jsx`:
 /teacher/overview                 → TeacherOverview
 /teacher/attendance               → Attendance
 /teacher/class-record             → ClassRecord
-/teacher/my-students              → MyStudents
+/teacher/my-class-list            → MyClassList
 /teacher/analytics                → BehavioralAnalytics
 /teacher/grade-summary            → GradeSummary
 /teacher/settings                 → TeacherSettings
@@ -112,7 +112,7 @@ Unmatched URLs are handled by the top-level `*` route and render `NotFound` with
 | `/superadmin/settings` | Settings |
 | `/teacher` or `/teacher/overview` | Overview |
 | `/teacher/class-record` | Class Record |
-| `/teacher/my-students` | My Classes |
+| `/teacher/my-class-list` | My Class List |
 | `/teacher/attendance` | Attendance |
 | `/teacher/grade-summary` | Grade Summary |
 | `/teacher/analytics` | Analytics |

@@ -15,6 +15,7 @@ Base URL: `http://localhost:5000`. All responses are JSON, including unmatched r
 - Role strings: `superadmin`, `admin`, `teacher`.
 - Closed/past term mutation → **403** `{ "message": "This term is closed. No modifications allowed." }`
 - Archive guard: while an archived term is selected, the frontend sends `X-View-Term-School-Year` and `X-View-Term-Semester`. Any `POST`/`PUT`/`PATCH`/`DELETE` whose headers do not match the active term gets **403** from the global `rejectArchivedWrites` middleware, covering tables with no term column (`staff_users`, `departments`, `courses`).
+- `PUT /api/export-settings` is exempt from the archive guard because its department-wide signatories are not term data.
 - Ownership checks on reads and writes (teacher owns assignment; admin created the row **and** relationships match their department) return **403**. Shared helpers live in `backend/middleware/access.js`. Student lookup hides inaccessible records as 404.
 - Unknown route → **404** `{ "message": "Route not found" }`.
 - Malformed JSON body → **400** `{ "message": "Invalid JSON body." }`.
@@ -67,6 +68,13 @@ PATCH accepts `full_name`, `first_name`, `last_name`, `staff_id`, `course_id`, `
 | POST | `/api/courses` | Superadmin | Uppercases abbreviation |
 | PATCH | `/api/courses/:id` | Superadmin | Rename/abbr |
 | DELETE | `/api/courses/:id` | Superadmin | Blocked while users/sections reference it |
+
+## Export Settings
+
+| Method | Route | Allowed | Notes |
+|---|---|---|---|
+| GET | `/api/export-settings` | Admin, Teacher | Returns signatories for the caller's own department, with defaults when none have been saved |
+| PUT | `/api/export-settings` | Admin | Updates only the caller's department; requires BSIT program head, BSCS program head, and CICT dean names; records the confirmed save and changed names in the department activity log |
 
 ## Sections
 

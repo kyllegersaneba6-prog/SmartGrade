@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx-js-style';
 import { jsPDF } from 'jspdf';
 import autoTableImport from 'jspdf-autotable';
+import { getExportSignatories } from './exportSettings';
 import { strToU8, unzipSync, zipSync } from 'fflate';
 
 const autoTable = typeof autoTableImport === 'function' ? autoTableImport : autoTableImport.default;
@@ -108,7 +109,7 @@ const addExcelLogoDrawing = (workbookBytes, brandAssets, rightColumn) => {
   return zipSync(files, { level: 6 });
 };
 
-export async function exportClassRecordExcel({ assignment, term, students, components, scores, attendanceScores, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename }) {
+export async function exportClassRecordExcel({ assignment, term, students, components, scores, attendanceScores, exportSettings, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename }) {
   const assets = await loadBrandAssets();
   const groups = visibleGroups(components);
   groups.selectedTerm = term;
@@ -156,8 +157,9 @@ export async function exportClassRecordExcel({ assignment, term, students, compo
 
   const signatureColumns = signatureStartColumns(columns.length);
   const signatureLabels = ['Submitted by:', 'Reviewed by:', 'Approved by:'];
-  const signatureNames = [assignment.teacher?.full_name?.toUpperCase() || '', 'ARIEL T. SUMAGAYSAY, MSCS, MAEd', 'MAE B. LODANA, Ph.D.'];
-  const signatureRoles = ['Course Instructor', 'Program Head, BSIT', 'Dean, CICT'];
+  const signatories = getExportSignatories(assignment, exportSettings);
+  const signatureNames = [assignment.teacher?.full_name?.toUpperCase() || '', signatories.programHeadName, signatories.deanName];
+  const signatureRoles = ['Course Instructor', signatories.programHeadRole, signatories.deanRole];
   signatureColumns.forEach((col, index) => {
     setCell(signatureRow, col, signatureLabels[index]);
     setCell(signatureRow + 3, col, signatureNames[index]);
@@ -222,7 +224,7 @@ export async function exportClassRecordExcel({ assignment, term, students, compo
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function exportClassRecordPdf({ assignment, term, students, components, scores, attendanceScores, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename }) {
+export async function exportClassRecordPdf({ assignment, term, students, components, scores, attendanceScores, exportSettings, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename }) {
   const assets = await loadBrandAssets();
   const groups = visibleGroups(components);
   groups.selectedTerm = term;
@@ -326,10 +328,11 @@ export async function exportClassRecordPdf({ assignment, term, students, compone
   const signatureStarts = signatureStartColumns(columns.length);
   const signatureOffsets = signatureStarts.map((start) => pdfColumnWidths.slice(0, start).reduce((sum, width) => sum + width, 0));
   const signatureWidths = signatureOffsets.map((offset, index) => (signatureOffsets[index + 1] ?? availableWidth) - offset);
+  const signatories = getExportSignatories(assignment, exportSettings);
   const signatures = [
     ['Submitted by:', assignment.teacher?.full_name?.toUpperCase() || '', 'Course Instructor'],
-    ['Reviewed by:', 'ARIEL T. SUMAGAYSAY, MSCS, MAEd', 'Program Head, BSIT'],
-    ['Approved by:', 'MAE B. LODANA, Ph.D.', 'Dean, CICT'],
+    ['Reviewed by:', signatories.programHeadName, signatories.programHeadRole],
+    ['Approved by:', signatories.deanName, signatories.deanRole],
   ];
   signatures.forEach(([label, name, role], index) => {
     const x = margin + signatureOffsets[index];

@@ -16,7 +16,7 @@ const normalizeGender = (value) => {
   return '';
 };
 
-const MyStudents = () => {
+const MyClassList = () => {
   const { assignments, loading: assignmentsLoading, activeTerm, isArchiveMode, setViewTerm, refreshAssignments } = useTeacher();
   const fileInputRef = useRef(null);
   const importDropdownRef = useRef(null);
@@ -258,15 +258,6 @@ const MyStudents = () => {
     }
   };
 
-  const updateRow = (rowNum, field, value) => {
-    setParsed((current) => current && ({
-      ...current,
-      rows: current.rows.map((row) => row.rowNum === rowNum
-        ? { ...row, [field]: value, included: false }
-        : row),
-    }));
-  };
-
   const setAllValidRows = (included) => {
     const issuesByRow = new Map(previewRows.map((row) => [row.rowNum, row.issues.length > 0]));
     setParsed((current) => current && ({
@@ -407,7 +398,7 @@ const MyStudents = () => {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <TeacherPageHeading
         eyebrow="Student roster"
-        title="My Classes"
+        title="My Class List"
         description="Import a class-list PDF or add students directly to each of your sections."
       />
 
@@ -658,7 +649,7 @@ const MyStudents = () => {
             </div>
 
             <div className="shrink-0 border-b border-gray-100 px-5 py-4 sm:px-6">
-              <div className="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+              <div className="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
                 {[
                   ['Subject Code', currentParsed.metadata.subject_code],
                   ['Descriptive Title', currentParsed.metadata.descriptive_title],
@@ -668,9 +659,9 @@ const MyStudents = () => {
                   ['Semester', currentParsed.metadata.semester],
                   ['School Year', currentParsed.metadata.school_year],
                 ].map(([label, value]) => (
-                  <div key={label} className="min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-2">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{label}</p>
-                    <p className="mt-1 truncate font-semibold text-gray-800" title={value}>{value}</p>
+                  <div key={label} className={`min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-2 ${label === 'Descriptive Title' ? 'sm:col-span-2' : ''}`}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-black">{label}</p>
+                    <p className={`mt-1 font-semibold text-gray-900 ${label === 'Descriptive Title' ? 'whitespace-normal break-words leading-snug' : 'truncate'}`} title={value}>{value}</p>
                   </div>
                 ))}
               </div>
@@ -727,17 +718,13 @@ const MyStudents = () => {
                     {previewRows.map((row) => (
                       <tr key={row.rowNum} className="border-b border-gray-100 align-top hover:bg-gray-50">
                         <td className="px-3 py-2.5"><input type="checkbox" aria-label={`Import row ${row.rowNum}`} checked={Boolean(row.included && !row.issues.length)} disabled={row.issues.length > 0 || isReadOnly || metadataMismatches.length > 0 || Boolean(importResult)} onChange={(event) => toggleRow(row.rowNum, event.target.checked)} className="h-4 w-4 accent-[#0c1925]" /></td>
-                        <td className="px-3 py-2"><input value={row.student_id} onChange={(event) => updateRow(row.rowNum, 'student_id', event.target.value)} disabled={Boolean(importResult)} className="w-32 rounded-md border border-gray-200 px-2 py-1.5 font-mono disabled:bg-gray-50" /></td>
-                        <td className="px-3 py-2"><input value={row.last_name} onChange={(event) => updateRow(row.rowNum, 'last_name', event.target.value)} disabled={Boolean(importResult)} className="w-36 rounded-md border border-gray-200 px-2 py-1.5 disabled:bg-gray-50" /></td>
-                        <td className="px-3 py-2"><input value={row.first_name} onChange={(event) => updateRow(row.rowNum, 'first_name', event.target.value)} disabled={Boolean(importResult)} className="w-36 rounded-md border border-gray-200 px-2 py-1.5 disabled:bg-gray-50" /></td>
-                        <td className="px-3 py-2"><input value={row.mi} onChange={(event) => updateRow(row.rowNum, 'mi', event.target.value.toUpperCase())} disabled={Boolean(importResult)} className="w-16 rounded-md border border-gray-200 px-2 py-1.5 disabled:bg-gray-50" /></td>
-                        <td className="px-3 py-2 text-gray-600">{row.course}</td>
-                        <td className="px-3 py-2 text-gray-600">{row.year_level}</td>
-                        <td className="px-3 py-2">
-                          <select value={row.gender} disabled={Boolean(importResult)} onChange={(event) => updateRow(row.rowNum, 'gender', event.target.value)} className="rounded-md border border-gray-200 bg-white px-2 py-1.5 disabled:bg-gray-50">
-                            <option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option>
-                          </select>
-                        </td>
+                        <td className="whitespace-nowrap px-3 py-2 font-mono text-gray-900">{row.student_id || '—'}</td>
+                        <td className="max-w-48 break-words px-3 py-2 text-gray-900">{row.last_name || '—'}</td>
+                        <td className="max-w-56 break-words px-3 py-2 text-gray-900">{row.first_name || '—'}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-gray-900">{row.mi || '—'}</td>
+                        <td className="px-3 py-2 text-gray-900">{row.course}</td>
+                        <td className="px-3 py-2 text-gray-900">{row.year_level}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-gray-900">{row.gender || '—'}</td>
                         <td className="max-w-56 px-3 py-2.5">
                           {row.issues.length ? <span className="text-[10px] font-semibold text-amber-700">{row.issues.join(' · ')}</span> : <span className="text-[10px] font-semibold text-green-700">Ready</span>}
                         </td>
@@ -767,5 +754,5 @@ const MyStudents = () => {
   );
 };
 
-export default MyStudents;
+export default MyClassList;
 

@@ -12,8 +12,61 @@ import {
   TERMS, getComponentTotal, getComponentMaxTotal,
   getComponentEquiv, getComponentWeighted, getFinalGrade
 } from '../../utils/gradeCalculations';
+import {
+  CartesianGrid, Line, LineChart, ResponsiveContainer,
+  Tooltip as ChartTooltip, XAxis, YAxis,
+} from 'recharts';
 
 const avg = (arr) => arr.length === 0 ? 0 : arr.reduce((s, v) => s + v, 0) / arr.length;
+
+const TrendChart = ({ data }) => (
+  <div className="mt-4 rounded-lg border border-gray-200 bg-white p-3" role="img" aria-label="Activity scores and linear regression trend line">
+    <p className="mb-2 text-xs font-bold text-gray-700">Activity scores &amp; regression trend</p>
+    <div className="mb-1 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-gray-600" aria-hidden="true">
+      <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4 bg-[#0c1925]" /><span className="h-1.5 w-1.5 rounded-full bg-[#0c1925]" />Activity score</span>
+      <span className="inline-flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed border-amber-500" />Regression line</span>
+    </div>
+    <ResponsiveContainer width="100%" height={230}>
+      <LineChart data={data} margin={{ top: 8, right: 12, bottom: 24, left: 4 }}>
+        <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
+        <XAxis
+          dataKey="activity"
+          angle={-25}
+          textAnchor="end"
+          interval="preserveStartEnd"
+          height={56}
+          tickFormatter={(value) => value.length > 14 ? `${value.slice(0, 12)}…` : value}
+          tick={{ fontSize: 10, fill: '#4b5563' }}
+        />
+        <YAxis
+          domain={[0, 100]}
+          tickFormatter={(value) => `${value}%`}
+          width={44}
+          tick={{ fontSize: 10, fill: '#4b5563' }}
+        />
+        <ChartTooltip formatter={(value, name) => [`${Number(value).toFixed(1)}%`, name]} />
+        <Line
+          type="monotone"
+          dataKey="scorePct"
+          name="Activity score"
+          stroke="#0c1925"
+          strokeWidth={2}
+          dot={{ r: 3, fill: '#0c1925' }}
+          activeDot={{ r: 5 }}
+        />
+        <Line
+          type="linear"
+          dataKey="regressionPct"
+          name="Regression line"
+          stroke="#f59e0b"
+          strokeWidth={2}
+          strokeDasharray="6 4"
+          dot={false}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+);
 
 const formatAiTimestamp = (value) => {
   const date = new Date(value);
@@ -36,8 +89,8 @@ const BehavioralAnalytics = () => {
   const [scores, setScores] = useState({});
   const [attendanceScores, setAttendanceScores] = useState({ max_total: 0, scores: {} });
   const [dataLoading, setDataLoading] = useState(false);
-  const [sortKey, setSortKey] = useState('finalGrade');
-  const [sortDir, setSortDir] = useState('desc');
+  const [sortKey, setSortKey] = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [highlightedRowId, setHighlightedRowId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -169,10 +222,10 @@ const BehavioralAnalytics = () => {
     return submitted / activities.length;
   };
 
-  const getComponentTrend = (studentId, comp) => {
+  const getComponentTrendData = (studentId, comp) => {
     const scored = getComponentActivityScores(studentId, comp)
       .filter(({ activity }) => !activity.is_attendance);
-    if (scored.length < 2) return 'stable';
+    if (scored.length < 2) return { trend: 'stable', chartData: [] };
     const values = scored.map(x => x.pct);
     const indices = values.map((_, i) => i);
     const n = values.length;
@@ -183,12 +236,16 @@ const BehavioralAnalytics = () => {
       num += (indices[i] - meanX) * (values[i] - meanY);
       den += (indices[i] - meanX) ** 2;
     }
-    if (den === 0) return 'stable';
+    if (den === 0) return { trend: 'stable', chartData: [] };
     const slope = num / den;
     const threshold = meanY * 0.05;
-    if (slope > threshold) return 'improving';
-    if (slope < -threshold) return 'declining';
-    return 'stable';
+    const trend = slope > threshold ? 'improving' : slope < -threshold ? 'declining' : 'stable';
+    const chartData = scored.map(({ activity, pct }, index) => ({
+      activity: activity.name || `Activity ${index + 1}`,
+      scorePct: pct * 100,
+      regressionPct: (meanY + slope * (indices[index] - meanX)) * 100,
+    }));
+    return { trend, chartData };
   };
 
   const getOverallSubRate = (studentId) => {
@@ -236,6 +293,7 @@ const BehavioralAnalytics = () => {
       components.forEach(c => {
         const activities = c.is_attendance ? [] : (c.activities || []);
         const scoredActivities = getComponentActivityScores(s.id, c);
+        const trendData = getComponentTrendData(s.id, c);
         componentData[c.id] = {
           name: c.name,
           weight: c.weight,
@@ -244,7 +302,8 @@ const BehavioralAnalytics = () => {
           weighted: getComponentWeighted(s.id, c, scores, attendanceScores),
           submissionRate: getComponentSubmissionRate(s.id, c),
           performance: getComponentPerformance(s.id, c),
-          trend: getComponentTrend(s.id, c),
+          trend: trendData.trend,
+          trendChartData: trendData.chartData,
           activities: scoredActivities,
           maxTotal: getComponentMaxTotal(c, attendanceScores),
           total: getComponentTotal(s.id, c, scores, attendanceScores),
@@ -280,12 +339,11 @@ const BehavioralAnalytics = () => {
       let aVal, bVal;
       if (sortKey === 'name') { aVal = a.student.student_name; bVal = b.student.student_name; }
       else if (sortKey === 'student_id') { aVal = a.student.student_id; bVal = b.student.student_id; }
-      else if (sortKey === 'finalGrade') { aVal = a.finalGrade; bVal = b.finalGrade; }
-      else if (sortKey === 'subRate') { aVal = a.overallSubRate; bVal = b.overallSubRate; }
-      else if (sortKey === 'attRate') { aVal = a.attendanceRate; bVal = b.attendanceRate; }
-      else if (sortKey === 'performance') { aVal = a.overallPerformance; bVal = b.overallPerformance; }
-      else { aVal = a.finalGrade; bVal = b.finalGrade; }
-      if (typeof aVal === 'string') return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      else { aVal = a.student.student_name; bVal = b.student.student_name; }
+      if (typeof aVal === 'string') {
+        const comparison = String(aVal ?? '').localeCompare(String(bVal ?? ''), undefined, { sensitivity: 'base' });
+        return sortDir === 'asc' ? comparison : -comparison;
+      }
       return sortDir === 'asc' ? (aVal - bVal) : (bVal - aVal);
     });
     return entries;
@@ -293,7 +351,7 @@ const BehavioralAnalytics = () => {
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortKey(key); setSortDir('desc'); }
+    else { setSortKey(key); setSortDir(key === 'name' || key === 'student_id' ? 'asc' : 'desc'); }
   };
 
   const sortIcon = (key) => {
@@ -423,7 +481,7 @@ const BehavioralAnalytics = () => {
     <div className="space-y-6">
       <TeacherPageHeading
         eyebrow="Class insights"
-        title="Behavioral Analytics"
+        title="Analytics"
         description="Review class trends in attendance, submissions, and student performance."
       />
       <div className="flex flex-wrap items-center gap-3">
@@ -534,10 +592,10 @@ const BehavioralAnalytics = () => {
                       </React.Fragment>
                     )
                   ))}
-                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-sm w-[75px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('finalGrade')}>FINAL {sortIcon('finalGrade')}</th>
-                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-xs w-[65px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('subRate')}>SUB% {sortIcon('subRate')}</th>
-                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-xs w-[65px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('attRate')}>ATT% {sortIcon('attRate')}</th>
-                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-xs w-[90px] relative z-0 cursor-pointer select-none hover:brightness-95 align-middle" onClick={() => handleSort('performance')}>PERFORMANCE {sortIcon('performance')}</th>
+                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-sm w-[75px] relative z-0 align-middle">FINAL</th>
+                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-xs w-[65px] relative z-0 align-middle">SUB%</th>
+                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-xs w-[65px] relative z-0 align-middle">ATT%</th>
+                  <th className="px-3 py-2.5 bg-gray-100 text-sidebar font-extrabold text-xs w-[90px] relative z-0 align-middle">PERFORMANCE</th>
                 </tr>
               </thead>
               <tbody>
@@ -806,7 +864,9 @@ const BehavioralAnalytics = () => {
                       </div>
                     ) : (
                       <div className="mt-3 space-y-2">
-                        {cd.activities.map((act) => {
+                        {[...cd.activities]
+                          .sort((a, b) => Number(Boolean(b.activity.is_attendance)) - Number(Boolean(a.activity.is_attendance)))
+                          .map((act) => {
                           const maxScore = act.activity.is_attendance ? attendanceScores.max_total : act.activity.max_score;
                           const pct = act.pct * 100;
                           return (
@@ -832,6 +892,7 @@ const BehavioralAnalytics = () => {
                             <span className="uppercase tracking-wide">Trend: {cd.trend}</span>
                           </div>
                         )}
+                        {cd.trendChartData.length >= 2 && <TrendChart data={cd.trendChartData} />}
                       </div>
                     )}
                   </div>

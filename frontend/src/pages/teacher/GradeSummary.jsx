@@ -11,6 +11,7 @@ import { SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
 import { buildTeacherFilename } from '../../utils/exportFilenames';
+import { fetchExportSettings, getExportSignatories } from '../../utils/exportSettings';
 import { TEACHER_TABLE_PAGE_SIZE } from '../../utils/teacherTable';
 import {
   TERMS, TERM_PCTS, TERM_WEIGHTS, GRADE_RANGES,
@@ -207,6 +208,8 @@ const GradeSummary = () => {
 
   const handleExportExcel = async () => {
     const filtered = getSummaryFiltered();
+    const exportSettings = await fetchExportSettings();
+    const signatories = getExportSignatories(currentAssignment, exportSettings);
     const response = await fetch(SEMESTER_TEMPLATE_PATH);
     if (!response.ok) throw new Error('Semester export template could not be loaded.');
     const parts = unzipSync(new Uint8Array(await response.arrayBuffer()));
@@ -221,7 +224,12 @@ const GradeSummary = () => {
     );
     sheetXml = updateWorksheetCell(sheetXml, 'A16', `SEMESTER SUMMARY CLASS RECORD - ${currentAssignment.sections?.name || ''}`);
     sheetXml = updateWorksheetCell(sheetXml, 'A17', `${currentAssignment.semester || '1st Semester'}, Academic Year ${currentAssignment.school_year || ''}`);
-    sheetXml = updateWorksheetCell(sheetXml, `A${70 + extended.extraRows}`, currentAssignment.teacher?.full_name?.toUpperCase() || '');
+    const signatureNameRow = 70 + extended.extraRows;
+    sheetXml = updateWorksheetCell(sheetXml, `A${signatureNameRow}`, currentAssignment.teacher?.full_name?.toUpperCase() || '');
+    sheetXml = updateWorksheetCell(sheetXml, `D${signatureNameRow}`, signatories.programHeadName);
+    sheetXml = updateWorksheetCell(sheetXml, `D${signatureNameRow + 1}`, signatories.programHeadRole);
+    sheetXml = updateWorksheetCell(sheetXml, `I${signatureNameRow}`, signatories.deanName);
+    sheetXml = updateWorksheetCell(sheetXml, `I${signatureNameRow + 1}`, signatories.deanRole);
     sheetXml = updateWorksheetCell(sheetXml, 'D21', TERM_WEIGHTS.PRELIMS);
     sheetXml = updateWorksheetCell(sheetXml, 'F21', TERM_WEIGHTS.MIDTERMS);
     sheetXml = updateWorksheetCell(sheetXml, 'H21', TERM_WEIGHTS['PRE-FINALS']);
@@ -277,6 +285,8 @@ const GradeSummary = () => {
     setExportError('');
     try {
       const filtered = getSummaryFiltered();
+      const exportSettings = await fetchExportSettings();
+      const signatories = getExportSignatories(currentAssignment, exportSettings);
       const response = await fetch(SEMESTER_TEMPLATE_PATH);
       if (!response.ok) throw new Error('Semester export template could not be loaded.');
       const parts = unzipSync(new Uint8Array(await response.arrayBuffer()));
@@ -367,8 +377,8 @@ const GradeSummary = () => {
 
       const signatures = [
         ['Submitted by:', 'Reviewed by:', 'Approved by:'],
-        [currentAssignment.teacher?.full_name?.toUpperCase() || '', 'ARIEL T. SUMAGAYSAY, MSCS, MAEd', 'MAE B. LODANA, Ph.D.'],
-        ['Course Instructor', 'Program Head, BSIT', 'Dean, CICT'],
+        [currentAssignment.teacher?.full_name?.toUpperCase() || '', signatories.programHeadName, signatories.deanName],
+        ['Course Instructor', signatories.programHeadRole, signatories.deanRole],
       ].map((row, rowIndex) => row.map(content => ({
         content,
         styles: {
@@ -392,7 +402,7 @@ const GradeSummary = () => {
       doc.save(buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: 'semester', page: 'gradesummary', ext: 'pdf' }));
     } catch (err) {
       console.error(err);
-      setExportError('PDF export failed. Please try again.');
+      setExportError(err.message || 'PDF export failed. Please try again.');
     } finally {
       setExporting(null);
     }

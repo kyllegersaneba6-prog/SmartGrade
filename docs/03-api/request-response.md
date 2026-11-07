@@ -13,6 +13,31 @@ Tokens also contain an opaque `session` fingerprint. Each request reloads the ac
 
 Status convention: **401** = no/expired/invalid session (the frontend `utils/api.js` clears the token and redirects to `/login`); **403** = valid session but the action is not allowed (closed term, wrong role, cross-scope). A 403 leaves the user signed in so the page can display the message.
 
+## Export Signatory Settings
+
+`GET /api/export-settings` is available to Admin and Teacher accounts and returns the settings for the authenticated user's department. If no settings row has been saved, the legacy signer names are returned as defaults.
+
+```json
+{
+  "department_id": "<authenticated department UUID>",
+  "program_head_bsit": "ARIEL T. SUMAGAYSAY, MSCS, MAEd",
+  "program_head_bscs": "ARIEL T. SUMAGAYSAY, MSCS, MAEd",
+  "dean_cict": "MAE B. LODANA, Ph.D."
+}
+```
+
+`PUT /api/export-settings` is Admin-only. The department is taken from the authenticated account, not from the request body.
+
+```json
+{
+  "program_head_bsit": "Name and credentials",
+  "program_head_bscs": "Name and credentials",
+  "dean_cict": "Name and credentials"
+}
+```
+
+Each name must be 1–160 characters on one line. The saved values are used by Class Record and Grade Summary XLSX/PDF exports; the course abbreviation selects the BSIT or BSCS program-head setting. This department-wide update remains available while an archived term is selected.
+
 ## Public Process Health
 
 ```text

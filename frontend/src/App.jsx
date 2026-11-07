@@ -9,7 +9,7 @@ import Attendance from './pages/teacher/Attendance';
 import BehavioralAnalytics from './pages/teacher/BehavioralAnalytics';
 import GradeSummary from './pages/teacher/GradeSummary';
 import TeacherSettings from './pages/teacher/TeacherSettings';
-import MyStudents from './pages/teacher/MyStudents';
+import MyClassList from './pages/teacher/MyClassList';
 
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
 import Audit from './pages/superadmin/audit';
@@ -123,7 +123,7 @@ function App() {
           <Route index element={<TeacherOverview />} />
           <Route path="overview" element={<TeacherOverview />} />
           <Route path="class-record" element={<ClassRecord />} />
-          <Route path="my-students" element={<MyStudents />} />
+          <Route path="my-class-list" element={<MyClassList />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="analytics" element={<BehavioralAnalytics />} />
           <Route path="grade-summary" element={<GradeSummary />} />

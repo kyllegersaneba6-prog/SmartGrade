@@ -23,6 +23,18 @@ Constraint legend: PK primary key · FK foreign key · UQ unique · NN not null
 
 **Constraints:** `UNIQUE(name, department_id)`
 
+## department_export_settings
+
+| Column | Type | Notes |
+|---|---|---|
+| department_id | UUID | PK, FK → `departments(id)` ON DELETE CASCADE |
+| program_head_bsit | TEXT | NN, BSIT export signatory; default is the legacy export name |
+| program_head_bscs | TEXT | NN, BSCS export signatory; default is the legacy export name |
+| dean_cict | TEXT | NN, CICT dean export signatory; default is the legacy export name |
+| updated_at | TIMESTAMPTZ | NN, default `now()` |
+
+Names are limited to 1–160 characters. RLS is enabled with no user-facing policies; the backend `service_role` has SELECT/INSERT/UPDATE only.
+
 ## staff_users
 
 | Column | Type | Notes |

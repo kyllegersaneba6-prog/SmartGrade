@@ -177,12 +177,12 @@
   .sticky-cols {
     --student-number-width: 48px;
     --student-id-width: 112px;
-    --student-name-width: 192px;
+    --student-name-width: 212px;
   }
   .sticky-cols.sticky-cols-compact {
     --student-number-width: 40px;
     --student-id-width: 110px;
-    --student-name-width: 180px;
+    --student-name-width: 200px;
   }
   .sticky-cols .sticky-student-number,
   .sticky-cols .sticky-student-id,

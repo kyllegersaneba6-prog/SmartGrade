@@ -89,11 +89,17 @@ const TeacherOverview = () => {
             <p className="text-xs mt-1">Try searching with a different subject or section name.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 auto-rows-fr gap-4">
-            {yearOrder.map((year) => {
+          <div className="grid grid-cols-1 auto-rows-fr sm:grid-cols-2 sm:gap-x-0 xl:grid-cols-4">
+            {yearOrder.map((year, index) => {
               const items = groupedByYear[year] || [];
+              const columnDivider = [
+                'px-4 py-3 sm:px-5',
+                index % 2 === 0 ? 'sm:border-r sm:border-gray-900' : 'sm:border-r-0',
+                index < yearOrder.length - 1 ? 'xl:border-r xl:border-gray-900' : 'xl:border-r-0',
+                index < yearOrder.length - 1 ? 'border-b border-gray-200 sm:border-b-0' : '',
+              ].join(' ');
               return (
-                <div key={year} className="bg-white rounded-xl p-5 shadow-sm border border-gray-50 card-hover flex h-[420px] flex-col">
+                <div key={year} className={`flex h-[420px] flex-col ${columnDivider}`}>
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">{yearLabels[year]}</h4>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{items.length}</span>

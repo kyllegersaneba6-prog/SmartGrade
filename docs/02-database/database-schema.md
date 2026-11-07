@@ -10,6 +10,7 @@ All tables use `UUID PRIMARY KEY DEFAULT gen_random_uuid()` and `TIMESTAMPTZ DEF
 
 ```
 departments ──< courses
+departments ── department_export_settings (one settings row per department)
 departments ─ ─ staff_users (denormalized TEXT snapshot, NOT a FK)
 courses ──< sections
 courses ──< subjects
@@ -34,6 +35,7 @@ activity_log     (standalone; no FKs)
 |---|---|
 | `departments` | Academic departments (+ `abbr`) |
 | `courses` | Programs inside a department (+ `abbreviation`) |
+| `department_export_settings` | Per-department BSIT/BSCS program-head and CICT dean export signatories |
 | `staff_users` | All accounts: superadmin, admin, teacher |
 | `sections` | Class sections per course/year/school year/semester |
 | `students` | Student roster per section |
@@ -51,6 +53,8 @@ activity_log     (standalone; no FKs)
 | File | Purpose |
 |---|---|
 | `schema.sql` | Base tables, indexes, seed data (CICT department, courses, superadmin) |
+| `create_department_export_settings.sql` | Per-department export signatories; RLS enabled and service-role-only grants |
+| `remove_department_export_settings_updated_by.sql` | Removes the unused signatory editor attribution field |
 | `create_grading_tables.sql` | Grading components / activities / scores |
 | `create_attendance_table.sql` | Attendance table (final v2 shape) |
 | `migrate_attendance_final.sql` | Canonical attendance migration: columns + 6-column unique constraint; idempotent |

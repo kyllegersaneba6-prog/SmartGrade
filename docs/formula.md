@@ -240,6 +240,8 @@ A value of `0` means nothing was submitted; `1` means everything was submitted.
 
 Analyzes whether a student is improving, declining, or staying stable across activities within a component. Uses **linear regression** (simple slope calculation).
 
+In the student detail modal, Analytics plots the scored non-attendance activity percentages alongside the fitted regression line. Components with fewer than two scored activities are classified as stable and do not show the chart.
+
 ```
 Step 1: Get per-activity percentage scores in order:
   values = [pct1, pct2, pct3, ...]

@@ -137,9 +137,9 @@ Notes:
 ## Behavioral Analytics
 
 - One selected term at a time; four KPI cards: average final grade, average submission rate, average attendance rate, overall performance.
-- Per student: per-component equivalence, submission %, final grade, attendance rate, overall performance, and a trend icon.
+- Per student: per-component equivalence, submission %, final grade, attendance rate, overall performance, and a trend icon. The student detail modal plots scored activity percentages with a linear-regression fit line for each component with at least two scored non-attendance activities.
 - Submission rate = activities with a non-zero score ÷ total activities (attendance uses score ÷ max).
-- Trend = linear-regression slope across activity percentages, compared against `5% × mean`; below 2 activities → stable.
+- Trend = linear-regression slope across scored non-attendance activity percentages, compared against `5% × mean`; below 2 activities → stable. The detail modal shows both the activity scores and fitted regression line.
 - Student detail modal exposes **Summarize with AI**.
 
 ## AI Student Summary
@@ -169,7 +169,7 @@ Notes:
 
 ### Teacher My Classes / PDF Import
 
-- **My Classes** is available at `/teacher/my-students` and in the teacher sidebar.
+- **My Class List** is available at `/teacher/my-class-list` and in the teacher sidebar.
 - A section selector lists the teacher's existing section rosters. Import does not require an existing assignment.
 - The browser reads text-based PDF class lists locally using PDF.js. It accepts the official class-list layout (up to 25 pages, 25 MB, and 500 student rows); scanned/image-only PDFs are not OCR-processed.
 - The PDF's Subject Code, Descriptive Title, Section, Course, Year Level, Semester, and School Year are read from its header and roster. The term must match the active academic term. The section identifies the roster's course/year cohort; individual student rows may list different courses or year levels and are still imported into that section.
@@ -187,6 +187,8 @@ Notes:
 
 All export work is client-side.
 
+Admin Settings → Exports stores the department's BSIT program head, BSCS program head, and CICT dean names. The Class Record and Grade Summary XLSX/PDF signature blocks use the saved values; the assignment's course abbreviation selects the matching program head. If no settings row exists, the existing signer names are used as defaults. Each confirmed admin save is recorded in the department's activity log, including the names changed (or that the settings were resaved without changes).
+
 | Page | Formats |
 |---|---|
 | Class Record | `.xlsx`, `.pdf` |
@@ -203,6 +205,7 @@ Shared UI: `frontend/src/components/teacher/ExportButtons.jsx` (per-format spinn
 - Superadmin-only (`/api/backup` is guarded at router level).
 - Format: `.backup.sg`, magic `SGBK`, `formatVersion 1.0`, `schemaCompat 2026-10-12`, 50 MB cap.
 - Export covers selectable categories with dependency closure: organization, accounts, terms, classes, teaching, grading, attendance, audit.
+- The Organization category includes department export signatory settings.
 - Each table is checksummed (SHA-256) and counted; the manifest records totals.
 - Optional password encryption: AES-256-GCM with scrypt KDF; minimum 8-character password.
 - Preview reports per-table insert-vs-existing counts for `merge`, `replace`, or `full`.
