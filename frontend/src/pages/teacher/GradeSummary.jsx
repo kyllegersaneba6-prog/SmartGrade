@@ -465,7 +465,7 @@ const GradeSummary = () => {
           </div>
         ) : (
           <div className="table-scroll w-full rounded-lg" style={{ scrollbarWidth: 'auto' }}>
-            <table className="sticky-cols sticky-cols-compact min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+            <table className="teacher-sticky-table teacher-sticky-table-2rows sticky-cols sticky-cols-compact min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
                   <th colSpan={3} className="sticky-student-header bg-sidebar border-b-2 border-r-2 border-border p-3 text-white text-left font-bold sticky left-0 z-20" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
@@ -479,21 +479,21 @@ const GradeSummary = () => {
                       {term} {TERM_PCTS[term]}
                     </th>
                   ))}
-                  <th className="bg-amber-300 border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-sm uppercase tracking-wider relative z-0" colSpan={3}>SEMESTRAL GRADE</th>
+                  <th className="bg-amber-300 border-b-2 border-gold-hover p-3 text-[#0c1925] text-center font-bold text-sm uppercase tracking-wider relative z-0" colSpan={3}>SEMESTER GRADE</th>
                 </tr>
-                <tr className="bg-gray-50 border-b border-border text-center font-semibold text-sidebar">
-                  <th className="sticky-student-number px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20">#</th>
-                  <th className="sticky-student-id px-3 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20">Stud ID</th>
-                  <th className="sticky-student-name px-4 py-2.5 text-left sticky bg-gray-50 border-r-2 border-border z-20">Student Name</th>
+                <tr className="bg-white border-b border-border text-center font-semibold text-sidebar">
+                  <th className="sticky-student-number px-1 py-2.5 text-center sticky bg-white border-r border-border z-20">#</th>
+                  <th className="sticky-student-id px-3 py-2.5 text-left sticky bg-white border-r border-border z-20">Stud ID</th>
+                  <th className="sticky-student-name px-4 py-2.5 text-left sticky bg-white border-r-2 border-border z-20">Student Name</th>
                   {TERMS.map(term => (
                     <React.Fragment key={term}>
-                      <th className="px-3 py-2.5 border-r border-gray-200 bg-gray-100/50 w-24 relative z-0">Grade</th>
-                      <th className="px-3 py-2.5 border-r-2 border-gray-300 bg-gray-100/50 w-24 relative z-0">{TERM_PCTS[term]}</th>
+                      <th className="px-3 py-2.5 border-r border-gray-200 bg-white w-24 relative z-0">Grade</th>
+                      <th className="px-3 py-2.5 border-r-2 border-gray-300 bg-white w-24 relative z-0">{TERM_PCTS[term]}</th>
                     </React.Fragment>
                   ))}
-                  <th className="px-3 py-2.5 border-r border-gray-200 bg-gray-100/50 w-20 relative z-0 font-semibold text-sidebar">Grade</th>
-                  <th className="px-3 py-2.5 border-r-2 border-gray-300 bg-gray-100/50 w-16 relative z-0 font-semibold text-sidebar">G.P.</th>
-                  <th className="px-3 py-2.5 border-r border-gray-200 bg-gray-100/50 w-24 relative z-0 font-semibold text-sidebar">REMARKS</th>
+                  <th className="px-3 py-2.5 border-r border-gray-200 bg-white w-20 relative z-0 font-semibold text-sidebar">Grade</th>
+                  <th className="px-3 py-2.5 border-r-2 border-gray-300 bg-white w-16 relative z-0 font-semibold text-sidebar">G.P.</th>
+                  <th className="px-3 py-2.5 border-r border-gray-200 bg-white w-24 relative z-0 font-semibold text-sidebar">REMARKS</th>
                 </tr>
               </thead>
               <tbody>

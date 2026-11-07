@@ -46,6 +46,7 @@ const ClassRecord = () => {
   const [students, setStudents] = useState([]);
 
   const [components, setComponents] = useState([]);
+  const [hasPreviousTermComponents, setHasPreviousTermComponents] = useState(false);
   const [scores, setScores] = useState({});
   const [attendanceScores, setAttendanceScores] = useState({ max_total: 0, scores: {} });
   const [dataLoading, setDataLoading] = useState(false);
@@ -111,20 +112,26 @@ const ClassRecord = () => {
     const requestId = ++gradeFetchRequestRef.current;
     if (!selectedAssignment) {
       setComponents([]);
+      setHasPreviousTermComponents(false);
       setScores({});
       setAttendanceScores({ max_total: 0, scores: {} });
       setDataLoading(false);
       return;
     }
     setComponents([]);
+    setHasPreviousTermComponents(false);
     setScores({});
     setAttendanceScores({ max_total: 0, scores: {} });
     setDataLoading(true);
     try {
-      const [compRes, scoresRes, attRes] = await Promise.all([
+      const sourceTerm = TERMS[TERMS.indexOf(selectedTerm) - 1];
+      const [compRes, scoresRes, attRes, prelimsRes] = await Promise.all([
         api(`/api/grading-components?assignment_id=${selectedAssignment}&term=${selectedTerm}`, { signal: controller.signal }),
         api(`/api/component-scores?assignment_id=${selectedAssignment}&term=${selectedTerm}`, { signal: controller.signal }),
         api(`/api/attendance/computed-scores?teacher_assignment_id=${selectedAssignment}&term=${selectedTerm}`, { signal: controller.signal }),
+        !sourceTerm
+          ? Promise.resolve(null)
+          : api(`/api/grading-components?assignment_id=${selectedAssignment}&term=${sourceTerm}`, { signal: controller.signal }),
       ]);
       const [comps, scoreList, attendance] = await Promise.all([
         compRes.ok ? compRes.json() : Promise.resolve([]),
@@ -132,12 +139,16 @@ const ClassRecord = () => {
         attRes.ok ? attRes.json() : Promise.resolve({ max_total: 0, scores: {} }),
       ]);
       if (requestId !== gradeFetchRequestRef.current) return;
+      const previousTermComponents = !sourceTerm
+        ? comps
+        : prelimsRes?.ok ? await prelimsRes.json() : [];
       const scoreMap = {};
       scoreList.forEach((score) => {
         if (!scoreMap[score.activity_id]) scoreMap[score.activity_id] = {};
         scoreMap[score.activity_id][score.student_id] = score.score;
       });
       setComponents(comps);
+      setHasPreviousTermComponents(previousTermComponents.length > 0);
       setScores(scoreMap);
       setAttendanceScores(attendance);
     } catch (err) {
@@ -323,13 +334,15 @@ const ClassRecord = () => {
     }
   };
 
-  const copyFromPrelims = async () => {
+  const copyFromPreviousTerm = async () => {
     if (!selectedAssignment || copyingPrelims) return;
+    const sourceTerm = TERMS[TERMS.indexOf(selectedTerm) - 1];
+    if (!sourceTerm) return;
     setCopyingPrelims(true);
     try {
-      const res = await api('/api/grading-components/copy-from-prelims', {
+      const res = await api('/api/grading-components/copy-from-term', {
         method: 'POST',
-        body: JSON.stringify({ teacher_assignment_id: selectedAssignment, target_term: selectedTerm })
+        body: JSON.stringify({ teacher_assignment_id: selectedAssignment, source_term: sourceTerm, target_term: selectedTerm })
       });
       if (res.ok) {
         const comps = await res.json();
@@ -338,7 +351,7 @@ const ClassRecord = () => {
         setConfirmCopyPrelimsOpen(false);
       } else {
         const err = await res.json().catch(() => ({}));
-        setError(err.message || 'Failed to copy from PRELIMS');
+        setError(err.message || `Failed to copy from ${sourceTerm}`);
         setTimeout(() => setError(''), 4000);
       }
     } catch (err) {
@@ -650,9 +663,9 @@ const ClassRecord = () => {
             <span className={`font-extrabold ${totalWeight === 100 ? 'text-green-700' : 'text-amber-700'}`}>Total weight: {totalWeight}%</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {currentAssignment && !ctxLoading && selectedTerm !== 'PRELIMS' && !isReadOnly && !dataLoading && components.length === 0 && (
+            {currentAssignment && !ctxLoading && TERMS.indexOf(selectedTerm) > 0 && !isReadOnly && !dataLoading && hasPreviousTermComponents && components.length === 0 && (
               <button onClick={() => setConfirmCopyPrelimsOpen(true)} disabled={copyingPrelims} className="px-3 py-2 text-xs font-bold text-amber-800 bg-amber-100 border border-amber-200 rounded-lg hover:bg-amber-200 disabled:opacity-50">
-                {copyingPrelims ? 'Copying...' : 'Copy from PRELIMS'}
+                {copyingPrelims ? 'Copying...' : `Copy from ${TERMS[TERMS.indexOf(selectedTerm) - 1]}`}
               </button>
             )}
             {currentAssignment && !ctxLoading && !isReadOnly && (
@@ -1056,11 +1069,11 @@ const ClassRecord = () => {
       {confirmCopyPrelimsOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !copyingPrelims) setConfirmCopyPrelimsOpen(false); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="copy-prelims-title" className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
-            <h3 id="copy-prelims-title" className="text-lg font-bold text-gray-900 mb-2">Copy from PRELIMS?</h3>
-            <p className="text-sm text-gray-900 mb-4">Copy grading components from PRELIMS to <strong>{selectedTerm}</strong>? Activities are not copied and will need to be added separately.</p>
+            <h3 id="copy-prelims-title" className="text-lg font-bold text-gray-900 mb-2">Copy from {TERMS[TERMS.indexOf(selectedTerm) - 1]}?</h3>
+            <p className="text-sm text-gray-900 mb-4">Copy grading components from {TERMS[TERMS.indexOf(selectedTerm) - 1]} to <strong>{selectedTerm}</strong>? Activities are not copied and will need to be added separately.</p>
             <div className="flex gap-3 justify-end">
               <button type="button" onClick={() => setConfirmCopyPrelimsOpen(false)} disabled={copyingPrelims} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">No</button>
-              <button type="button" onClick={copyFromPrelims} disabled={copyingPrelims} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md transition-colors bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button type="button" onClick={copyFromPreviousTerm} disabled={copyingPrelims} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md transition-colors bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed">
                 {copyingPrelims && <Loader size={14} className="animate-spin" />}
                 {copyingPrelims ? 'Copying...' : 'Yes'}
               </button>

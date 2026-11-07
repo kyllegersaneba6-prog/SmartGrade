@@ -267,14 +267,14 @@ router.put('/:id', authorizeRole('teacher'), async (req, res) => {
   }
 });
 
-// POST /api/grading-components/copy-from-prelims — copy components + activities from PRELIMS to another term
-router.post('/copy-from-prelims', authorizeRole('teacher'), async (req, res) => {
-  const { teacher_assignment_id, target_term } = req.body;
-  if (!teacher_assignment_id || !target_term) {
-    return res.status(400).json({ message: 'teacher_assignment_id and target_term are required' });
-  }
-  if (target_term === 'PRELIMS') {
-    return res.status(400).json({ message: 'Cannot copy from PRELIMS to PRELIMS' });
+// POST /api/grading-components/copy-from-term — copy components from the immediately preceding term.
+router.post('/copy-from-term', authorizeRole('teacher'), async (req, res) => {
+  const { teacher_assignment_id, source_term, target_term } = req.body;
+  const terms = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
+  const sourceIndex = terms.indexOf(source_term);
+  const targetIndex = terms.indexOf(target_term);
+  if (!teacher_assignment_id || sourceIndex < 0 || targetIndex !== sourceIndex + 1) {
+    return res.status(400).json({ message: 'Components can only be copied from the immediately preceding grading term.' });
   }
   try {
     if (!(await canAccessAssignment(teacher_assignment_id, req.user))) return res.status(403).json({ message: 'Access denied.' });
@@ -290,32 +290,34 @@ router.post('/copy-from-prelims', authorizeRole('teacher'), async (req, res) => 
       .maybeSingle();
     if (!assign) return res.status(403).json({ message: 'Access denied.' });
 
-    // Fetch PRELIMS components with activities
-    const { data: prelimComps } = await supabase
+    // Copy the component setup from the immediately preceding term.
+    const { data: sourceComps, error: sourceError } = await supabase
       .from('grading_components')
       .select('*')
       .eq('teacher_assignment_id', teacher_assignment_id)
-      .eq('term', 'PRELIMS')
+      .eq('term', source_term)
       .order('sort_order', { ascending: true });
+    if (sourceError) return sendServerError(res, sourceError);
 
-    if (!prelimComps || prelimComps.length === 0) {
-      return res.status(400).json({ message: 'No PRELIMS components to copy.' });
+    if (!sourceComps || sourceComps.length === 0) {
+      return res.status(400).json({ message: `No ${source_term} components to copy.` });
     }
 
     // Check target term has no components yet
-    const { data: existingComps } = await supabase
+    const { data: existingComps, error: existingError } = await supabase
       .from('grading_components')
       .select('id')
       .eq('teacher_assignment_id', teacher_assignment_id)
       .eq('term', target_term)
       .limit(1);
+    if (existingError) return sendServerError(res, existingError);
 
     if (existingComps && existingComps.length > 0) {
       return res.status(400).json({ message: `Target term ${target_term} already has components.` });
     }
 
     // Insert new components (activities not copied — teacher adds them per term)
-    const newCompsData = prelimComps.map(c => ({
+    const newCompsData = sourceComps.map(c => ({
       teacher_assignment_id,
       term: target_term,
       name: c.name,

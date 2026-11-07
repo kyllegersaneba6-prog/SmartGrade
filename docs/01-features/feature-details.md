@@ -109,7 +109,7 @@ Notes:
 
 ## Grade Summary
 
-- Aggregates all four terms into a semestral grade.
+- Aggregates all four terms into a semester grade.
 - Term weights: `PRELIMS 20%`, `MIDTERMS 20%`, `PRE-FINALS 20%`, `FINALS 40%`.
 - `semestral = Σ(termGrade × weight) / Σ(weight)` — missing terms are renormalized by the sum of available weights, not treated as zero.
 - Grade-point scale:

@@ -120,7 +120,7 @@ There is **no** `POST /api/sections/seed` route (only the preview).
 | POST | `/api/grading-components` | Teacher | `{ teacher_assignment_id, term, name, weight, is_attendance? }`; term-locked |
 | POST | `/api/grading-components/reorder` | Teacher | `{ teacher_assignment_id, term, ordered_ids[] }`; must match the term's full set |
 | PUT | `/api/grading-components/:id` | Teacher | Update `name`/`weight`; term-locked |
-| POST | `/api/grading-components/copy-from-prelims` | Teacher | Target term must be empty; activities not copied |
+| POST | `/api/grading-components/copy-from-term` | Teacher | `{ teacher_assignment_id, source_term, target_term }`; source must be the immediately preceding term; target must be empty; activities not copied |
 | DELETE | `/api/grading-components/:id` | Teacher | Cascades activities + scores; term-locked |
 
 ## Component Activities
