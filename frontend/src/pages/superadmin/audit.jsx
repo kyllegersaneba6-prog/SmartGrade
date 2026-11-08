@@ -191,13 +191,13 @@ const Audit = () => {
 
       <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
         {metrics.map(({ label, value, icon: Icon, tooltip }) => (
-          <div key={label} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 shadow-sm card-hover">
+          <div key={label} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-4 shadow-sm card-hover">
             <div>
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="text-[10px] font-bold text-gray-600 tracking-widest uppercase">{label}</span>
                 <div className="relative group flex items-center">
                   <Info size={11} className="text-gray-300 hover:text-gray-500 transition-colors cursor-help shrink-0" />
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 p-3 bg-gray-900/95 backdrop-blur-sm text-gray-100 text-[10px] rounded-lg shadow-xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-50 text-center font-normal normal-case leading-relaxed border border-gray-800">
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 p-3 bg-gray-900/95 backdrop-blur-sm text-gray-100 text-[10px] rounded-md shadow-xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 z-50 text-center font-normal normal-case leading-relaxed border border-gray-800">
                     {tooltip}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900/95"></div>
                   </div>
@@ -212,7 +212,7 @@ const Audit = () => {
 
       <div ref={auditSectionRef} className="w-full">
         <div>
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
+          <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-sm bg-gray-900 text-white"><History size={15} strokeWidth={2} /></span><h2 className="text-[16px] font-bold text-gray-900">Institutional System Audit Trail (Root Access)</h2></div>
               <div className="flex gap-2">
@@ -227,7 +227,7 @@ const Audit = () => {
                   {filterOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
-                      <div className="absolute right-0 mt-1 w-44 rounded-lg border border-gray-100 bg-white shadow-xl z-20 py-1">
+                      <div className="absolute right-0 mt-1 w-44 rounded-xl border border-gray-100 bg-white shadow-xl z-20 py-1">
                         {ACTION_FILTERS.map((f) => (
                           <button
                             key={f.value}
@@ -254,7 +254,7 @@ const Audit = () => {
                   <tr key={row.id || i} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-gray-50">
                     <td className="whitespace-pre px-3 py-3 font-mono text-[12px]" style={{ color: '#0c1925' }}>{row.ts}</td>
                     <td className="px-3 py-3 text-[12px] font-bold text-gray-800">{row.user === '-' ? <span className="text-gray-900">-</span> : row.user}</td>
-                    <td className="px-3 py-3">{row.role === '-' ? <span className="text-gray-900 font-semibold text-[12px]">-</span> : <span className={`px-2 py-0.5 rounded text-[12px] font-bold ${!row.role ? '' : row.role === 'admin' ? 'text-gray-700' : 'text-white'}`} style={row.role ? { background: row.roleColor } : undefined}>{row.role}</span>}</td>
+                    <td className="px-3 py-3">{row.role === '-' ? <span className="text-gray-900 font-semibold text-[12px]">-</span> : <span className={`px-2 py-0.5 rounded-md text-[12px] font-bold ${!row.role ? '' : row.role === 'admin' ? 'text-gray-700' : 'text-white'}`} style={row.role ? { background: row.roleColor } : undefined}>{row.role}</span>}</td>
                     <td className="px-3 py-3 font-mono text-[12px] font-bold" style={{ color: row.action.includes('DELET') || row.action.includes('FAIL') || row.action === 'RATE_LIMITED_LOGIN' ? '#dc2626' : row.action.includes('UPDAT') ? '#2563eb' : row.action.includes('CREAT') || row.action.includes('SUCCESS') ? '#16a34a' : '#4b5563' }}>{row.action}</td>
                     <td className="max-w-[300px] px-3 py-3 text-[12px] text-gray-700" title={row.desc}>
                       {row.split ? (

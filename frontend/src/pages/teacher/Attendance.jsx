@@ -444,11 +444,11 @@ const Attendance = () => {
       )}
       <div className="flex items-center gap-4 text-sm font-bold px-4 py-2 border border-gray-50 rounded-xl text-amber-900">
         <span>Attendance Key:</span>
-        <span className="px-2 py-0.5 rounded bg-green-100 text-green-900 border border-green-200">2 = Present</span>
-        <span className="px-2 py-0.5 rounded bg-yellow-100 text-yellow-900 border border-yellow-200">1 = Late</span>
-        <span className="px-2 py-0.5 rounded bg-red-100 text-red-900 border border-red-200">0 = Absent</span>
+        <span className="px-2 py-0.5 rounded-md bg-green-100 text-green-900 border border-green-200">2 = Present</span>
+        <span className="px-2 py-0.5 rounded-md bg-yellow-100 text-yellow-900 border border-yellow-200">1 = Late</span>
+        <span className="px-2 py-0.5 rounded-md bg-red-100 text-red-900 border border-red-200">0 = Absent</span>
         {syncing && (
-          <span className="ml-auto flex items-center gap-1.5 text-blue-700 bg-blue-100 border border-blue-200 px-3 py-0.5 rounded">
+          <span className="ml-auto flex items-center gap-1.5 text-blue-700 bg-blue-100 border border-blue-200 px-3 py-0.5 rounded-md">
             <Cloud size={13} className="animate-pulse" />
             Syncing unsaved data…
           </span>
@@ -518,7 +518,7 @@ const Attendance = () => {
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             {searchQuery && (
-              <button onClick={() => { setSearchQuery(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             )}
@@ -526,7 +526,7 @@ const Attendance = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover">
+      <div className="bg-white rounded-xl shadow-sm border border-border card-hover">
         {ctxLoading || loading ? (
           <SkeletonTable cols={6} rows={8} bare />
         ) : columns.length === 0 ? (
@@ -555,7 +555,7 @@ const Attendance = () => {
                           {!isReadOnly && (
                             <button
                               onClick={() => { setConfirmRemoveKey(key); setConfirmText(''); }}
-                              className="text-red-400 hover:text-red-300 transition-colors mb-1 p-0.5 leading-none"
+                              className="rounded-lg text-red-400 hover:text-red-300 transition-colors mb-1 p-0.5 leading-none"
                               title="Delete date"
                               aria-label="Delete date"
                             >
@@ -565,8 +565,8 @@ const Attendance = () => {
                           <div className="text-center leading-tight">
                             <div className="text-xs font-bold">{formatDate(key)}</div>
                             <div className="flex items-center justify-center gap-1 mt-1">
-                              <span className="rounded bg-white/10 px-1.5 py-px text-[9px] font-bold text-white">{session}</span>
-                              <span className="rounded bg-white/10 px-1.5 py-px text-[9px] font-bold text-white">{type === 'Laboratory' ? 'LAB' : 'LEC'}</span>
+                              <span className="rounded-md bg-white/10 px-1.5 py-px text-[9px] font-bold text-white">{session}</span>
+                              <span className="rounded-md bg-white/10 px-1.5 py-px text-[9px] font-bold text-white">{type === 'Laboratory' ? 'LAB' : 'LEC'}</span>
                             </div>
                           </div>
                         </div>
@@ -600,7 +600,7 @@ const Attendance = () => {
                     return (
                       <td key={key} className="p-1 border-r border-b border-gray-200 bg-gray-50 relative z-0">
                         <input type="number" step="any" value={2}
-                          className="w-full text-center text-xs font-black text-gray-700 p-1 border border-transparent rounded bg-transparent [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none opacity-40 cursor-default"
+                          className="w-full text-center text-xs font-black text-gray-700 p-1 border border-transparent rounded-lg bg-transparent [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none opacity-40 cursor-default"
                           disabled
                         />
                       </td>
@@ -659,7 +659,7 @@ const Attendance = () => {
                                     }
                                   }}
                                   onKeyDown={(e) => handleKeyDown(e, student.id, key, index, paginatedStudents, columns)}
-                                  className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${isClamped ? 'border-amber-300 bg-amber-50' : 'border-transparent'}`}
+                                  className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${isClamped ? 'border-amber-300 bg-amber-50' : 'border-transparent'}`}
                                   disabled={isReadOnly}
                                 />
                                 {isClamped && (
@@ -693,7 +693,7 @@ const Attendance = () => {
 
       {confirmRemoveKey && (
         <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl modal-surface p-6 w-full max-w-sm mx-4">
+          <div className="bg-white rounded-2xl modal-surface p-6 w-full max-w-sm mx-4">
             <h3 className="text-base font-bold text-gray-800 mb-2">Remove Date</h3>
             <p className="text-sm text-gray-900 mb-1">
               This will delete all attendance records for <strong>{confirmRemoveKey}</strong>.

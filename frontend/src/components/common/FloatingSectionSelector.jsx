@@ -77,7 +77,7 @@ const FloatingSectionSelector = ({
             <span className="block font-semibold text-gray-900 truncate">Select Section</span>
           )}
         </span>
-        {isArchiveMode && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 uppercase shrink-0">ARCHIVE</span>}
+        {isArchiveMode && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-200 text-amber-800 uppercase shrink-0">ARCHIVE</span>}
         <ChevronDown size={15} className={`shrink-0 text-gray-900 transition-transform duration-200 ${open ? 'rotate-180 text-[#0c1925]' : ''}`} />
       </button>
 
@@ -102,14 +102,13 @@ const FloatingSectionSelector = ({
                         selected ? 'bg-[#0c1925]/5' : 'hover:bg-gray-100'
                       }`}
                     >
-                      <span className={`flex items-center justify-center w-7 h-7 rounded-md shrink-0 transition-colors ${selected ? 'text-white' : 'text-gray-900 bg-gray-100'}`} style={selected ? { background: '#0c1925' } : {}}>
+                      <span className={`flex items-center justify-center w-7 h-7 rounded-md shrink-0 transition-colors ${selected ? 'text-amber-300' : 'text-gray-900 bg-gray-100'}`} style={selected ? { background: '#0c1925' } : {}}>
                         {selected ? <Check size={15} /> : <BookOpen size={15} />}
                       </span>
                       <span className="flex-1 min-w-0">
                         <span className={`block text-xs truncate ${selected ? 'font-bold text-[#0c1925]' : 'font-semibold text-gray-900'}`}>{display.title}</span>
                         <span className="block text-[10px] text-gray-900 truncate">{display.details}</span>
                       </span>
-                      {selected && <Check size={14} className="shrink-0 font-bold" style={{ color: '#0c1925' }} />}
                     </button>
                   );
                 })}

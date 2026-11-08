@@ -456,7 +456,7 @@ const GradeSummary = () => {
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           {searchQuery && (
-            <button onClick={() => { setSearchQuery(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <button onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           )}
@@ -464,7 +464,7 @@ const GradeSummary = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover">
+      <div className="bg-white rounded-xl shadow-sm border border-border card-hover">
         {ctxLoading || dataLoading ? (
           <SkeletonTable cols={8} rows={8} bare />
         ) : !hasAnyData ? (
@@ -474,7 +474,7 @@ const GradeSummary = () => {
             <p className="text-xs mt-1">Set up components and scores in Class Record first.</p>
           </div>
         ) : (
-          <div className="table-scroll w-full rounded-lg" style={{ scrollbarWidth: 'auto' }}>
+          <div className="table-scroll w-full rounded-xl" style={{ scrollbarWidth: 'auto' }}>
             <table className="teacher-sticky-table teacher-sticky-table-2rows sticky-cols sticky-cols-compact min-w-max w-full text-xs select-none" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
@@ -574,7 +574,7 @@ const GradeSummary = () => {
       </div>
 
       {/* Grade Point Legend */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-50 card-hover">
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-50 card-hover">
         <div className="text-[12px] font-bold text-gray-900 uppercase tracking-wider mb-2">Grade Point Scale</div>
         <table className="w-full text-xs text-gray-900 border-collapse">
           <thead>

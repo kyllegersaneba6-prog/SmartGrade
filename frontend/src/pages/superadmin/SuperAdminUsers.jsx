@@ -221,17 +221,17 @@ const SuperAdminUsers = () => {
         title="Admin Management"
         description="Create, edit, and manage administrator accounts across all departments."
         actions={(
-          <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-[10px] font-bold text-gray-600 sm:text-xs">
+          <span className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-[10px] font-bold text-gray-600 sm:text-xs">
             {usersList.length} ADMINS
           </span>
         )}
       />
 
-      <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
+      <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-sidebar">Admin Accounts</h2>
           <div className="flex gap-2">
-            <button onClick={handleAddAdminClick} disabled={checkingTerm} className="px-3 h-8 rounded border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform disabled:opacity-50" style={{ background: '#0c1925', borderColor: '#142a3f' }}><UserPlus size={14} /> {checkingTerm ? 'Checking…' : 'Add Admin'}</button>
+            <button onClick={handleAddAdminClick} disabled={checkingTerm} className="px-3 h-8 rounded-lg border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform disabled:opacity-50" style={{ background: '#0c1925', borderColor: '#142a3f' }}><UserPlus size={14} /> {checkingTerm ? 'Checking…' : 'Add Admin'}</button>
           </div>
         </div>
 
@@ -256,7 +256,7 @@ const SuperAdminUsers = () => {
                 <td className="px-3 py-3 font-mono text-[12px] text-gray-700">{u.username}</td>
                 <td className="px-3 py-3 text-[12px] text-gray-700">{deptDisplay(u.dept)}</td>
                 <td className="px-3 py-3 items-center">
-                  <button onClick={(e) => openMenu(u, e)} className="text-gray-900 hover:text-[#0c1925] transition-colors p-1 rounded-md hover:bg-gray-100" title="Actions"><Bolt size={20} /></button>
+                  <button onClick={(e) => openMenu(u, e)} className="text-gray-900 hover:text-[#0c1925] transition-colors p-1 rounded-lg hover:bg-gray-100" title="Actions"><Bolt size={20} /></button>
                 </td>
               </tr>
             ))}
@@ -266,9 +266,9 @@ const SuperAdminUsers = () => {
         <div className="flex items-center justify-between mt-4 pt-3 border-t text-xs" style={{ borderColor: '#f0ede6' }}>
           <span className="text-gray-900">Showing {Math.min((userPage - 1) * USERS_PER_PAGE + 1, usersList.length)}–{Math.min(userPage * USERS_PER_PAGE, usersList.length)} of {usersList.length}</span>
           <div className="flex items-center gap-2">
-            <button onClick={() => setUserPage(p => Math.max(1, p - 1))} disabled={userPage === 1} className="p-1.5 rounded border text-gray-400 hover:text-sidebar hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed" style={{ borderColor: '#e5e0d5' }}><ChevronLeft size={14} /></button>
+            <button onClick={() => setUserPage(p => Math.max(1, p - 1))} disabled={userPage === 1} className="p-1.5 rounded-lg border text-gray-400 hover:text-sidebar hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed" style={{ borderColor: '#e5e0d5' }}><ChevronLeft size={14} /></button>
             <span className="text-gray-900 font-medium">Page {userPage} of {totalUserPages}</span>
-            <button onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))} disabled={userPage === totalUserPages} className="p-1.5 rounded border text-gray-400 hover:text-sidebar hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed" style={{ borderColor: '#e5e0d5' }}><ChevronRight size={14} /></button>
+            <button onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))} disabled={userPage === totalUserPages} className="p-1.5 rounded-lg border text-gray-400 hover:text-sidebar hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed" style={{ borderColor: '#e5e0d5' }}><ChevronRight size={14} /></button>
           </div>
         </div>
       </div>
@@ -278,7 +278,7 @@ const SuperAdminUsers = () => {
           <div className="fixed inset-0 z-40" onClick={closeMenu} />
           <div className="fixed z-50 w-40 rounded-xl border border-gray-100 bg-white shadow-xl py-1 overflow-hidden" style={{ top: menuPos.top, left: menuPos.left }}>
             <button onClick={() => { closeMenu(); openEditModal(menuUser); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors"><Pencil size={13} className="text-blue-500" /> Edit</button>
-            <button onClick={() => { closeMenu(); setUserToDelete(menuUser); setConfirmText(''); setDeleteError(''); setDeleteModalOpen(true); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 size={13} className="text-red-500" /> Delete</button>
+            <button onClick={() => { closeMenu(); setUserToDelete(menuUser); setConfirmText(''); setDeleteError(''); setDeleteModalOpen(true); }} className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 size={13} className="text-red-500" /> Delete</button>
           </div>
         </>,
         document.body
@@ -286,7 +286,7 @@ const SuperAdminUsers = () => {
 
       {editModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Admin</h3>
             <div className="space-y-4">
                <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">ID</label><input type="text" value={displayStaffId(userToEdit.staffId)} readOnly className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg bg-gray-100 text-sm font-mono text-gray-600 cursor-not-allowed" /></div>
@@ -308,7 +308,7 @@ const SuperAdminUsers = () => {
                 <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">New Password (leave blank to keep current)</label>
                 <div className="relative">
                   <input type={showEditPassword ? "text" : "password"} value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep current" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm pr-10" />
-                  <button type="button" onClick={() => setShowEditPassword(!showEditPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                  <button type="button" onClick={() => setShowEditPassword(!showEditPassword)} className="rounded-lg absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
                 </div>
               </div>
             </div>
@@ -323,7 +323,7 @@ const SuperAdminUsers = () => {
 
       {deleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Admin</h3>
             <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{userToDelete?.name}</strong>? Existing teacher accounts in this department will be kept — only the admin account is removed. This action cannot be undone.</p>
             <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
@@ -340,7 +340,7 @@ const SuperAdminUsers = () => {
 
       {noTermModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100 text-center">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100 text-center">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-100 mb-4">
               <CalendarX size={28} className="text-amber-600" />
             </div>

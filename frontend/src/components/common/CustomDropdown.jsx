@@ -119,7 +119,7 @@ const CustomDropdown = ({
       </button>
 
       {error && errorMessage && (
-        <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-30">
+        <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-30">
           {errorMessage}
         </div>
       )}
@@ -135,7 +135,7 @@ const CustomDropdown = ({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={searchPlaceholder}
-                  className="w-full bg-transparent text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none"
+                  className="w-full rounded-lg bg-transparent text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none"
                 />
               </div>
             </div>

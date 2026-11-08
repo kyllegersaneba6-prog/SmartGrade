@@ -53,9 +53,9 @@ const TeacherLayoutInner = () => {
             <div className="min-w-0">
               <h1 className="truncate text-sm font-bold text-sidebar sm:text-base">{getTitle()}</h1>
             </div>
-            <span className="hidden whitespace-nowrap rounded-full border border-[#0c1925] bg-[#0c1925] px-3 py-1 text-[12px] font-bold text-amber-300 sm:inline-flex">{deptLabel}</span>
+            <span className="hidden whitespace-nowrap rounded-md border border-[#0c1925] bg-[#0c1925] px-3 py-1 text-[12px] font-bold text-amber-300 sm:inline-flex">{deptLabel}</span>
             {currentTerm && (
-              <span className="hidden whitespace-nowrap rounded-full border border-[#0c1925] bg-[#0c1925] px-2.5 py-1 text-[12px] font-semibold tracking-wide text-amber-300 md:inline-flex">
+              <span className="hidden whitespace-nowrap rounded-md border border-[#0c1925] bg-[#0c1925] px-2.5 py-1 text-[12px] font-semibold tracking-wide text-amber-300 md:inline-flex">
                 {currentTerm.school_year} · {currentTerm.semester}
               </span>
             )}

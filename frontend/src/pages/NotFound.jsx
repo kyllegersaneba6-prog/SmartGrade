@@ -28,7 +28,7 @@ const NotFound = () => {
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
 
       <div
-        className="relative z-10 w-full max-w-lg rounded-2xl p-8 md:p-10 text-center shadow-[0_18px_50px_-10px_rgba(71,85,105,0.45)]"
+        className="relative z-10 w-full max-w-lg rounded-xl p-8 md:p-10 text-center shadow-[0_18px_50px_-10px_rgba(71,85,105,0.45)]"
         style={{ backgroundColor: '#FFFFFF' }}
       >
         <div className="flex flex-col items-center mb-6">
@@ -55,7 +55,7 @@ const NotFound = () => {
           <button
             type="button"
             onClick={() => navigate(home.path)}
-            className="flex-1 bg-amber-300 hover:bg-amber-400 text-[#0c1925] font-bold py-3 px-4 rounded-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm"
+            className="flex-1 bg-amber-300 hover:bg-amber-400 text-[#0c1925] font-bold py-3 px-4 rounded-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm"
           >
             <span>{home.label}</span>
             <ArrowRight className="w-5 h-5" strokeWidth={2.5} />
@@ -63,7 +63,7 @@ const NotFound = () => {
           <button
             type="button"
             onClick={goBack}
-            className="flex-1 bg-white hover:bg-gray-100 border border-gray-300 text-[#0c1925] font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="flex-1 bg-white hover:bg-gray-100 border border-gray-300 text-[#0c1925] font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>Go back</span>

@@ -20,7 +20,7 @@ import {
 const avg = (arr) => arr.length === 0 ? 0 : arr.reduce((s, v) => s + v, 0) / arr.length;
 
 const TrendChart = ({ data }) => (
-  <div className="mt-4 rounded-lg border border-gray-200 bg-white p-3" role="img" aria-label="Activity scores and linear regression trend line">
+  <div className="mt-4 rounded-xl border border-gray-200 bg-white p-3" role="img" aria-label="Activity scores and linear regression trend line">
     <p className="mb-2 text-xs font-bold text-gray-700">Activity scores &amp; regression trend</p>
     <div className="mb-1 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-gray-600" aria-hidden="true">
       <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4 bg-[#0c1925]" /><span className="h-1.5 w-1.5 rounded-full bg-[#0c1925]" />Activity score</span>
@@ -504,25 +504,25 @@ const BehavioralAnalytics = () => {
       {/* Summary KPI Cards */}
       {hasComponents && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-gray-50 kpi-card">
+          <div className="bg-white p-5 rounded-xl border border-gray-50 kpi-card">
             <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Final Grade</div>
             <div className={`text-2xl font-extrabold ${summary.avgGrade >= 75 ? 'text-green-700' : 'text-red-600'}`}>
               {summary.avgGrade.toFixed(2)}
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-gray-50 kpi-card">
+          <div className="bg-white p-5 rounded-xl border border-gray-50 kpi-card">
             <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Submission Rate</div>
             <div className={`text-2xl font-extrabold ${summary.avgSubRate >= 0.9 ? 'text-green-700' : summary.avgSubRate >= 0.75 ? 'text-amber-600' : 'text-red-600'}`}>
               {(summary.avgSubRate * 100).toFixed(1)}%
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-gray-50 kpi-card">
+          <div className="bg-white p-5 rounded-xl border border-gray-50 kpi-card">
             <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Attendance Rate</div>
             <div className={`text-2xl font-extrabold ${summary.avgAttendanceRate >= 0.9 ? 'text-green-700' : summary.avgAttendanceRate >= 0.75 ? 'text-amber-600' : 'text-red-600'}`}>
               {(summary.avgAttendanceRate * 100).toFixed(1)}%
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-gray-50 kpi-card">
+          <div className="bg-white p-5 rounded-xl border border-gray-50 kpi-card">
             <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Overall Performance</div>
             <div className={`text-2xl font-extrabold ${summary.avgPerformance >= 75 ? 'text-green-700' : summary.avgPerformance >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
               {summary.avgPerformance.toFixed(1)}%
@@ -542,7 +542,7 @@ const BehavioralAnalytics = () => {
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           {searchQuery && (
-            <button onClick={() => { setSearchQuery(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <button onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           )}
@@ -550,7 +550,7 @@ const BehavioralAnalytics = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover">
+      <div className="bg-white rounded-xl shadow-sm border border-border card-hover">
         {ctxLoading || dataLoading ? (
           <SkeletonTable cols={7} rows={8} bare />
         ) : !hasComponents ? (
@@ -667,14 +667,14 @@ const BehavioralAnalytics = () => {
       {/* Detail Modal */}
       {detailStudent && (
         <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4" onClick={() => closeStudent()}>
-          <div className="bg-white rounded-xl modal-surface w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl modal-surface w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-100 bg-white">
               <div className="min-w-0">
                 <h3 className="text-xl font-bold text-gray-800 truncate">{detailStudent.student.student_name}</h3>
                 <p className="text-sm text-gray-500 mt-0.5">{detailStudent.student.student_id}</p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <span className={`px-3 py-1.5 rounded-lg text-base font-extrabold ${detailStudent.finalGrade < 75 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-800'}`}>
+                <span className={`px-3 py-1.5 rounded-md text-base font-extrabold ${detailStudent.finalGrade < 75 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-800'}`}>
                   Final {detailStudent.finalGrade.toFixed(2)}
                 </span>
                 <button onClick={() => closeStudent()} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close">
@@ -691,16 +691,16 @@ const BehavioralAnalytics = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="text-base font-bold text-gray-800">AI Student Summary</div>
                     {aiReport && aiSource === 'cache' && (
-                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">Cached</span>
+                      <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-xs font-bold">Cached</span>
                     )}
                     {aiReport && aiSource === 'local' && (
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-bold">Rule-based</span>
+                      <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-xs font-bold">Rule-based</span>
                     )}
                   </div>
                   <button
                     onClick={handleSummarizeWithAI}
                     disabled={aiLoading}
-                    className="px-4 py-2 bg-[#0c1925] text-amber-300 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="px-4 py-2 bg-[#0c1925] text-amber-300 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {aiLoading ? (
                       <Loader size={16} className="animate-spin text-amber-300" />
@@ -791,21 +791,21 @@ const BehavioralAnalytics = () => {
               </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-center">
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Final Grade</div>
                 <div className={`mt-1 text-2xl font-extrabold ${detailStudent.finalGrade < 75 ? 'text-red-600' : 'text-green-700'}`}>{detailStudent.finalGrade.toFixed(2)}</div>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-center">
                 <div className="text-xs font-bold text-gray-900 uppercase tracking-wide">Performance</div>
                 <div className="mt-1 text-2xl font-extrabold text-[#142a3f]">
                   {detailStudent.overallPerformance.toFixed(1)}%
                 </div>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-center">
                 <div className="text-xs font-bold text-gray-900 uppercase tracking-wide">Attendance</div>
                 <div className="mt-1 text-2xl font-extrabold text-[#142a3f]">{(detailStudent.attendanceRate * 100).toFixed(1)}%</div>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-center">
                 <div className="text-xs font-bold text-gray-900 uppercase tracking-wide">Submitted</div>
                 <div className="mt-1 text-2xl font-extrabold text-[#142a3f]">{(detailStudent.overallSubRate * 100).toFixed(1)}%</div>
               </div>
@@ -824,19 +824,19 @@ const BehavioralAnalytics = () => {
                     </div>
 
                     <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      <div className="rounded-lg bg-gray-50 px-3 py-2">
+                      <div className="rounded-xl bg-gray-50 px-3 py-2">
                         <div className="text-xs font-semibold text-gray-900 uppercase tracking-wide">Weighted Total</div>
                         <div className="mt-0.5 text-base font-bold text-yellow-700">{cd.weighted.toFixed(2)}</div>
                       </div>
-                      <div className="rounded-lg bg-gray-50 px-3 py-2">
+                      <div className="rounded-xl bg-gray-50 px-3 py-2">
                         <div className="text-xs font-semibold text-gray-900 uppercase tracking-wide">Equivalent</div>
                         <div className="mt-0.5 text-base font-bold text-gray-900">{cd.equiv.toFixed(2)}</div>
                       </div>
-                      <div className="rounded-lg bg-gray-50 px-3 py-2">
+                      <div className="rounded-xl bg-gray-50 px-3 py-2">
                         <div className="text-xs font-semibold text-gray-900 uppercase tracking-wide">Performance</div>
                         <div className="mt-0.5 text-base font-bold text-gray-900">{cd.performance.toFixed(1)}%</div>
                       </div>
-                      <div className="rounded-lg bg-gray-50 px-3 py-2">
+                      <div className="rounded-xl bg-gray-50 px-3 py-2">
                         <div className="text-xs font-semibold text-gray-900 uppercase tracking-wide">Submitted</div>
                         <div className="mt-0.5 text-base font-bold text-gray-900">{(cd.submissionRate * 100).toFixed(0)}%</div>
                       </div>

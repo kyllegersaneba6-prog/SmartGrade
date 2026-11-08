@@ -193,7 +193,7 @@ const ManageDepartments = () => {
         description="Create and maintain academic departments, then assign each admin to the department they oversee."
         actions={(
           <div className="flex items-center gap-3">
-            <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-bold text-gray-700">{departments.length} departments</span>
+            <span className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-bold text-gray-700">{departments.length} departments</span>
             <button
               type="button"
               onClick={() => { setAddDeptOpen(true); setDeptName(''); setDeptAbbreviation(''); setError(''); }}
@@ -205,7 +205,7 @@ const ManageDepartments = () => {
         )}
       />
 
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-5 py-4">
           <h2 className="text-base font-bold text-[#0c1925]">Academic Departments</h2>
           <p className="mt-1 text-xs text-gray-500">Departments are used to group administrators and teachers.</p>
@@ -224,7 +224,7 @@ const ManageDepartments = () => {
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-gray-100 bg-gray-50 text-[#0c1925]"><Building2 size={19} /></span>
                   <div className="min-w-0">
                     <h3 className="break-words text-sm font-bold text-gray-900">{dept.name}</h3>
-                    {getDeptAbbr(dept) && <span className="mt-1 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-900">{getDeptAbbr(dept)}</span>}
+                    {getDeptAbbr(dept) && <span className="mt-1 inline-flex rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-900">{getDeptAbbr(dept)}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -266,7 +266,7 @@ const ManageDepartments = () => {
                 closeMenu();
                 if (dept) { setDeleteDept(dept); setDeleteDeptConfirmText(''); setError(''); }
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
             ><Trash2 size={14} className="text-red-500" /> Delete</button>
           </div>
         </>,
@@ -275,7 +275,7 @@ const ManageDepartments = () => {
 
       {addDeptOpen && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
-          <section role="dialog" aria-modal="true" aria-labelledby="add-department-title" className="modal-surface w-full max-w-md rounded-xl border border-gray-100 bg-white p-6">
+          <section role="dialog" aria-modal="true" aria-labelledby="add-department-title" className="modal-surface w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6">
             <h3 id="add-department-title" className="mb-4 text-lg font-bold text-gray-900">Add Department</h3>
             <div className="space-y-4">
               <div>
@@ -298,7 +298,7 @@ const ManageDepartments = () => {
 
       {editDept && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
-          <section role="dialog" aria-modal="true" aria-labelledby="edit-department-title" className="modal-surface w-full max-w-md rounded-xl border border-gray-100 bg-white p-6">
+          <section role="dialog" aria-modal="true" aria-labelledby="edit-department-title" className="modal-surface w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6">
             <h3 id="edit-department-title" className="mb-4 text-lg font-bold text-gray-900">Edit Department</h3>
             <div className="space-y-4">
               <div>
@@ -321,7 +321,7 @@ const ManageDepartments = () => {
 
       {deleteDept && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
-          <section role="dialog" aria-modal="true" aria-labelledby="delete-department-title" className="modal-surface w-full max-w-sm rounded-xl border border-gray-100 bg-white p-6">
+          <section role="dialog" aria-modal="true" aria-labelledby="delete-department-title" className="modal-surface w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6">
             <h3 id="delete-department-title" className="mb-2 text-lg font-bold text-gray-900">Delete Department</h3>
             <p className="mb-4 text-sm text-gray-600">Are you sure you want to delete <strong>{deleteDept.name}</strong>? This cannot be undone.</p>
             <label className="mb-1 block text-xs font-bold text-gray-700">Type <strong>Confirm</strong> to delete</label>

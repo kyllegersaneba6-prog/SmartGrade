@@ -228,12 +228,12 @@ const AdminSubjects = () => {
               Add Subject
             </button>
             {isArchiveMode && (
-              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 Cannot modify while viewing archives
               </div>
             )}
             {!isArchiveMode && courseMissing && !selectedCourseId && (
-              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 Please select a course first
               </div>
             )}
@@ -241,7 +241,7 @@ const AdminSubjects = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 card-hover overflow-x-auto">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 card-hover overflow-x-auto">
         {loading ? (
           <div aria-busy="true"><SkeletonTable cols={4} rows={6} /></div>
         ) : subjects.length === 0 ? (
@@ -270,12 +270,12 @@ const AdminSubjects = () => {
                             <div className="flex items-center gap-1.5 min-w-0">
                             {g.subjects[rowIdx].code && <span className="text-gray-900 font-mono text-[11px] leading-tight mt-0.5 shrink-0 w-[68px] text-center">{g.subjects[rowIdx].code}</span>}
                             <span className="text-gray-900 font-medium text-[13px] leading-tight break-words min-w-0">{g.subjects[rowIdx].name}</span>
-                            {!g.subjects[rowIdx].course_id && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 ml-1.5 shrink-0">All Courses</span>}
+                            {!g.subjects[rowIdx].course_id && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-200 ml-1.5 shrink-0">All Courses</span>}
                           </div>
                           {!isArchiveMode && (
                             <button
                               onClick={(e) => { e.stopPropagation(); setSubjectToDelete(g.subjects[rowIdx]); setConfirmText(''); setDeleteModalOpen(true); }}
-                              className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                              className="rounded-lg text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -293,10 +293,10 @@ const AdminSubjects = () => {
 
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0c1925]/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Add Subjects</h3>
-              <button onClick={() => { setShowAdd(false); setSubjectRows([{ code: '', name: '' }]); setError(''); setCodeError(''); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <button onClick={() => { setShowAdd(false); setSubjectRows([{ code: '', name: '' }]); setError(''); setCodeError(''); }} className="rounded-lg text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <div className="mb-4 px-3 py-2 rounded-lg bg-gray-100 text-xs text-gray-700">
               Adding to <strong>{selectedCourseId ? (courses.find(c => c.id === selectedCourseId)?.abbreviation || courses.find(c => c.id === selectedCourseId)?.name || 'Selected course') : 'All Courses'}</strong> • <strong>{semesterFilter || '—'}</strong>
@@ -350,7 +350,7 @@ const AdminSubjects = () => {
                   {subjectRows.length > 1 && (
                     <button
                       onClick={() => { setSubjectRows(subjectRows.filter((_, j) => j !== i)); setCodeError(''); }}
-                      className="text-gray-300 hover:text-red-500 transition-colors"
+                      className="rounded-lg text-gray-300 hover:text-red-500 transition-colors"
                     >
                       <X size={16} />
                     </button>
@@ -378,7 +378,7 @@ const AdminSubjects = () => {
 
       {assignModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0c1925]/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 border border-gray-100 h-[480px] flex flex-col">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-2xl w-full mx-4 border border-gray-100 h-[480px] flex flex-col">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0">
               <div className="flex min-w-0 items-center gap-2">
                 <div className="p-2 rounded-lg bg-green-50"><GraduationCap size={20} className="text-green-600" /></div>
@@ -399,12 +399,12 @@ const AdminSubjects = () => {
                   />
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
                   {assignmentSearch && (
-                    <button type="button" onClick={() => setAssignmentSearch('')} aria-label="Clear assigned teachers search" className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <button type="button" onClick={() => setAssignmentSearch('')} aria-label="Clear assigned teachers search" className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                       <X size={14} />
                     </button>
                   )}
                 </div>
-                <button onClick={() => { setAssignModalOpen(false); setSubjectAssignments([]); setSelectedSubject(null); }} aria-label="Close assigned teachers" className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                <button onClick={() => { setAssignModalOpen(false); setSubjectAssignments([]); setSelectedSubject(null); }} aria-label="Close assigned teachers" className="rounded-lg text-gray-400 hover:text-gray-600"><X size={20} /></button>
               </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto pr-1">
@@ -420,12 +420,12 @@ const AdminSubjects = () => {
               ) : (
                 <div className="space-y-3">
                   {filteredSubjectAssignments.map((a) => (
-                    <div key={a.id} className="flex items-center justify-between px-4 py-3 rounded-lg border border-gray-100 bg-gray-50">
+                    <div key={a.id} className="flex items-center justify-between px-4 py-3 rounded-xl border border-gray-100 bg-gray-50">
                       <div className="space-y-0.5">
                         <p className="text-sm font-semibold text-gray-800">{a.teacher?.full_name}</p>
                         <p className="text-xs text-gray-900">{a.sections?.name}</p>
                       </div>
-                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: '#0c1925' }}>
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-md text-white" style={{ background: '#0c1925' }}>
                         {a.sections?.year_level} Year
                       </span>
                     </div>
@@ -442,7 +442,7 @@ const AdminSubjects = () => {
 
       {deleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0c1925]/20">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Subject</h3>
             <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{subjectToDelete?.name}</strong>?</p>
             {!subjectToDelete?.course_id && (

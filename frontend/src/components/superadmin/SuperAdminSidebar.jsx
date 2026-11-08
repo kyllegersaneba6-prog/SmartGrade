@@ -86,7 +86,7 @@ const SuperAdminSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleColla
                 aria-current={isActive ? 'page' : undefined}
                 title={isCollapsed ? item.name : undefined}
                 className={clsx(
-                  'group mx-1 flex min-h-11 items-center gap-3 whitespace-nowrap rounded-xl border-l-[3px] px-3 py-2.5 text-sm font-semibold transition-colors',
+                  'group mx-1 flex min-h-11 items-center gap-3 whitespace-nowrap rounded-lg border-l-[3px] px-3 py-2.5 text-sm font-semibold transition-colors',
                   isCollapsed && 'lg:mx-0 lg:justify-center lg:px-0',
                   isActive
                     ? 'border-gold bg-[#24384b] text-amber-300 shadow-sm'
@@ -111,7 +111,7 @@ const SuperAdminSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleColla
             </div>
             <div className={clsx('min-w-0 flex-1', isCollapsed && 'lg:hidden')}>
               <p className="break-words whitespace-normal text-xs font-semibold leading-tight text-white">{userData?.full_name || userData?.name || 'User'}</p>
-              <span className="mt-1 inline-block w-fit rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300">
+              <span className="mt-1 inline-block w-fit rounded-md bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300">
                 {userData?.system_role || userData?.role || 'Super Admin'}
               </span>
             </div>
@@ -130,7 +130,7 @@ const SuperAdminSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleColla
 
       {showLogoutModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Sign Out</h3>
             <p className="text-sm text-gray-900 mb-6">Are you sure you want to sign out?</p>
             <div className="flex gap-3 justify-end">

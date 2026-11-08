@@ -598,7 +598,7 @@ const AdminSections = () => {
         eyebrow="Academic Setup"
         title="Manage Sections"
         description="Create and organize class sections and manage student rosters."
-        actions={<span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-700">{yearLabels[year] || year}</span>}
+        actions={<span className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-700">{yearLabels[year] || year}</span>}
       />
 
       {error && <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-semibold px-4 py-2 rounded-lg">{error}</div>}
@@ -631,7 +631,7 @@ const AdminSections = () => {
               emptyMessage="No year levels found."
             />
         </div>
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 card-hover flex-1 flex flex-col min-h-[420px]">
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-200 card-hover flex-1 flex flex-col min-h-[420px]">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold text-[#0c1925] flex items-center gap-2">
               <Layers size={16} style={{ color: '#0c1925' }} /> Sections
@@ -649,12 +649,12 @@ const AdminSections = () => {
                   <Plus size={14} /> Add
                 </button>
                 {isArchiveMode && (
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                     Cannot modify while viewing archives
                   </div>
                 )}
                 {!isArchiveMode && courseMissing && !selectedCourseId && (
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                     Please select a course first
                   </div>
                 )}
@@ -697,7 +697,7 @@ const AdminSections = () => {
                   <ArrowRightLeft size={13} /> Transfer student
                 </button>
                 {!isArchiveMode && emptySectionMissing && (!selectedSection || students.length === 0) && (
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                     Please select a section with students first
                   </div>
                 )}
@@ -726,12 +726,12 @@ const AdminSections = () => {
                     <button
                       onClick={(e) => { e.stopPropagation(); if (!isArchiveMode) { setSectionToDelete(section); setConfirmSectionText(''); setDeleteSectionOpen(true); } }}
                       disabled={isArchiveMode}
-                      className={`transition-colors ${isArchiveMode ? 'text-gray-300 cursor-not-allowed' : selectedSection?.id === section.id ? 'text-gray-300 hover:text-red-300' : 'text-gray-900 hover:text-red-900'}`}
+                      className={`rounded-lg transition-colors ${isArchiveMode ? 'text-gray-300 cursor-not-allowed' : selectedSection?.id === section.id ? 'text-gray-300 hover:text-red-300' : 'text-gray-900 hover:text-red-900'}`}
                     >
                       <Trash2 size={14} />
                     </button>
                     {isArchiveMode && (
-                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         Cannot modify while viewing archives
                       </div>
                     )}
@@ -743,7 +743,7 @@ const AdminSections = () => {
         </div>
         </div>
 
-        <div className={`lg:col-span-2 bg-white rounded-2xl p-5 shadow-sm border ${emptySectionBorderError ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-200'} card-hover h-full min-h-[420px] transition-all duration-300`}>
+        <div className={`lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border ${emptySectionBorderError ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-200'} card-hover h-full min-h-[420px] transition-all duration-300`}>
           {!selectedSection ? (
             <div className="flex flex-col items-center justify-center h-full min-h-[380px] text-gray-500">
               <Layers size={48} className="mb-3 opacity-30" />
@@ -782,12 +782,12 @@ const AdminSections = () => {
                       <UserPlus size={14} /> Add Multiple
                     </button>
                     {isArchiveMode && (
-                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         Cannot modify while viewing archives
                       </div>
                     )}
                     {!isArchiveMode && selectedSection && (
-                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         Open Excel-like editor
                       </div>
                     )}
@@ -804,7 +804,7 @@ const AdminSections = () => {
                       <UserPlus size={14} /> Add Student
                     </button>
                     {isArchiveMode && (
-                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         Cannot modify while viewing archives
                       </div>
                     )}
@@ -822,12 +822,12 @@ const AdminSections = () => {
                       <Upload size={14} /> Import
                     </button>
                     {!isArchiveMode && (
-                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         Select the saved .xlsx to preview &amp; confirm import
                       </div>
                     )}
                     {isArchiveMode && (
-                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         Cannot modify while viewing archives
                       </div>
                     )}
@@ -864,12 +864,12 @@ const AdminSections = () => {
                                 <button
                                   onClick={() => { if (!isArchiveMode) { setStudentToDelete(s); setConfirmStudentText(''); setDeleteStudentOpen(true); } }}
                                   disabled={isArchiveMode}
-                                  className={`transition-colors ${isArchiveMode ? 'text-gray-300 cursor-not-allowed' : 'text-red-400 hover:text-red-600'}`}
+                                  className={`rounded-lg transition-colors ${isArchiveMode ? 'text-gray-300 cursor-not-allowed' : 'text-red-400 hover:text-red-600'}`}
                                 >
                                   <Trash2 size={14} />
                                 </button>
                                 {isArchiveMode && (
-                                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                     Cannot modify while viewing archives
                                   </div>
                                 )}
@@ -892,10 +892,10 @@ const AdminSections = () => {
 
       {showAddSection && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Add Section</h3>
-              <button onClick={() => { setShowAddSection(false); setSectionLetterMissing(false); }} className="text-gray-400 hover:text-gray-900">
+              <button onClick={() => { setShowAddSection(false); setSectionLetterMissing(false); }} className="rounded-lg text-gray-400 hover:text-gray-900">
                 <X size={20} />
               </button>
             </div>
@@ -915,7 +915,7 @@ const AdminSections = () => {
                     onKeyDown={(e) => e.key === 'Enter' && addSection()}
                   />
                   {sectionLetterMissing && !newSectionLetter.trim() && (
-                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                       Please enter a section letter
                     </div>
                   )}
@@ -933,7 +933,7 @@ const AdminSections = () => {
                   <div className="relative group">
                     <button onClick={addSection} className="px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm" style={{ background: '#0c1925' }}>Add</button>
                     {sectionLetterMissing && !newSectionLetter.trim() && (
-                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         Please enter a section letter
                       </div>
                     )}
@@ -947,17 +947,17 @@ const AdminSections = () => {
 
       {showAddStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Add Student</h3>
-              <button onClick={() => { setShowAddStudent(false); setStudentRows([{ id: '', first_name: '', last_name: '', mi: '', gender: '' }]); setStudentError(''); }} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setShowAddStudent(false); setStudentRows([{ id: '', first_name: '', last_name: '', mi: '', gender: '' }]); setStudentError(''); }} className="rounded-lg text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
             <div className="space-y-3 mb-4 p-0.5">
               <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Student Details</label>
               {studentRows.map((row, i) => (
-                <div key={i} className="flex flex-col gap-2 p-3 rounded-lg border border-gray-200 relative">
+                <div key={i} className="flex flex-col gap-2 p-3 rounded-xl border border-gray-200 relative">
                   <input
                     type="text"
                     value={row.id}
@@ -1039,14 +1039,14 @@ const AdminSections = () => {
 
       {showAddComplete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100 text-center max-h-[85vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100 text-center max-h-[85vh] overflow-y-auto">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 mb-4">
               <CheckCircle size={28} className="text-emerald-600" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-1">Add Complete</h3>
             <p className="text-sm text-emerald-600 font-semibold mb-4">{addedStudents.length} student(s) added.</p>
             {addedStudents.length > 0 && (
-              <div className="text-left max-h-40 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 mb-3">
+              <div className="text-left max-h-40 overflow-y-auto rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 mb-3">
                 {addedStudents.map((s, i) => (
                   <p key={s.id || i} className="text-xs text-gray-700 py-1 border-b last:border-0 border-gray-100">
                     <span className="font-mono text-gray-900">{s.student_id}</span> — <span className="font-semibold">{s.student_name}</span>
@@ -1069,10 +1069,10 @@ const AdminSections = () => {
 
       {showImport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-2xl w-full mx-4 border border-gray-100 max-h-[85vh] flex flex-col">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-2xl w-full mx-4 border border-gray-100 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Import Students</h3>
-              <button onClick={() => { setShowImport(false); setImportRows([]); setImportHeaderError(''); setImportError(''); setImportResult(null); }} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setShowImport(false); setImportRows([]); setImportHeaderError(''); setImportError(''); setImportResult(null); }} className="rounded-lg text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
@@ -1125,7 +1125,7 @@ const AdminSections = () => {
                 <p className="text-xs text-gray-900 mb-3">Student IDs must use ##-####-### format (e.g. 26-1234-001). Rows with invalid IDs cannot be imported.</p>
                 {importError && <p className="text-xs font-semibold text-red-500 mb-3">{importError}</p>}
                 <div className="flex-1 overflow-y-auto">
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="border border-gray-200 rounded-xl overflow-hidden">
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b bg-gray-50" style={{ borderColor: '#f0ede6' }}>
@@ -1151,11 +1151,11 @@ const AdminSections = () => {
                               <td className="px-3 py-1.5 text-gray-900">{row.last_name || '—'}</td>
                               <td className="px-3 py-1.5">
                                 <span className="flex flex-wrap gap-1">
-                                  {!flagged && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-green-100 text-green-700">Ready</span>}
-                                  {row.missingFields && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700">Incomplete</span>}
-                                  {row.invalidStudentId && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700">Invalid ID (##-####-###)</span>}
-                                  {row.duplicateInFile && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700">Duplicate in file</span>}
-                                  {row.duplicateInSystem && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-100 text-amber-800">Already in section</span>}
+                                  {!flagged && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-green-100 text-green-700">Ready</span>}
+                                  {row.missingFields && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-red-100 text-red-700">Incomplete</span>}
+                                  {row.invalidStudentId && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-red-100 text-red-700">Invalid ID (##-####-###)</span>}
+                                  {row.duplicateInFile && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-red-100 text-red-700">Duplicate in file</span>}
+                                  {row.duplicateInSystem && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-100 text-amber-800">Already in section</span>}
                                 </span>
                               </td>
                             </tr>
@@ -1182,12 +1182,12 @@ const AdminSections = () => {
 
       {showTransferModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="relative bg-white rounded-xl modal-surface p-6 w-full min-w-0 mx-4 border border-gray-100 max-w-lg h-[520px] max-h-[90dvh] flex flex-col">
+          <div className="relative bg-white rounded-2xl modal-surface p-6 w-full min-w-0 mx-4 border border-gray-100 max-w-lg h-[520px] max-h-[90dvh] flex flex-col">
             <div className="flex shrink-0 items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <ArrowRightLeft size={18} /> Transfer Student
               </h3>
-              <button onClick={() => setShowTransferModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowTransferModal(false)} className="rounded-lg text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
@@ -1213,7 +1213,7 @@ const AdminSections = () => {
                 />
               </div>
               {!transferSearching && transferFoundStudent ? (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-2">
                   <div className="text-xs font-bold text-[#0c1925] uppercase tracking-wider mb-1">Student Information (Read-only)</div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div><span className="text-gray-500 font-semibold">Name:</span> <span className="text-gray-900 font-bold">{transferFoundStudent.student_name}</span></div>
@@ -1280,12 +1280,12 @@ const AdminSections = () => {
 
       {showExcelModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 w-full mx-4 border border-gray-100 max-w-4xl max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-2xl modal-surface p-6 w-full mx-4 border border-gray-100 max-w-4xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <FileSpreadsheet size={18} /> Add Multiple Students
               </h3>
-              <button onClick={() => { setShowExcelModal(false); setExcelError(''); }} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setShowExcelModal(false); setExcelError(''); }} className="rounded-lg text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
@@ -1299,7 +1299,7 @@ const AdminSections = () => {
               </button>
             </div>
             {excelError && <p className="text-xs font-semibold text-red-500 mb-2">{excelError}</p>}
-            <div className="flex-1 overflow-auto border border-gray-200 rounded-lg">
+            <div className="flex-1 overflow-auto border border-gray-200 rounded-xl">
               <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
                 <thead className="sticky top-0">
                   <tr style={{ background: '#0c1925' }} className="text-white">
@@ -1321,7 +1321,7 @@ const AdminSections = () => {
                               value={row[h] || ''}
                               onChange={(e) => updateExcelCell(i, h, e.target.value)}
                               aria-label={excelLabel(h)}
-                              className="w-full px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#f5a623] bg-transparent"
+                              className="w-full rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#f5a623] bg-transparent"
                             >
                               <option value="Male">Male</option>
                               <option value="Female">Female</option>
@@ -1332,7 +1332,7 @@ const AdminSections = () => {
                               onChange={(e) => updateExcelCell(i, h, e.target.value)}
                               placeholder={excelPlaceholder(h)}
                               aria-label={excelLabel(h)}
-                              className="w-full px-2 py-1.5 text-xs placeholder:text-gray-400 placeholder:italic focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#f5a623] bg-transparent"
+                              className="w-full rounded-lg px-2 py-1.5 text-xs placeholder:text-gray-400 placeholder:italic focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#f5a623] bg-transparent"
                             />
                           )}
                         </td>
@@ -1363,7 +1363,7 @@ const AdminSections = () => {
 
       {deleteSectionOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Section</h3>
             <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{formatSectionName(sectionToDelete?.name)}</strong>? This will also delete all enrolled students.</p>
             <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
@@ -1379,7 +1379,7 @@ const AdminSections = () => {
 
       {deleteStudentOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Remove Student</h3>
             <p className="text-sm text-gray-900 mb-4">Are you sure you want to remove <strong>{studentToDelete?.student_name}</strong> ({studentToDelete?.student_id})?</p>
             <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>

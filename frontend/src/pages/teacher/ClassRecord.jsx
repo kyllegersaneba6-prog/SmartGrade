@@ -662,7 +662,7 @@ const ClassRecord = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-border card-hover">
+      <div className="bg-white rounded-xl shadow-sm border border-border card-hover">
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-border bg-gray-50">
           <div className="flex items-center gap-3 text-xs text-gray-600">
             <span className="font-bold text-sidebar">Grading components</span>
@@ -690,7 +690,7 @@ const ClassRecord = () => {
                 />
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                 {searchQuery && (
-                  <button onClick={() => { setSearchQuery(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <button onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 )}
@@ -777,7 +777,7 @@ const ClassRecord = () => {
                           </span>
                           {!isReadOnly && <span className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
                             <button type="button" onClick={() => openEditComponent(comp)} title={`Edit ${comp.name || 'component'}`} aria-label={`Edit ${comp.name || 'component'}`} className="inline-flex h-6 min-w-[3.5rem] items-center justify-center gap-1 rounded bg-white/10 px-1.5 text-[10px] font-bold hover:bg-white/20"><Pencil size={11} /> Edit</button>
-                            <button type="button" onClick={() => { setConfirmText(''); setDeleteModal({ type: 'component', id: comp.id }); }} title={`Delete ${comp.name || 'component'}`} aria-label={`Delete ${comp.name || 'component'}`} className="inline-flex h-6 min-w-[3.5rem] items-center justify-center gap-1 rounded bg-white/10 px-1.5 text-[10px] font-bold hover:bg-red-500/80"><Trash2 size={11} /> Delete</button>
+                            <button type="button" onClick={() => { setConfirmText(''); setDeleteModal({ type: 'component', id: comp.id }); }} title={`Delete ${comp.name || 'component'}`} aria-label={`Delete ${comp.name || 'component'}`} className="inline-flex h-6 min-w-[3.5rem] items-center justify-center gap-1 rounded-lg bg-white/10 px-1.5 text-[10px] font-bold hover:bg-red-500/80"><Trash2 size={11} /> Delete</button>
                           </span>}
                         </div>
                       </th>
@@ -917,7 +917,7 @@ const ClassRecord = () => {
                                     }}
                                     onBlur={() => setScoreDrafts((prev) => { const next = { ...prev }; delete next[draftKey]; return next; })}
                                     onKeyDown={(e) => handleKeyDown(e, student.id, act.id, index, paginatedStudents, visibleActivityIds)}
-                                    className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${clampWarnings[`${act.id}-${student.id}`] ? 'border-amber-300 bg-amber-50' : 'border-transparent'}`}
+                                    className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${clampWarnings[`${act.id}-${student.id}`] ? 'border-amber-300 bg-amber-50' : 'border-transparent'}`}
                                     max={maxVal} />
                                   {clampWarnings[`${act.id}-${student.id}`] && (
                                     <div className="absolute -top-1 right-0 w-2 h-2 bg-amber-300 rounded-full" title={`Value clamped to max ${clampWarnings[`${act.id}-${student.id}`]}`} />
@@ -1031,36 +1031,36 @@ const ClassRecord = () => {
                     <div className="relative">
                       <button type="button" onClick={() => setShowSubcomponentChoices((visible) => !visible)} aria-expanded={showSubcomponentChoices} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-sidebar text-xs font-bold hover:bg-gray-200"><Plus size={13} /> Add</button>
                       {showSubcomponentChoices && (
-                        <div className="absolute right-0 top-full z-10 mt-1 w-40 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                        <div className="absolute right-0 top-full z-10 mt-1 w-40 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
                           <button type="button" onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: '', max_score: '', is_attendance: false }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50">Activity</button>
                           <button type="button" disabled={hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance)} onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: 'Attendance', max_score: '1', is_attendance: true }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-900 disabled:opacity-60">Attendance{hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance) ? ' (already used)' : ''}</button>
                         </div>
                       )}
                     </div>
                   </div>
-                  {componentDraft.activities.length === 0 ? <p className="rounded-lg border border-dashed border-gray-300 p-4 text-center text-xs text-gray-900">No subcomponents yet.</p> : componentDraft.activities
+                  {componentDraft.activities.length === 0 ? <p className="rounded-xl border border-dashed border-gray-300 p-4 text-center text-xs text-gray-900">No subcomponents yet.</p> : componentDraft.activities
                     .map((activity, index) => ({ activity, index }))
                     .sort((a, b) => Number(Boolean(b.activity.is_attendance)) - Number(Boolean(a.activity.is_attendance)))
                     .map(({ activity, index }) => (
-                    <div key={activity.id || activity.key} className="grid grid-cols-[1fr_105px_34px] gap-2 items-end rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+                    <div key={activity.id || activity.key} className="grid grid-cols-[1fr_105px_34px] gap-2 items-end rounded-xl border border-gray-200 bg-gray-50 p-2.5">
                       {activity.id ? (
                         <label className="text-[11px] font-bold text-gray-900">{activity.is_attendance ? 'Attendance' : 'Name'}
                           {activity.is_attendance
                             ? <div className="mt-1 rounded-md border border-gray-200 bg-gray-100 px-2.5 py-2 text-xs font-semibold text-gray-900">Attendance scores are computed automatically</div>
-                            : <input value={activity.name} onChange={(e) => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, name: e.target.value } : item) }))} placeholder="e.g. Quiz 1" className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2.5 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />}
+                            : <input value={activity.name} onChange={(e) => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, name: e.target.value } : item) }))} placeholder="e.g. Quiz 1" className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />}
                         </label>
                       ) : (
                         <label className="text-[11px] font-bold text-gray-900">{activity.is_attendance ? 'Attendance' : 'Name'}
                           {activity.is_attendance && <span className="mt-1 block rounded-md border border-gray-200 bg-gray-100 px-2.5 py-2 text-xs font-medium text-gray-900">Uses computed attendance scores</span>}
-                          {!activity.is_attendance && <input value={activity.name} onChange={(e) => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, name: e.target.value } : item) }))} placeholder="e.g. Quiz 1" className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2.5 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />}
+                          {!activity.is_attendance && <input value={activity.name} onChange={(e) => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, name: e.target.value } : item) }))} placeholder="e.g. Quiz 1" className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2.5 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />}
                         </label>
                       )}
                       {!activity.is_attendance && (
                         <label className="text-[11px] font-bold text-gray-900">Max score
-                          <input type="text" inputMode="decimal" value={activity.max_score} onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); const parts = raw.split('.'); const cleaned = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : raw; setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, max_score: cleaned } : item) })); }} className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />
+                          <input type="text" inputMode="decimal" value={activity.max_score} onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); const parts = raw.split('.'); const cleaned = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : raw; setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, max_score: cleaned } : item) })); }} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />
                         </label>
                       )}
-                      <button type="button" onClick={() => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.filter((_, i) => i !== index) }))} title="Remove subcomponent" aria-label="Remove subcomponent" className="mb-0.5 p-2 rounded-md text-gray-900 hover:bg-red-50 hover:text-red-600"><Trash2 size={14} /></button>
+                      <button type="button" onClick={() => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.filter((_, i) => i !== index) }))} title="Remove subcomponent" aria-label="Remove subcomponent" className="mb-0.5 p-2 rounded-lg text-gray-900 hover:bg-red-50 hover:text-red-600"><Trash2 size={14} /></button>
                     </div>
                   ))}
                 </section>
@@ -1077,7 +1077,7 @@ const ClassRecord = () => {
       )}
       {confirmCopyPrelimsOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !copyingPrelims) setConfirmCopyPrelimsOpen(false); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="copy-prelims-title" className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
+          <section role="dialog" aria-modal="true" aria-labelledby="copy-prelims-title" className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 id="copy-prelims-title" className="text-lg font-bold text-gray-900 mb-2">Copy from {TERMS[TERMS.indexOf(selectedTerm) - 1]}?</h3>
             <p className="text-sm text-gray-900 mb-4">Copy grading components from {TERMS[TERMS.indexOf(selectedTerm) - 1]} to <strong>{selectedTerm}</strong>? Activities are not copied and will need to be added separately.</p>
             <div className="flex gap-3 justify-end">
@@ -1092,7 +1092,7 @@ const ClassRecord = () => {
       )}
       {deleteModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Delete</h3>
             <p className="text-sm text-gray-900 mb-3">Are you sure you want to delete this {deleteModal.type}? This action cannot be undone.</p>
             <div className="mb-4">

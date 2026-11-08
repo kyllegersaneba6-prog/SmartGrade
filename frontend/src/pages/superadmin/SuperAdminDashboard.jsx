@@ -9,7 +9,7 @@ import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../componen
 import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
 
 const MetricCard = ({ title, value, icon: Icon, color, subtitle }) => (
-  <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-300 card-hover hover:shadow-md">
+  <div className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-300 card-hover hover:shadow-md">
     <div className="space-y-1">
       <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">{title}</span>
       <div className="text-3xl font-extrabold text-[#1a2233]">{value}</div>
@@ -150,13 +150,13 @@ const SuperAdminDashboard = () => {
       ) : (
       <>
       <div className="lg:col-span-2 flex flex-col gap-5">
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
+        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Department User Overview</h2>
               <p className="text-[10px] text-gray-900 uppercase tracking-widest mt-0.5">Users per category by department</p>
             </div>
-            <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#0c1925' }}>{totalAccounts} TOTAL</span>
+            <span className="text-xs font-bold px-3 py-1 rounded-md text-white" style={{ background: '#0c1925' }}>{totalAccounts} TOTAL</span>
           </div>
           {departments.length === 0 ? (
             <p className="text-sm text-gray-500 italic py-6 text-center">No users registered yet.</p>
@@ -183,7 +183,7 @@ const SuperAdminDashboard = () => {
                       {[dept.teachers, dept.admins].map((value, i) => (
                         <td key={i} className="py-3 px-2 text-center">
                           <span
-                            className="inline-block w-10 py-1 rounded text-xs font-bold border"
+                            className="inline-block w-10 py-1 rounded-md text-xs font-bold border"
                             style={value > 0
                               ? { background: '#e5e7eb', color: '#111827', borderColor: '#d1d5db' }
                               : { background: '#f9fafb', color: '#6b7280', borderColor: '#e5e7eb' }}
@@ -191,7 +191,7 @@ const SuperAdminDashboard = () => {
                           >{value}</span>
                         </td>
                       ))}
-                      <td className="py-3 px-2 text-center"><span className="inline-block w-10 py-1 rounded text-xs font-bold text-white" style={{ background: '#111827' }}>{dept.total}</span></td>
+                      <td className="py-3 px-2 text-center"><span className="inline-block w-10 py-1 rounded-md text-xs font-bold text-white" style={{ background: '#111827' }}>{dept.total}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -200,7 +200,7 @@ const SuperAdminDashboard = () => {
           )}
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm card-hover sm:p-5">
+        <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm card-hover sm:p-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
             <h2 className="text-sm sm:text-base font-bold" style={{ color: '#0c1925' }}>Recent Activities</h2>
           </div>
@@ -234,7 +234,7 @@ const SuperAdminDashboard = () => {
                   ? 'SUPER ADMIN'
                   : log.user_name;
                 return (
-                  <div key={log.id} className="flex gap-3 p-3 rounded-lg border border-gray-50 card-hover shadow-sm hover:shadow-md transition-all duration-100">
+                  <div key={log.id} className="flex gap-3 p-3 rounded-xl border border-gray-50 card-hover shadow-sm hover:shadow-md transition-all duration-100">
                     <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: bg }}><Icon size={14} style={{ color: iconColor }} /></div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1">
@@ -266,13 +266,13 @@ const SuperAdminDashboard = () => {
       </div>
 
       <div className="flex flex-col gap-5">
-        <div className="h-full rounded-2xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
+        <div className="h-full rounded-xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
           <div className="flex items-center gap-2 mb-4"><span className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50"><Megaphone size={16} className="text-sidebar" /></span><h2 className="text-sm font-bold" style={{ color: '#0c1925' }}>Broadcast Notification</h2></div>
           <p className="text-[11px] mb-5 text-slate-500">Send an update or alert to Users (Teachers, Admins).</p>
           <form onSubmit={handlePostNotification} className="flex flex-col gap-4">
             <div>
               <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-wider mb-2">Audience</label>
-              <div className="flex flex-col gap-2 p-3 border rounded-lg bg-gray-50 border-gray-200">
+              <div className="flex flex-col gap-2 p-3 border rounded-xl bg-gray-50 border-gray-200">
                 {['Admins', 'Teachers'].map((role) => (
                   <label key={role} className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-900">
                     <input type="checkbox" checked={notification.audience.includes(role)} onChange={(e) => { let newAudience = [...notification.audience]; if (e.target.checked) newAudience.push(role); else newAudience = newAudience.filter(item => item !== role); setNotification({ ...notification, audience: newAudience }); }} className="rounded border-gray-300 text-[#0c1925] focus:ring-[#0c1925] w-4 h-4 cursor-pointer accent-[#0c1925]" />
@@ -296,7 +296,7 @@ const SuperAdminDashboard = () => {
                 <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="urgency" value="Urgent" checked={notification.urgency === 'Urgent'} onChange={(e) => setNotification({ ...notification, urgency: e.target.value })} className="accent-[#0c1925]" /><span className="text-xs text-gray-900 font-semibold flex items-center gap-1"><AlertTriangle size={14} /> Urgent</span></label>
               </div>
             </div>
-            <button type="submit" className="w-full mt-2 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: '#0c1925' }} disabled={!notification.title.trim() || !notification.content.trim() || notification.audience.length === 0 || notifPosting}><Send size={14} /> {notifPosting ? 'SENDING…' : 'POST NOTIFICATION'}</button>
+            <button type="submit" className="w-full mt-2 py-2.5 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: '#0c1925' }} disabled={!notification.title.trim() || !notification.content.trim() || notification.audience.length === 0 || notifPosting}><Send size={14} /> {notifPosting ? 'SENDING…' : 'POST NOTIFICATION'}</button>
             {notifError && <div role="alert" className="mt-2 rounded-lg border border-red-100 bg-red-50 p-2 text-xs font-medium text-red-700">{notifError}</div>}
             {notifSuccess && <div role="status" className="mt-2 flex items-center gap-2 rounded-lg border border-green-100 bg-green-50 p-2 text-xs font-medium text-green-700"><CheckCircle size={14} /> {notifSuccess}</div>}
           </form>

@@ -74,13 +74,13 @@ const BulkStudentImport = () => {
         description="Fill it out here or in Excel, then upload it back in Manage Sections."
         actions={(
           <>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700"><FileSpreadsheet size={14} />{courseName || '—'} · {yearLevel || '—'}</span>
-            <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700">{sectionName || 'No section'} · {sectionId ? 'Selected' : 'None'}</span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700"><FileSpreadsheet size={14} />{courseName || '—'} · {yearLevel || '—'}</span>
+            <span className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700">{sectionName || 'No section'} · {sectionId ? 'Selected' : 'None'}</span>
           </>
         )}
       />
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 card-hover overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 card-hover overflow-hidden">
           <div className="p-5 md:p-6 space-y-5">
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-gray-700 leading-relaxed">
               <p className="font-bold text-gray-900 mb-1">How this works</p>
@@ -97,7 +97,7 @@ const BulkStudentImport = () => {
               <div className="bg-gray-50 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Required first-row headers</div>
               <div className="flex flex-wrap gap-2 px-4 py-3">
                 {TEMPLATE_HEADERS.map((h) => (
-                  <span key={h} className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-gray-100 text-gray-800 border border-gray-200">{h}</span>
+                  <span key={h} className="px-2.5 py-1 text-xs font-semibold rounded-md bg-gray-100 text-gray-800 border border-gray-200">{h}</span>
                 ))}
               </div>
               <p className="px-4 pb-3 text-[11px] text-gray-500">Do not rename, remove, or reorder these headers. Extra columns are ignored. Student ID format: 00-0000-000.</p>
@@ -131,7 +131,7 @@ const BulkStudentImport = () => {
                               <select
                                 value={r[h]}
                                 onChange={(e) => updateRow(i, h, e.target.value)}
-                                className="w-28 px-2 py-1 text-xs border border-[#e5e0d5] rounded-md focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-gray-700"
+                                className="w-28 px-2 py-1 text-xs border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1] text-gray-700"
                               >
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
@@ -141,13 +141,13 @@ const BulkStudentImport = () => {
                                 value={r[h]}
                                 onChange={(e) => updateRow(i, h, e.target.value)}
                                 placeholder={h}
-                                className="w-28 px-2 py-1 text-xs border border-[#e5e0d5] rounded-md focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1]"
+                                className="w-28 px-2 py-1 text-xs border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f5a623] bg-[#fbf8f1]"
                               />
                             )}
                           </td>
                         ))}
                         <td className="px-3 py-2">
-                          <button onClick={() => removeRow(i)} className="text-red-400 hover:text-red-600" title="Remove row">
+                          <button onClick={() => removeRow(i)} className="rounded-lg text-red-400 hover:text-red-600" title="Remove row">
                             <Trash2 size={14} />
                           </button>
                         </td>
@@ -159,13 +159,13 @@ const BulkStudentImport = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <button onClick={downloadCompleted} className="flex items-center justify-center gap-2 px-5 py-3 text-sm font-bold text-white rounded-xl shadow-md hover:opacity-90 transition bg-[#22c55e]">
+              <button onClick={downloadCompleted} className="flex items-center justify-center gap-2 px-5 py-3 text-sm font-bold text-white rounded-lg shadow-md hover:opacity-90 transition bg-[#22c55e]">
                 <Download size={16} /> Save / Download Completed Excel File ({filledCount})
               </button>
-              <button onClick={downloadTemplate} className="flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-gray-700 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition">
+              <button onClick={downloadTemplate} className="flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-gray-700 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition">
                 <Download size={16} /> Blank Template
               </button>
-              <button onClick={() => window.close()} className="flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-gray-700 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition">
+              <button onClick={() => window.close()} className="flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-gray-700 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition">
                 <ArrowLeft size={16} /> Return to Sections Tab
               </button>
             </div>

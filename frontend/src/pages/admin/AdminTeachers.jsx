@@ -216,10 +216,10 @@ const AdminTeachers = () => {
         eyebrow="Accounts"
         title="Teacher Management"
         description="Create and maintain teacher accounts. Teachers set up their own sections by importing the class-list PDF they receive."
-        actions={<span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-700">{teachers.length} teachers</span>}
+        actions={<span className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-700">{teachers.length} teachers</span>}
       />
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-base font-bold text-[#0c1925]">Teacher Accounts</h2>
           <div className="flex flex-wrap items-center gap-2">
@@ -234,12 +234,12 @@ const AdminTeachers = () => {
                 className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-8 text-xs focus:border-[#0c1925] focus:outline-none focus:ring-2 focus:ring-[#0c1925] sm:w-64"
               />
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
-              {searchQuery && <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Clear search"><X size={14} /></button>}
+              {searchQuery && <button type="button" onClick={() => setSearchQuery('')} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Clear search"><X size={14} /></button>}
             </label>
           </div>
         </div>
 
-        <div className="max-h-[min(520px,65vh)] overflow-auto rounded-lg border border-gray-100">
+        <div className="max-h-[min(520px,65vh)] overflow-auto rounded-xl border border-gray-100">
           <table className="w-full min-w-[700px] text-xs">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
@@ -297,7 +297,7 @@ const AdminTeachers = () => {
                 type="button"
                 role="menuitem"
                 onClick={() => { closeMenu(); setTeacherToDelete(menuTeacher); setConfirmText(''); }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
               ><Trash2 size={14} className="text-red-500" /> Delete</button>
             </div>
           </>,
@@ -307,7 +307,7 @@ const AdminTeachers = () => {
 
       {teacherToEdit && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center">
-          <div className="modal-surface mx-4 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-gray-100 bg-white p-6">
+          <div className="modal-surface mx-4 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-gray-100 bg-white p-6">
             <h3 className="mb-4 text-lg font-bold text-gray-900">Edit Teacher</h3>
             <div className="space-y-4">
               <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">ID</label><input value={formatStaffId(teacherToEdit.staff_id || '')} readOnly className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 font-mono text-sm text-gray-600" /></div>
@@ -316,7 +316,7 @@ const AdminTeachers = () => {
                 <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Last Name</label><input value={editForm.last_name} onChange={(event) => setEditForm({ ...editForm, last_name: event.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" /></div>
               </div>
               <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Username (auto-generated)</label><input readOnly value={usernameFromLastNameAndId(editForm.last_name, teacherToEdit.staff_id) || teacherToEdit.username || ''} className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 font-mono text-sm text-gray-600" /></div>
-              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">New Password (leave blank to keep current)</label><div className="relative"><input type={showEditPassword ? 'text' : 'password'} value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm" /><button type="button" onClick={() => setShowEditPassword(!showEditPassword)} aria-label={showEditPassword ? 'Hide password' : 'Show password'} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></div>
+              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">New Password (leave blank to keep current)</label><div className="relative"><input type={showEditPassword ? 'text' : 'password'} value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm" /><button type="button" onClick={() => setShowEditPassword(!showEditPassword)} aria-label={showEditPassword ? 'Hide password' : 'Show password'} className="rounded-lg absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></div>
             </div>
             {editError && <p className="mt-4 text-sm font-semibold text-red-600">{editError}</p>}
             <div className="mt-6 flex justify-end gap-3"><button onClick={() => setTeacherToEdit(null)} disabled={editLoading} className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-200">Cancel</button><button onClick={saveEdit} disabled={editLoading} className="rounded-lg bg-[#0c1925] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{editLoading ? 'Saving…' : 'Save Changes'}</button></div>
@@ -326,7 +326,7 @@ const AdminTeachers = () => {
 
       {teacherToDelete && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center">
-          <div className="modal-surface mx-4 w-full max-w-sm rounded-xl border border-gray-100 bg-white p-6">
+          <div className="modal-surface mx-4 w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6">
             <h3 className="mb-2 text-lg font-bold text-gray-900">Delete Teacher</h3>
             <p className="mb-4 text-sm text-gray-600">Are you sure you want to delete <strong>{teacherToDelete.full_name}</strong>?</p>
             <label className="mb-1 block text-xs font-bold text-gray-700">Type <strong>Confirm</strong> to delete</label>
@@ -338,7 +338,7 @@ const AdminTeachers = () => {
 
       {classesTeacher && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) closeClasses(); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="teacher-classes-title" className="modal-surface w-full max-w-2xl overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl">
+          <section role="dialog" aria-modal="true" aria-labelledby="teacher-classes-title" className="modal-surface w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl">
             <header className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Teacher classes</p>
@@ -353,7 +353,7 @@ const AdminTeachers = () => {
               ) : classesError ? (
                 <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{classesError}</div>
               ) : uniqueClasses.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-gray-300 px-4 py-10 text-center">
+                <div className="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center">
                   <BookOpen size={22} className="mx-auto text-gray-400" />
                   <p className="mt-2 text-sm font-semibold text-gray-700">No class sections yet</p>
                   <p className="mt-1 text-xs text-gray-500">The teacher’s imported class sections will appear here.</p>
@@ -361,13 +361,13 @@ const AdminTeachers = () => {
               ) : (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {uniqueClasses.map((item) => (
-                    <article key={`${item.sectionId || item.sectionName}-${item.schoolYear}-${item.semester}`} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <article key={`${item.sectionId || item.sectionName}-${item.schoolYear}-${item.semester}`} className="rounded-xl border border-gray-200 bg-gray-50 p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500">Section</p>
                           <h4 className="mt-0.5 text-base font-extrabold text-[#0c1925]">{item.sectionName}</h4>
                         </div>
-                        {item.course && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800">{item.course}</span>}
+                        {item.course && <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800">{item.course}</span>}
                       </div>
                       <p className="mt-2 text-xs font-semibold text-gray-700">{item.yearLevel ? `${item.yearLevel} Year` : 'Year level not set'}</p>
                       <p className="mt-0.5 text-[11px] text-gray-500">{[item.schoolYear, item.semester].filter(Boolean).join(' · ') || 'Academic term not set'}</p>

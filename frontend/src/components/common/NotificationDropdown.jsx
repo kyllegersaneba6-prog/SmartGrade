@@ -138,7 +138,7 @@ const NotificationDropdown = () => {
       >
         <Bell size={22} />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-red-600 px-1 text-center text-[9px] font-bold leading-4 text-white">
+          <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-md bg-red-600 px-1 text-center text-[9px] font-bold leading-4 text-white">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -149,11 +149,11 @@ const NotificationDropdown = () => {
           <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2.5">
             <div className="flex items-center gap-1.5">
               <h3 className="text-xs font-bold text-gray-900">Notifications</h3>
-              <span className="min-w-4 rounded-full bg-gray-100 px-1.5 py-0.5 text-center text-[9px] font-semibold text-gray-600">{items.length}</span>
+              <span className="min-w-4 rounded-md bg-gray-100 px-1.5 py-0.5 text-center text-[9px] font-semibold text-gray-600">{items.length}</span>
             </div>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && <button type="button" onClick={() => { void markAllAsRead(); }} disabled={Boolean(bulkAction)} className="text-[9px] font-medium text-gray-500 transition-colors hover:text-gray-900 disabled:opacity-50">{bulkAction === 'read' ? 'Marking…' : 'Mark read'}</button>}
-              <button type="button" onClick={() => setOpen(false)} aria-label="Close notifications" className="text-sm leading-none text-gray-400 transition-colors hover:text-gray-800">×</button>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close notifications" className="rounded-lg text-sm leading-none text-gray-400 transition-colors hover:text-gray-800">×</button>
             </div>
           </div>
           <div className="overflow-y-auto" style={{ maxHeight: showAll ? '70vh' : '20rem' }}>
@@ -179,7 +179,7 @@ const NotificationDropdown = () => {
                     >
                       <span className="flex items-center gap-1.5">
                         <span className={`truncate text-[10px] uppercase text-gray-900 ${unread ? 'font-bold' : 'font-semibold'}`}>{item.title}</span>
-                        {item.urgency === 'Urgent' && <span className="inline-flex shrink-0 items-center gap-0.5 text-[8px] font-bold uppercase text-amber-700"><AlertTriangle size={10} aria-hidden="true" />Urgent</span>}
+                        {item.urgency === 'Urgent' && <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md text-[8px] font-bold uppercase text-amber-700"><AlertTriangle size={10} aria-hidden="true" />Urgent</span>}
                       </span>
                       <span className={`mt-1 block text-[10px] text-gray-700 ${expanded ? 'whitespace-pre-wrap break-words' : 'line-clamp-2'}`}>
                         {item.content}
@@ -191,7 +191,7 @@ const NotificationDropdown = () => {
                       onClick={() => { void dismissNotification(item); }}
                       aria-label={`Dismiss ${item.title}`}
                       title="Dismiss notification"
-                      className="shrink-0 rounded-md px-1 text-sm leading-none text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
+                      className="shrink-0 rounded-lg px-1 text-sm leading-none text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
                     >×</button>
                   </div>
                 );

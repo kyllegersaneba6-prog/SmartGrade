@@ -451,12 +451,12 @@ const MyClassList = () => {
         {parseError && <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{parseError}</p>}
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <div ref={classListHeaderRef} className="sticky top-0 z-20 flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-sm font-bold text-gray-900">Class List</h2>
-              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700">
+              <span className="inline-flex w-fit items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700">
                 <Users size={14} /> {students.length} students
               </span>
             </div>
@@ -615,7 +615,7 @@ const MyClassList = () => {
           className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop"
           onMouseDown={(event) => { if (event.target === event.currentTarget) closeDeleteConfirmation(); }}
         >
-          <form onSubmit={deleteSelectedStudents} role="dialog" aria-modal="true" aria-labelledby="delete-students-title" className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
+          <form onSubmit={deleteSelectedStudents} role="dialog" aria-modal="true" aria-labelledby="delete-students-title" className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 id="delete-students-title" className="text-lg font-bold text-gray-900 mb-2">Confirm Delete</h3>
             <p className="text-sm text-gray-900 mb-3">Are you sure you want to delete {selectedStudentIds.length} selected student(s) from <strong>{selectedSectionAssignment?.sections?.name || 'this section'}</strong>? This action cannot be undone.</p>
             <div className="mb-4">
@@ -659,7 +659,7 @@ const MyClassList = () => {
                   ['Semester', currentParsed.metadata.semester],
                   ['School Year', currentParsed.metadata.school_year],
                 ].map(([label, value]) => (
-                  <div key={label} className={`min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-2 ${label === 'Descriptive Title' ? 'sm:col-span-2' : ''}`}>
+                  <div key={label} className={`min-w-0 rounded-xl border border-gray-200 bg-white px-3 py-2 ${label === 'Descriptive Title' ? 'sm:col-span-2' : ''}`}>
                     <p className="text-[10px] font-bold uppercase tracking-wide text-black">{label}</p>
                     <p className={`mt-1 font-semibold text-gray-900 ${label === 'Descriptive Title' ? 'whitespace-normal break-words leading-snug' : 'truncate'}`} title={value}>{value}</p>
                   </div>
@@ -699,7 +699,7 @@ const MyClassList = () => {
                   <button type="button" onClick={() => setAllValidRows(false)} disabled={Boolean(importResult)} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50">Clear selection</button>
                 </div>
               </div>
-              <div className="overflow-auto rounded-lg border border-gray-200">
+              <div className="overflow-auto rounded-xl border border-gray-200">
                 <table className="w-full min-w-[1000px] border-collapse text-left text-xs">
                   <thead className="sticky top-0 z-10 bg-[#142a3f] text-white">
                     <tr>
@@ -726,7 +726,7 @@ const MyClassList = () => {
                         <td className="px-3 py-2 text-gray-900">{row.year_level}</td>
                         <td className="whitespace-nowrap px-3 py-2 text-gray-900">{row.gender || '—'}</td>
                         <td className="max-w-56 px-3 py-2.5">
-                          {row.issues.length ? <span className="text-[10px] font-semibold text-amber-700">{row.issues.join(' · ')}</span> : <span className="text-[10px] font-semibold text-green-700">Ready</span>}
+                          {row.issues.length ? <span className="rounded-md text-[10px] font-semibold text-amber-700">{row.issues.join(' · ')}</span> : <span className="rounded-md text-[10px] font-semibold text-green-700">Ready</span>}
                         </td>
                       </tr>
                     ))}

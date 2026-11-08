@@ -94,7 +94,7 @@ const AdminSettings = () => {
         description="Manage export signatories, view academic terms, and browse archived semesters."
       />
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50 card-hover">
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-50 card-hover">
         <h2 className="text-sm font-bold text-gray-900 mb-4">Academic Term Information</h2>
 
         {isArchiveMode && viewTerm && (
@@ -104,7 +104,7 @@ const AdminSettings = () => {
               <span className="text-sm font-semibold text-gray-800">
                 Currently viewing: <strong>{viewTerm.school_year} — {viewTerm.semester}</strong>
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Read Only</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700">Read Only</span>
             </div>
             <button
               onClick={() => { setViewTerm(null); navigate('/admin'); }}
@@ -126,7 +126,7 @@ const AdminSettings = () => {
           <div className="bg-amber-300 border border-amber-200 rounded-xl p-5 mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Active Term</span>
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md uppercase tracking-wider">Active Term</span>
                 <p className="text-lg font-extrabold text-gray-900 mt-2">{activeTerm.school_year} — {activeTerm.semester}</p>
                 <p className="text-xs text-gray-900 mt-0.5">Teachers can import class lists only for the active term.</p>
               </div>
@@ -152,7 +152,7 @@ const AdminSettings = () => {
                         setConfirmTerm(t);
                       }
                     }}
-                    className={`flex items-center justify-between px-4 py-3 rounded-lg border cursor-pointer transition-colors ${
+                    className={`flex items-center justify-between px-4 py-3 rounded-xl border cursor-pointer transition-colors ${
                       isCurrentlyViewing ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-300' :
                       isActive ? 'bg-amber-300 border-amber-200 hover:bg-amber-100' :
                       'bg-gray-50 border-gray-200 hover:bg-gray-100'
@@ -167,9 +167,9 @@ const AdminSettings = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       {isCurrentlyViewing && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Viewing</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700">Viewing</span>
                       )}
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                         isActive ? 'bg-amber-100 text-amber-700' : t.is_closed ? 'bg-gray-200 text-gray-500' : 'bg-green-100 text-green-700'
                       }`}>
                         {isActive ? 'Active' : t.is_closed ? 'Closed' : 'Open'}
@@ -183,7 +183,7 @@ const AdminSettings = () => {
         )}
       </div>
 
-      <form onSubmit={handleSaveExportSettings} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50 card-hover">
+      <form onSubmit={handleSaveExportSettings} className="bg-white rounded-xl p-6 shadow-sm border border-gray-50 card-hover">
         <div className="mb-5">
           <h2 className="text-sm font-bold text-gray-900">Exports</h2>
           <p className="mt-1 text-xs text-gray-600">These names appear in Class Record and Grade Summary XLSX and PDF exports.</p>
@@ -213,7 +213,7 @@ const AdminSettings = () => {
 
       {confirmTerm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 rounded-lg bg-amber-50"><Archive size={20} className="text-amber-600" /></div>
               <h3 className="text-lg font-bold text-gray-900">Browse Archived Term</h3>

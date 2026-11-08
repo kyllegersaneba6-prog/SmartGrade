@@ -33,7 +33,7 @@ const Shell = ({ label = 'Loading content', className = '', children, busy = tru
 
 /** Header card: title bar + subtitle + trailing action pill. */
 export const SkeletonHeaderCard = ({ className = '' }) => (
-  <Shell className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-50 ${className}`}>
+  <Shell className={`bg-white p-5 rounded-xl shadow-sm border border-gray-50 ${className}`}>
     <div className="flex flex-col md:flex-row justify-between gap-4">
       <div className="flex items-center gap-4">
         <Skeleton width={36} height={36} style={{ borderRadius: 8 }} />
@@ -57,7 +57,7 @@ export const SkeletonMetricCards = ({ count = 4, className = '' }) => (
     label="Loading summary cards"
   >
     {Array.from({ length: count }).map((_, i) => (
-      <div key={i} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-50 space-y-3">
+      <div key={i} className="bg-white p-5 rounded-xl shadow-sm border border-gray-50 space-y-3">
         <Skeleton style={{ width: '55%', height: 10 }} />
         <Skeleton style={{ width: '40%', height: 28, borderRadius: 8 }} />
       </div>
@@ -68,7 +68,7 @@ export const SkeletonMetricCards = ({ count = 4, className = '' }) => (
 /** Table inside the app's standard rounded card shell. */
 export const SkeletonTable = ({ cols = 5, rows = 8, className = '', bare = false }) => (
   <Shell
-    className={`${bare ? '' : 'bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden'} ${className}`}
+    className={`${bare ? '' : 'bg-white rounded-xl shadow-sm border border-gray-50 overflow-hidden'} ${className}`}
     label="Loading table data"
   >
     <div className="overflow-x-auto">
@@ -127,7 +127,7 @@ export const SkeletonClassGrid = ({ count = 4, className = '' }) => (
         </div>
         <div className="space-y-2">
           {[0, 1, 2].map((r) => (
-            <div key={r} className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 space-y-1.5">
+            <div key={r} className="px-3 py-2 rounded-xl bg-gray-50 border border-gray-100 space-y-1.5">
               <Skeleton style={{ width: '75%', height: 13 }} />
               <Skeleton style={{ width: '50%', height: 11 }} />
             </div>
@@ -140,7 +140,7 @@ export const SkeletonClassGrid = ({ count = 4, className = '' }) => (
 
 /** Simple settings/profile card. */
 export const SkeletonSettingsCard = ({ className = '' }) => (
-  <Shell className={`bg-white rounded-2xl shadow-sm border border-gray-50 p-6 max-w-3xl space-y-5 ${className}`} label="Loading settings">
+  <Shell className={`bg-white rounded-xl shadow-sm border border-gray-50 p-6 max-w-3xl space-y-5 ${className}`} label="Loading settings">
     <div className="flex items-center gap-4">
       <SkeletonAvatar size={56} />
       <div className="space-y-2 flex-1">
@@ -160,7 +160,7 @@ export const SkeletonSettingsCard = ({ className = '' }) => (
 
 /** Facebook-style feed post (avatar + name + meta + text lines + media + actions). */
 export const SkeletonPost = ({ className = '' }) => (
-  <div className={`bg-white rounded-2xl shadow-sm border border-gray-50 p-5 space-y-4 ${className}`} aria-hidden="true">
+  <div className={`bg-white rounded-xl shadow-sm border border-gray-50 p-5 space-y-4 ${className}`} aria-hidden="true">
     <div className="flex items-center gap-3">
       <SkeletonAvatar />
       <div className="space-y-1.5 flex-1">

@@ -90,7 +90,7 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
   if (createdUsername) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-        <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
           <div className="mb-6 text-center">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 mb-4"><CheckCircle size={28} className="text-emerald-600" /></div>
             <h1 className="text-xl font-bold text-gray-900 mb-1">Teacher Account Created</h1>
@@ -121,7 +121,7 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-      <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[90vh] overflow-y-auto">
         <div className="mb-6 text-center">
           <h1 className="text-xl font-bold text-gray-900 mb-1">Create New Teacher</h1>
           <p className="text-[10px] text-gray-900 uppercase tracking-wider">Provision a new teacher account</p>
@@ -156,7 +156,7 @@ const CreateAdminTeacher = ({ onClose, onSuccess }) => {
             <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Password</label>
             <div className="relative">
               <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm pr-10" />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="rounded-lg absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
             </div>
           </div>
         </div>

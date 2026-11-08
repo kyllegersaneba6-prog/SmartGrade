@@ -28,7 +28,7 @@ const BackendAvailability = ({ children }) => {
             role="status"
             aria-live="polite"
             aria-labelledby="backend-status-title"
-            className="my-auto w-full max-w-lg rounded-2xl bg-white p-8 md:p-10 text-center shadow-[0_18px_50px_-10px_rgba(71,85,105,0.45)]"
+            className="my-auto w-full max-w-lg rounded-xl bg-white p-8 md:p-10 text-center shadow-[0_18px_50px_-10px_rgba(71,85,105,0.45)]"
           >
             <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-gray-800 bg-gray-50 text-amber-700">
               {unavailable ? (
@@ -47,7 +47,7 @@ const BackendAvailability = ({ children }) => {
                   type="button"
                   onClick={() => { void checkBackendAvailability(); }}
                   disabled={checking}
-                  className="mx-auto mt-7 flex items-center justify-center gap-2 rounded-xl bg-amber-300 px-5 py-3 text-sm font-bold text-[#0c1925] hover:bg-amber-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0c1925] disabled:opacity-60"
+                  className="mx-auto mt-7 flex items-center justify-center gap-2 rounded-lg bg-amber-300 px-5 py-3 text-sm font-bold text-[#0c1925] hover:bg-amber-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0c1925] disabled:opacity-60"
                 >
                   <RefreshCw size={16} className={checking ? 'animate-spin' : ''} aria-hidden="true" />
                   {checking ? 'Checking Connection...' : 'Try Again'}

@@ -71,7 +71,7 @@ const FloatingAssignmentSelector = () => {
           )}
         </span>
         {isArchiveMode && (
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 uppercase shrink-0">ARCHIVE</span>
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-200 text-amber-800 uppercase shrink-0">ARCHIVE</span>
         )}
         <ChevronDown size={15} className={`shrink-0 text-gray-900 transition-transform duration-200 ${open ? 'rotate-180 text-[#0c1925]' : ''}`} />
       </button>
@@ -110,13 +110,12 @@ const FloatingAssignmentSelector = () => {
                       }`}
                     >
                       <span className={`flex items-center justify-center w-7 h-7 rounded-md shrink-0 transition-colors ${isItemActive ? 'text-amber-300' : 'text-gray-900 bg-gray-100'}`} style={isItemActive ? { background: '#0c1925' } : {}}>
-                        <BookOpen size={15} />
+                        {isItemActive ? <Check size={15} /> : <BookOpen size={15} />}
                       </span>
                       <span className="flex-1 min-w-0">
                         <span className={`block text-xs truncate ${isItemActive ? 'font-bold text-[#0c1925]' : 'font-semibold text-gray-900'}`}>{display.title}</span>
                         <span className="block text-[10px] text-gray-900 truncate">{display.details}</span>
                       </span>
-                      {isItemActive && <Check size={14} className="shrink-0 font-bold" style={{ color: '#0c1925' }} />}
                     </button>
                   );
                 })}

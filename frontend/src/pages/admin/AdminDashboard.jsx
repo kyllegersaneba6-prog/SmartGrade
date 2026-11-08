@@ -82,7 +82,7 @@ const AdminDashboard = () => {
           <div className="md:col-span-3" aria-busy="true"><SkeletonMetricCards count={3} /></div>
         ) : (
         <>
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Total Teachers</span>
             <div className="text-3xl font-extrabold text-[#142a3f]">{teachers.length}</div>
@@ -91,7 +91,7 @@ const AdminDashboard = () => {
           <div className="p-3.5 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#142a3f15', color: '#142a3f' }}><UsersRound size={24} /></div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Total Teacher Classes</span>
             <div className="text-3xl font-extrabold text-[#142a3f]">{totalTeacherClasses}</div>
@@ -100,7 +100,7 @@ const AdminDashboard = () => {
           <div className="p-3.5 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#142a3f15', color: '#142a3f' }}><BookOpen size={24} /></div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Activity</span>
             <div className="text-3xl font-extrabold text-[#142a3f]">{activityLog.length}</div>
@@ -120,7 +120,7 @@ const AdminDashboard = () => {
           </>
         ) : (
         <>
-        <div className="lg:col-span-4 rounded-2xl p-5 shadow-sm border border-gray-200 card-hover bg-white flex flex-col h-[460px]">
+        <div className="lg:col-span-4 rounded-xl p-5 shadow-sm border border-gray-200 card-hover bg-white flex flex-col h-[460px]">
           <h2 className="text-base font-bold mb-4 shrink-0" style={{ color: '#0c1925' }}>Teacher Overview</h2>
           {teachers.length === 0 ? (
             <p className="text-sm text-gray-500 italic py-6 text-center">No teachers registered yet.</p>
@@ -149,7 +149,7 @@ const AdminDashboard = () => {
           {teachers.length > 0 && <p className="text-xs text-gray-400 mt-3 shrink-0">Total: {teachers.length} teachers</p>}
         </div>
 
-        <div className="lg:col-span-8 rounded-2xl p-5 shadow-sm border border-gray-200 card-hover bg-white flex flex-col h-[460px]">
+        <div className="lg:col-span-8 rounded-xl p-5 shadow-sm border border-gray-200 card-hover bg-white flex flex-col h-[460px]">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Recent Activities</h2>
             <div className="relative">
@@ -160,7 +160,7 @@ const AdminDashboard = () => {
               {filterOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
-                  <div className="absolute right-0 mt-1 w-44 rounded-lg border border-gray-100 bg-white shadow-xl z-20 py-1">
+                  <div className="absolute right-0 mt-1 w-44 rounded-xl border border-gray-100 bg-white shadow-xl z-20 py-1">
                     {ACTION_FILTERS.map((f) => (
                       <button
                         key={f.value}

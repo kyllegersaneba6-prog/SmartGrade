@@ -166,7 +166,7 @@ const SuperAdminSettings = () => {
         description="Manage academic terms and system backups."
       />
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50 card-hover">
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-50 card-hover">
         <h2 className="text-sm font-bold text-gray-900 mb-4">Academic Term Management</h2>
 
         {noActiveTerm ? (
@@ -186,7 +186,7 @@ const SuperAdminSettings = () => {
             <div className="mb-6 rounded-xl border border-amber-200 bg-amber-300 p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full uppercase tracking-wider">Active Term</span>
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md uppercase tracking-wider">Active Term</span>
                   <p className="text-lg font-extrabold text-gray-900 mt-2">{activeTerm.school_year} — {activeTerm.semester}</p>
                   <p className="text-xs text-gray-900 mt-0.5">Sections and assignments can only be added to this term.</p>
                 </div>
@@ -206,7 +206,7 @@ const SuperAdminSettings = () => {
             <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">Term History</h3>
             <div className="space-y-2">
               {allTerms.map(t => (
-                <div key={t.id} className={`flex items-center justify-between px-4 py-3 rounded-lg border ${
+                <div key={t.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border ${
                   t.is_active ? 'bg-amber-300 border-amber-200' : 'bg-gray-50 border-gray-200'
                 }`}>
                   <div className="flex items-center gap-3">
@@ -215,7 +215,7 @@ const SuperAdminSettings = () => {
                       {t.school_year} — {t.semester}
                     </span>
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                     t.is_active ? 'bg-amber-100 text-amber-700' : t.is_closed ? 'bg-gray-200 text-gray-500' : 'bg-green-100 text-green-700'
                   }`}>
                     {t.is_active ? 'Active' : t.is_closed ? 'Closed' : 'Open'}
@@ -231,10 +231,10 @@ const SuperAdminSettings = () => {
 
       {endSemesterOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">End Semester</h3>
-              <button onClick={() => { setEndSemesterOpen(false); setConfirmEndText(''); setEndSemesterError(''); }} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setEndSemesterOpen(false); setConfirmEndText(''); setEndSemesterError(''); }} className="rounded-lg text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
@@ -280,10 +280,10 @@ const SuperAdminSettings = () => {
 
       {createTermOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Create Term</h3>
-              <button onClick={() => { setCreateTermOpen(false); setNewStartYear(null); setNewSemester('1st Semester'); setCreateTermError(''); setYearDropdownOpen(false); }} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setCreateTermOpen(false); setNewStartYear(null); setNewSemester('1st Semester'); setCreateTermError(''); setYearDropdownOpen(false); }} className="rounded-lg text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>

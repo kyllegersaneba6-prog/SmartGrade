@@ -13,7 +13,7 @@ All three layouts share the same skeleton:
 | Banner | Amber archive bar (admin/teacher only), above the outlet |
 | Outlet | `min-h-0 flex-1 overflow-auto` with an inner `p-4 md:p-6 lg:p-8` content wrapper |
 
-Sidebar styling: solid `#0D1E2D` background; active item `bg-[#24384b] text-amber-300 border-l-[3px] border-gold`; hovering a nav item zooms its icon and label (`group-hover:scale-110`, 200 ms); footer shows avatar, full name, role badge, and a logout icon with a confirmation modal.
+Sidebar styling: solid `#0D1E2D` background; nav items use `rounded-lg` (0.5rem, normally 8px); active item `bg-[#24384b] text-amber-300 border-l-[3px] border-gold`; hovering a nav item zooms its icon and label (`group-hover:scale-110`, 200 ms); footer shows avatar, full name, role badge, and a logout icon with a confirmation modal.
 
 ## Superadmin Sidebar
 
@@ -35,7 +35,7 @@ Header: page title, in the shared white-header style. Nav labels are `text-sm`.
 | Manage Teacher | `/admin/teachers` | `Users` |
 | Settings | `/admin/settings` | `Settings` |
 
-Header: page title, department badge (`bg-[#0c1925]`, `text-amber-300`), term pill (`bg-[#0c1925]`, `text-amber-300`), and `NotificationDropdown` with unread count, refresh-on-open/30-second polling, read-on-open, and per-user dismissal. Uses the shared white-header style. Nav labels are `text-sm`.
+Header: page title, department and term badges (`rounded-md`, `bg-[#0c1925]`, `text-amber-300`), and `NotificationDropdown` with unread count, refresh-on-open/30-second polling, read-on-open, and per-user dismissal. Uses the shared white-header style. Nav labels are `text-sm`.
 
 ## Teacher Sidebar
 
@@ -49,7 +49,7 @@ Header: page title, department badge (`bg-[#0c1925]`, `text-amber-300`), term pi
 | Grade Summary | `/teacher/grade-summary` | `Summary` |
 | Settings | `/teacher/settings` | `Settings` |
 
-Header: page title, department badge (`bg-[#0c1925]`, `text-amber-300`), term pill (`bg-[#0c1925]`, `text-amber-300`), and `NotificationDropdown` with unread count, refresh-on-open/30-second polling, read-on-open, and per-user dismissal. Nav labels are `text-sm`.
+Header: page title, department and term badges (`rounded-md`, `bg-[#0c1925]`, `text-amber-300`), and `NotificationDropdown` with unread count, refresh-on-open/30-second polling, read-on-open, and per-user dismissal. Nav labels are `text-sm`.
 
 ## Routing Tree
 

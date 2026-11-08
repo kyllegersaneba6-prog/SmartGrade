@@ -141,7 +141,7 @@ export default function BackupRestore() {
   const needConfirm = mode === 'full' ? 'FULL RESTORE' : 'CONFIRM';
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50 card-hover">
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-50 card-hover">
       <div className="flex items-center gap-2 mb-1">
         <Database size={16} className="text-gray-900" />
         <h2 className="text-sm font-bold text-gray-900">Backup &amp; Restore</h2>
@@ -226,7 +226,7 @@ export default function BackupRestore() {
           </div>
           {validation && <p className="text-xs font-semibold text-green-700">Validation passed. Manifest integrity verified.</p>}
           {preview && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
               <p className="text-xs font-bold text-gray-900 mb-2">Preview — {preview.mode}</p>
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {preview.tables.map((t) => (
@@ -249,10 +249,10 @@ export default function BackupRestore() {
 
       {reviewOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[85vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-bold text-gray-900">Review backup scope</h3>
-              <button onClick={() => setReviewOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+              <button onClick={() => setReviewOpen(false)} className="rounded-lg text-gray-400 hover:text-gray-600"><X size={18} /></button>
             </div>
             <p className="text-xs text-gray-600 mb-1">Explicitly selected: <strong>{selected.join(', ') || 'none'}</strong></p>
             <p className="text-xs text-gray-600 mb-3">Auto-included dependencies: <strong>{autoHint.join(', ') || 'none'}</strong></p>

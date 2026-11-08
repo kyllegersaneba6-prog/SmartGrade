@@ -59,7 +59,7 @@ const TeacherOverview = () => {
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSearchQuery('')} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             )}
@@ -83,7 +83,7 @@ const TeacherOverview = () => {
             <p className="text-xs mt-1">Try searching with a different subject or section name.</p>
           </div>
         ) : (
-          <div className="grid min-h-[430px] grid-cols-1 overflow-hidden rounded-2xl border border-gray-200 bg-white sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid min-h-[430px] grid-cols-1 overflow-hidden rounded-xl border border-gray-200 bg-white sm:grid-cols-2 xl:grid-cols-4">
             {yearOrder.map((year, index) => {
               const items = groupedByYear[year] || [];
               const columnDivider = [
@@ -96,7 +96,7 @@ const TeacherOverview = () => {
                 <section key={year} aria-label={yearLabels[year]} className={columnDivider}>
                   <div className="mb-4 flex items-center justify-between">
                     <h4 className="text-sm font-medium uppercase tracking-wide text-gray-700">{yearLabels[year]}</h4>
-                    <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-gray-100 px-2 text-sm font-medium text-gray-600">{items.length}</span>
+                    <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-md bg-gray-100 px-2 text-sm font-medium text-gray-600">{items.length}</span>
                   </div>
                   {items.length === 0 ? (
                     <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
