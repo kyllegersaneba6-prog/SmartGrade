@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Building2, Edit3, Plus, Trash2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Bolt, Building2, Pencil, Plus, Trash2 } from 'lucide-react';
 import api from '../../utils/api';
 import { SkeletonList } from '../../components/common/Skeleton';
 import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
@@ -28,6 +29,34 @@ const ManageDepartments = () => {
   const [deleteDept, setDeleteDept] = useState(null);
   const [deleteDeptConfirmText, setDeleteDeptConfirmText] = useState('');
   const [deleteDeptLoading, setDeleteDeptLoading] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPos, setMenuPos] = useState(null);
+
+  const closeMenu = () => { setOpenMenuId(null); setMenuPos(null); };
+  const openDeptMenu = (dept, event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 144;
+    const menuHeight = 82;
+    const gutter = 8;
+    const fitsBelow = rect.bottom + menuHeight + gutter <= window.innerHeight;
+    setMenuPos({
+      top: fitsBelow ? rect.bottom + 4 : Math.max(gutter, rect.top - menuHeight - 4),
+      left: Math.max(gutter, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - gutter)),
+    });
+    setOpenMenuId(dept.id);
+  };
+
+  useEffect(() => {
+    if (!openMenuId) return undefined;
+    const closeOnEscape = (event) => { if (event.key === 'Escape') closeMenu(); };
+    const closeOnScroll = () => closeMenu();
+    window.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('scroll', closeOnScroll, true);
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape);
+      window.removeEventListener('scroll', closeOnScroll, true);
+    };
+  }, [openMenuId]);
 
   const fetchDepartments = useCallback(async () => {
     try {
@@ -195,28 +224,54 @@ const ManageDepartments = () => {
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-gray-100 bg-gray-50 text-[#0c1925]"><Building2 size={19} /></span>
                   <div className="min-w-0">
                     <h3 className="break-words text-sm font-bold text-gray-900">{dept.name}</h3>
-                    {getDeptAbbr(dept) && <span className="mt-1 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">{getDeptAbbr(dept)}</span>}
+                    {getDeptAbbr(dept) && <span className="mt-1 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-900">{getDeptAbbr(dept)}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => { setEditDept(dept); setEditDeptName(dept.name); setEditDeptAbbreviation(getDeptAbbr(dept)); setError(''); }}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
-                    title="Edit department"
-                  ><Edit3 size={13} /> Edit</button>
-                  <button
-                    type="button"
-                    onClick={() => { setDeleteDept(dept); setDeleteDeptConfirmText(''); setError(''); }}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
-                    title="Delete department"
-                  ><Trash2 size={13} /> Delete</button>
+                    onClick={(event) => openMenuId === dept.id ? closeMenu() : openDeptMenu(dept, event)}
+                    aria-label={`Actions for ${dept.name}`}
+                    aria-haspopup="menu"
+                    aria-expanded={openMenuId === dept.id}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 transition-colors hover:bg-gray-50"
+                    title="Department actions"
+                  ><Bolt size={18} /></button>
                 </div>
               </article>
             ))}
           </div>
         )}
       </section>
+
+      {openMenuId && menuPos && createPortal(
+        <>
+          <button type="button" aria-label="Close department actions" className="fixed inset-0 z-40 cursor-default" onClick={closeMenu} />
+          <div role="menu" className="fixed z-50 w-36 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-xl" style={{ top: menuPos.top, left: menuPos.left }}>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                const dept = departments.find((item) => item.id === openMenuId);
+                closeMenu();
+                if (dept) { setEditDept(dept); setEditDeptName(dept.name); setEditDeptAbbreviation(getDeptAbbr(dept)); setError(''); }
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+            ><Pencil size={14} className="text-blue-500" /> Edit</button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                const dept = departments.find((item) => item.id === openMenuId);
+                closeMenu();
+                if (dept) { setDeleteDept(dept); setDeleteDeptConfirmText(''); setError(''); }
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
+            ><Trash2 size={14} className="text-red-500" /> Delete</button>
+          </div>
+        </>,
+        document.body
+      )}
 
       {addDeptOpen && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">

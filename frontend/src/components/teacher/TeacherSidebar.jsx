@@ -45,7 +45,7 @@ const TeacherSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse
           isCollapsed && 'lg:w-[72px]',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
-        style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}
+        style={{ backgroundColor: '#0D1E2D' }}
       >
         <button
           onClick={onClose}
@@ -106,7 +106,7 @@ const TeacherSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse
             </div>
             <div className={clsx('min-w-0 flex-1', isCollapsed && 'lg:hidden')}>
               <p className="break-words whitespace-normal text-xs font-semibold leading-tight text-white">{userData?.full_name || userData?.name || 'User'}</p>
-              <span className="mt-1 inline-block w-fit rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-200">{userData?.system_role || userData?.role || 'Teacher'}</span>
+              <span className="mt-1 inline-block w-fit rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300">{userData?.system_role || userData?.role || 'Teacher'}</span>
             </div>
             <button onClick={() => setShowLogoutModal(true)} type="button" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-rose-300 transition-colors hover:bg-rose-400/10 hover:text-rose-200" aria-label="Sign out" title="Sign out">
               <LogOut size={16} aria-hidden="true" />

@@ -43,6 +43,24 @@ const TABLE_COLUMNS = {
   activity_log: ['id', 'user_name', 'action', 'details', 'department', 'created_at'],
 };
 
+// Most tables use `id`; department_export_settings is keyed by department_id.
+const TABLE_PRIMARY_KEYS = {
+  departments: 'id',
+  department_export_settings: 'department_id',
+  courses: 'id',
+  staff_users: 'id',
+  academic_terms: 'id',
+  sections: 'id',
+  students: 'id',
+  subjects: 'id',
+  teacher_assignments: 'id',
+  grading_components: 'id',
+  component_activities: 'id',
+  component_scores: 'id',
+  attendance: 'id',
+  activity_log: 'id',
+};
+
 const CATEGORIES = [
   { id: 'organization', label: 'Organization', description: 'Departments, courses/programs, and export signatories.', tables: ['departments', 'courses', 'department_export_settings'], requires: [] },
   { id: 'accounts', label: 'Accounts', description: 'Staff accounts incl. admins and teachers (password hashes preserved, never logged).', tables: ['staff_users'], requires: ['organization'], sensitive: true },
@@ -92,7 +110,7 @@ function stableStringify(value) {
 
 module.exports = {
   APP_ID, MAGIC, FORMAT_VERSION, SCHEMA_COMPAT, MAX_FILE_BYTES,
-  TABLE_ORDER, TABLE_COLUMNS, CATEGORIES,
+  TABLE_ORDER, TABLE_COLUMNS, TABLE_PRIMARY_KEYS, CATEGORIES,
   categoryById, dependencyClosure, tablesForCategories,
   sha256Hex, stableStringify,
 };

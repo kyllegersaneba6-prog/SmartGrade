@@ -9,11 +9,11 @@ import {
 } from 'lucide-react';
 
 const features = [
-  { icon: <BarChart3 className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Grade Computation & Analytics', desc: 'Automated weighted grading with real-time analytics' },
-  { icon: <ClipboardCheck className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Attendance Tracking', desc: 'Track student attendance with AM/PM session support' },
-  { icon: <Users className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Class & Teacher Management', desc: 'Manage sections, subjects, and teacher assignments' },
-  { icon: <TrendingUp className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Performance Reports', desc: 'Generate grade summaries with grade-point conversion' },
-  { icon: <Sparkles className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'AI Student Summary', desc: 'Generate narrative behavioural insights powered by AI' },
+  { icon: <Users className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Class List & Student Management', desc: 'Organize sections and subjects, and import student lists' },
+  { icon: <ClipboardCheck className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Attendance Tracking', desc: 'Record attendance by AM/PM session and lecture or laboratory schedule' },
+  { icon: <BarChart3 className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Class Record & Weighted Grading', desc: 'Set grading components, record scores, and calculate weighted term grades' },
+  { icon: <Sparkles className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Analytics & Student Insights', desc: 'Review grades, attendance, and submissions, with AI-generated summaries' },
+  { icon: <TrendingUp className="w-5 h-5 text-amber-300 stroke-icon" />, title: 'Grade Summaries & Exports', desc: 'Prepare semester grade summaries and export class records or grades to XLSX/PDF' },
 ];
 
 const OFFLINE_MESSAGE = 'You are currently offline. Please check your Wi-Fi or ethernet connection and try again.';
@@ -95,28 +95,23 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex font-sans" style={{ backgroundImage: 'linear-gradient(135deg, #FFFFFF 0%, #F3F6FA 50%, #E2E8F0 100%)' }}>
-      {/* Background decorative elements (shared) */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-15%] left-[-8%] w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle,rgba(12,25,37,0.04)_0%,transparent_60%)]" />
-        <div className="absolute bottom-[-15%] right-[-8%] w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle,rgba(245,166,35,0.06)_0%,transparent_60%)]" />
-      </div>
+    <div className="h-screen h-[100dvh] overflow-hidden flex font-sans" style={{ height: '100dvh', backgroundColor: '#FFFFFF' }}>
 
       {/* ===== LEFT COLUMN — Login Form ===== */}
       <div
-        className="w-full lg:w-[42%] flex items-center justify-center p-4 sm:p-6 lg:p-10 relative z-10"
-        style={{ backgroundImage: 'linear-gradient(135deg, #FFFFFF 0%, #F3F6FA 50%, #E2E8F0 100%)' }}
+        className="h-full min-h-0 w-full lg:w-[42%] flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-10 relative z-10"
+        style={{ backgroundColor: '#FFFFFF' }}
       >
         <div
-          className="w-full max-w-[420px] rounded-2xl p-8 md:p-10 shadow-[0_18px_50px_-10px_rgba(71,85,105,0.45)]"
-          style={{ backgroundImage: 'linear-gradient(135deg, #FFFFFF 0%, #F3F6FA 50%, #E2E8F0 100%)' }}
+          className="my-auto w-full max-w-[420px] rounded-2xl p-8 md:p-10 shadow-[0_18px_50px_-10px_rgba(71,85,105,0.45)]"
+          style={{ backgroundColor: '#FFFFFF' }}
         >
           {/* Brand logos */}
           <div className="flex items-center justify-center gap-3 mb-8">
             <img src="/src/assets/logo.png" className="w-14 h-14 shrink-0 object-contain" alt="SmartGrade Logo" />
             <div className="min-w-0">
-              <h1 className="text-[#0c1925] font-extrabold text-2xl tracking-wide">SmartGrade</h1>
-              <p className="text-gray-500 text-sm mt-1">Academic Management System</p>
+               <h1 className="text-[#0c1925] font-extrabold text-2xl tracking-wide">SmartGrade</h1>
+               <p className="text-gray-500 text-sm mt-1">Academic Management System</p>
             </div>
           </div>
 
@@ -201,7 +196,7 @@ const Login = () => {
       </div>
 
       {/* ===== RIGHT COLUMN — Hero Section (hidden below lg) ===== */}
-      <div className="hidden lg:flex lg:w-[58%] bg-slate-900 relative overflow-hidden items-center justify-center p-12">
+      <div className="hidden h-full min-h-0 lg:flex lg:w-[58%] bg-slate-900 relative overflow-hidden items-center justify-center p-12">
         {/* Blurred campus photo background */}
         <div
           className="absolute inset-0"
@@ -230,16 +225,16 @@ const Login = () => {
           </div>
 
           <p className="text-base text-white leading-relaxed mb-10 stroke-text-sm">
-            SmartGrade unifies grade computation, attendance tracking, and
-            behavioral analytics in one academic system — with AI-powered
-            insights that help teachers understand every learner.
+            Manage class lists, attendance, grading, and academic reports in one
+            system. Teachers can review student performance and generate
+            AI-assisted summaries when needed.
           </p>
 
           {/* Feature list */}
           <div className="space-y-5">
             {features.map((feature, i) => (
               <div key={i} className="flex items-start gap-4 group">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-300/30 to-amber-600/20 border border-amber-300/40 flex items-center justify-center shrink-0 shadow-md">
+                <div className="w-10 h-10 rounded-lg bg-amber-300/20 border border-amber-300/40 flex items-center justify-center shrink-0 shadow-md">
                   {feature.icon}
                 </div>
                 <div>

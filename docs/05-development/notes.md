@@ -7,7 +7,7 @@ Miscellaneous technical notes, known gaps, and follow-ups.
 | Area | Issue | Impact |
 |---|---|---|
 | CORS | Local/LAN allowlist exists; deployments must set `CORS_ORIGINS` | Verify allowed origins rather than relying on development defaults |
-| Notifications | Broadcast form only logs to the console | Feature appears to work but sends nothing |
+| Notifications | Live DB migration is applied and its tables, RLS, and service-role-only RPC permissions are verified; current code is in the working tree | Deploy the backend and frontend changes before using notifications in the hosted app; no test broadcast has been sent |
 | Credential exposure | Removing `backend/.env` from tracking does not erase Git history | Supabase/AI provider keys and deployment secrets still require operator rotation |
 | Historical ownership | Creator-based ownership is retained, now with department checks | Replacing/deleting an admin can orphan access; repair/migration belongs to the history-preservation phase |
 
@@ -23,7 +23,7 @@ Miscellaneous technical notes, known gaps, and follow-ups.
 - **Teacher-managed class setup.** Admins provision teacher accounts. Admin class, section, subject, assignment, and roster routes return 403; teachers create/reuse class records by importing PDFs in My Classes.
 - **Section term scope.** The live `sections` unique constraint is `(course_id, name, school_year, semester)` so a class can have a separate roster per semester. Existing rows were preserved.
 - **Excel/PDF is client-side.** No spreadsheet libraries exist in the backend.
-- **Backups run in-process.** `restoreInProgress` is a module-level flag, so it protects one server process only.
+- **Backup restore locking.** Merge/replace use the in-process `restoreInProgress` flag. Full restore also takes a database advisory transaction lock and executes atomically through `restore_full_backup_atomic`; apply `sql/create_atomic_full_backup_restore.sql` before deploying that backend path.
 - **RLS is deny-all.** `sql/enable_row_level_security.sql` enables RLS on all 13 `public` tables with no policies. `anon` and `authenticated` also have no table grants, so the publishable/anon key gets `401 permission denied` from PostgREST (verified live). The backend is unaffected because `service_role` has `BYPASSRLS`. The Supabase `RLS Enabled No Policy` advisory is informational and expected. Trigger functions still have mutable `search_path` (advisor WARN) — candidate for a follow-up hardening pass.
 
 ## Local Environment

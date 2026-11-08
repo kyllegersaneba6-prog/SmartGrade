@@ -44,12 +44,12 @@ All routes authenticate; mutations additionally use `authorizeRole('superadmin',
 
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
-| GET | `/api/users` | Any auth | Superadmin: all. Admin: teachers they created in their department. Teacher: self. Responses never include `password` |
+| GET | `/api/users` | Any auth | Superadmin: all. Admin: teachers they created in their department, each with `teacher_class_count` for unique assignments scoped to that admin. Teacher: self. Responses never include `password` |
 | POST | `/api/users` | Superadmin → admin only; Admin → teacher only | Requires 9-digit `staff_id`; username auto-generated; enforces one-admin-per-department; response never includes `password` |
-| PATCH | `/api/users/:id` | Superadmin (admins); Admin (owned teachers in own department) | Allowlisted profile fields; no role/direct username/creator/ID edits; course/department references checked |
+| PATCH | `/api/users/:id` | Superadmin (admins); Admin (owned teachers in own department) | Updates names/password and allowed profile fields; staff ID, role, direct username, and creator are not editable; course/department references checked |
 | DELETE | `/api/users/:id` | Superadmin (admins); Admin (owned teachers in own department) | Nulls `created_by` references, then deletes; old sessions fail verification |
 
-PATCH accepts `full_name`, `first_name`, `last_name`, `staff_id`, `course_id`, `password`; superadmin may additionally send `department` for admin accounts. Unsupported/protected fields return 403. POST accepts those provisioning fields plus `system_role`, with only superadmin→admin and admin→teacher creation permitted.
+PATCH accepts `full_name`, `first_name`, `last_name`, `course_id`, and `password`; superadmin may additionally send `department` for admin accounts. `staff_id` and other unsupported/protected fields return 403. POST accepts the provisioning fields, including `staff_id`, plus `system_role`, with only superadmin→admin and admin→teacher creation permitted.
 
 ## Departments
 
@@ -166,6 +166,17 @@ Router guarded by `authenticateToken` only; no role checks.
 | GET | `/api/activity` | Any auth | Superadmin: all; Admin: current department AND its usernames (superadmins excluded); Teacher: empty |
 | POST | `/api/activity` | Any auth | `{ action, details? }`; identity comes from the freshly verified account; body identity values ignored |
 
+## Notifications
+
+The router authenticates all requests. Reads and dismissals are restricted to the verified user's recipient rows; only superadmins can broadcast.
+
+| Method | Route | Allowed | Notes |
+|---|---|---|---|
+| GET | `/api/notifications` | Any auth | Current user's non-dismissed notifications (latest 50) and total unread count |
+| POST | `/api/notifications` | Superadmin | Broadcast title/content/urgency to selected `admin` and/or `teacher` roles |
+| POST | `/api/notifications/:id/read` | Any auth | Marks only the caller's recipient row as read |
+| DELETE | `/api/notifications/:id` | Any auth | Dismisses only the caller's recipient row |
+
 ## AI
 
 | Method | Route | Allowed | Notes |
@@ -183,7 +194,7 @@ Router-level guard: `authenticateToken` + `authorizeRole('superadmin')` — ever
 | POST | `/api/backup/export` | `{ categories[], password? }` → `{ filename, file, summary }`; 413 over 50 MB |
 | POST | `/api/backup/validate` | `{ file, password? }`; magic, manifest, schema compat, checksums, counts |
 | POST | `/api/backup/preview` | `{ file, password?, mode? }`; per-table insert-vs-existing counts |
-| POST | `/api/backup/restore` | `{ file, password?, mode, confirm }`; `confirm` must be `CONFIRM` or `FULL RESTORE`; 409 if another restore is running |
+| POST | `/api/backup/restore` | `{ file, password?, mode, confirm }`; `confirm` must be `CONFIRM` or `FULL RESTORE`; full mode requires every restorable table and runs atomically through the service-role RPC; the current superadmin and audit log are preserved; 409 if another restore is running |
 
 ## Not Implemented
 
@@ -191,6 +202,5 @@ Router-level guard: `authenticateToken` + `authorizeRole('superadmin')` — ever
 |---|---|
 | Grade computation endpoint | None — computed in the frontend |
 | Grade-point conversion endpoint | None — `utils/gradeCalculations.js` |
-| Notification/broadcast endpoint | None — UI only |
 | `POST /api/sections/seed` | Removed/never existed; only `/seed/preview` |
 | Excel generation endpoint | None — all Excel/PDF is client-side |

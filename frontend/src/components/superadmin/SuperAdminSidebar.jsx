@@ -6,7 +6,7 @@ import clsx from 'clsx';
 const navItems = [
   { name: 'Dashboard', path: '/superadmin', icon: LayoutDashboard, exact: true },
   { name: 'Departments', path: '/superadmin/departments', icon: Building2 },
-  { name: 'Admin Management', path: '/superadmin/admins', icon: Users },
+  { name: 'Manage Admin', path: '/superadmin/admins', icon: Users },
   { name: 'Audit Logs', path: '/superadmin/audit', icon: ShieldCheck },
   { name: 'Settings', path: '/superadmin/settings', icon: Settings },
 ];
@@ -41,7 +41,7 @@ const SuperAdminSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleColla
           isCollapsed && 'lg:w-[72px]',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
-        style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}
+        style={{ backgroundColor: '#0D1E2D' }}
       >
         <button
           type="button"
@@ -111,7 +111,7 @@ const SuperAdminSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleColla
             </div>
             <div className={clsx('min-w-0 flex-1', isCollapsed && 'lg:hidden')}>
               <p className="break-words whitespace-normal text-xs font-semibold leading-tight text-white">{userData?.full_name || userData?.name || 'User'}</p>
-              <span className="mt-1 inline-block w-fit rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-200">
+              <span className="mt-1 inline-block w-fit rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300">
                 {userData?.system_role || userData?.role || 'Super Admin'}
               </span>
             </div>

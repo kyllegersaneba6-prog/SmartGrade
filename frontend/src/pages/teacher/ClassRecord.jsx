@@ -745,7 +745,7 @@ const ClassRecord = () => {
               </colgroup>
               <thead>
                 <tr>
-                  <th colSpan={3} className="sticky-student-header class-record-separator bg-[#0c1925] border-b-2 border-r border-border p-3 text-white text-left font-bold sticky left-0 z-20" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+                  <th colSpan={3} className="sticky-student-header class-record-separator bg-[#0D1E2D] border-b-2 border-r border-border p-3 text-white text-left font-bold sticky left-0 z-20" style={{ backgroundColor: '#0D1E2D' }}>
                     <div className="flex justify-between items-center">
                       <span>STUDENT INFORMATION</span>
                       <span className="text-[10px] text-white">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
@@ -769,7 +769,7 @@ const ClassRecord = () => {
                         onDragEnd={() => { setDragCompId(null); setDropCompId(null); }}
                         title={isReadOnly ? undefined : 'Drag to reorder columns'}
                         className={`class-record-separator bg-[#0c1925] border-b-2 border-r p-2 text-white text-center font-bold relative z-0 ${!isReadOnly ? 'cursor-grab active:cursor-grabbing' : ''} ${isDragging ? 'opacity-40' : ''} ${isDropTarget ? 'outline outline-2 outline-amber-300 outline-offset-[-2px]' : ''}`}
-                        style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}
+                        style={{ backgroundColor: '#0D1E2D' }}
                       >
                         <div className="flex min-h-[4.25rem] flex-col items-center justify-center gap-1.5">
                           <span className="flex h-9 w-full items-center justify-center px-1 text-xs leading-tight uppercase tracking-wider line-clamp-2 break-words">

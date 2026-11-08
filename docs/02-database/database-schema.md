@@ -27,6 +27,8 @@ teacher_assignments ──< attendance
 students ──< attendance
 academic_terms   (standalone; matching is by school_year + semester text)
 activity_log     (standalone; no FKs)
+staff_users ──< broadcast_notifications (created_by)
+broadcast_notifications ──< broadcast_notification_recipients >── staff_users
 ```
 
 ## Tables
@@ -47,6 +49,8 @@ activity_log     (standalone; no FKs)
 | `component_scores` | One score per activity per student |
 | `attendance` | One mark per assignment/student/date/session/type/term |
 | `activity_log` | Audit trail |
+| `broadcast_notifications` | Superadmin-created in-app messages with role audience and urgency |
+| `broadcast_notification_recipients` | Per-user delivery snapshot, read timestamp, and dismissal timestamp |
 
 ## SQL Files
 
@@ -54,6 +58,8 @@ activity_log     (standalone; no FKs)
 |---|---|
 | `schema.sql` | Base tables, indexes, seed data (CICT department, courses, superadmin) |
 | `create_department_export_settings.sql` | Per-department export signatories; RLS enabled and service-role-only grants |
+| `create_atomic_full_backup_restore.sql` | Service-role-only RPC for complete, transactional full restores; preserve the caller and audit log |
+| `create_broadcast_notifications.sql` | RLS-protected broadcast/recipient tables and service-role-only atomic create RPC |
 | `remove_department_export_settings_updated_by.sql` | Removes the unused signatory editor attribution field |
 | `create_grading_tables.sql` | Grading components / activities / scores |
 | `create_attendance_table.sql` | Attendance table (final v2 shape) |
@@ -105,7 +111,7 @@ Enforced in `POST /api/users` and `PATCH /api/users/:id`, and by the partial uni
 The final shape is `UNIQUE(teacher_assignment_id, student_id, date, session, type, term)` — required by the upsert's `onConflict`. `migrate_attendance_final.sql` is the canonical, idempotent migration: it adds the missing columns and drops every older 3-column/5-column unique constraint (whatever its name) before ensuring the 6-column constraint exists. Postgres truncates the long constraint identifier to `attendance_teacher_assignment_id_student_id_date_session_type_t`; the migration protects both the full and truncated spellings so a re-run never drops and recreates it. The old `alter_attendance_unique.sql`, `alter_attendance_session_type.sql`, `alter_attendance_term.sql`, and `migrate_attendance_v2.sql` files are deprecated. Note that NULL `session`/`type`/`term` values make rows distinct in Postgres.
 
 ### Login account source
-Login uses `staff_users` only. The legacy `USR-` alias resolves a unique UUID prefix in that same table; `admin_users` is not queried.
+Login uses `staff_users` only. The legacy `USR-` alias resolves a unique UUID prefix in that same table.
 
 ### Remaining no DB-level checks
 - Component weights must total exactly 100 before scores are entered — this stays a UI/workflow rule; the DB only caps the total at 100.

@@ -44,6 +44,7 @@ const componentScoresRoutes = require('./routes/componentScores');
 const attendanceRoutes = require('./routes/attendance');
 const aiRoutes = require('./routes/ai');
 const backupRoutes = require('./routes/backup');
+const notificationRoutes = require('./routes/notifications');
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -62,6 +63,7 @@ app.use('/api/component-scores', componentScoresRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/', (req, res) => {
   res.send('SmartGrade Backend is running...');

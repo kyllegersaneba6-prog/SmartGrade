@@ -66,13 +66,13 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Security audit page (superadmin) | Done | Filterable, 10 s auto-refresh |
 | Backup export | Done | `.backup.sg`, categories, optional encryption |
 | Backup validate / preview | Done | Checksums, per-table counts, conflict preview |
-| Backup restore (merge / replace / full) | Done | Typed `CONFIRM` / `FULL RESTORE`; restore lock |
+| Backup restore (merge / replace / full) | In Progress | Merge/replace use typed confirmation and an in-process lock; full restore requires complete restorable tables and the atomic RPC migration before deployment |
 | Configurable API base URL | Done | `VITE_API_BASE_URL` (default `http://<hostname>:5000`); pages pass relative `/api/...` paths |
 | Global backend-availability screen | Done | All routes, including Login/404; anonymous health probe, 5 s polling/timeout, manual retry; mounted pages and session retained during later outages |
 | Environment-file tracking cleanup | Done | Local file preserved, JWT secret rotated; sanitized `backend/.env.example` added |
 | Previously committed provider credential rotation | In Progress | Supabase/AI key rotation and deployed-secret updates require operator access |
 | 404 page + catch-all route | Done | `NotFound` page for any unknown URL; links to the role dashboard or login |
-| Broadcast notification | Not Wired | Forms + success banner only; no API call |
+| Broadcast notification | In Progress | In-app, role-targeted broadcasts with unread/read/dismiss state; live DB migration is applied and verified, but backend/frontend deployment is still required |
 | Student portal / self-service | Planned | |
 | Multi-institution support | Planned | |
 | Automated / scheduled backups | Planned | Manual backup only |

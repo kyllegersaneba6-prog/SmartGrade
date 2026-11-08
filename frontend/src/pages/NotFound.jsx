@@ -25,15 +25,11 @@ const NotFound = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden" style={{ backgroundImage: 'linear-gradient(135deg, #FFFFFF 0%, #F3F6FA 50%, #E2E8F0 100%)' }}>
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-15%] left-[-8%] w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle,rgba(12,25,37,0.04)_0%,transparent_60%)]" />
-        <div className="absolute bottom-[-15%] right-[-8%] w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle,rgba(245,166,35,0.06)_0%,transparent_60%)]" />
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
 
       <div
         className="relative z-10 w-full max-w-lg rounded-2xl p-8 md:p-10 text-center shadow-[0_18px_50px_-10px_rgba(71,85,105,0.45)]"
-        style={{ backgroundImage: 'linear-gradient(135deg, #FFFFFF 0%, #F3F6FA 50%, #E2E8F0 100%)' }}
+        style={{ backgroundColor: '#FFFFFF' }}
       >
         <div className="flex flex-col items-center mb-6">
           <img src="/src/assets/logo.png" className="w-16 h-16 object-contain mb-3" alt="SmartGrade Logo" />

@@ -175,6 +175,14 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
           </div>
 
           <div>
+            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Username (auto-generated)</label>
+            <input type="text" value={previewUsername(lastName, staffId)} readOnly placeholder="Enter complete ID + last name " className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-900 cursor-not-allowed font-mono" />
+            {(lastName.trim() || staffId.trim()) && !previewUsername(lastName, staffId) && (
+              <p className="text-[10px] text-gray-400 mt-1">Enter a last name and all 9 ID digits to generate the username</p>
+            )}
+          </div>
+
+          <div>
             <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Department</label>
             <select value={departmentId} onChange={(e) => { setDepartmentId(e.target.value); setError(''); }} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm">
               <option value="" disabled>Select a department</option>
@@ -193,14 +201,6 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
                 );
               })}
             </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Username (auto-generated)</label>
-            <input type="text" value={previewUsername(lastName, staffId)} readOnly placeholder="Enter complete ID + last name " className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-900 cursor-not-allowed font-mono" />
-            {(lastName.trim() || staffId.trim()) && !previewUsername(lastName, staffId) && (
-              <p className="text-[10px] text-gray-400 mt-1">Enter a last name and all 9 ID digits to generate the username</p>
-            )}
           </div>
 
           <div>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Eye, EyeOff, CalendarX, Cog } from 'lucide-react';
+import { Bolt, ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Eye, EyeOff, CalendarX } from 'lucide-react';
 import CreateSuperAdminUser from './CreateSuperAdminUser';
 import api from '../../utils/api';
-import { displayStaffId, formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
+import { displayStaffId, usernameFromLastNameAndId } from '../../utils/staffId';
 import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
 
 const USERS_PER_PAGE = 10;
@@ -19,7 +19,7 @@ const SuperAdminUsers = () => {
   const [userPage, setUserPage] = useState(1);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', staff_id: '', department: '', department_id: '', username: '', password: '' });
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', department_id: '', username: '', password: '' });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -137,8 +137,6 @@ const SuperAdminUsers = () => {
     setEditForm({
       first_name: firstName,
       last_name: lastName,
-      staff_id: formatStaffId(u.staffId || ''),
-      department: deptName,
       department_id: deptId,
       username: u.username === 'N/A' ? '' : u.username,
       password: ''
@@ -150,16 +148,6 @@ const SuperAdminUsers = () => {
 
   const handleEditSave = async () => {
     if (!userToEdit?.rawId) return;
-    // One admin per department — block moving into a taken department before hitting the API
-    const deptTaken = editForm.department && usersList.some((u) => u.rawId !== userToEdit.rawId && u.dept.trim().toLowerCase() === editForm.department.trim().toLowerCase());
-    if (deptTaken) {
-      setEditError(`An admin already exists in ${editForm.department}. One admin per department only.`);
-      return;
-    }
-    if (editForm.staff_id.trim() && !isValidStaffId(editForm.staff_id)) {
-      setEditError('ID must contain exactly 9 digits (format 00000-0000).');
-      return;
-    }
     setEditLoading(true);
     setEditError('');
     try {
@@ -170,7 +158,7 @@ const SuperAdminUsers = () => {
         setEditLoading(false);
         return;
       }
-      const body = { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`, staff_id: staffIdToDigits(editForm.staff_id), department: editForm.department };
+      const body = { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}` };
 
       const res = await api(`/api/users/${userToEdit.rawId}`, {
         method: 'PATCH',
@@ -268,7 +256,7 @@ const SuperAdminUsers = () => {
                 <td className="px-3 py-3 font-mono text-[12px] text-gray-700">{u.username}</td>
                 <td className="px-3 py-3 text-[12px] text-gray-700">{deptDisplay(u.dept)}</td>
                 <td className="px-3 py-3 items-center">
-                  <button onClick={(e) => openMenu(u, e)} className="text-gray-900 hover:text-[#0c1925] transition-colors p-1 rounded-md hover:bg-gray-100" title="Actions"><Cog size={20} /></button>
+                  <button onClick={(e) => openMenu(u, e)} className="text-gray-900 hover:text-[#0c1925] transition-colors p-1 rounded-md hover:bg-gray-100" title="Actions"><Bolt size={20} /></button>
                 </td>
               </tr>
             ))}
@@ -301,26 +289,19 @@ const SuperAdminUsers = () => {
           <div className="bg-white rounded-xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Admin</h3>
             <div className="space-y-4">
-              <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">ID</label><input type="text" value={editForm.staff_id} onChange={(e) => setEditForm({ ...editForm, staff_id: formatStaffId(e.target.value) })} placeholder="00000-0000" maxLength={10} inputMode="numeric" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm font-mono" /></div>
+               <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">ID</label><input type="text" value={displayStaffId(userToEdit.staffId)} readOnly className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg bg-gray-100 text-sm font-mono text-gray-600 cursor-not-allowed" /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">First Name</label><input type="text" value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} placeholder="First name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
                 <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Last Name</label><input type="text" value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} placeholder="Last name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Username (auto-generated)</label>
-                <input type="text" value={usernameFromLastNameAndId(editForm.last_name, editForm.staff_id) || editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
+                 <input type="text" value={usernameFromLastNameAndId(editForm.last_name, userToEdit.staffId) || editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
               </div>
-              <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Department</label>
-                <select value={editForm.department_id} onChange={(e) => { const dept = departments.find(d => d.id === e.target.value); setEditForm({ ...editForm, department_id: e.target.value, department: dept ? dept.name : '' }); setEditError(''); }} className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm">
-                  <option value="">Select department</option>
-                  {departments.map((d) => {
-                    const takenByOther = usersList.some((u) => u.rawId !== userToEdit?.rawId && u.dept.trim().toLowerCase() === d.name.trim().toLowerCase());
-                    return (
-                      <option key={d.id} value={d.id} disabled={takenByOther}>
-                        {d.name}{takenByOther ? ' (admin already assigned)' : ''}
-                      </option>
-                    );
-                  })}
+              <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Department (not editable)</label>
+                <select value={editForm.department_id} disabled className="w-full cursor-not-allowed px-3 py-2 border border-[#e5e0d5] rounded-lg appearance-none bg-gray-100 text-sm text-gray-600 opacity-80">
+                  <option value="">{userToEdit.dept !== 'N/A' ? userToEdit.dept : 'No department assigned'}</option>
+                  {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
               <div>

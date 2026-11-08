@@ -64,11 +64,11 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 
 ## Current Status
 
-Functional MVP. Core grading, attendance, and user management work end to end. Database access is locked down: RLS is enabled on all 13 public tables with no policies, and only the backend's service-role key can read or write.
+Functional MVP. Core grading, attendance, and user management work end to end. Database access is locked down with RLS and service-role-only access; the new notification tables follow the same pattern when their migration is applied.
 
 Known gaps (see `05-development/notes.md`):
 - Phase 1 authorization hardening is implemented: protected account fields, same-department ownership, scoped rosters, relationship validation, and stale-session rejection. Provider-side Supabase/AI credential rotation remains an operator task.
 - `backend/.env` is no longer tracked; a sanitized `.env.example` is provided. Production dependency audits are clean; development-tool advisories remain.
 - No tests, no TypeScript, no centralized API client (pages call a thin `utils/api.js` wrapper with relative `/api/...` paths and a configurable base URL).
-- Superadmin "Broadcast Notification" UI is not wired to an API.
+- In-app broadcast notifications are implemented in code and `backend/sql/create_broadcast_notifications.sql` has been applied and read-only verified on the live database. Deploy the backend and frontend changes before using the feature in the hosted app.
 - Grade computation, grade-point conversion, and all Excel/PDF work live in the frontend, not the backend.

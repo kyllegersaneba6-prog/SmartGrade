@@ -76,50 +76,53 @@ const TeacherOverview = () => {
             <p className="text-sm font-medium">No active term.</p>
             <p className="text-xs mt-1">Wait for a superadmin to create a term.</p>
           </div>
-        ) : assignments.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-50 card-hover text-center text-gray-500">
-            <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-medium">No assignments in this term.</p>
-            <p className="text-xs mt-1">You were not assigned to any class in this academic term.</p>
-          </div>
-        ) : filteredAssignments.length === 0 ? (
+        ) : (assignments.length > 0 || searchQuery.trim()) && filteredAssignments.length === 0 ? (
           <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-50 card-hover text-center text-gray-500">
             <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm font-medium">No classes match your search.</p>
             <p className="text-xs mt-1">Try searching with a different subject or section name.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 auto-rows-fr sm:grid-cols-2 sm:gap-x-0 xl:grid-cols-4">
+          <div className="grid min-h-[430px] grid-cols-1 overflow-hidden rounded-2xl border border-gray-200 bg-white sm:grid-cols-2 xl:grid-cols-4">
             {yearOrder.map((year, index) => {
               const items = groupedByYear[year] || [];
               const columnDivider = [
-                'px-4 py-3 sm:px-5',
-                index % 2 === 0 ? 'sm:border-r sm:border-gray-900' : 'sm:border-r-0',
-                index < yearOrder.length - 1 ? 'xl:border-r xl:border-gray-900' : 'xl:border-r-0',
+                'flex min-h-[280px] flex-col px-6 py-6',
                 index < yearOrder.length - 1 ? 'border-b border-gray-200 sm:border-b-0' : '',
+                index % 2 === 0 ? 'sm:border-r sm:border-gray-200' : '',
+                index < yearOrder.length - 1 ? 'xl:border-r xl:border-gray-200' : 'xl:border-r-0',
               ].join(' ');
               return (
-                <div key={year} className={`flex h-[420px] flex-col ${columnDivider}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">{yearLabels[year]}</h4>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{items.length}</span>
+                <section key={year} aria-label={yearLabels[year]} className={columnDivider}>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h4 className="text-sm font-medium uppercase tracking-wide text-gray-700">{yearLabels[year]}</h4>
+                    <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-gray-100 px-2 text-sm font-medium text-gray-600">{items.length}</span>
                   </div>
                   {items.length === 0 ? (
-                    <p className="flex flex-1 items-center justify-center text-xs text-gray-400 py-3">No assigned subjects.</p>
+                    <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+                      <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-slate-400">
+                        <BookOpen size={22} strokeWidth={1.8} />
+                      </span>
+                      <p className="text-sm font-semibold text-slate-700">No assigned subjects</p>
+                      <p className="mt-2 max-w-[150px] text-xs leading-5 text-slate-500">Classes for this year will appear here.</p>
+                    </div>
                   ) : (
-                    <div className={`flex-1 min-h-0 space-y-2 overflow-y-auto pr-1 ${items.length >= 5 ? 'max-h-[17rem]' : ''}`}>
+                    <div className="space-y-3">
                       {items.map((a) => (
-                        <div key={a.id} className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-300">
-                          <p className="text-sm font-semibold text-gray-900">
-                            {a.subjects?.code ? <span className="text-gray-900 font-mono text-[13px] mr-1.5">{a.subjects.code}</span> : null}
-                            {a.subjects?.name}
-                          </p>
-                          <p className="text-[13px] text-gray-900">{a.sections?.name}</p>
-                        </div>
+                        <article
+                          key={a.id}
+                          className="flex min-h-[108px] w-full flex-col justify-between rounded-xl border border-slate-300 bg-[#fbfcfd] p-3"
+                        >
+                          <div className="min-w-0">
+                            {a.subjects?.code && <p className="text-xs font-bold uppercase tracking-wider text-slate-600">{a.subjects.code}</p>}
+                            <p className="mt-1.5 text-sm font-semibold leading-snug text-gray-900">{a.subjects?.name || 'Untitled subject'}</p>
+                          </div>
+                          <p className="mt-2 text-xs text-gray-700">{a.sections?.name || 'Section not set'}</p>
+                        </article>
                       ))}
                     </div>
                   )}
-                </div>
+                </section>
               );
             })}
           </div>

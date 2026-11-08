@@ -109,8 +109,8 @@ const FloatingAssignmentSelector = () => {
                         isItemActive ? 'bg-[#0c1925]/5' : 'hover:bg-gray-100'
                       }`}
                     >
-                      <span className={`flex items-center justify-center w-7 h-7 rounded-md shrink-0 transition-colors ${isItemActive ? 'text-white' : 'text-gray-900 bg-gray-100'}`} style={isItemActive ? { background: '#0c1925' } : {}}>
-                        {isItemActive ? <Check size={15} /> : <BookOpen size={15} />}
+                      <span className={`flex items-center justify-center w-7 h-7 rounded-md shrink-0 transition-colors ${isItemActive ? 'text-amber-300' : 'text-gray-900 bg-gray-100'}`} style={isItemActive ? { background: '#0c1925' } : {}}>
+                        <BookOpen size={15} />
                       </span>
                       <span className="flex-1 min-w-0">
                         <span className={`block text-xs truncate ${isItemActive ? 'font-bold text-[#0c1925]' : 'font-semibold text-gray-900'}`}>{display.title}</span>

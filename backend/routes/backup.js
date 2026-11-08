@@ -4,7 +4,7 @@ const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { CATEGORIES, dependencyClosure, tablesForCategories, MAX_FILE_BYTES, FORMAT_VERSION } = require('../services/backupFormat');
 const {
   getCategoryCounts, buildBackup, fullValidate, buildPreview,
-  applyMerge, applyReplace, applyFull, audit,
+  fullRestoreCoverageErrors, applyMerge, applyReplace, applyFull, audit,
 } = require('../services/backupService');
 
 const router = express.Router();
@@ -82,6 +82,10 @@ router.post('/preview', sizeGuard, async (req, res) => {
     const m = ['merge', 'replace', 'full'].includes(mode) ? mode : 'merge';
     const result = fullValidate(file, password);
     if (!result.ok) return res.status(400).json({ ok: false, errors: result.errors });
+    if (m === 'full') {
+      const coverageErrors = fullRestoreCoverageErrors(file.manifest.tables, result.data);
+      if (coverageErrors.length) return res.status(400).json({ ok: false, errors: coverageErrors });
+    }
     const preview = await buildPreview(supabase, file, result.data, m);
     res.json({ ok: true, manifest: file.manifest, preview });
   } catch (err) {
@@ -101,8 +105,9 @@ router.post('/restore', sizeGuard, async (req, res) => {
     if (confirm !== expected) return res.status(400).json({ message: `Type ${expected} to confirm.` });
     const result = fullValidate(file, password);
     if (!result.ok) return res.status(400).json({ ok: false, errors: result.errors });
-    if (m === 'full' && file.manifest.selectedCategories.length + (file.manifest.autoIncluded?.length || 0) < CATEGORIES.length - 1) {
-      return res.status(400).json({ message: 'Full restore requires a complete backup.' });
+    if (m === 'full') {
+      const coverageErrors = fullRestoreCoverageErrors(file.manifest.tables, result.data);
+      if (coverageErrors.length) return res.status(400).json({ ok: false, errors: coverageErrors });
     }
 
     restoreInProgress = true;

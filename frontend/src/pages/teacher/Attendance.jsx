@@ -540,7 +540,7 @@ const Attendance = () => {
             <table className="teacher-sticky-table teacher-sticky-table-3rows teacher-sticky-attendance sticky-cols text-xs select-none" style={{ width: 'fit-content', minWidth: 'max-content', borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
-                  <th colSpan={3} className="sticky-student-header bg-[#0c1925] border-b-2 border-r-2 border-border p-3 text-white text-left font-bold sticky left-0 z-20" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+                  <th colSpan={3} className="sticky-student-header bg-[#0D1E2D] border-b-2 border-r-2 border-border p-3 text-white text-left font-bold sticky left-0 z-20" style={{ backgroundColor: '#0D1E2D' }}>
                     <div className="flex justify-between items-center">
                       <span>STUDENT INFORMATION</span>
                       <span className="text-[12px] text-gray-300">{searchQuery ? `${students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length}/${students.length}` : students.length} students</span>
@@ -550,7 +550,7 @@ const Attendance = () => {
                     const color = getColor(idx);
                     const { session, type } = parseKey(key);
                     return (
-                      <th key={key} className="border-b-2 border-r-2 border-gray-200 py-2.5 px-2 text-white text-center font-bold text-sm uppercase tracking-wider relative group z-0 bg-[#0c1925]" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+                      <th key={key} className="border-b-2 border-r-2 border-gray-200 py-2.5 px-2 text-white text-center font-bold text-sm uppercase tracking-wider relative group z-0 bg-[#0D1E2D]" style={{ backgroundColor: '#0D1E2D' }}>
                         <div className="flex flex-col items-center justify-center">
                           {!isReadOnly && (
                             <button

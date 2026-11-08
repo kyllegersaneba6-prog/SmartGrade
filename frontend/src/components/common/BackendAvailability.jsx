@@ -1,11 +1,10 @@
-import { useId, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import { LoaderCircle, RefreshCw, ServerOff } from 'lucide-react';
 import {
   checkBackendAvailability, getBackendStatus, subscribeBackendStatus,
 } from '../../utils/backendAvailability';
 
 const BackendAvailability = ({ children }) => {
-  const serverGradientId = useId();
   const { status, checking, hasConnected } = useSyncExternalStore(
     subscribeBackendStatus, getBackendStatus, getBackendStatus,
   );
@@ -23,25 +22,17 @@ const BackendAvailability = ({ children }) => {
       {status !== 'available' && (
         <main
           className="fixed inset-0 z-[1000] flex items-center justify-center overflow-y-auto p-4 sm:p-6 font-sans"
-          style={{ backgroundImage: 'linear-gradient(135deg, #FFFFFF 0%, #F3F6FA 50%, #E2E8F0 100%)' }}
+          style={{ backgroundColor: '#FFFFFF' }}
         >
           <section
             role="status"
             aria-live="polite"
             aria-labelledby="backend-status-title"
-            className="my-auto w-full max-w-lg rounded-2xl p-8 md:p-10 text-center shadow-[0_18px_50px_-10px_rgba(71,85,105,0.45)]"
+            className="my-auto w-full max-w-lg rounded-2xl bg-white p-8 md:p-10 text-center shadow-[0_18px_50px_-10px_rgba(71,85,105,0.45)]"
           >
             <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-gray-800 bg-gray-50 text-amber-700">
               {unavailable ? (
-                <ServerOff size={28} stroke={`url(#${serverGradientId})`} aria-hidden="true">
-                  <defs>
-                    <linearGradient id={serverGradientId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="24" y2="0">
-                      <stop offset="0%" stopColor="#0c1925" />
-                      <stop offset="50%" stopColor="#102132" />
-                      <stop offset="100%" stopColor="#142a3f" />
-                    </linearGradient>
-                  </defs>
-                </ServerOff>
+                <ServerOff size={28} color="#0D1E2D" aria-hidden="true" />
               ) : <LoaderCircle size={28} className="animate-spin" aria-hidden="true" />}
             </div>
             <h1 id="backend-status-title" className="mb-3 text-xl sm:text-2xl font-bold text-[#0c1925]">

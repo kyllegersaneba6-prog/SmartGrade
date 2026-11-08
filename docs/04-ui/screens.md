@@ -3,7 +3,7 @@
 ## Backend Availability (All Routes)
 
 - Shared `components/common/BackendAvailability.jsx`, outside the router via `main.jsx`; no dedicated URL.
-- Covers Login, all role pages, and Not Found while the backend health check fails. Full-screen white/gray gradient, server-off icon with left-to-right navy gradient strokes (`#0c1925 → #102132 → #142a3f`) on a `bg-gray-50` badge with a `border-gray-800` border, centered status card.
+- Covers Login, all role pages, and Not Found while the backend health check fails. Full-screen solid-white canvas and status card; server-off icon in `#0D1E2D` on a `bg-gray-50` badge with a `border-gray-800` border. No gradient background.
 - Title: **Service Unavailable**.
 - Paragraph: **The service could not be started. We're unable to process your request at this time.**
 - **Try Again** becomes **Checking Connection...** during a probe. Automatic checks run every 5 s and on focus/online; initial pending connection uses **Connecting to Service** with a spinner.
@@ -13,7 +13,7 @@
 
 Public. Two-column split:
 
-- **Left (form):** `linear-gradient(135deg, #FFFFFF 0%, #F3F6FA 50%, #E2E8F0 100%)` canvas and form card (same gradient) with `rounded-2xl` and a borderless, clearly visible shadow (`0 18px 50px -10px rgba(71,85,105,0.45)`); logo, `SmartGrade` title in `#0c1925`, "Academic Management System", username (`User` icon), password (`Lock` icon + show/hide), amber **Sign In**, "Institutional Access Only". Inputs are `bg-gray-50` with `#0c1925` focus rings; errors use `bg-red-50`/`border-red-200`.
+- **Left (form):** solid-white canvas and matching white `rounded-2xl` form card with dark text and a visible gray shadow; logo, username (`User` icon), password (`Lock` icon + show/hide), amber **Sign In**, "Institutional Access Only". Inputs are `bg-gray-50` with `#0c1925` focus rings; errors use `bg-red-50`/`border-red-200`. The page is constrained to viewport height; the form column scrolls internally only when content exceeds a short viewport, while the right hero panel remains fixed without its own scrollbar. No gradient background.
 - **Right (hero, `lg+` only):** blurred `STI_Background.png` with brand lockup ("Academic Management System") and the five feature blocks (Grade Computation & Analytics, Attendance Tracking, Class & Teacher Management, Performance Reports, AI Student Summary) placed directly on the photo (no card/panel behind them); feature icons carry a thin black outline (`.stroke-icon`), "© 2026 SmartGrade Educational Systems."
 - Login network failures trigger the shared health check. The global unavailable screen takes over if that fails; the existing inline connection message can appear while the check is pending. Database/offline errors from a reachable API stay page-local.
 - Invalid-password errors include the backend-calculated remaining attempt count, e.g. **Invalid password. 4 attempts remaining.** The smallest remaining username/account/IP allowance is shown; at zero the message also says **Please try again later.** The existing rate-limit error appears on subsequent blocked requests; there is no browser-local attempt counter.
@@ -24,18 +24,18 @@ Public. Two-column split:
 
 Standalone page (no app shell) rendered for any unmatched URL, including unknown child routes such as `/admin/typo`.
 
-- Page and card share `linear-gradient(135deg, #FFFFFF 0%, #F3F6FA 50%, #E2E8F0 100%)` (same as Login); the card has no border and uses a visible gray shadow `0 18px 50px -10px rgba(71,85,105,0.45)`.
-- Logo, `SmartGrade` title in `#0c1925`, search-off icon in an amber-100 tile, large `404` in `#0c1925`, "Page not found", and the attempted path in a `bg-gray-100` code chip.
-- Primary button ("Go to dashboard" for admin/superadmin, **"Go to overview"** for teachers → `/teacher/overview`, "Go to login" when signed out) is amber-300 with `#0c1925` text; secondary "Go back" is a white button with a `gray-300` border.
+- Page and card use solid white backgrounds with a visible gray shadow; no gradient background.
+- Logo, dark `SmartGrade` title, search-off icon in an amber-100 tile, large dark `404`, "Page not found", and the attempted path in a `bg-gray-100` code chip.
+- Primary button ("Go to dashboard" for admin/superadmin, **"Go to overview"** for teachers → `/teacher/overview`, "Go to login" when signed out) is amber-300 with `#0c1925` text; secondary "Go back" is white with a `gray-300` border.
 
 ## Superadmin Pages
 
 | Route | Component | Description |
 |---|---|---|
-| `/superadmin` | `SuperAdminDashboard` | Four metrics (Total Accounts, Faculty Members, Admin Accounts, Audit logs), Department User Overview table, recent activity feed, Broadcast Notification form (not wired) |
-| `/superadmin/audit` | `Audit` (`audit.jsx`) | Critical alerts / total events, filterable audit trail (All, Created, Updated, Deleted, Failed Logins, Successful Logins), sticky column header, 50 logs per page, animated 500ms scroll back to the audit section top on page changes, 10 s auto-refresh |
-| `/superadmin/admins` | `SuperAdminUsers` | Admin accounts table, add/edit/delete (typed `Confirm`), "No Active Term" gate before creating |
-| `/superadmin/admins/create` | `CreateSuperAdminUser` | Full-screen create-admin form: staff ID, names, department (departments with an admin are disabled), read-only username |
+| `/superadmin` | `SuperAdminDashboard` | Four metrics (Total Accounts, Faculty Members, Admin Accounts, Audit logs), Department User Overview table, recent activity feed, and a broadcast form for sending in-app notifications to selected Admin/Teacher roles |
+| `/superadmin/audit` | `Audit` (`audit.jsx`) | Critical alerts / total events, filterable audit trail (All, Created, Updated, Deleted, Failed Logins, Successful Logins, Backup, Notification), sticky column header, 50 logs per page, animated 500ms scroll back to the audit section top on page changes, 10 s auto-refresh |
+| `/superadmin/admins` | `SuperAdminUsers` | Admin accounts table, add/edit/delete (typed `Confirm`); Staff ID is read-only and Department is disabled while editing; "No Active Term" gate before creating |
+| `/superadmin/admins/create` | `CreateSuperAdminUser` | Full-screen create-admin form: staff ID, names, read-only username preview, then department (departments with an admin are disabled) |
 | `/superadmin/departments` | `ManageDepartments` | Department accordions with nested course CRUD, abbreviation editing, typed-confirm deletes |
 | `/superadmin/settings` | `SuperAdminSettings` | Term lifecycle (Create Term, End Semester) + `BackupRestore` panel |
 
@@ -45,8 +45,8 @@ Standalone page (no app shell) rendered for any unmatched URL, including unknown
 
 | Route | Component | Description |
 |---|---|---|
-| `/admin` | `AdminDashboard` | Welcome header, Total Teachers / Courses / Activity metrics, Teacher Overview with usernames, Recent Activities feed |
-| `/admin/teachers` | `AdminTeachers` | Teacher account table (ID, Name, Username, Date Added) with Add, Search, Edit, and Delete; admins do not browse or assign classes |
+| `/admin` | `AdminDashboard` | Welcome header, Total Teachers / Total Teacher Classes / Activity metrics, Teacher Overview with usernames and each teacher's unique section/subject/term class count, Recent Activities feed with a visible Filter control for Created, Updated, Deleted, and login events |
+| `/admin/teachers` | `AdminTeachers` | Teacher account table (ID, Name, Username, Date Added) with Add, Search, Edit, and Delete; Staff ID is read-only while editing; admins do not browse or assign classes |
 | `/admin/teachers/create` | `CreateAdminTeacher` | Full-screen create-teacher form with auto-generated username preview |
 | `/admin/settings` | `AdminSettings` | Export signatory fields (BSIT program head, BSCS program head, CICT dean), active term card, term history, archive entry/exit with confirmation modal |
 
@@ -60,7 +60,7 @@ Notes:
 
 | Route | Component | Description |
 |---|---|---|
-| `/teacher`, `/teacher/overview` | `TeacherOverview` | Welcome header, assigned subjects in four year-level columns (1st–4th Year, each with a count and an empty state), archive chip + Exit Archive when browsing. All four columns use `auto-rows-fr` with a fixed `h-[420px]`, so filled and empty years share the same expanded height; the subject list scrolls vertically once 5 or more subjects are assigned (`max-h-[17rem]`) |
+| `/teacher`, `/teacher/overview` | `TeacherOverview` | Welcome header, assigned subjects in four year-level columns (1st–4th Year, each with a count and an empty state), archive chip + Exit Archive when browsing. All four columns use `auto-rows-fr` with a fixed `h-[420px]`, so filled and empty years share the same expanded height; the subject list scrolls vertically once 5 or more subjects are assigned (`max-h-[17rem]`) with a gray-300 scrollbar thumb |
 | `/teacher/attendance` | `Attendance` | Term tabs, Add Date (date + AM/PM + LEC/LAB; session sublabels "Morning session" / "Afternoon session" are `text-gray-900`), attendance matrix, 0/1/2 entry, autosave, delete column (the `X` sits above the date to save width; no export button) |
 | `/teacher/class-record` | `ClassRecord` | Term tabs, component builder (presets, weights, attendance component, activities, drag reorder; add/edit component modal uses `text-gray-900` for all gray text and caps weight input at the remaining term weight (max 100) without the "no more than" error, the modal's Add Component/Save Changes button stays enabled and shows "Enter a component name" on click when the name is empty; component errors render only inside this modal, with no page-level error banner under the assignment selector; **Copy from previous term** is offered only when the target is empty and the immediately preceding term has components; empty table shows a message only, no Add Component button), wide score matrix with TOTAL / EQUIV / W_TOTAL / final grade column labelled `PRELIM GRADE`, `MIDTERM GRADE`, `PRE-FINAL GRADE`, or `FINAL GRADE` per selected term, Excel + PDF export (export disabled with an inline reason until component weights total 100%). The assignment selector row matches Attendance/Analytics/Grade Summary and its popover paints above the grid (`z-[100]`). |
 | `/teacher/my-class-list` | `MyClassList` | Shows existing section rosters and imports a class-list PDF into a new or existing section, subject, and teacher assignment for the active term. Text-based official PDFs are parsed locally into an editable preview; invalid/duplicate rows are flagged, and archived terms are read-only. |

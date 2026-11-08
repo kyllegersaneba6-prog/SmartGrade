@@ -81,7 +81,30 @@ router.get('/', async (req, res) => {
       return sendServerError(res, error);
     }
 
-    res.json((users || []).map(omitPassword));
+    let responseUsers = (users || []).map(omitPassword);
+    if (role === 'admin' && responseUsers.length > 0) {
+      // The unique assignment key is teacher + section + subject + term, so
+      // repeated imports of the same class do not increase this count.
+      const assignmentCounts = await Promise.all(responseUsers.map(async (teacher) => {
+        const { count, error: countError } = await supabase
+          .from('teacher_assignments')
+          .select('id', { count: 'exact', head: true })
+          .eq('teacher_id', teacher.id)
+          .eq('created_by', userId);
+        return { teacherId: teacher.id, count, error: countError };
+      }));
+
+      const failedCount = assignmentCounts.find(({ error }) => error);
+      if (failedCount) return sendServerError(res, failedCount.error);
+
+      const countsByTeacher = new Map(assignmentCounts.map(({ teacherId, count }) => [teacherId, count || 0]));
+      responseUsers = responseUsers.map((teacher) => ({
+        ...teacher,
+        teacher_class_count: countsByTeacher.get(teacher.id) || 0,
+      }));
+    }
+
+    res.json(responseUsers);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -276,10 +299,10 @@ router.post('/', authorizeRole('superadmin', 'admin'), async (req, res) => {
 
 // PATCH /api/users/:id — update user
 router.patch('/:id', authorizeRole('superadmin', 'admin'), async (req, res) => {
-  const allowed = ['full_name', 'first_name', 'last_name', 'staff_id', 'course_id', 'password'];
+  const allowed = ['full_name', 'first_name', 'last_name', 'course_id', 'password'];
   if (req.user.role === 'superadmin') allowed.push('department');
   if (!req.body || Object.keys(req.body).some(key => !allowed.includes(key))) {
-    return res.status(403).json({ message: 'Account field cannot be edited. Roles, usernames, and ownership are server-controlled.' });
+    return res.status(403).json({ message: 'Account field cannot be edited. Staff IDs, roles, usernames, and ownership are server-controlled.' });
   }
   const { id } = req.params;
   const { full_name, first_name, last_name, course_id, department, password } = req.body;
@@ -331,39 +354,11 @@ router.patch('/:id', authorizeRole('superadmin', 'admin'), async (req, res) => {
     }
 
     const updates = {};
-    // Staff ID edit: same format + global uniqueness (excluding self). Empty clears back to NULL.
-    if (req.body.staff_id !== undefined) {
-      const raw = String(req.body.staff_id || '').trim();
-      if (raw === '') {
-        updates.staff_id = null;
-      } else {
-        const normalized = normalizeStaffId(raw);
-        if (!isValidStaffId(normalized)) {
-          return res.status(400).json({ message: 'ID must contain exactly 9 digits (format 00000-0000).' });
-        }
-        const { data: existingId } = await supabase
-          .from('staff_users')
-          .select('id')
-          .eq('staff_id', normalized)
-          .neq('id', id)
-          .limit(1);
-        if (existingId && existingId.length > 0) {
-          return res.status(400).json({ message: 'ID already exists. Please enter a different ID.' });
-        }
-        updates.staff_id = normalized;
-      }
-    }
-
     // Username always follows last name + staff ID — never edited directly.
-    // Only the LAST name drives the username, so editing the first name
-    // (which may be a double name like "Mary Jane") never changes it.
-    // Recalculate only when the last name or the staff ID actually changes.
+    // Staff ID is immutable after creation. Only the LAST name drives the
+    // username, so editing the first name never changes it.
     {
-      const clearingStaff = req.body.staff_id !== undefined && String(req.body.staff_id || '').trim() === '';
-      const staffChanged = req.body.staff_id !== undefined && !clearingStaff;
-      const effectiveStaff = staffChanged
-        ? normalizeStaffId(req.body.staff_id)
-        : (targetUser.staff_id || '');
+      const effectiveStaff = targetUser.staff_id || '';
       const effectiveLast = last_name !== undefined
         ? last_name
         : full_name !== undefined
@@ -376,10 +371,7 @@ router.patch('/:id', authorizeRole('superadmin', 'admin'), async (req, res) => {
       // name actually differs, so first-name-only edits keep the username.
       const parsedLastChanged = last_name === undefined && full_name !== undefined
         && normalizeLastName(lastNameFromFullName(full_name) || '') !== normalizeLastName(targetUser.last_name || '');
-      if (staffChanged && !effectiveLast) {
-        return res.status(400).json({ message: 'Last name is required to generate the username.' });
-      }
-      if ((staffChanged || lastChanged || parsedLastChanged) && effectiveStaff && effectiveLast) {
+      if ((lastChanged || parsedLastChanged) && effectiveStaff && effectiveLast) {
         const derivedUsername = usernameFromLastNameAndId(effectiveLast, effectiveStaff);
         if (derivedUsername) {
           const { data: existingUsername } = await supabase
@@ -389,7 +381,7 @@ router.patch('/:id', authorizeRole('superadmin', 'admin'), async (req, res) => {
             .neq('id', id)
             .limit(1);
           if (existingUsername && existingUsername.length > 0) {
-            return res.status(400).json({ message: 'Username already exists. Please enter a different ID.' });
+            return res.status(400).json({ message: 'Generated username already exists. Please use a different last name.' });
           }
           updates.username = derivedUsername;
         }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Activity, Clock, CheckCircle, Trash2, RefreshCw, UsersRound, UserRoundCheck, UserRoundX, Filter, Check } from 'lucide-react';
+import { Activity, BookOpen, Clock, CheckCircle, Trash2, RefreshCw, UsersRound, UserRoundCheck, UserRoundX, Filter, Check } from 'lucide-react';
 import api from '../../utils/api';
 import { splitUpdateDescription, isSentenceDescription } from '../../utils/auditText';
 import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../components/common/Skeleton';
@@ -62,6 +62,10 @@ const AdminDashboard = () => {
   });
 
   const activityLogToDisplay = filteredActivities;
+  const totalTeacherClasses = teachers.reduce(
+    (total, teacher) => total + (Number(teacher.teacher_class_count) || 0),
+    0,
+  );
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -73,9 +77,9 @@ const AdminDashboard = () => {
 
       
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {initialLoading ? (
-          <div className="md:col-span-2" aria-busy="true"><SkeletonMetricCards count={2} /></div>
+          <div className="md:col-span-3" aria-busy="true"><SkeletonMetricCards count={3} /></div>
         ) : (
         <>
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
@@ -85,6 +89,15 @@ const AdminDashboard = () => {
             <span className="text-[11px] text-gray-900">Registered faculty members</span>
           </div>
           <div className="p-3.5 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#142a3f15', color: '#142a3f' }}><UsersRound size={24} /></div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Total Teacher Classes</span>
+            <div className="text-3xl font-extrabold text-[#142a3f]">{totalTeacherClasses}</div>
+            <span className="text-[11px] text-gray-900">Unique class assignments</span>
+          </div>
+          <div className="p-3.5 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#142a3f15', color: '#142a3f' }}><BookOpen size={24} /></div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
@@ -112,12 +125,13 @@ const AdminDashboard = () => {
           {teachers.length === 0 ? (
             <p className="text-sm text-gray-500 italic py-6 text-center">No teachers registered yet.</p>
           ) : (
-            <div className="flex-1 overflow-y-auto pr-1">
-              <table className="w-full text-xs min-w-[300px]">
+            <div className="flex-1 overflow-x-auto overflow-y-auto pr-1">
+              <table className="w-full text-xs min-w-[330px]">
                 <thead>
                   <tr className="border-b sticky top-0 bg-gray-50 z-10" style={{ borderColor: '#e5e7eb' }}>
                     <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Name</th>
                     <th className="text-left pb-2 pr-3 font-semibold text-gray-900 text-[10px] uppercase tracking-wide">Username</th>
+                    <th className="text-center pb-2 font-semibold text-gray-900 text-[10px] uppercase tracking-wide whitespace-nowrap" title="Unique section, subject, school year, and semester assignments">Teacher Classes</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -125,6 +139,7 @@ const AdminDashboard = () => {
                     <tr key={t.id} className="border-b last:border-0 hover:bg-gray-50" style={{ borderColor: '#e5e7eb' }}>
                       <td className="py-3 pr-3 font-bold text-gray-900">{t.full_name}</td>
                       <td className="py-3 pr-3 text-gray-600">{t.username || '—'}</td>
+                      <td className="py-3 text-center font-semibold text-gray-700">{t.teacher_class_count ?? 0}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -138,8 +153,9 @@ const AdminDashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Recent Activities</h2>
             <div className="relative">
-              <button onClick={() => setFilterOpen(o => !o)} className="p-1.5 rounded flex items-center gap-1" title="Filter by action">
+              <button onClick={() => setFilterOpen(o => !o)} className="flex items-center gap-1 rounded px-2 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50" title="Filter by action">
                 <Filter size={16} className={actionFilter === 'ALL' ? 'text-black' : 'text-[#0c1925]'} />
+                <span>Filter</span>
               </button>
               {filterOpen && (
                 <>
@@ -191,8 +207,8 @@ const AdminDashboard = () => {
                   : log.details;
                 const split = isUpdate ? splitUpdateDescription(actorText) : null;
                 const Icon = isCreate ? CheckCircle : isDelete ? Trash2 : isFailed ? UserRoundX : isSuccess ? UserRoundCheck : isUpdate ? RefreshCw : Activity;
-                const iconColor = isCreate || isSuccess ? '#22c55e' : isDelete || isFailed ? '#ef4444' : isUpdate ? '#142a3f' : '#142a3f';
-                const bg = isCreate || isSuccess ? '#f0fdf4' : isDelete || isFailed ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
+                const iconColor = isSuccess || isFailed ? '#000000' : isCreate ? '#22c55e' : isDelete ? '#ef4444' : isUpdate ? '#142a3f' : '#142a3f';
+                const bg = isSuccess || isFailed ? '#f3f4f6' : isCreate ? '#f0fdf4' : isDelete ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
 
                 return (
                   <div key={log.id} className="flex gap-3 p-3 rounded-xl border border-gray-200 card-hover shadow-sm hover:shadow-md transition-all duration-100">

@@ -32,7 +32,8 @@
 
 | Value | Where |
 |---|---|
-| `linear-gradient(to right, #0c1925, #102132, #142a3f)` | Sidebars, login / not-found panels, and teacher grading table header bands |
+| `#0D1E2D` | Solid background for Admin, Teacher, and Superadmin sidebars and teacher grading table header bands |
+| `#FFFFFF` | Solid canvas/card backgrounds for Login, Not Found, and backend-unavailable screens |
 | `#0c1925`, `#142a3f` | Primary buttons, focus rings, headings |
 | `#0a316a` + `border-gold` | Active sidebar item (`bg-[#24384b]`, `text-amber-300`) |
 | `#0c1925` | Dept/term header badges (`text-amber-300`), assigned-teacher year pill |
@@ -71,6 +72,7 @@ There is **no per-role color palette**. Admin, teacher, and superadmin share nav
 | Assigned Subjects modal icon | Header eye icon uses `text-amber-300` on a `bg-amber-300/10` rounded badge, keeping the icon visible against the lightly tinted background |
 | Assigned Teachers modal search | Upper-right bordered search input beside the close button, with search/clear icons; header wraps on smaller screens. Filters teacher names, sections, and year levels case-insensitively; resets when the modal opens. Results retain the existing scrollable body and loading/empty states |
 | Audit action text | `RATE_LIMITED_LOGIN` uses red `#dc2626`, matching failed-login and delete actions; update actions remain blue and create/success actions remain green |
+| Activity feed login icons | Successful- and failed-login icons are black on gray (`#f3f4f6`) circular backgrounds in the Admin and Superadmin dashboards |
 | Add Subjects errors | One modal-local `role="alert"` red error block; identical response messages are deduplicated across rows (including closed-term errors). No page-level add-error banner. Partial failures keep the modal open with failed rows only |
 | Teacher grade grid | Attendance, My Classes, Class Record, Analytics, and Grade Summary use the page scrollport for vertical movement and sticky table headers. My Classes pins its Class List toolbar at the layout top and places sticky column headers directly beneath it. Attendance pins its three header rows and keeps frozen header cells opaque above student data. Class Record keeps its explicit `<colgroup>` to align frozen student columns and the spanning header, with 1px black separators at component boundaries and below MAX SCORE. |
 | Class Record sticky layers | `.class-record-horizontal-anchor` is sticky at `z-index: 20`. The heading wrapper adds `.class-record-heading-anchor` (`z-index: 40`) so the Export dropdown (second item hangs over the toolbar row) stays clickable; without it, later `z-index: 20` toolbar rows swallow the click and only Excel works. |
@@ -90,7 +92,7 @@ There is **no per-role color palette**. Admin, teacher, and superadmin share nav
 | Dropdown | Custom trigger with icon tile, optional search, `max-h-56` scroll panel, check mark on selection. Sublabels default to `text-gray-400`; `sublabelClassName` overrides them (Attendance session uses `text-gray-900` for "Morning session" / "Afternoon session"). Teacher assignment-selector triggers use `.shadow-elevated` permanently |
 | Teacher term tabs | Segmented `bg-bg-light border border-border rounded-lg p-1` container with `shadow-elevated`; selected tab `bg-[#0c1925] text-white shadow-sm` |
 | Empty state | Centered icon at 30% opacity + short title + hint |
-| Backend unavailable | App-wide fixed `inset-0 z-[1000]` gradient screen; centered `max-w-lg rounded-2xl` status card, server-off icon on a `bg-gray-50 border-gray-800` badge, exact requested title/message, amber **Try Again** button; mounted routes hidden/inert underneath. Icon strokes use a unique-ID SVG gradient equivalent to `linear-gradient(to right, #0c1925, #102132, #142a3f)` |
+| Backend unavailable | App-wide fixed `inset-0 z-[1000]` solid-white screen; centered `max-w-lg rounded-2xl` white status card, server-off icon in `#0D1E2D` on a `bg-gray-50 border-gray-800` badge, dark title, gray-600 message, amber **Try Again** button; mounted routes hidden/inert underneath |
 | Skeleton | `.skeleton-shimmer` blocks; presets in `components/common/Skeleton.jsx` |
 | Pagination | `components/common/Pagination.jsx` — range label with configurable item label, ellipsis, prev/next; hidden at one page |
 | Read-only notice | Amber banner "This term is closed. Viewing only." |

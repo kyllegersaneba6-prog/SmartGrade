@@ -572,7 +572,7 @@ const BehavioralAnalytics = () => {
                   </th>
                   {components.map((comp) => (
                     (comp.is_attendance || comp.activities?.length > 0) && (
-                      <th key={comp.id} colSpan={3} className="border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0" style={{ backgroundImage: 'linear-gradient(to right, #0c1925, #102132, #142a3f)' }}>
+                      <th key={comp.id} colSpan={3} className="border-b-2 border-r-2 p-3 text-white text-center font-bold text-sm uppercase tracking-wider relative z-0" style={{ backgroundColor: '#0D1E2D' }}>
                         {comp.name} ({comp.weight}%)
                       </th>
                     )

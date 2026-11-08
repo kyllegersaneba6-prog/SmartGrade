@@ -68,6 +68,14 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+  /* Match Tailwind gray-300 on the nested Teacher Overview scrollbar only. */
+  .teacher-overview-scrollbar {
+    scrollbar-color: #d1d5db transparent;
+  }
+  .teacher-overview-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 9999px;
+  }
   /* Consistent card hover elevation: soft shadow on hover so the
      focused card is clearly identifiable. Background, border, size
      and layout are untouched — only box-shadow transitions. Apply via
@@ -276,27 +284,18 @@
   .sticky-cols td.sticky {
     background-clip: padding-box;
   }
-  /* Facebook-style skeleton shimmer: soft light sweep over gray blocks. */
+  /* Subtle pulse keeps skeleton loading states animated without gradients. */
   .skeleton-shimmer {
-    position: relative;
-    overflow: hidden;
-    background-image: linear-gradient(
-      100deg,
-      transparent 20%,
-      rgba(255, 255, 255, 0.65) 50%,
-      transparent 80%
-    );
-    background-size: 200% 100%;
-    animation: skeleton-shimmer 1.8s linear infinite;
+    animation: skeleton-pulse 1.8s ease-in-out infinite;
   }
 }
 
-@keyframes skeleton-shimmer {
-  from {
-    background-position: 200% 0;
+@keyframes skeleton-pulse {
+  0%, 100% {
+    opacity: 0.55;
   }
-  to {
-    background-position: -200% 0;
+  50% {
+    opacity: 1;
   }
 }
 

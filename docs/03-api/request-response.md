@@ -67,6 +67,76 @@ While browsing an archived term, the client sends `X-View-Term-School-Year` and 
 
 Reads are unaffected. Requests without the headers (normal, non-archive use) are unaffected.
 
+## In-App Notifications
+
+The notification router requires a valid JWT. Feed and read/dismiss operations use only the authenticated account's recipient rows. The notification endpoints are exempt from archived-term write blocking because notification state is account-level, not term data.
+
+### Get the current user's feed
+
+```text
+GET /api/notifications
+
+200 OK
+Cache-Control: no-store
+{
+  "items": [
+    {
+      "id": "<notification UUID>",
+      "title": "Class schedule update",
+      "content": "Please review the updated schedule.",
+      "urgency": "Not Urgent",
+      "createdAt": "2026-11-08T10:30:00.000Z",
+      "readAt": null
+    }
+  ],
+  "unreadCount": 1
+}
+```
+
+`items` contains at most the 50 newest notifications not dismissed by this user. `unreadCount` counts all of this user's non-dismissed unread notifications, including items outside that 50-item feed.
+
+### Send a broadcast (superadmin only)
+
+```text
+POST /api/notifications
+Body: {
+  "title": "Class schedule update",
+  "content": "Please review the updated schedule.",
+  "urgency": "Not Urgent",
+  "audience": ["admin", "teacher"]
+}
+
+201 Created
+{
+  "ok": true,
+  "notification": {
+    "id": "<notification UUID>",
+    "created_at": "2026-11-08T10:30:00.000Z",
+    "recipient_count": 12
+  }
+}
+```
+
+`title` is 1–160 trimmed characters; `content` is 1–2000 trimmed characters; `urgency` is `Not Urgent` or `Urgent`; `audience` is a non-empty array containing `admin`, `teacher`, or both. Recipients are snapshotted from current accounts when sent. `400` indicates invalid fields or no users in the selected audience; `403` indicates a non-superadmin sender.
+
+### Mark a notification read
+
+```text
+POST /api/notifications/<notification UUID>/read
+200: { "ok": true }
+```
+
+Only the caller's recipient row is updated. An unknown ID, a notification sent to another user, or an already dismissed item is a successful no-op, so the endpoint does not reveal another user's delivery state. A malformed UUID returns `400`.
+
+### Dismiss a notification
+
+```text
+DELETE /api/notifications/<notification UUID>
+200: { "ok": true }
+```
+
+Dismissal is per-user and removes that item from the caller's feed. Unknown IDs or IDs belonging to another user are successful no-ops; a malformed UUID returns `400`. All notification endpoints return the standard `401` for an invalid session. The API depends on `backend/sql/create_broadcast_notifications.sql`; without that migration, database requests fail with the generic `500 { "message": "Server error" }` response.
+
 ## Login
 
 ```
@@ -99,6 +169,21 @@ Failures:
 - Supabase unreachable (no internet) → `503 { "message": "You are currently offline. Please check your Wi-Fi or ethernet connection and try again." }`
 
 Login lookup errors caused by a dropped connection are detected explicitly, so an offline attempt never reports "Invalid username". Only an existing account's failed password attempt is written to the audit log.
+
+## List Managed Teachers (Admin)
+
+`GET /api/users` returns an array. For Admin, each managed teacher also includes `teacher_class_count`, the number of unique teacher/section/subject/school-year/semester assignments attributed to that admin. Re-importing the same class does not increase this count.
+
+```json
+[
+  {
+    "id": "<teacher UUID>",
+    "full_name": "John Santos",
+    "username": "santos.4512@sg",
+    "teacher_class_count": 3
+  }
+]
+```
 
 ## Create Teacher (Admin)
 
@@ -135,12 +220,12 @@ An explicit foreign department is rejected with 403; a course outside the inheri
 
 ```json
 PATCH /api/users/<owned-teacher-id>
-{ "first_name": "John", "last_name": "Santos", "staff_id": "123451234" }
+{ "first_name": "John", "last_name": "Santos" }
 ```
 
 - Admin: owned teachers in the same department only. Superadmin: admin accounts only.
-- Allowed: names, `staff_id`, `course_id`, optional nonblank `password`. Superadmin may also change `department` to an existing department.
-- Sending `system_role`, `username`, `created_by`, `id`, or another unsupported field returns **403**, even alongside valid fields. No partial profile update occurs.
+- Allowed: names, `course_id`, optional nonblank `password`. Superadmin may also change `department` to an existing department.
+- Staff ID is immutable after account creation. Sending `staff_id`, `system_role`, `username`, `created_by`, `id`, or another unsupported field returns **403**, even alongside valid fields. No partial profile update occurs.
 - Passwords/hashes are not returned. Changing a fingerprinted field makes the account's previous tokens fail on their next request.
 
 ## Create Section
@@ -464,6 +549,8 @@ Body: {
 ```
 
 Conflicting restore in progress → `409`.
+
+Full restore is rejected before any database writes unless the manifest and payload contain every restorable table (the audit log is preserved, not restored). The complete replacement runs in one database transaction through `restore_full_backup_atomic`; any constraint or insert error rolls the transaction back. The SQL function migration `backend/sql/create_atomic_full_backup_restore.sql` must be applied before deploying this backend version.
 
 ## List All Academic Terms
 

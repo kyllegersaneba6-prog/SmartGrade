@@ -45,9 +45,10 @@ Notes:
 
 - Staff ID is exactly **9 digits**. The UI masks it as `00000-0000`; the server strips non-digits.
 - Username is never typed by the user. It is derived as `lastname.<digits 3–7>@sg`, e.g. `"Santos"` + `123451234` → `santos.4512@sg`.
-- Username is re-derived when last name or staff ID changes on `PATCH /api/users/:id`.
+- Staff ID is fixed after account creation and is read-only in Admin and Teacher edit forms; `PATCH /api/users/:id` rejects attempts to change it.
+- Username is re-derived when the last name changes on `PATCH /api/users/:id`; the staff ID remains unchanged.
 - Teachers inherit their admin's department; superadmin picks an existing department for each admin. A supplied course must belong to that department.
-- Editable account fields: names, staff ID, course, password; only superadmin may additionally change an admin's department. Role, direct username, ID, and creator changes are rejected. Usernames remain server-derived.
+- Editable account fields: names, course, and password; only superadmin may additionally change an admin's department. Staff ID, role, direct username, ID, and creator changes are rejected. Usernames remain server-derived.
 - Default password in the creation forms is `smartgrade123`.
 - Deleting a user first nulls `created_by` references in `staff_users`, `sections`, `subjects`, and `teacher_assignments`.
 
@@ -209,8 +210,10 @@ Shared UI: `frontend/src/components/teacher/ExportButtons.jsx` (per-format spinn
 - Each table is checksummed (SHA-256) and counted; the manifest records totals.
 - Optional password encryption: AES-256-GCM with scrypt KDF; minimum 8-character password.
 - Preview reports per-table insert-vs-existing counts for `merge`, `replace`, or `full`.
+- After a backup file is attached, **Cancel** clears the file and resets restore validation, preview, confirmation, and completion state.
 - Restore requires a typed confirmation: `CONFIRM` (merge/replace) or `FULL RESTORE`.
-- Safety rules: an in-process lock rejects concurrent restores with **409**; merge blocks self-row edits and role escalation; replace never wipes `activity_log`; full restore always preserves the caller's own superadmin row.
+- Safety rules: an in-process lock rejects concurrent restores with **409**; merge blocks self-row edits and role escalation; replace never wipes `activity_log`; full restore rejects missing restorable tables before writing, replaces all restorable data in one database transaction, and preserves the caller's superadmin row and `activity_log`.
+- Full restore calls the database function defined in `backend/sql/create_atomic_full_backup_restore.sql`. It is installed in the currently connected Supabase project; verify it separately in other target projects and ensure the backend RPC caller is deployed before attempting a restore.
 
 ## Audit Logging
 
@@ -225,6 +228,9 @@ Shared UI: `frontend/src/components/teacher/ExportButtons.jsx` (per-format spinn
 
 ## Notifications
 
-- The superadmin dashboard has an audience/title/message/urgency form with a success banner.
-- Nothing is sent: the handler only `console.log`s. No notification table, route, or delivery exists.
-- `NotificationDropdown` in admin/teacher headers is always empty.
+- Superadmins can send in-app notifications to selected Admin and Teacher roles, with title, message, and urgency.
+- The backend snapshots eligible recipients at send time. Each recipient has independent read and dismissed state; dismissing hides the notification only for that recipient.
+- Successful broadcasts add an activity-log entry with the notification title and recipient count; the message body is not copied into that audit entry.
+- Admin and Teacher header bells show an unread count, expand a notification and mark it read, and allow per-recipient dismissal. The list refreshes when opened and every 30 seconds while the app is visible.
+- Delivery is in-app only; no email, SMS, or browser push is sent.
+- `backend/sql/create_broadcast_notifications.sql` is applied and read-only verified on the live database. Deploy the backend routes and frontend changes before production use; no test broadcast has been sent.

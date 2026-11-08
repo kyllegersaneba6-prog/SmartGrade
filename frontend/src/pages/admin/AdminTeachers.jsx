@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Pencil, Search, Trash2, UserPlus, X, Eye, EyeOff } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Bolt, BookOpen, Pencil, Search, Trash2, UserPlus, X, Eye, EyeOff } from 'lucide-react';
 import CreateAdminTeacher from './CreateAdminTeacher';
 import api from '../../utils/api';
-import { displayStaffId, formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
+import { displayStaffId, formatStaffId, usernameFromLastNameAndId } from '../../utils/staffId';
 import AdminPageHeading from '../../components/admin/AdminPageHeading';
 
 const AdminTeachers = () => {
@@ -11,7 +12,7 @@ const AdminTeachers = () => {
   const [loading, setLoading] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [teacherToEdit, setTeacherToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', staff_id: '', password: '' });
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', password: '' });
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
@@ -23,6 +24,37 @@ const AdminTeachers = () => {
   const [classesLoading, setClassesLoading] = useState(false);
   const [classesError, setClassesError] = useState('');
   const classesRequestId = useRef(0);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPos, setMenuPos] = useState(null);
+
+  const closeMenu = () => { setOpenMenuId(null); setMenuPos(null); };
+  const openActionsMenu = (teacher, event) => {
+    if (openMenuId === teacher.id) { closeMenu(); return; }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 160;
+    const menuHeight = 126;
+    const gutter = 8;
+    const fitsBelow = rect.bottom + menuHeight + gutter <= window.innerHeight;
+    setMenuPos({
+      top: fitsBelow ? rect.bottom + 4 : Math.max(gutter, rect.top - menuHeight - 4),
+      left: Math.max(gutter, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - gutter)),
+    });
+    setOpenMenuId(teacher.id);
+  };
+
+  useEffect(() => {
+    if (!openMenuId) return undefined;
+    const closeOnEscape = (event) => { if (event.key === 'Escape') closeMenu(); };
+    const closeOnScrollOrResize = () => closeMenu();
+    window.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('scroll', closeOnScrollOrResize, true);
+    window.addEventListener('resize', closeOnScrollOrResize);
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape);
+      window.removeEventListener('scroll', closeOnScrollOrResize, true);
+      window.removeEventListener('resize', closeOnScrollOrResize);
+    };
+  }, [openMenuId]);
 
   const fetchTeachers = async () => {
     try {
@@ -71,7 +103,6 @@ const AdminTeachers = () => {
     setEditForm({
       first_name: teacher.first_name || '',
       last_name: teacher.last_name || '',
-      staff_id: formatStaffId(teacher.staff_id || ''),
       password: '',
     });
     setEditError('');
@@ -127,13 +158,10 @@ const AdminTeachers = () => {
       || a.sectionName.localeCompare(b.sectionName)
     ));
   }, [teacherClasses]);
+  const menuTeacher = teachers.find((teacher) => teacher.id === openMenuId) || null;
 
   const saveEdit = async () => {
     if (!teacherToEdit) return;
-    if (!isValidStaffId(editForm.staff_id)) {
-      setEditError('ID must contain exactly 9 digits (format 00000-0000).');
-      return;
-    }
     const firstName = editForm.first_name.trim();
     const lastName = editForm.last_name.trim();
     if (!firstName || !lastName) {
@@ -148,7 +176,6 @@ const AdminTeachers = () => {
         first_name: firstName,
         last_name: lastName,
         full_name: `${firstName} ${lastName}`,
-        staff_id: staffIdToDigits(editForm.staff_id),
       };
       const response = await api(`/api/users/${teacherToEdit.id}`, {
         method: 'PATCH',
@@ -231,11 +258,15 @@ const AdminTeachers = () => {
                   <td className="px-3 py-3 text-[12px] text-gray-700">{teacher.username || '—'}</td>
                   <td className="px-3 py-3 text-gray-600">{teacher.created_at ? new Date(teacher.created_at).toLocaleDateString() : '—'}</td>
                   <td className="px-3 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <button type="button" onClick={() => openClasses(teacher)} className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 font-semibold text-emerald-700 hover:bg-emerald-50" title="View courses, year levels, and sections"><BookOpen size={13} /> Classes</button>
-                      <button type="button" onClick={() => openEdit(teacher)} className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 font-semibold text-blue-700 hover:bg-blue-50" title="Edit teacher"><Pencil size={13} /> Edit</button>
-                      <button type="button" onClick={() => { setTeacherToDelete(teacher); setConfirmText(''); }} className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 font-semibold text-red-600 hover:bg-red-50" title="Delete teacher"><Trash2 size={13} /> Delete</button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={(event) => openActionsMenu(teacher, event)}
+                      aria-label={`Actions for ${teacher.full_name}`}
+                      aria-haspopup="menu"
+                      aria-expanded={openMenuId === teacher.id}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 transition-colors hover:bg-gray-50"
+                      title="Teacher actions"
+                    ><Bolt size={20} /></button>
                   </td>
                 </tr>
               ))}
@@ -245,6 +276,33 @@ const AdminTeachers = () => {
         <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-500">
           <span>Showing {filteredTeachers.length} of {teachers.length} teachers</span>
         </div>
+
+        {openMenuId && menuTeacher && menuPos && createPortal(
+          <>
+            <button type="button" aria-label="Close teacher actions" className="fixed inset-0 z-40 cursor-default" onClick={closeMenu} />
+            <div role="menu" className="fixed z-50 w-40 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-xl" style={{ top: menuPos.top, left: menuPos.left }}>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { closeMenu(); openClasses(menuTeacher); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              ><BookOpen size={14} /> Classes</button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { closeMenu(); openEdit(menuTeacher); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              ><Pencil size={14} className="text-blue-500" /> Edit</button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { closeMenu(); setTeacherToDelete(menuTeacher); setConfirmText(''); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
+              ><Trash2 size={14} className="text-red-500" /> Delete</button>
+            </div>
+          </>,
+          document.body
+        )}
       </section>
 
       {teacherToEdit && (
@@ -252,12 +310,12 @@ const AdminTeachers = () => {
           <div className="modal-surface mx-4 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-gray-100 bg-white p-6">
             <h3 className="mb-4 text-lg font-bold text-gray-900">Edit Teacher</h3>
             <div className="space-y-4">
-              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">ID</label><input value={editForm.staff_id} onChange={(event) => setEditForm({ ...editForm, staff_id: formatStaffId(event.target.value) })} maxLength={10} inputMode="numeric" className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 font-mono text-sm" /></div>
+              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">ID</label><input value={formatStaffId(teacherToEdit.staff_id || '')} readOnly className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 font-mono text-sm text-gray-600" /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">First Name</label><input value={editForm.first_name} onChange={(event) => setEditForm({ ...editForm, first_name: event.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" /></div>
                 <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Last Name</label><input value={editForm.last_name} onChange={(event) => setEditForm({ ...editForm, last_name: event.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" /></div>
               </div>
-              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Username (auto-generated)</label><input readOnly value={usernameFromLastNameAndId(editForm.last_name, editForm.staff_id) || teacherToEdit.username || ''} className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 font-mono text-sm text-gray-600" /></div>
+              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Username (auto-generated)</label><input readOnly value={usernameFromLastNameAndId(editForm.last_name, teacherToEdit.staff_id) || teacherToEdit.username || ''} className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 font-mono text-sm text-gray-600" /></div>
               <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">New Password (leave blank to keep current)</label><div className="relative"><input type={showEditPassword ? 'text' : 'password'} value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm" /><button type="button" onClick={() => setShowEditPassword(!showEditPassword)} aria-label={showEditPassword ? 'Hide password' : 'Show password'} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></div>
             </div>
             {editError && <p className="mt-4 text-sm font-semibold text-red-600">{editError}</p>}

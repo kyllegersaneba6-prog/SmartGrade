@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-import { ArrowRight, FileText, Cpu, Network, Shield, Users, UserGroup, GraduationCap, BookOpen, ShieldCheck, ShieldUser, Clock, Activity, CheckCircle, Trash2, Megaphone, Send, AlertTriangle, RefreshCw, User, UserRoundCheck, UserRoundX, Equal } from 'lucide-react';
+import { ArrowRight, FileText, Cpu, Network, Shield, Users, UserGroup, GraduationCap, BookOpen, ShieldCheck, ShieldUser, Clock, Activity, Bell, DatabaseBackup, CheckCircle, Trash2, Megaphone, Send, AlertTriangle, RefreshCw, User, UserRoundCheck, UserRoundX, Equal } from 'lucide-react';
 import api from '../../utils/api';
 import { splitUpdateDescription } from '../../utils/auditText';
 import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../components/common/Skeleton';
@@ -27,7 +27,9 @@ const SuperAdminDashboard = () => {
   const [liveDeptNames, setLiveDeptNames] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [notification, setNotification] = useState({ title: '', content: '', urgency: 'Not Urgent', audience: ['Admins', 'Teachers'] });
-  const [notifSuccess, setNotifSuccess] = useState(false);
+  const [notifSuccess, setNotifSuccess] = useState('');
+  const [notifError, setNotifError] = useState('');
+  const [notifPosting, setNotifPosting] = useState(false);
 
 
 
@@ -67,13 +69,40 @@ const SuperAdminDashboard = () => {
     return () => window.removeEventListener('app:reload', handler);
   }, [loadData]);
 
-  const handlePostNotification = (e) => {
+  const handlePostNotification = async (e) => {
     e.preventDefault();
-    if (!notification.title || !notification.content) return;
-    console.log('Posting Notification:', notification);
-    setNotifSuccess(true);
-    setNotification({ title: '', content: '', urgency: 'Not Urgent', audience: ['Admins', 'Teachers'] });
-    setTimeout(() => { setNotifSuccess(false); }, 3000);
+    const title = notification.title.trim();
+    const content = notification.content.trim();
+    if (!title || !content || notification.audience.length === 0) {
+      setNotifError('Enter a title and message, and select at least one audience.');
+      return;
+    }
+
+    setNotifPosting(true);
+    setNotifError('');
+    setNotifSuccess('');
+    try {
+      const response = await api('/api/notifications', {
+        method: 'POST',
+        body: JSON.stringify({
+          title,
+          content,
+          urgency: notification.urgency,
+          audience: notification.audience.map((role) => role === 'Admins' ? 'admin' : 'teacher'),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Failed to send notification.');
+
+      const recipientCount = data.notification?.recipient_count || 0;
+      setNotifSuccess(`Notification sent to ${recipientCount} recipient${recipientCount === 1 ? '' : 's'}.`);
+      setNotification({ title: '', content: '', urgency: 'Not Urgent', audience: ['Admins', 'Teachers'] });
+      window.setTimeout(() => setNotifSuccess(''), 4000);
+    } catch (error) {
+      setNotifError(error.message || 'Network error. Please try again.');
+    } finally {
+      setNotifPosting(false);
+    }
   };
 
   const deptMap = {};
@@ -89,6 +118,7 @@ const SuperAdminDashboard = () => {
   });
   const departments = Object.entries(deptMap).map(([name, counts]) => ({ name, ...counts, total: counts.teachers + counts.admins }));
   const totals = { teachers: departments.reduce((s, d) => s + d.teachers, 0), admins: departments.reduce((s, d) => s + d.admins, 0) };
+  const totalAccounts = staffUsers.filter((user) => user.system_role !== 'superadmin').length;
 
   return (
   <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -103,7 +133,7 @@ const SuperAdminDashboard = () => {
         <div className="col-span-2 lg:col-span-4" aria-busy="true"><SkeletonMetricCards count={4} /></div>
       ) : (
       <>
-      <MetricCard title="Total Accounts" value={staffUsers.length} icon={UserGroup} color="#142a3f" subtitle="Registered members" />
+      <MetricCard title="Total Accounts" value={totalAccounts} icon={UserGroup} color="#142a3f" subtitle="Registered members" />
       <MetricCard title="Faculty Members" value={totals.teachers} icon={Users} color="#142a3f" subtitle="Teachers" />
       <MetricCard title="Admin Accounts" value={totals.admins} icon={ShieldUser} color="#142a3f" subtitle="Admins" />
       <MetricCard title="Audit logs" value={activityLog.length} icon={Activity} color="#142a3f" subtitle="Events logged" />
@@ -126,7 +156,7 @@ const SuperAdminDashboard = () => {
               <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Department User Overview</h2>
               <p className="text-[10px] text-gray-900 uppercase tracking-widest mt-0.5">Users per category by department</p>
             </div>
-            <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#1a2233' }}>{staffUsers.length} TOTAL</span>
+            <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ background: '#0c1925' }}>{totalAccounts} TOTAL</span>
           </div>
           {departments.length === 0 ? (
             <p className="text-sm text-gray-500 italic py-6 text-center">No users registered yet.</p>
@@ -136,13 +166,13 @@ const SuperAdminDashboard = () => {
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <th className="w-44 px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-600">Department</th>
-                    {[{ label: 'Teachers', icon: Users, color: '#142a3f' }, { label: 'Admins', icon: ShieldCheck, color: '#142a3f' }].map(({ label, icon: Icon, color }) => (
+                    {[{ label: 'Teachers', icon: Users }, { label: 'Admins', icon: ShieldCheck }].map(({ label, icon: Icon }) => (
                       <th key={label} className="px-2 py-2.5 text-center">
-                        <div className="flex flex-col items-center gap-1"><Icon size={14} style={{ color }} /><span className="text-[10px] font-bold uppercase tracking-wide text-gray-600">{label}</span></div>
+                        <div className="flex flex-col items-center gap-1"><Icon size={14} className="text-gray-500" /><span className="text-[10px] font-bold uppercase tracking-wide text-gray-600">{label}</span></div>
                       </th>
                     ))}
                     <th className="px-2 py-2.5 text-center">
-                      <div className="flex flex-col items-center gap-1"><Equal size={14} style={{ color: '#142a3f' }} /><span className="text-[10px] font-bold uppercase tracking-wide text-gray-600">Total</span></div>
+                      <div className="flex flex-col items-center gap-1"><Equal size={14} className="text-gray-500" /><span className="text-[10px] font-bold uppercase tracking-wide text-gray-600">Total</span></div>
                     </th>
                   </tr>
                 </thead>
@@ -150,18 +180,18 @@ const SuperAdminDashboard = () => {
                   {departments.map((dept) => (
                     <tr key={dept.name} className="border-b border-gray-100 transition-colors hover:bg-gray-50">
                       <td className="px-3 py-3 text-xs font-semibold text-gray-700">{dept.name}</td>
-                      {[{ val: dept.teachers, bg: '#fbbf24' }, { val: dept.admins, bg: '#fbbf24' }].map((cell, i) => (
+                      {[dept.teachers, dept.admins].map((value, i) => (
                         <td key={i} className="py-3 px-2 text-center">
                           <span
                             className="inline-block w-10 py-1 rounded text-xs font-bold border"
-                            style={cell.val > 0
-                              ? { background: cell.bg, color: '#1a2233', borderColor: 'transparent' }
-                              : { background: '#fbbf24', color: '#0c1925', borderColor: '#fbbf24' }}
-                            title={cell.val === 0 ? 'No users in this category yet' : undefined}
-                          >{cell.val}</span>
+                            style={value > 0
+                              ? { background: '#e5e7eb', color: '#111827', borderColor: '#d1d5db' }
+                              : { background: '#f9fafb', color: '#6b7280', borderColor: '#e5e7eb' }}
+                            title={value === 0 ? 'No users in this category yet' : undefined}
+                          >{value}</span>
                         </td>
                       ))}
-                      <td className="py-3 px-2 text-center"><span className="inline-block w-10 py-1 rounded text-xs font-bold text-white" style={{ background: '#0c1925' }}>{dept.total}</span></td>
+                      <td className="py-3 px-2 text-center"><span className="inline-block w-10 py-1 rounded text-xs font-bold text-white" style={{ background: '#111827' }}>{dept.total}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -184,9 +214,11 @@ const SuperAdminDashboard = () => {
                 const isFailed = log.action.toLowerCase().includes('failed login');
                 const isSuccess = log.action.toLowerCase().includes('successful login');
                 const isUpdate = log.action.toLowerCase().includes('updated');
-                const Icon = isCreate ? CheckCircle : isDelete ? Trash2 : isFailed ? UserRoundX : isSuccess ? UserRoundCheck : isUpdate ? RefreshCw : Activity;
-                const iconColor = isCreate || isSuccess ? '#22c55e' : isDelete || isFailed ? '#ef4444' : isUpdate ? '#142a3f' : '#142a3f';
-                const bg = isCreate || isSuccess ? '#f0fdf4' : isDelete || isFailed ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
+                const isNotificationBroadcast = log.action.toLowerCase() === 'notification broadcasted';
+                const isBackupAction = ['backup exported', 'backup imported', 'backup restored'].includes(log.action.toLowerCase());
+                const Icon = isBackupAction ? DatabaseBackup : isNotificationBroadcast ? Bell : isCreate ? CheckCircle : isDelete ? Trash2 : isFailed ? UserRoundX : isSuccess ? UserRoundCheck : isUpdate ? RefreshCw : Activity;
+                const iconColor = isSuccess || isFailed ? '#000000' : isCreate ? '#22c55e' : isDelete ? '#ef4444' : isUpdate ? '#142a3f' : '#142a3f';
+                const bg = isSuccess || isFailed ? '#f3f4f6' : isCreate ? '#f0fdf4' : isDelete ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
                 const timeAgo = (() => {
                   const diff = Date.now() - new Date(log.created_at).getTime();
                   const mins = Math.floor(diff / 60000);
@@ -235,37 +267,38 @@ const SuperAdminDashboard = () => {
 
       <div className="flex flex-col gap-5">
         <div className="h-full rounded-2xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
-          <div className="flex items-center gap-2 mb-4"><Megaphone size={18} style={{ color: '#142a3f' }} /><h2 className="text-sm font-bold" style={{ color: '#0c1925' }}>Broadcast Notification</h2></div>
-          <p className="text-[11px] mb-5 text-gray-900">Send an update or alert to Users (Teachers, Admins).</p>
+          <div className="flex items-center gap-2 mb-4"><span className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50"><Megaphone size={16} className="text-sidebar" /></span><h2 className="text-sm font-bold" style={{ color: '#0c1925' }}>Broadcast Notification</h2></div>
+          <p className="text-[11px] mb-5 text-slate-500">Send an update or alert to Users (Teachers, Admins).</p>
           <form onSubmit={handlePostNotification} className="flex flex-col gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-2">Audience</label>
-              <div className="flex flex-col gap-2 p-3 border rounded-lg bg-gray-100 border-gray-200">
+              <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-wider mb-2">Audience</label>
+              <div className="flex flex-col gap-2 p-3 border rounded-lg bg-gray-50 border-gray-200">
                 {['Admins', 'Teachers'].map((role) => (
                   <label key={role} className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-900">
-                    <input type="checkbox" checked={notification.audience.includes(role)} onChange={(e) => { let newAudience = [...notification.audience]; if (e.target.checked) newAudience.push(role); else newAudience = newAudience.filter(item => item !== role); setNotification({ ...notification, audience: newAudience }); }} className="rounded border-gray-200 text-[#0c1925] focus:ring-[#0c1925] w-4 h-4 cursor-pointer accent-amber-300" />
+                    <input type="checkbox" checked={notification.audience.includes(role)} onChange={(e) => { let newAudience = [...notification.audience]; if (e.target.checked) newAudience.push(role); else newAudience = newAudience.filter(item => item !== role); setNotification({ ...notification, audience: newAudience }); }} className="rounded border-gray-300 text-[#0c1925] focus:ring-[#0c1925] w-4 h-4 cursor-pointer accent-[#0c1925]" />
                     {role}
                   </label>
                 ))}
               </div>
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Title</label>
-              <input type="text" placeholder="Notification Title" value={notification.title} onChange={(e) => setNotification({ ...notification, title: e.target.value })} className="w-full text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-white" required />
+              <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-wider mb-1">Title</label>
+              <input type="text" placeholder="Notification Title" value={notification.title} maxLength={160} onChange={(e) => setNotification({ ...notification, title: e.target.value })} className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-white text-gray-900" required />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Message</label>
-              <textarea placeholder="Write your message here..." value={notification.content} onChange={(e) => setNotification({ ...notification, content: e.target.value })} className="w-full text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-white resize-none h-24" required />
+              <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-wider mb-1">Message</label>
+              <textarea placeholder="Write your message here..." value={notification.content} maxLength={2000} onChange={(e) => setNotification({ ...notification, content: e.target.value })} className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] bg-white text-gray-900 resize-none h-24" required />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-2">Urgency Level</label>
+              <label className="block text-[10px] font-bold text-gray-600 uppercase tracking-wider mb-2">Urgency Level</label>
               <div className="flex gap-3">
                 <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="urgency" value="Not Urgent" checked={notification.urgency === 'Not Urgent'} onChange={(e) => setNotification({ ...notification, urgency: e.target.value })} className="accent-[#0c1925]" /><span className="text-xs text-gray-900">Not Urgent</span></label>
                 <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="urgency" value="Urgent" checked={notification.urgency === 'Urgent'} onChange={(e) => setNotification({ ...notification, urgency: e.target.value })} className="accent-[#0c1925]" /><span className="text-xs text-gray-900 font-semibold flex items-center gap-1"><AlertTriangle size={14} /> Urgent</span></label>
               </div>
             </div>
-            <button type="submit" className="w-full mt-2 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: '#0c1925' }} disabled={!notification.title || !notification.content || notification.audience.length === 0}><Send size={14} /> POST NOTIFICATION</button>
-            {notifSuccess && <div className="mt-2 p-2 rounded-lg bg-green-50 border border-green-100 flex items-center gap-2 text-green-700 text-xs font-medium"><CheckCircle size={14} /> Notification broadcasted successfully!</div>}
+            <button type="submit" className="w-full mt-2 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: '#0c1925' }} disabled={!notification.title.trim() || !notification.content.trim() || notification.audience.length === 0 || notifPosting}><Send size={14} /> {notifPosting ? 'SENDING…' : 'POST NOTIFICATION'}</button>
+            {notifError && <div role="alert" className="mt-2 rounded-lg border border-red-100 bg-red-50 p-2 text-xs font-medium text-red-700">{notifError}</div>}
+            {notifSuccess && <div role="status" className="mt-2 flex items-center gap-2 rounded-lg border border-green-100 bg-green-50 p-2 text-xs font-medium text-green-700"><CheckCircle size={14} /> {notifSuccess}</div>}
           </form>
         </div>
       </div>

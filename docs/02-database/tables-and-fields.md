@@ -205,8 +205,27 @@ Names are limited to 1–160 characters. RLS is enabled with no user-facing poli
 
 No FKs or indexes. Created at startup by `index.js` via an RPC if it does not exist.
 
-## Legacy / undefined
+## broadcast_notifications
 
-| Table | Status |
-|---|---|
-| `admin_users` | No SQL definition and not queried by current login; all roles and legacy UUID aliases use `staff_users` |
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID | PK, default `gen_random_uuid()` |
+| title | TEXT | NN, 1–160 trimmed characters |
+| content | TEXT | NN, 1–2000 trimmed characters |
+| urgency | TEXT | NN, `Not Urgent` or `Urgent` |
+| audience | TEXT[] | NN, non-empty subset of `admin` / `teacher` |
+| created_by | UUID | Nullable FK → `staff_users(id)`, set NULL on account delete |
+| created_at | TIMESTAMPTZ | NN, default `now()` |
+
+## broadcast_notification_recipients
+
+| Column | Type | Notes |
+|---|---|---|
+| notification_id | UUID | PK part, FK → `broadcast_notifications(id)` ON DELETE CASCADE |
+| user_id | UUID | PK part, FK → `staff_users(id)` ON DELETE CASCADE |
+| recipient_role | TEXT | NN, role snapshot (`admin` or `teacher`) |
+| sent_at | TIMESTAMPTZ | NN, broadcast timestamp |
+| read_at | TIMESTAMPTZ | Nullable; set when recipient opens the item |
+| dismissed_at | TIMESTAMPTZ | Nullable; hides the item for this recipient only |
+
+**Indexes:** creator FK; user + send time for each recipient's feed; partial user indexes for visible and unread notifications. Both tables have RLS enabled with no client-role grants; backend access uses `service_role`.
