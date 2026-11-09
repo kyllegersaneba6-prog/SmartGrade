@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS public.department_export_settings (
   department_id UUID PRIMARY KEY REFERENCES public.departments(id) ON DELETE CASCADE,
-  program_head_bsit TEXT NOT NULL DEFAULT 'ARIEL T. SUMAGAYSAY, MSCS, MAEd',
-  program_head_bscs TEXT NOT NULL DEFAULT 'ARIEL T. SUMAGAYSAY, MSCS, MAEd',
-  dean_cict TEXT NOT NULL DEFAULT 'MAE B. LODANA, Ph.D.',
+  program_head_bsit TEXT NOT NULL,
+  program_head_bscs TEXT NOT NULL,
+  dean_cict TEXT NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT department_export_settings_bsit_name_length
     CHECK (char_length(btrim(program_head_bsit)) BETWEEN 1 AND 160),

@@ -20,6 +20,7 @@ const SuperAdminSettings = () => {
   const [nextSchoolYear, setNextSchoolYear] = useState('');
   const [nextSemester, setNextSemester] = useState('');
   const [confirmEndText, setConfirmEndText] = useState('');
+  const [superadminPassword, setSuperadminPassword] = useState('');
   const [endingSemester, setEndingSemester] = useState(false);
   const [endSemesterError, setEndSemesterError] = useState('');
   const [createTermOpen, setCreateTermOpen] = useState(false);
@@ -95,7 +96,11 @@ const SuperAdminSettings = () => {
     try {
       const res = await api('/api/terms/end', {
         method: 'POST',
-        body: JSON.stringify({ next_school_year: nextSchoolYear, next_semester: nextSemester }),
+        body: JSON.stringify({
+          next_school_year: nextSchoolYear,
+          next_semester: nextSemester,
+          superadmin_password: superadminPassword,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -106,12 +111,15 @@ const SuperAdminSettings = () => {
         });
         setEndSemesterOpen(false);
         setConfirmEndText('');
+        setSuperadminPassword('');
       } else {
         const data = await res.json();
         setEndSemesterError(data.message || 'Failed to end semester');
+        setSuperadminPassword('');
       }
     } catch {
       setEndSemesterError('Network error');
+      setSuperadminPassword('');
     } finally {
       setEndingSemester(false);
     }
@@ -191,7 +199,7 @@ const SuperAdminSettings = () => {
                   <p className="text-xs text-gray-900 mt-0.5">Sections and assignments can only be added to this term.</p>
                 </div>
                 <button
-                  onClick={() => { setEndSemesterOpen(true); setEndSemesterError(''); }}
+                  onClick={() => { setEndSemesterOpen(true); setConfirmEndText(''); setSuperadminPassword(''); setEndSemesterError(''); }}
                   className="px-4 py-2 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-lg shadow-sm transition-colors"
                 >
                   End Semester
@@ -234,7 +242,7 @@ const SuperAdminSettings = () => {
           <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">End Semester</h3>
-              <button onClick={() => { setEndSemesterOpen(false); setConfirmEndText(''); setEndSemesterError(''); }} className="rounded-lg text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setEndSemesterOpen(false); setConfirmEndText(''); setSuperadminPassword(''); setEndSemesterError(''); }} className="rounded-lg text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
@@ -267,12 +275,25 @@ const SuperAdminSettings = () => {
             </div>
             <div className="mb-4">
               <label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>CONFIRM</strong> to end</label>
-              <input type="text" value={confirmEndText} onChange={(e) => setConfirmEndText(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="CONFIRM" />
+              <input type="text" value={confirmEndText} onChange={(e) => { setConfirmEndText(e.target.value); setSuperadminPassword(''); setEndSemesterError(''); }} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="CONFIRM" />
             </div>
+            {confirmEndText === 'CONFIRM' && (
+              <div className="mb-4">
+                <label className="block text-xs font-bold text-gray-900 mb-1">Enter superadmin password</label>
+                <input
+                  type="password"
+                  value={superadminPassword}
+                  onChange={(e) => { setSuperadminPassword(e.target.value); setEndSemesterError(''); }}
+                  autoComplete="current-password"
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  placeholder="Password"
+                />
+              </div>
+            )}
             {endSemesterError && <p className="text-xs font-semibold text-red-500 mb-3">{endSemesterError}</p>}
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setEndSemesterOpen(false); setConfirmEndText(''); setEndSemesterError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={endingSemester}>Cancel</button>
-              <button onClick={endSemester} disabled={confirmEndText !== 'CONFIRM' || endingSemester} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmEndText === 'CONFIRM' && !endingSemester ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{endingSemester ? 'Ending...' : 'End Semester'}</button>
+              <button onClick={() => { setEndSemesterOpen(false); setConfirmEndText(''); setSuperadminPassword(''); setEndSemesterError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={endingSemester}>Cancel</button>
+              <button onClick={endSemester} disabled={confirmEndText !== 'CONFIRM' || !superadminPassword || endingSemester} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmEndText === 'CONFIRM' && superadminPassword && !endingSemester ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{endingSemester ? 'Ending...' : 'End Semester'}</button>
             </div>
           </div>
         </div>

@@ -235,26 +235,27 @@ const SuperAdminUsers = () => {
           </div>
         </div>
 
-        <div className="table-responsive"><table className="w-full text-xs min-w-[500px]">
+        <div className="table-responsive"><table className="w-full text-xs min-w-[600px]">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              {['ID', 'NAME', 'USERNAME', 'DEPARTMENT', 'ACTIONS'].map((h) => (<th key={h} className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-600">{h}</th>))}
+              {['ID', 'NAME', 'USERNAME', 'DEPARTMENT', 'DATE ADDED', 'ACTIONS'].map((h) => (<th key={h} className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-900">{h}</th>))}
             </tr>
           </thead>
           <tbody>
             {paginatedUsers.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-10 text-center text-xs text-gray-500">
+                <td colSpan={6} className="py-10 text-center text-xs text-gray-500">
                   No admins have been added yet. Click <strong>Add Admin</strong> to create the first account.
                 </td>
               </tr>
             )}
             {paginatedUsers.map((u) => (
               <tr key={u.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-gray-50">
-                <td className="px-3 py-3 font-mono text-[12px] text-gray-700">{displayStaffId(u.staffId)}</td>
-                <td className="px-3 py-3 text-[12px] font-bold text-gray-900">{u.name}</td>
-                <td className="px-3 py-3 font-mono text-[12px] text-gray-700">{u.username}</td>
-                <td className="px-3 py-3 text-[12px] text-gray-700">{deptDisplay(u.dept)}</td>
+                <td className="px-3 py-3 font-mono text-[12px] font-bold text-gray-900">{displayStaffId(u.staffId)}</td>
+                <td className="px-3 py-3 text-[12px] text-gray-900">{u.name}</td>
+                <td className="px-3 py-3 font-mono text-[12px] text-gray-900">{u.username}</td>
+                <td className="px-3 py-3 text-[12px] text-gray-900">{deptDisplay(u.dept)}</td>
+                <td className="px-3 py-3 text-[12px] text-gray-900">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</td>
                 <td className="px-3 py-3 items-center">
                   <button onClick={(e) => openMenu(u, e)} className="text-gray-900 hover:text-[#0c1925] transition-colors p-1 rounded-lg hover:bg-gray-100" title="Actions"><Bolt size={20} /></button>
                 </td>
@@ -286,20 +287,20 @@ const SuperAdminUsers = () => {
 
       {editModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
+          <div className="rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100" style={{ backgroundColor: '#f3f4f6' }}>
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Admin</h3>
             <div className="space-y-4">
-               <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">ID</label><input type="text" value={displayStaffId(userToEdit.staffId)} readOnly className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg bg-gray-100 text-sm font-mono text-gray-600 cursor-not-allowed" /></div>
+               <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">ID</label><input type="text" value={displayStaffId(userToEdit.staffId)} readOnly className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg bg-white text-sm font-mono text-gray-600 cursor-not-allowed" /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">First Name</label><input type="text" value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} placeholder="First name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
-                <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Last Name</label><input type="text" value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} placeholder="Last name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm" /></div>
+                 <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">First Name</label><input type="text" value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} placeholder="First name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-white text-sm" /></div>
+                 <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Last Name</label><input type="text" value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} placeholder="Last name" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-white text-sm" /></div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Username (auto-generated)</label>
-                 <input type="text" value={usernameFromLastNameAndId(editForm.last_name, userToEdit.staffId) || editForm.username} readOnly className="w-full px-3 py-2 bg-gray-100 border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
+                  <input type="text" value={usernameFromLastNameAndId(editForm.last_name, userToEdit.staffId) || editForm.username} readOnly className="w-full px-3 py-2 bg-white border border-[#e5e0d5] rounded-lg text-sm text-gray-500 cursor-not-allowed font-mono" />
               </div>
               <div><label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">Department (not editable)</label>
-                <select value={editForm.department_id} disabled className="w-full cursor-not-allowed px-3 py-2 border border-[#e5e0d5] rounded-lg appearance-none bg-gray-100 text-sm text-gray-600 opacity-80">
+                <select value={editForm.department_id} disabled className="w-full cursor-not-allowed px-3 py-2 border border-[#e5e0d5] rounded-lg appearance-none bg-white text-sm text-gray-600 opacity-80">
                   <option value="">{userToEdit.dept !== 'N/A' ? userToEdit.dept : 'No department assigned'}</option>
                   {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
@@ -307,7 +308,7 @@ const SuperAdminUsers = () => {
               <div>
                 <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-1">New Password (leave blank to keep current)</label>
                 <div className="relative">
-                  <input type={showEditPassword ? "text" : "password"} value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep current" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-gray-100 text-sm pr-10" />
+                  <input type={showEditPassword ? "text" : "password"} value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep current" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-white text-sm pr-10" />
                   <button type="button" onClick={() => setShowEditPassword(!showEditPassword)} className="rounded-lg absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
                 </div>
               </div>

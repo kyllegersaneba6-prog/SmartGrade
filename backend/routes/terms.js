@@ -1,5 +1,6 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
+const bcrypt = require('bcryptjs');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { sendServerError } = require('../middleware/errors');
 const router = express.Router();
@@ -69,6 +70,29 @@ router.post('/create', authorizeRole('superadmin'), async (req, res) => {
 // POST /api/terms/end — end the active term, open the specified next term
 router.post('/end', authorizeRole('superadmin'), async (req, res) => {
   try {
+    const { next_school_year: nextSy, next_semester: nextSem, superadmin_password: password } = req.body || {};
+    if (!nextSy || !nextSem) {
+      return res.status(400).json({ message: 'Next school year and semester are required.' });
+    }
+    if (typeof password !== 'string' || !password) {
+      return res.status(400).json({ message: 'Enter your superadmin password to end the semester.' });
+    }
+
+    const { data: account, error: accountError } = await supabase
+      .from('staff_users')
+      .select('password, system_role')
+      .eq('id', req.user.id)
+      .maybeSingle();
+    if (accountError) return sendServerError(res, accountError);
+    if (!account || account.system_role !== 'superadmin' || typeof account.password !== 'string') {
+      return res.status(403).json({ message: 'Could not verify the superadmin account.' });
+    }
+
+    const passwordMatches = await bcrypt.compare(password, account.password);
+    if (!passwordMatches) {
+      return res.status(403).json({ message: 'The superadmin password is incorrect.' });
+    }
+
     const { data: active, error: fetchError } = await supabase
       .from('academic_terms')
       .select('*')
@@ -76,12 +100,6 @@ router.post('/end', authorizeRole('superadmin'), async (req, res) => {
       .maybeSingle();
     if (fetchError) return sendServerError(res, fetchError);
     if (!active) return res.status(400).json({ message: 'No active term found.' });
-
-    const nextSy = req.body.next_school_year;
-    const nextSem = req.body.next_semester;
-    if (!nextSy || !nextSem) {
-      return res.status(400).json({ message: 'Next school year and semester are required.' });
-    }
 
     const { error: closeError } = await supabase
       .from('academic_terms')

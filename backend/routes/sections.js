@@ -319,10 +319,10 @@ router.post('/:sectionId/students', authorizeRole('teacher'), async (req, res) =
   }
 });
 
-// DELETE /api/sections/:sectionId/students/bulk — delete selected students from a teacher's section
+// DELETE /api/sections/:sectionId/students/bulk — delete selected students or the full class list
 router.delete('/:sectionId/students/bulk', authorizeRole('teacher'), async (req, res) => {
-  const { student_ids } = req.body || {};
-  if (!Array.isArray(student_ids) || student_ids.length === 0 || student_ids.length > 500
+  const { student_ids, delete_section } = req.body || {};
+  if (!Array.isArray(student_ids) || (student_ids.length === 0 && delete_section !== true) || student_ids.length > 500
     || student_ids.some((id) => typeof id !== 'string' || !id.trim())) {
     return res.status(400).json({ message: 'Select between 1 and 500 valid student records to delete.' });
   }
@@ -348,14 +348,40 @@ router.delete('/:sectionId/students/bulk', authorizeRole('teacher'), async (req,
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
     }
 
-    const { data: selectedStudents, error: lookupError } = await supabase
-      .from('students')
-      .select('id')
-      .eq('section_id', req.params.sectionId)
-      .in('id', studentIds);
-    if (lookupError) return sendServerError(res, lookupError);
+    let selectedStudents = [];
+    if (studentIds.length > 0) {
+      const { data, error: lookupError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('section_id', req.params.sectionId)
+        .in('id', studentIds);
+      if (lookupError) return sendServerError(res, lookupError);
+      selectedStudents = data || [];
+    }
     if ((selectedStudents || []).length !== studentIds.length) {
       return res.status(400).json({ message: 'One or more selected students do not belong to this section.' });
+    }
+
+    if (delete_section === true) {
+      const { data: roster, error: rosterError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('section_id', req.params.sectionId);
+      if (rosterError) return sendServerError(res, rosterError);
+      const currentRosterIds = new Set((roster || []).map((student) => String(student.id)));
+      if (currentRosterIds.size !== studentIds.length || studentIds.some((id) => !currentRosterIds.has(id))) {
+        return res.status(409).json({ message: 'The section roster changed. Refresh the class list and select every student again before deleting the section.' });
+      }
+
+      const { data: deletedSection, error: sectionDeleteError } = await supabase
+        .from('sections')
+        .delete()
+        .eq('id', req.params.sectionId)
+        .select('id')
+        .maybeSingle();
+      if (sectionDeleteError) return sendServerError(res, sectionDeleteError);
+      if (!deletedSection) return res.status(404).json({ message: 'Section not found.' });
+      return res.json({ deleted: studentIds.length, section_deleted: true });
     }
 
     const { data: deletedStudents, error: deleteError } = await supabase

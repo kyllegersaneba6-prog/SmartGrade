@@ -7,9 +7,9 @@ const router = express.Router();
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 const DEFAULT_EXPORT_SETTINGS = Object.freeze({
-  program_head_bsit: 'ARIEL T. SUMAGAYSAY, MSCS, MAEd',
-  program_head_bscs: 'ARIEL T. SUMAGAYSAY, MSCS, MAEd',
-  dean_cict: 'MAE B. LODANA, Ph.D.',
+  program_head_bsit: '',
+  program_head_bscs: '',
+  dean_cict: '',
 });
 const SETTINGS_COLUMNS = 'department_id, program_head_bsit, program_head_bscs, dean_cict, updated_at';
 const SETTING_FIELDS = ['program_head_bsit', 'program_head_bscs', 'dean_cict'];
@@ -79,23 +79,23 @@ router.put('/', authorizeRole('admin'), async (req, res) => {
       .single();
     if (error) return sendServerError(res, error);
 
-    const changes = changedFields.length > 0
-      ? changedFields.map((field) => `${SETTING_LABELS[field]} ("${previousSettings[field]}" → "${data[field]}")`)
-      : ['no signatory names changed'];
-    const { error: activityError } = await supabase
-      .from('activity_log')
-      .insert([{
-        user_name: req.user.username || 'System',
-        action: 'Export Signatories Updated',
-        details: `Export signatories for ${req.user.department} were saved. Changes made: ${changes.join(', ')}.`,
-        department: req.user.department || null,
-      }]);
-    if (activityError) {
-      console.error('Export signatory activity log insert failed:', activityError.message);
-      return res.status(500).json({ message: 'Export signatories were saved, but the activity log entry could not be created.' });
+    if (changedFields.length > 0) {
+      const changes = changedFields.map((field) => `${SETTING_LABELS[field]} ("${previousSettings[field]}" → "${data[field]}")`);
+      const { error: activityError } = await supabase
+        .from('activity_log')
+        .insert([{
+          user_name: req.user.username || 'System',
+          action: 'Export Signatories Updated',
+          details: `Export signatories for ${req.user.department} were saved. Changes made: ${changes.join(', ')}.`,
+          department: req.user.department || null,
+        }]);
+      if (activityError) {
+        console.error('Export signatory activity log insert failed:', activityError.message);
+        return res.status(500).json({ message: 'Export signatories were saved, but the activity log entry could not be created.' });
+      }
     }
 
-    return res.json(data);
+    return res.json({ ...data, changed: changedFields.length > 0 });
   } catch (error) {
     return sendServerError(res, error);
   }

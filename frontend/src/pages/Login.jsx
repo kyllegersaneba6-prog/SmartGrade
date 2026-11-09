@@ -100,11 +100,11 @@ const Login = () => {
       {/* ===== LEFT COLUMN — Login Form ===== */}
       <div
         className="h-full min-h-0 w-full lg:w-[42%] flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-10 relative z-10"
-        style={{ backgroundColor: '#FFFFFF' }}
+        style={{ backgroundColor: '#e5e7eb' }}
       >
         <div
           className="my-auto w-full max-w-[420px] rounded-xl p-8 md:p-10 shadow-[0_18px_50px_-10px_rgba(71,85,105,0.45)]"
-          style={{ backgroundColor: '#FFFFFF' }}
+          style={{ backgroundColor: '#f3f4f6' }}
         >
           {/* Brand logos */}
           <div className="flex items-center justify-center gap-3 mb-8">
@@ -136,7 +136,7 @@ const Login = () => {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="login-input block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-[#0c1925] placeholder-gray-400 focus:ring-2 focus:ring-[#0c1925]/20 focus:border-[#0c1925] transition-all outline-none"
+                  className="login-input block w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-medium text-[#0c1925] placeholder-gray-400 focus:ring-2 focus:ring-[#0c1925]/20 focus:border-[#0c1925] transition-all outline-none"
                   placeholder="Enter your username"
                 />
               </div>
@@ -155,7 +155,7 @@ const Login = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="login-input block w-full pl-11 pr-11 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-[#0c1925] placeholder-gray-400 focus:ring-2 focus:ring-[#0c1925]/20 focus:border-[#0c1925] transition-all outline-none"
+                  className="login-input block w-full pl-11 pr-11 py-3 bg-white border border-gray-200 rounded-lg text-sm font-medium text-[#0c1925] placeholder-gray-400 focus:ring-2 focus:ring-[#0c1925]/20 focus:border-[#0c1925] transition-all outline-none"
                   placeholder="Enter your password"
                 />
                 <button

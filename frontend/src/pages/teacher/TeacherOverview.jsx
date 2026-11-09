@@ -83,7 +83,7 @@ const TeacherOverview = () => {
             <p className="text-xs mt-1">Try searching with a different subject or section name.</p>
           </div>
         ) : (
-          <div className="grid min-h-[430px] grid-cols-1 overflow-hidden rounded-xl border border-gray-200 bg-white sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid min-h-[430px] grid-cols-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg sm:grid-cols-2 xl:grid-cols-4">
             {yearOrder.map((year, index) => {
               const items = groupedByYear[year] || [];
               const columnDivider = [

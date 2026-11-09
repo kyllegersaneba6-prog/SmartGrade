@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archive, CheckCircle2, Save, X } from 'lucide-react';
+import { Archive, CheckCircle2, LoaderCircle, Save, X } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import { SkeletonSettingsCard } from '../../components/common/Skeleton';
 import AdminPageHeading from '../../components/admin/AdminPageHeading';
@@ -15,8 +15,6 @@ const AdminSettings = () => {
   const [savingExportSettings, setSavingExportSettings] = useState(false);
   const [exportSettingsError, setExportSettingsError] = useState('');
   const [exportSettingsSaved, setExportSettingsSaved] = useState(false);
-  const [showExportSaveConfirm, setShowExportSaveConfirm] = useState(false);
-  const [exportSaveConfirmation, setExportSaveConfirmation] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -43,18 +41,9 @@ const AdminSettings = () => {
     return () => window.clearTimeout(timeoutId);
   }, [exportSettingsSaved]);
 
-  const handleSaveExportSettings = (event) => {
+  const handleSaveExportSettings = async (event) => {
     event.preventDefault();
     if (savingExportSettings) return;
-    setExportSettingsError('');
-    setExportSettingsSaved(false);
-    setExportSaveConfirmation('');
-    setShowExportSaveConfirm(true);
-  };
-
-  const confirmSaveExportSettings = async (event) => {
-    event.preventDefault();
-    if (savingExportSettings || exportSaveConfirmation.trim() !== 'Confirm') return;
     setSavingExportSettings(true);
     setExportSettingsError('');
     setExportSettingsSaved(false);
@@ -65,14 +54,11 @@ const AdminSettings = () => {
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.message || 'Could not save export settings.');
-      setExportSettings({ ...DEFAULT_EXPORT_SETTINGS, ...data });
-      setExportSettingsSaved(true);
-      setShowExportSaveConfirm(false);
-      setExportSaveConfirmation('');
+      const { changed = false, ...savedSettings } = data || {};
+      setExportSettings({ ...DEFAULT_EXPORT_SETTINGS, ...savedSettings });
+      setExportSettingsSaved(changed === true);
     } catch (error) {
       setExportSettingsError(error.message || 'Could not save export settings.');
-      setShowExportSaveConfirm(false);
-      setExportSaveConfirmation('');
     } finally {
       setSavingExportSettings(false);
     }
@@ -206,7 +192,7 @@ const AdminSettings = () => {
 
         <div className="mt-5 flex justify-end">
           <button type="submit" disabled={exportSettingsLoading || savingExportSettings} className="inline-flex items-center gap-2 rounded-lg bg-[#0c1925] px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[#142a3f] disabled:cursor-not-allowed disabled:opacity-50">
-            <Save size={14} /> {savingExportSettings ? 'Saving…' : 'Save'}
+            {savingExportSettings ? <LoaderCircle size={14} className="animate-spin" aria-hidden="true" /> : <Save size={14} aria-hidden="true" />} {savingExportSettings ? 'Saving…' : 'Save'}
           </button>
         </div>
       </form>
@@ -247,42 +233,6 @@ const AdminSettings = () => {
         </div>
       )}
 
-      {showExportSaveConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop p-4">
-          <form onSubmit={confirmSaveExportSettings} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-gray-200">
-            <h3 id="export-save-confirm-title" className="text-lg font-bold text-gray-900">Confirm export settings</h3>
-            <p className="mt-2 text-sm text-gray-600">Type <strong>Confirm</strong> to save these signatory names.</p>
-            <label htmlFor="export-save-confirmation" className="mt-4 block text-xs font-bold text-gray-800">Type Confirm</label>
-            <input
-              id="export-save-confirmation"
-              type="text"
-              autoComplete="off"
-              autoFocus
-              value={exportSaveConfirmation}
-              onChange={(event) => setExportSaveConfirmation(event.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0c1925]"
-              aria-labelledby="export-save-confirm-title"
-            />
-            <div className="mt-5 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => { setShowExportSaveConfirm(false); setExportSaveConfirmation(''); }}
-                disabled={savingExportSettings}
-                className="rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={savingExportSettings || exportSaveConfirmation.trim() !== 'Confirm'}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#0c1925] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#142a3f] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Save size={14} /> {savingExportSettings ? 'Saving…' : 'Confirm'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
     </div>
   );
 };

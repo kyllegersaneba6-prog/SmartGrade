@@ -243,7 +243,7 @@ const AdminTeachers = () => {
           <table className="w-full min-w-[700px] text-xs">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                {['ID', 'NAME', 'USERNAME', 'DATE ADDED', 'ACTIONS'].map((heading) => <th key={heading} scope="col" className="sticky top-0 z-10 bg-gray-50 px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-gray-600">{heading}</th>)}
+                {['ID', 'NAME', 'USERNAME', 'DATE ADDED', 'ACTIONS'].map((heading) => <th key={heading} scope="col" className="sticky top-0 z-10 bg-gray-50 px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-gray-900">{heading}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -253,10 +253,10 @@ const AdminTeachers = () => {
                 <tr><td colSpan={5} className="py-10 text-center text-gray-500">{searchQuery.trim() ? 'No teachers match your search.' : <>No teachers have been added yet. Click <strong>Add Teacher</strong> to create the first account.</>}</td></tr>
               ) : filteredTeachers.map((teacher) => (
                 <tr key={teacher.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                  <td className="px-3 py-3 font-mono text-[12px] text-gray-900">{displayStaffId(teacher.staff_id)}</td>
-                  <td className="px-3 py-3 font-bold text-gray-900">{teacher.full_name}</td>
-                  <td className="px-3 py-3 text-[12px] text-gray-700">{teacher.username || '—'}</td>
-                  <td className="px-3 py-3 text-gray-600">{teacher.created_at ? new Date(teacher.created_at).toLocaleDateString() : '—'}</td>
+                  <td className="px-3 py-3 font-mono text-[12px] font-bold text-gray-900">{displayStaffId(teacher.staff_id)}</td>
+                  <td className="px-3 py-3 text-gray-900">{teacher.full_name}</td>
+                  <td className="px-3 py-3 text-[12px] text-gray-900">{teacher.username || '—'}</td>
+                  <td className="px-3 py-3 text-gray-900">{teacher.created_at ? new Date(teacher.created_at).toLocaleDateString() : '—'}</td>
                   <td className="px-3 py-3">
                     <button
                       type="button"
@@ -264,7 +264,7 @@ const AdminTeachers = () => {
                       aria-label={`Actions for ${teacher.full_name}`}
                       aria-haspopup="menu"
                       aria-expanded={openMenuId === teacher.id}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 transition-colors hover:bg-gray-50"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-900 transition-colors hover:bg-gray-50"
                       title="Teacher actions"
                     ><Bolt size={20} /></button>
                   </td>
@@ -273,7 +273,7 @@ const AdminTeachers = () => {
             </tbody>
           </table>
         </div>
-        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-500">
+        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-900">
           <span>Showing {filteredTeachers.length} of {teachers.length} teachers</span>
         </div>
 
@@ -307,16 +307,16 @@ const AdminTeachers = () => {
 
       {teacherToEdit && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center">
-          <div className="modal-surface mx-4 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-gray-100 bg-white p-6">
+          <div className="modal-surface mx-4 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-gray-100 p-6" style={{ backgroundColor: '#f3f4f6' }}>
             <h3 className="mb-4 text-lg font-bold text-gray-900">Edit Teacher</h3>
             <div className="space-y-4">
-              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">ID</label><input value={formatStaffId(teacherToEdit.staff_id || '')} readOnly className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 font-mono text-sm text-gray-600" /></div>
+              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">ID</label><input value={formatStaffId(teacherToEdit.staff_id || '')} readOnly className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-sm text-gray-600" /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">First Name</label><input value={editForm.first_name} onChange={(event) => setEditForm({ ...editForm, first_name: event.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" /></div>
-                <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Last Name</label><input value={editForm.last_name} onChange={(event) => setEditForm({ ...editForm, last_name: event.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" /></div>
+                <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">First Name</label><input value={editForm.first_name} onChange={(event) => setEditForm({ ...editForm, first_name: event.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm" /></div>
+                <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Last Name</label><input value={editForm.last_name} onChange={(event) => setEditForm({ ...editForm, last_name: event.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm" /></div>
               </div>
-              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Username (auto-generated)</label><input readOnly value={usernameFromLastNameAndId(editForm.last_name, teacherToEdit.staff_id) || teacherToEdit.username || ''} className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-3 py-2 font-mono text-sm text-gray-600" /></div>
-              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">New Password (leave blank to keep current)</label><div className="relative"><input type={showEditPassword ? 'text' : 'password'} value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm" /><button type="button" onClick={() => setShowEditPassword(!showEditPassword)} aria-label={showEditPassword ? 'Hide password' : 'Show password'} className="rounded-lg absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></div>
+              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Username (auto-generated)</label><input readOnly value={usernameFromLastNameAndId(editForm.last_name, teacherToEdit.staff_id) || teacherToEdit.username || ''} className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm text-gray-600" /></div>
+              <div><label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">New Password (leave blank to keep current)</label><div className="relative"><input type={showEditPassword ? 'text' : 'password'} value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 pr-10 text-sm" /><button type="button" onClick={() => setShowEditPassword(!showEditPassword)} aria-label={showEditPassword ? 'Hide password' : 'Show password'} className="rounded-lg absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">{showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></div>
             </div>
             {editError && <p className="mt-4 text-sm font-semibold text-red-600">{editError}</p>}
             <div className="mt-6 flex justify-end gap-3"><button onClick={() => setTeacherToEdit(null)} disabled={editLoading} className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-200">Cancel</button><button onClick={saveEdit} disabled={editLoading} className="rounded-lg bg-[#0c1925] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{editLoading ? 'Saving…' : 'Save Changes'}</button></div>

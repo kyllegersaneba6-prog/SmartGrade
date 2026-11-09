@@ -33,6 +33,7 @@ const MyClassList = () => {
   const [saving, setSaving] = useState(false);
   const [importError, setImportError] = useState('');
   const [importResult, setImportResult] = useState(null);
+  const [importResultModalOpen, setImportResultModalOpen] = useState(false);
   const [studentModalOpen, setStudentModalOpen] = useState(false);
   const [addingStudent, setAddingStudent] = useState(false);
   const [addStudentError, setAddStudentError] = useState('');
@@ -60,6 +61,12 @@ const MyClassList = () => {
     observer.observe(header);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!importResultModalOpen) return undefined;
+    const timeoutId = window.setTimeout(() => setImportResultModalOpen(false), 2000);
+    return () => window.clearTimeout(timeoutId);
+  }, [importResultModalOpen]);
 
   const sections = useMemo(() => {
     const unique = new Map();
@@ -89,7 +96,10 @@ const MyClassList = () => {
   const rosterLoading = assignmentsLoading || Boolean(rosterSectionId && rosterState.sectionId !== rosterSectionId);
   const selectedStudentIds = selectedBySection[rosterSectionId] || [];
   const selectedStudentIdSet = new Set(selectedStudentIds);
-  const allStudentsSelected = students.length > 0 && students.every((student) => selectedStudentIdSet.has(studentKey(student)));
+  const selectedRosterStudentIds = students.filter((student) => selectedStudentIdSet.has(studentKey(student))).map(studentKey);
+  const allStudentsSelected = students.length > 0 && selectedRosterStudentIds.length === students.length;
+  const hasEmptySection = Boolean(selectedSectionAssignment && !rosterLoading && !rosterError && students.length === 0);
+  const deleteEntireSection = allStudentsSelected || hasEmptySection;
   const someStudentsSelected = students.some((student) => selectedStudentIdSet.has(studentKey(student)));
   const isReadOnly = isArchiveMode || !activeTerm;
 
@@ -133,27 +143,39 @@ const MyClassList = () => {
 
   const deleteSelectedStudents = async (event) => {
     event.preventDefault();
-    if (!selectedSectionAssignment || isReadOnly || deletingStudents || !selectedStudentIds.length) return;
+    const deletingEmptySection = deleteEntireSection && students.length === 0;
+    if (!selectedSectionAssignment || isReadOnly || deletingStudents || (!selectedRosterStudentIds.length && !deletingEmptySection)) return;
     if (deleteConfirmationText.trim() !== 'Confirm') {
       setDeleteStudentError('Type Confirm to delete to continue.');
       return;
     }
 
     const selectedSectionId = String(selectedSectionAssignment.section_id);
-    const selectedIds = new Set(selectedStudentIds);
+    const selectedIds = new Set(selectedRosterStudentIds);
     setDeletingStudents(true);
     setDeleteStudentError('');
     try {
       const response = await api(`/api/sections/${selectedSectionId}/students/bulk`, {
         method: 'DELETE',
-        body: JSON.stringify({ student_ids: [...selectedIds] }),
+        body: JSON.stringify({ student_ids: [...selectedIds], delete_section: deleteEntireSection }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.message || 'Could not delete the selected students.');
-      setRosterState((current) => current.sectionId === selectedSectionId
-        ? { ...current, students: current.students.filter((student) => !selectedIds.has(studentKey(student))) }
-        : current);
-      setSelectedBySection((current) => ({ ...current, [selectedSectionId]: [] }));
+      if (!response.ok) throw new Error(data.message || (deleteEntireSection ? 'Could not delete the class list.' : 'Could not delete the selected students.'));
+      if (data.section_deleted) {
+        await refreshAssignments();
+        setSectionId('');
+        setParsed(null);
+        setSelectedBySection((current) => {
+          const next = { ...current };
+          delete next[selectedSectionId];
+          return next;
+        });
+      } else {
+        setRosterState((current) => current.sectionId === selectedSectionId
+          ? { ...current, students: current.students.filter((student) => !selectedIds.has(studentKey(student))) }
+          : current);
+        setSelectedBySection((current) => ({ ...current, [selectedSectionId]: [] }));
+      }
       setDeleteConfirmOpen(false);
       setDeleteConfirmationText('');
     } catch (error) {
@@ -189,6 +211,7 @@ const MyClassList = () => {
     setParseError('');
     setImportError('');
     setImportResult(null);
+    setImportResultModalOpen(false);
   };
 
   const metadataMismatches = useMemo(() => {
@@ -229,6 +252,7 @@ const MyClassList = () => {
     setParseError('');
     setImportError('');
     setImportResult(null);
+    setImportResultModalOpen(false);
     try {
       const { parseClassListPdf } = await import('../../utils/classListPdf');
       const result = await parseClassListPdf(file);
@@ -283,6 +307,7 @@ const MyClassList = () => {
     setSaving(true);
     setImportError('');
     setImportResult(null);
+    setImportResultModalOpen(false);
     try {
       const response = await api('/api/assignments/import-class-list', {
         method: 'POST',
@@ -296,6 +321,7 @@ const MyClassList = () => {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || 'Student import failed.');
       setImportResult(data);
+      setImportResultModalOpen(true);
       if (data.section?.id) setSectionId(String(data.section.id));
       await refreshAssignments();
       if (data.added?.length && rosterState.sectionId === data.section?.id) {
@@ -392,6 +418,7 @@ const MyClassList = () => {
     setParsed(null);
     setImportError('');
     setImportResult(null);
+    setImportResultModalOpen(false);
   };
 
   return (
@@ -467,14 +494,14 @@ const MyClassList = () => {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
-            {selectedStudentIds.length > 0 && (
+            {(selectedRosterStudentIds.length > 0 || hasEmptySection) && (
               <button
                 type="button"
                 onClick={openDeleteConfirmation}
                 disabled={isReadOnly || rosterLoading || Boolean(rosterError) || deletingStudents}
                 className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Trash2 size={16} /> Delete ({selectedStudentIds.length})
+                <Trash2 size={16} /> {hasEmptySection ? 'Delete Section' : `Delete (${selectedRosterStudentIds.length})`}
               </button>
             )}
             <button
@@ -615,9 +642,21 @@ const MyClassList = () => {
           className="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop"
           onMouseDown={(event) => { if (event.target === event.currentTarget) closeDeleteConfirmation(); }}
         >
-          <form onSubmit={deleteSelectedStudents} role="dialog" aria-modal="true" aria-labelledby="delete-students-title" className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
+          <form onSubmit={deleteSelectedStudents} role="dialog" aria-modal="true" aria-labelledby="delete-students-title" className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
             <h3 id="delete-students-title" className="text-lg font-bold text-gray-900 mb-2">Confirm Delete</h3>
-            <p className="text-sm text-gray-900 mb-3">Are you sure you want to delete {selectedStudentIds.length} selected student(s) from <strong>{selectedSectionAssignment?.sections?.name || 'this section'}</strong>? This action cannot be undone.</p>
+            {hasEmptySection ? (
+              <div className="mb-3 space-y-2 text-sm text-gray-900">
+                <p>The class list for <strong>{selectedSectionAssignment?.sections?.name || 'this section'}</strong> is already empty.</p>
+                <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800">Deleting this section will remove it from the dropdown and permanently delete every teacher assignment tied to it, including related grades, scores, attendance, and class records. This may affect other teachers assigned to the section. This action cannot be undone.</p>
+              </div>
+            ) : deleteEntireSection ? (
+              <div className="mb-3 space-y-2 text-sm text-gray-900">
+                <p>You selected all <strong>{selectedRosterStudentIds.length} students</strong> in <strong>{selectedSectionAssignment?.sections?.name || 'this section'}</strong>.</p>
+                <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800">Deleting this complete class list will also remove the section from the dropdown, delete every teacher assignment tied to it, and permanently erase its grades, scores, attendance, and related class records. This may affect other teachers assigned to the section. This action cannot be undone.</p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-900 mb-3">Are you sure you want to delete {selectedRosterStudentIds.length} selected student(s) from <strong>{selectedSectionAssignment?.sections?.name || 'this section'}</strong>? This action cannot be undone.</p>
+            )}
             <div className="mb-4">
               <label htmlFor="delete-confirmation-text" className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
               <input id="delete-confirmation-text" type="text" autoFocus autoComplete="off" value={deleteConfirmationText} onChange={(event) => { setDeleteConfirmationText(event.target.value); setDeleteStudentError(''); }} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm" placeholder="Confirm" />
@@ -627,7 +666,7 @@ const MyClassList = () => {
               <button type="button" onClick={closeDeleteConfirmation} disabled={deletingStudents} className="px-4 py-2 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
               <button type="submit" disabled={deleteConfirmationText !== 'Confirm' || deletingStudents || isReadOnly} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-md transition-colors ${deleteConfirmationText === 'Confirm' && !deletingStudents && !isReadOnly ? 'bg-red-600 hover:bg-red-700' : 'bg-red-300 cursor-not-allowed'} flex items-center gap-2`}>
                 {deletingStudents && <LoaderCircle size={14} className="animate-spin" />}
-                {deletingStudents ? 'Deleting...' : 'Delete'}
+                {deletingStudents ? 'Deleting...' : hasEmptySection ? 'Delete Section' : deleteEntireSection ? 'Delete Class List' : 'Delete'}
               </button>
             </div>
           </form>
@@ -639,7 +678,7 @@ const MyClassList = () => {
           className="modal-backdrop fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto p-3 sm:p-5"
           onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) closePreview(); }}
         >
-          <section role="dialog" aria-modal="true" aria-labelledby="pdf-preview-title" className="modal-surface flex max-h-[calc(100dvh-1.5rem)] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-2.5rem)]">
+          <section role="dialog" aria-modal="true" aria-labelledby="pdf-preview-title" className="modal-surface relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-2.5rem)]">
             <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-200 bg-gray-50 px-5 py-4 sm:px-6">
               <div>
                 <h2 id="pdf-preview-title" className="text-base font-bold text-gray-900">Review PDF roster</h2>
@@ -667,18 +706,12 @@ const MyClassList = () => {
               </div>
             </div>
 
-            {(metadataMismatches.length > 0 || importResult || importError) && (
+            {(metadataMismatches.length > 0 || importError || (importResult?.skipped?.length > 0 && !importResultModalOpen)) && (
               <div className="max-h-36 shrink-0 space-y-2 overflow-y-auto px-5 pt-4 sm:px-6">
                 {metadataMismatches.length > 0 && (
                   <div role="alert" className="flex gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700">
                     <AlertTriangle size={15} className="mt-0.5 shrink-0" />
                     <span>PDF term does not match the active term: <strong>{metadataMismatches.join(', ')}</strong>. Choose the current term's class list before importing.</span>
-                  </div>
-                )}
-                {importResult && (
-                  <div className="flex gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-xs text-green-800">
-                    <CheckCircle2 size={15} className="mt-0.5 shrink-0" />
-                    <span>{importResult.added?.length || 0} student(s) added; {importResult.skipped?.length || 0} skipped. Class: {importResult.section?.name} · {importResult.subject?.code}.</span>
                   </div>
                 )}
                 {importError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700">{importError}</p>}
@@ -734,6 +767,28 @@ const MyClassList = () => {
                 </table>
               </div>
             </div>
+
+            {importResultModalOpen && importResult && (
+              <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/35 p-4" role="presentation">
+                <div role="status" aria-live="polite" aria-labelledby="import-result-title" className="w-full max-w-xl rounded-2xl border border-green-200 bg-white p-8 text-center shadow-2xl">
+                  <div className="flex flex-col items-center">
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-green-50 text-green-700">
+                      <CheckCircle2 size={30} />
+                    </span>
+                    <div className="mt-4 min-w-0">
+                      <h3 id="import-result-title" className="text-xl font-bold text-gray-900">Roster import complete</h3>
+                      <p className="mt-2 text-base leading-7 text-gray-700">{importResult.added?.length || 0} student(s) added; {importResult.skipped?.length || 0} skipped. Class: {importResult.section?.name} · {importResult.subject?.code}.</p>
+                    </div>
+                  </div>
+                  {importResult.skipped?.length > 0 && (
+                    <div className="mt-5 max-h-36 space-y-1 overflow-y-auto rounded-lg bg-amber-50 p-4 text-sm text-amber-800 text-left">
+                      {importResult.skipped.slice(0, 8).map((item, index) => <p key={`${item.student_id}-${index}`}>Row {item.row || index + 1}: {item.student_id || 'No ID'} — {item.reason}</p>)}
+                      {importResult.skipped.length > 8 && <p>And {importResult.skipped.length - 8} more skipped row(s).</p>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="flex shrink-0 flex-col gap-3 border-t border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <p className="text-xs text-gray-600">Student records will be shared across subjects in this section.</p>

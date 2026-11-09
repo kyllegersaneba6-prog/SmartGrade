@@ -1,9 +1,9 @@
 import api from './api';
 
 export const DEFAULT_EXPORT_SETTINGS = Object.freeze({
-  program_head_bsit: 'ARIEL T. SUMAGAYSAY, MSCS, MAEd',
-  program_head_bscs: 'ARIEL T. SUMAGAYSAY, MSCS, MAEd',
-  dean_cict: 'MAE B. LODANA, Ph.D.',
+  program_head_bsit: '',
+  program_head_bscs: '',
+  dean_cict: '',
 });
 
 export const fetchExportSettings = async () => {
