@@ -83,20 +83,20 @@ const TeacherOverview = () => {
             <p className="text-xs mt-1">Try searching with a different subject or section name.</p>
           </div>
         ) : (
-          <div className="grid min-h-[430px] grid-cols-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid min-h-[430px] grid-cols-1 overflow-hidden rounded-xl border border-gray-300 bg-white shadow-lg sm:grid-cols-2 xl:grid-cols-4">
             {yearOrder.map((year, index) => {
               const items = groupedByYear[year] || [];
               const columnDivider = [
                 'flex min-h-[280px] flex-col px-6 py-6',
                 index < yearOrder.length - 1 ? 'border-b border-gray-200 sm:border-b-0' : '',
-                index % 2 === 0 ? 'sm:border-r sm:border-gray-200' : '',
-                index < yearOrder.length - 1 ? 'xl:border-r xl:border-gray-200' : 'xl:border-r-0',
+                index % 2 === 0 ? 'sm:border-r sm:border-gray-300' : '',
+                index < yearOrder.length - 1 ? 'xl:border-r xl:border-gray-300' : 'xl:border-r-0',
               ].join(' ');
               return (
                 <section key={year} aria-label={yearLabels[year]} className={columnDivider}>
                   <div className="mb-4 flex items-center justify-between">
-                    <h4 className="text-sm font-medium uppercase tracking-wide text-gray-700">{yearLabels[year]}</h4>
-                    <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-md bg-gray-100 px-2 text-sm font-medium text-gray-600">{items.length}</span>
+                    <h4 className="text-sm font-bold uppercase tracking-wide text-gray-700">{yearLabels[year]}</h4>
+                    <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-md bg-gray-100 px-2 text-sm font-bold text-gray-600">{items.length}</span>
                   </div>
                   {items.length === 0 ? (
                     <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
@@ -111,7 +111,7 @@ const TeacherOverview = () => {
                       {items.map((a) => (
                         <article
                           key={a.id}
-                          className="flex min-h-[108px] w-full flex-col justify-between rounded-xl border border-slate-300 bg-[#fbfcfd] p-3"
+                          className="flex min-h-[108px] w-full flex-col justify-between rounded-xl border border-gray-300 bg-[#fbfcfd] p-3"
                         >
                           <div className="min-w-0">
                             {a.subjects?.code && <p className="text-xs font-bold uppercase tracking-wider text-slate-600">{a.subjects.code}</p>}

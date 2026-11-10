@@ -38,9 +38,10 @@ export const getComponentTotal = (studentId, comp, scores, attScores) => {
   const activities = comp.activities || [];
   let sum = 0;
   activities.forEach(a => {
+    const rawScore = a.is_attendance ? attScores?.scores?.[studentId] : scores?.[a.id]?.[studentId];
     const val = a.is_attendance
-      ? parseFloat(attScores?.scores?.[studentId] ?? 0)
-      : parseFloat(scores?.[a.id]?.[studentId]);
+      ? parseFloat(rawScore ?? 0)
+      : (rawScore === null || rawScore === undefined || rawScore === '' ? 0 : parseFloat(rawScore));
     if (!isNaN(val)) sum += val;
   });
   return sum;

@@ -32,7 +32,7 @@
 
 | Value | Where |
 |---|---|
-| `#0D1E2D` | Solid background for Admin, Teacher, and Superadmin sidebars and teacher grading table header bands |
+| `#0D1E2D` | Solid background for Admin, Teacher, and Superadmin sidebars, teacher grading table header bands, and the My Class List roster table header |
 | `#FFFFFF` | Solid canvas/card backgrounds for Login, Not Found, and backend-unavailable screens |
 | `#0c1925`, `#142a3f` | Primary buttons, focus rings, headings |
 | `#0a316a` + `border-gold` | Active sidebar item (`bg-[#24384b]`, `text-amber-300`) |
@@ -54,7 +54,7 @@ There is **no per-role color palette**. Admin, teacher, and superadmin share nav
 
 - Page container: `space-y-6 max-w-7xl mx-auto`; settings pages `max-w-3xl`.
 - Header `h-16`; page header cards `min-height: 106px` (mobile) / `118px` (`sm+`).
-- Role shells use a shared white `h-16` header; desktop sidebars are 224 px wide and collapse to 72 px.
+- Role shells use a shared white `h-16` header and `bg-gray-50` authenticated content canvas; desktop sidebars are 224 px wide and collapse to 72 px.
 - Card padding `p-4`/`p-5`/`p-6`; grids `gap-4`/`gap-5`/`gap-6`.
 - Radius: `rounded-lg` inputs/buttons, `rounded-xl` cards (including page headings and loading shells) and dropdown panels, `rounded-2xl` modal dialogs, `rounded-md` text badges/status labels/counts. Icon backgrounds, dots, and progress bars keep their existing radii.
 - Elevation: `shadow-sm` default; hover `0 4px 12px rgba(0,0,0,0.12)`; modal `0 12px 40px rgba(0,0,0,0.12)`.

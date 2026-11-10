@@ -13,6 +13,21 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 router.use(authenticateToken);
 
 const semesters = ['1st Semester', '2nd Semester',  'Summer'];
+const recordClassListImport = async (req, { section, subject, assignment, addedCount, skippedCount }) => {
+  const details = `Imported a PDF class list for section "${section?.name || 'Unknown'}" / ${subject?.code || 'Unknown'}, ${assignment.school_year} ${assignment.semester}. Added ${addedCount}; skipped ${skippedCount}.`;
+  try {
+    const { error } = await supabase.from('activity_log').insert([{
+      user_name: req.user.username || 'System',
+      action: 'Teacher Class List Imported',
+      details,
+      department: req.user.department || null,
+    }]);
+    if (error) console.error('Class-list import audit insert failed:', error.message);
+  } catch (err) {
+    console.error('Class-list import audit insert failed:', err?.message || err);
+  }
+};
+
 const blockAdminAssignmentManagement = (req, res, next) => {
   if (req.user.role === 'admin') {
     return res.status(403).json({ message: 'Teachers manage class assignments through the My Students PDF import.' });
@@ -351,6 +366,13 @@ router.post('/import-class-list', authorizeRole('teacher'), async (req, res) => 
         skipped.push({ student_id: candidate.student_id, row: candidate.row, reason: 'Student ID already exists in this section.' });
       }
     });
+    await recordClassListImport(req, {
+      section,
+      subject,
+      assignment,
+      addedCount: (added || []).length,
+      skippedCount: skipped.length,
+    });
     return res.status(created.assignment ? 201 : 200).json({
       assignment,
       section,
@@ -473,6 +495,13 @@ router.post('/:assignmentId/students/bulk', authorizeRole('teacher'), async (req
       if (!addedIds.has(candidate.student_id)) {
         skipped.push({ student_id: candidate.student_id, row: sourceRows.get(candidate.student_id), reason: 'Student ID already exists in this section.' });
       }
+    });
+    await recordClassListImport(req, {
+      section,
+      subject: assignment.subjects,
+      assignment,
+      addedCount: (added || []).length,
+      skippedCount: skipped.length,
     });
     res.json({ added: added || [], skipped });
   } catch (err) {

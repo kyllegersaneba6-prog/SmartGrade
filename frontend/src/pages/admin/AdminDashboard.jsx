@@ -3,7 +3,10 @@ import { Activity, BookOpen, Clock, CheckCircle, Trash2, RefreshCw, UsersRound, 
 import api from '../../utils/api';
 import { splitUpdateDescription, isSentenceDescription } from '../../utils/auditText';
 import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../components/common/Skeleton';
+import Pagination from '../../components/common/Pagination';
 import AdminPageHeading from '../../components/admin/AdminPageHeading';
+
+const ACTIVITY_PAGE_SIZE = 10;
 
 const AdminDashboard = () => {
   const [teachers, setTeachers] = useState([]);
@@ -40,6 +43,7 @@ const AdminDashboard = () => {
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [actionFilter, setActionFilter] = useState('ALL');
+  const [activityPage, setActivityPage] = useState(1);
 
   const ACTION_FILTERS = [
     { value: 'ALL', label: 'ALL ACTIVITIES' },
@@ -61,7 +65,12 @@ const AdminDashboard = () => {
     }
   });
 
-  const activityLogToDisplay = filteredActivities;
+  const activityPageCount = Math.max(1, Math.ceil(filteredActivities.length / ACTIVITY_PAGE_SIZE));
+  const currentActivityPage = Math.min(activityPage, activityPageCount);
+  const activityLogToDisplay = filteredActivities.slice(
+    (currentActivityPage - 1) * ACTIVITY_PAGE_SIZE,
+    currentActivityPage * ACTIVITY_PAGE_SIZE,
+  );
   const totalTeacherClasses = teachers.reduce(
     (total, teacher) => total + (Number(teacher.teacher_class_count) || 0),
     0,
@@ -164,7 +173,7 @@ const AdminDashboard = () => {
                     {ACTION_FILTERS.map((f) => (
                       <button
                         key={f.value}
-                        onClick={() => { setActionFilter(f.value); setFilterOpen(false); }}
+                        onClick={() => { setActionFilter(f.value); setActivityPage(1); setFilterOpen(false); }}
                         className={`w-full flex items-center justify-between px-3 py-2 text-[11px] font-bold tracking-wide hover:bg-gray-50 ${actionFilter === f.value ? 'text-[#0c1925]' : 'text-gray-500'}`}
                       >
                         {f.label}
@@ -179,7 +188,7 @@ const AdminDashboard = () => {
           {activityLogToDisplay.length === 0 ? (
             <p className="text-sm text-gray-500 italic py-6 text-center">No recent activities found.</p>
           ) : (
-            <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-1">
+            <div className="flex min-h-0 flex-col gap-3 flex-1 overflow-y-auto pr-1">
               {activityLogToDisplay.map((log) => {
                 const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
                 const isOwn = log.user_name === currentUser?.username;
@@ -235,6 +244,14 @@ const AdminDashboard = () => {
               })}
             </div>
           )}
+          <Pagination
+            currentPage={currentActivityPage}
+            totalPages={activityPageCount}
+            onPageChange={setActivityPage}
+            totalItems={filteredActivities.length}
+            rowsPerPage={ACTIVITY_PAGE_SIZE}
+            itemLabel="activities"
+          />
         </div>
         </>
         )}

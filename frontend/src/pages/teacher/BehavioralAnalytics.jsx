@@ -18,6 +18,7 @@ import {
 } from 'recharts';
 
 const avg = (arr) => arr.length === 0 ? 0 : arr.reduce((s, v) => s + v, 0) / arr.length;
+const scoreOrZero = (value) => value === null || value === undefined || value === '' ? 0 : parseFloat(value);
 
 const TrendChart = ({ data }) => (
   <div className="mt-4 rounded-xl border border-gray-200 bg-white p-3" role="img" aria-label="Activity scores and linear regression trend line">
@@ -178,7 +179,7 @@ const BehavioralAnalytics = () => {
     activities.forEach(a => {
       const val = a.is_attendance
         ? parseFloat(attendanceScores.scores[studentId] ?? 0)
-        : parseFloat(scores[a.id]?.[studentId]);
+        : scoreOrZero(scores[a.id]?.[studentId]);
       if (!isNaN(val)) {
         earned += val;
         possible += a.is_attendance
@@ -195,7 +196,7 @@ const BehavioralAnalytics = () => {
     return (comp.activities || []).map(a => {
       const raw = a.is_attendance
         ? parseFloat(attendanceScores.scores[studentId] ?? 0)
-        : parseFloat(scores[a.id]?.[studentId]);
+        : scoreOrZero(scores[a.id]?.[studentId]);
       const maxScore = a.is_attendance ? attendanceScores.max_total : a.max_score;
       return {
         activity: a,
@@ -270,7 +271,7 @@ const BehavioralAnalytics = () => {
         activities.forEach(a => {
           const val = a.is_attendance
             ? parseFloat(attendanceScores.scores[studentId] ?? 0)
-            : parseFloat(scores[a.id]?.[studentId]);
+            : scoreOrZero(scores[a.id]?.[studentId]);
           if (!isNaN(val)) {
             totalEarned += val;
             totalPossible += a.is_attendance
@@ -352,11 +353,6 @@ const BehavioralAnalytics = () => {
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir(key === 'name' || key === 'student_id' ? 'asc' : 'desc'); }
-  };
-
-  const sortIcon = (key) => {
-    if (sortKey !== key) return null;
-    return <span className="ml-1">{sortDir === 'asc' ? '▲' : '▼'}</span>;
   };
 
   // --- Trend icon ---
@@ -511,14 +507,14 @@ const BehavioralAnalytics = () => {
             </div>
           </div>
           <div className="bg-white p-5 rounded-xl border border-gray-50 kpi-card">
-            <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Submission Rate</div>
-            <div className={`text-2xl font-extrabold ${summary.avgSubRate >= 0.9 ? 'text-green-700' : summary.avgSubRate >= 0.75 ? 'text-amber-600' : 'text-red-600'}`}>
+            <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Overall Submission Rate</div>
+            <div className={`text-2xl font-extrabold ${summary.avgSubRate >= 0.75 ? 'text-green-700' : summary.avgSubRate >= 0.6 ? 'text-amber-600' : 'text-red-600'}`}>
               {(summary.avgSubRate * 100).toFixed(1)}%
             </div>
           </div>
           <div className="bg-white p-5 rounded-xl border border-gray-50 kpi-card">
-            <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Avg Attendance Rate</div>
-            <div className={`text-2xl font-extrabold ${summary.avgAttendanceRate >= 0.9 ? 'text-green-700' : summary.avgAttendanceRate >= 0.75 ? 'text-amber-600' : 'text-red-600'}`}>
+            <div className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-1">Overall Attendance Rate</div>
+            <div className={`text-2xl font-extrabold ${summary.avgAttendanceRate >= 0.75 ? 'text-green-700' : summary.avgAttendanceRate >= 0.6 ? 'text-amber-600' : 'text-red-600'}`}>
               {(summary.avgAttendanceRate * 100).toFixed(1)}%
             </div>
           </div>
@@ -581,8 +577,8 @@ const BehavioralAnalytics = () => {
                 </tr>
                 <tr className="bg-gray-50 border-b border-border text-center font-semibold text-sidebar">
                   <th className="sticky-student-number px-1 py-2.5 text-center sticky bg-gray-50 border-r border-border z-20">#</th>
-                  <th className="sticky-student-id px-3 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20 cursor-pointer select-none hover:bg-gray-100" onClick={() => handleSort('student_id')}>Stud ID {sortIcon('student_id')}</th>
-                  <th className="sticky-student-name px-4 py-2.5 text-left sticky bg-gray-50 border-r-2 border-border z-20 cursor-pointer select-none hover:bg-gray-100" onClick={() => handleSort('name')}>Student Name {sortIcon('name')}</th>
+                  <th className="sticky-student-id px-3 py-2.5 text-left sticky bg-gray-50 border-r border-border z-20 cursor-pointer select-none hover:bg-gray-100" onClick={() => handleSort('student_id')}>Stud ID</th>
+                  <th className="sticky-student-name px-4 py-2.5 text-left sticky bg-gray-50 border-r-2 border-border z-20 cursor-pointer select-none hover:bg-gray-100" onClick={() => handleSort('name')}>Student Name</th>
                   {components.map((comp) => (
                     (comp.is_attendance || comp.activities?.length > 0) && (
                       <React.Fragment key={comp.id}>
@@ -709,7 +705,7 @@ const BehavioralAnalytics = () => {
                     ) : (
                       <Sparkles size={16} className="text-amber-300" />
                     )}
-                    {aiLoading ? 'Analyzing student performance...' : showRetryLabel ? 'Retry AI Summary' : 'Summarize Student Behaviour with AI'}
+                    {aiLoading ? 'Analyzing student performance...' : showRetryLabel ? 'Retry AI Summary' : 'Summarize Student'}
                   </button>
                 </div>
 
@@ -820,7 +816,7 @@ const BehavioralAnalytics = () => {
                   <div key={comp.id} className={`border border-gray-200 rounded-xl p-4 ${statusBorder}`}>
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="text-base font-bold text-sidebar">{comp.name}</span>
-                      <span className="text-sm text-gray-500">Weight {comp.weight}%</span>
+                      <span className="text-sm text-gray-900">Weight ({comp.weight}%)</span>
                     </div>
 
                     <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">

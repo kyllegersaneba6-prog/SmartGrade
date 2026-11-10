@@ -1,6 +1,6 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { sendServerError } = require('../middleware/errors');
 const router = express.Router();
 
@@ -61,6 +61,63 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/teacher-export', authorizeRole('teacher'), async (req, res) => {
+  const { assignment_id: assignmentId, report_type: reportType, format, term, student_count: studentCount } = req.body || {};
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const reportTerms = {
+    'Class Record': ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'],
+    'Grade Summary': ['SEMESTER'],
+  };
+
+  if (typeof assignmentId !== 'string' || !uuidPattern.test(assignmentId)) {
+    return res.status(400).json({ message: 'A valid assignment_id is required.' });
+  }
+  if (!Object.hasOwn(reportTerms, reportType) || !reportTerms[reportType].includes(term)) {
+    return res.status(400).json({ message: 'A valid report_type and term are required.' });
+  }
+  if (!['xlsx', 'pdf'].includes(format)) {
+    return res.status(400).json({ message: 'format must be xlsx or pdf.' });
+  }
+  if (!Number.isSafeInteger(studentCount) || studentCount < 0) {
+    return res.status(400).json({ message: 'student_count must be a non-negative integer.' });
+  }
+
+  try {
+    const { data: assignment, error: assignmentError } = await supabase
+      .from('teacher_assignments')
+      .select('id, teacher_id, section_id, school_year, semester, sections(name), subjects(code)')
+      .eq('id', assignmentId)
+      .eq('teacher_id', req.user.id)
+      .maybeSingle();
+    if (assignmentError) return sendServerError(res, assignmentError);
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found.' });
+
+    const { count: rosterCount, error: rosterError } = await supabase
+      .from('students')
+      .select('id', { count: 'exact', head: true })
+      .eq('section_id', assignment.section_id);
+    if (rosterError) return sendServerError(res, rosterError);
+    if (studentCount > (rosterCount || 0)) {
+      return res.status(400).json({ message: 'student_count cannot exceed the assigned class roster.' });
+    }
+
+    const reportTerm = term === 'SEMESTER' ? 'Semester Summary' : term;
+    const details = `Exported ${reportType} (${format.toUpperCase()}) for section "${assignment.sections?.name || 'Unknown'}" / ${assignment.subjects?.code || 'Unknown'}, ${reportTerm}, ${assignment.school_year} ${assignment.semester}; ${studentCount} students.`;
+    const { error } = await supabase.from('activity_log').insert([{
+      user_name: req.user.username || 'System',
+      action: `Teacher ${reportType} Exported`,
+      details,
+      department: req.user.department || null,
+    }]);
+    if (error) return sendServerError(res, error);
+
+    return res.status(201).json({ logged: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error' });
   }
 });
 

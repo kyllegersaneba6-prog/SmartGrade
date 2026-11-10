@@ -198,8 +198,8 @@ Names are limited to 1–160 characters. RLS is enabled with no user-facing poli
 |---|---|---|
 | id | UUID | PK, default `gen_random_uuid()` |
 | user_name | TEXT | NN |
-| action | TEXT | NN, e.g. `User Created`, `Backup Exported`, `Failed Login` |
-| details | TEXT | Nullable, human-readable |
+| action | TEXT | NN, e.g. `User Created`, `Backup Exported`, `Failed Login`, `Teacher Class List Imported`, `Teacher Class Record Exported` |
+| details | TEXT | Nullable, human-readable; teacher import/export details contain only class/term/format/count metadata |
 | department | TEXT | Nullable |
 | created_at | TIMESTAMPTZ | Default `now()` |
 

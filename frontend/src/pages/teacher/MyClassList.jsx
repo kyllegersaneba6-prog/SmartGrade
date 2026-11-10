@@ -256,6 +256,19 @@ const MyClassList = () => {
     try {
       const { parseClassListPdf } = await import('../../utils/classListPdf');
       const result = await parseClassListPdf(file);
+      if (!activeTerm) {
+        setParseError('There is no active semester and school year available. The PDF was not opened for import.');
+        return;
+      }
+      const mismatches = [];
+      if (result.metadata.school_year !== activeTerm.school_year) mismatches.push('School Year');
+      if (result.metadata.semester !== activeTerm.semester) mismatches.push('Semester');
+      if (mismatches.length) {
+        const pdfTerm = [result.metadata.school_year, result.metadata.semester].filter(Boolean).join(' · ');
+        const activeTermLabel = [activeTerm.school_year, activeTerm.semester].filter(Boolean).join(' · ');
+        setParseError(`PDF ${mismatches.join(' and ')} does not match the active term. Active term: ${activeTermLabel}. PDF term: ${pdfTerm}. The roster preview was not opened.`);
+        return;
+      }
       const counts = new Map();
       result.rows.forEach((row) => counts.set(row.student_id, (counts.get(row.student_id) || 0) + 1));
       result.rows = result.rows.map((row) => {
@@ -518,19 +531,19 @@ const MyClassList = () => {
         <div>
           {rosterLoading ? <SkeletonTable cols={9} rows={8} bare /> : (
           <table className="w-full min-w-[960px] border-separate border-spacing-0 text-left text-xs">
-            <thead className="bg-[#142a3f] text-white">
+            <thead className="bg-[#0D1E2D] text-white">
               <tr>
-                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] px-4 py-3">#</th>
-                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 w-10 bg-[#142a3f] px-3 py-3">
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#0D1E2D] px-4 py-3">#</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 w-10 bg-[#0D1E2D] px-3 py-3">
                   <input ref={selectAllCheckboxRef} type="checkbox" aria-label="Select all students" checked={allStudentsSelected} disabled={!students.length || rosterLoading || Boolean(rosterError)} onChange={(event) => toggleAllStudentSelection(event.target.checked)} className="h-4 w-4 rounded accent-[#0c1925] disabled:cursor-not-allowed" />
                 </th>
-                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] px-4 py-3">Student ID</th>
-                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] px-4 py-3">Last Name</th>
-                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] py-3 pl-4 pr-1">First Name</th>
-                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] py-3 pl-1 pr-4">MI</th>
-                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] px-4 py-3">Course</th>
-                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] px-4 py-3">Year Level</th>
-                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#142a3f] px-4 py-3">Gender</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#0D1E2D] px-4 py-3">Student ID</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#0D1E2D] px-4 py-3">Last Name</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#0D1E2D] py-3 pl-4 pr-1">First Name</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#0D1E2D] py-3 pl-1 pr-4">MI</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#0D1E2D] px-4 py-3">Course</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#0D1E2D] px-4 py-3">Year Level</th>
+                <th style={{ top: classListHeaderHeight }} className="sticky top-0 z-10 bg-[#0D1E2D] px-4 py-3">Gender</th>
               </tr>
             </thead>
             <tbody>

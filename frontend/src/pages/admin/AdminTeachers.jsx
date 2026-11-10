@@ -5,10 +5,21 @@ import CreateAdminTeacher from './CreateAdminTeacher';
 import api from '../../utils/api';
 import { displayStaffId, formatStaffId, usernameFromLastNameAndId } from '../../utils/staffId';
 import AdminPageHeading from '../../components/admin/AdminPageHeading';
+import Pagination from '../../components/common/Pagination';
+
+const TEACHERS_PER_PAGE = 10;
+const formatAccountName = (firstName, lastName, fallback) => {
+  const first = String(firstName || '').trim();
+  const last = String(lastName || '').trim();
+  if (first || last) return [last, first].filter(Boolean).join(', ');
+  const parts = String(fallback || '').trim().split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? `${parts.slice(1).join(' ')}, ${parts[0]}` : (parts[0] || '—');
+};
 
 const AdminTeachers = () => {
   const [teachers, setTeachers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [teacherToEdit, setTeacherToEdit] = useState(null);
@@ -97,6 +108,9 @@ const AdminTeachers = () => {
       || teacher.full_name?.toLowerCase().includes(query)
       || teacher.username?.toLowerCase().includes(query));
   }, [teachers, searchQuery]);
+  const totalPages = Math.max(1, Math.ceil(filteredTeachers.length / TEACHERS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedTeachers = filteredTeachers.slice((currentPage - 1) * TEACHERS_PER_PAGE, currentPage * TEACHERS_PER_PAGE);
 
   const openEdit = (teacher) => {
     setTeacherToEdit(teacher);
@@ -230,11 +244,11 @@ const AdminTeachers = () => {
                 type="text"
                 placeholder="Search by ID, name, or username..."
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                onChange={(event) => { setSearchQuery(event.target.value); setPage(1); }}
                 className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-8 text-xs focus:border-[#0c1925] focus:outline-none focus:ring-2 focus:ring-[#0c1925] sm:w-64"
               />
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
-              {searchQuery && <button type="button" onClick={() => setSearchQuery('')} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Clear search"><X size={14} /></button>}
+              {searchQuery && <button type="button" onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Clear search"><X size={14} /></button>}
             </label>
           </div>
         </div>
@@ -251,17 +265,17 @@ const AdminTeachers = () => {
                 <tr><td colSpan={5} className="py-10 text-center text-gray-500">Loading teacher accounts…</td></tr>
               ) : filteredTeachers.length === 0 ? (
                 <tr><td colSpan={5} className="py-10 text-center text-gray-500">{searchQuery.trim() ? 'No teachers match your search.' : <>No teachers have been added yet. Click <strong>Add Teacher</strong> to create the first account.</>}</td></tr>
-              ) : filteredTeachers.map((teacher) => (
+              ) : paginatedTeachers.map((teacher) => (
                 <tr key={teacher.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                   <td className="px-3 py-3 font-mono text-[12px] font-bold text-gray-900">{displayStaffId(teacher.staff_id)}</td>
-                  <td className="px-3 py-3 text-gray-900">{teacher.full_name}</td>
+                  <td className="px-3 py-3 text-gray-900">{formatAccountName(teacher.first_name, teacher.last_name, teacher.full_name)}</td>
                   <td className="px-3 py-3 text-[12px] text-gray-900">{teacher.username || '—'}</td>
                   <td className="px-3 py-3 text-gray-900">{teacher.created_at ? new Date(teacher.created_at).toLocaleDateString() : '—'}</td>
                   <td className="px-3 py-3">
                     <button
                       type="button"
                       onClick={(event) => openActionsMenu(teacher, event)}
-                      aria-label={`Actions for ${teacher.full_name}`}
+                      aria-label={`Actions for ${formatAccountName(teacher.first_name, teacher.last_name, teacher.full_name)}`}
                       aria-haspopup="menu"
                       aria-expanded={openMenuId === teacher.id}
                       className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-900 transition-colors hover:bg-gray-50"
@@ -273,9 +287,14 @@ const AdminTeachers = () => {
             </tbody>
           </table>
         </div>
-        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-900">
-          <span>Showing {filteredTeachers.length} of {teachers.length} teachers</span>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={filteredTeachers.length}
+          rowsPerPage={TEACHERS_PER_PAGE}
+          itemLabel="teachers"
+        />
 
         {openMenuId && menuTeacher && menuPos && createPortal(
           <>
@@ -328,7 +347,7 @@ const AdminTeachers = () => {
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center">
           <div className="modal-surface mx-4 w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6">
             <h3 className="mb-2 text-lg font-bold text-gray-900">Delete Teacher</h3>
-            <p className="mb-4 text-sm text-gray-600">Are you sure you want to delete <strong>{teacherToDelete.full_name}</strong>?</p>
+            <p className="mb-4 text-sm text-gray-600">Are you sure you want to delete <strong>{formatAccountName(teacherToDelete.first_name, teacherToDelete.last_name, teacherToDelete.full_name)}</strong>?</p>
             <label className="mb-1 block text-xs font-bold text-gray-700">Type <strong>Confirm</strong> to delete</label>
             <input value={confirmText} onChange={(event) => setConfirmText(event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Confirm" />
             <div className="mt-5 flex justify-end gap-3"><button onClick={() => { setTeacherToDelete(null); setConfirmText(''); }} disabled={deleting} className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-200">Cancel</button><button onClick={confirmDelete} disabled={confirmText !== 'Confirm' || deleting} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{deleting ? 'Deleting…' : 'Delete'}</button></div>
@@ -342,7 +361,7 @@ const AdminTeachers = () => {
             <header className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Teacher classes</p>
-                <h3 id="teacher-classes-title" className="mt-1 text-lg font-bold text-gray-900">{classesTeacher.full_name}</h3>
+                <h3 id="teacher-classes-title" className="mt-1 text-lg font-bold text-gray-900">{formatAccountName(classesTeacher.first_name, classesTeacher.last_name, classesTeacher.full_name)}</h3>
                 <p className="mt-1 text-xs text-gray-500">Courses, year levels, and sections handled by this teacher.</p>
               </div>
               <button type="button" onClick={closeClasses} aria-label="Close class list" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"><X size={18} /></button>

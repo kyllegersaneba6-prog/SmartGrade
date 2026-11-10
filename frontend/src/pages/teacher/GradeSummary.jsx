@@ -12,6 +12,7 @@ import Pagination from '../../components/common/Pagination';
 import api from '../../utils/api';
 import { buildTeacherFilename } from '../../utils/exportFilenames';
 import { fetchExportSettings, getExportSignatories } from '../../utils/exportSettings';
+import { recordTeacherExport } from '../../utils/teacherAudit';
 import { TEACHER_TABLE_PAGE_SIZE } from '../../utils/teacherTable';
 import {
   TERMS, TERM_PCTS, TERM_WEIGHTS, GRADE_RANGES,
@@ -93,6 +94,19 @@ const extendSemesterRows = (sheetXml, studentCount) => {
     `<dimension${attrs}ref="A10:L${Number(lastRow) + extraRows}"`
   ));
   return { sheetXml: shiftedSheet, extraRows };
+};
+
+const hideEmptySemesterRows = (sheetXml, studentCount, extraRows) => {
+  const firstEmptyRow = SEMESTER_TEMPLATE_FIRST_ROW + studentCount;
+  const lastStudentRow = SEMESTER_TEMPLATE_LAST_ROW + extraRows;
+  if (firstEmptyRow > lastStudentRow) return sheetXml;
+
+  return sheetXml.replace(/<row\b[^>]*>/g, (rowXml) => {
+    const rowNumber = Number(rowXml.match(/\br="(\d+)"/)?.[1]);
+    if (rowNumber < firstEmptyRow || rowNumber > lastStudentRow) return rowXml;
+    if (/\bhidden="[^"]*"/.test(rowXml)) return rowXml.replace(/\bhidden="[^"]*"/, 'hidden="1"');
+    return rowXml.replace(/>$/, ' hidden="1">');
+  });
 };
 
 const GradeSummary = () => {
@@ -215,7 +229,7 @@ const GradeSummary = () => {
     const parts = unzipSync(new Uint8Array(await response.arrayBuffer()));
     const worksheetPath = 'xl/worksheets/sheet5.xml';
     const extended = extendSemesterRows(strFromU8(parts[worksheetPath]), filtered.length);
-    let sheetXml = extended.sheetXml;
+    let sheetXml = hideEmptySemesterRows(extended.sheetXml, filtered.length, extended.extraRows);
 
     sheetXml = updateWorksheetCell(
       sheetXml,
@@ -277,6 +291,7 @@ const GradeSummary = () => {
     link.download = buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: 'semester', page: 'gradesummary', ext: 'xlsx' });
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+    await recordTeacherExport({ assignmentId: currentAssignment.id, reportType: 'Grade Summary', format: 'xlsx', term: 'SEMESTER', studentCount: filtered.length });
   };
 
   const handleExportPdf = async () => {
@@ -400,6 +415,7 @@ const GradeSummary = () => {
         rowPageBreak: 'avoid',
       });
       doc.save(buildTeacherFilename({ section: currentAssignment.sections?.name, code: currentAssignment.subjects?.code, term: 'semester', page: 'gradesummary', ext: 'pdf' }));
+      await recordTeacherExport({ assignmentId: currentAssignment.id, reportType: 'Grade Summary', format: 'pdf', term: 'SEMESTER', studentCount: filtered.length });
     } catch (err) {
       console.error(err);
       setExportError(err.message || 'PDF export failed. Please try again.');

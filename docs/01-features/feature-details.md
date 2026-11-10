@@ -101,6 +101,7 @@ Notes:
 - The UI requires weights to total **100%** before score entry is considered valid; the backend caps each weight at `0..100` and the term total at 100, but does not require exactly 100 (so weights can be edited incrementally).
 - Each component holds sub-activities with a `max_score` (default 100).
 - Formula: `equiv = (total / max_total) × 50 + 50`; `weighted = equiv × weight / 100`; term grade = sum of weighted values.
+- Blank or missing activity scores count as `0` toward Class Record totals while the editable score cell remains blank.
 - Components can be reordered (drag-drop → `POST /api/grading-components/reorder`) and copied from PRELIMS (activities are **not** copied; target term must be empty).
 - Component validation/API errors appear only inside the Add/Edit grading component modal; Class Record renders no page-level error banner under the assignment selector.
 - Score saves are debounced **800 ms** and bulk-posted to `POST /api/component-scores/bulk`. The backend resolves every activity → component → assignment → section/student relationship, rejects the whole batch if any row is out of scope or the term is closed, and validates every score against the activity's `max_score`.
@@ -138,14 +139,14 @@ Notes:
 ## Behavioral Analytics
 
 - One selected term at a time; four KPI cards: average final grade, average submission rate, average attendance rate, overall performance.
-- Per student: per-component equivalence, submission %, final grade, attendance rate, overall performance, and a trend icon. The student detail modal plots scored activity percentages with a linear-regression fit line for each component with at least two scored non-attendance activities.
+- Per student: per-component equivalence, submission %, final grade, attendance rate, overall performance, and a trend icon. Student detail shows blank or missing activity scores as `0 / max` (`0%`) and includes them in activity performance and the linear-regression trend data.
 - Submission rate = activities with a non-zero score ÷ total activities (attendance uses score ÷ max).
-- Trend = linear-regression slope across scored non-attendance activity percentages, compared against `5% × mean`; below 2 activities → stable. The detail modal shows both the activity scores and fitted regression line.
-- Student detail modal exposes **Summarize with AI**.
+- Trend = linear-regression slope across non-attendance activity percentages, including blank scores as zero, compared against `5% × mean`; below 2 activities → stable. The detail modal shows activity scores and the fitted regression line. Blank scores still count as not submitted for submission rate.
+- Student detail modal exposes **Summarize Student** for the AI summary action.
 
 ## AI Student Summary
 
-- Trigger: "Summarize with AI" in the analytics student modal → `POST /api/ai/summarize-student`.
+- Trigger: "Summarize Student" in the analytics student modal → `POST /api/ai/summarize-student`.
 - Backend sanitizes the payload with an allowlist (`student{name,id}`, `performance`, `categories`, `meta{assignment_id,term}`) before sending.
 - Gateway: OmniRoute (OpenAI-compatible). Request uses `response_format: json_object` and an `AbortController` timeout (`AI_TIMEOUT_MS`).
 - Response is schema-validated (`aiValidator.js`): `summary`, `strengths[]`, `areas_of_attention[{area,observation,priority}]`, `suggested_actions[]`, `follow_up[]`, `overall_priority`.
@@ -177,6 +178,7 @@ Notes:
 - On import, the backend creates or reuses the matching section, subject, and teacher assignment, then writes students to that section. Existing records are retained; a conflicting assignment owned by another teacher is rejected.
 - The preview allows editing student fields, normalizes `M`/`F`, preserves the full M.I., and flags malformed IDs, missing names, invalid gender, duplicates in the PDF, and students already in the section. Student IDs must match `##-####-###`.
 - Import is disabled for archived or inactive terms. The API verifies the signed-in teacher, department course, active term, roster metadata, and section ownership before writing; duplicate section IDs are ignored.
+- Successful imports through both teacher roster-import endpoints add an audit entry with PDF format, section, subject code, school year, semester, and added/skipped counts only; student names, IDs, and grades are excluded.
 
 ## Admin class-management routes
 
@@ -186,7 +188,7 @@ Notes:
 
 ## Exports
 
-All export work is client-side.
+All export files are generated client-side. After a file is generated successfully, Class Record and Grade Summary submit a teacher-only audit request scoped to the teacher's assignment.
 
 Admin Settings → Exports stores the department's BSIT program head, BSCS program head, and CICT dean names. The Class Record and Grade Summary XLSX/PDF signature blocks use the saved values; the assignment's course abbreviation selects the matching program head. If no settings row exists, the existing signer names are used as defaults. Each confirmed admin save is recorded in the department's activity log, including the names changed (or that the settings were resaved without changes).
 
@@ -194,6 +196,8 @@ Admin Settings → Exports stores the department's BSIT program head, BSCS progr
 |---|---|
 | Class Record | `.xlsx`, `.pdf` |
 | Grade Summary | `.xlsx`, `.pdf` (with grade-point legend) |
+
+Export audit entries contain report type, file format, assignment-derived section/subject/term metadata, and exported student count; they do not contain student names, IDs, or grades.
 
 Teacher and admin account tables (Admin → Teachers, Superadmin → Admin Management) no longer have export buttons.
 
@@ -222,9 +226,11 @@ Shared UI: `frontend/src/components/teacher/ExportButtons.jsx` (per-format spinn
   - **Superadmin** — everything.
   - **Admin** — only usernames belonging to their department; superadmin usernames explicitly excluded.
   - **Teacher** — forced empty result.
-- Logged events include logins (success/failure), user CRUD, department/course CRUD, and backup export/restore.
+- Logged events include logins (success/failure), user CRUD, department/course CRUD, backup export/restore, successful teacher roster imports, and Class Record/Grade Summary exports.
 - `POST /api/activity` derives `user_name` and `department` from the verified JWT; any client-supplied values are ignored, so audit rows cannot be attributed to another user.
-- `audit.jsx` filters by action type, paginates 50 rows, and auto-refreshes every 10 s while the tab is visible.
+- The dedicated teacher export endpoint validates the assignment belongs to the caller and accepts only known report types, formats, terms, and a roster-bounded count; assignment metadata and actor identity are derived server-side.
+- Import/export audit details contain only class, term, format (exports), and counts; they never contain student names, IDs, or grades.
+- `audit.jsx` shows Critical Alerts, Total Logged Events, and Teacher Data Exports (with XLSX/PDF counts calculated independently of search/filter). It searches timestamp, user, role, action, and details; action filters include Import and Export. Search/filter reset pagination; the page shows 50 rows per page and auto-refreshes every 10 s while visible.
 
 ## Notifications
 

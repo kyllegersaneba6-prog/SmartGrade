@@ -11,6 +11,7 @@ import api from '../../utils/api';
 import { buildTeacherFilename, TEACHER_TERM_TOKENS } from '../../utils/exportFilenames';
 import { fetchExportSettings } from '../../utils/exportSettings';
 import { exportClassRecordExcel, exportClassRecordPdf } from '../../utils/classRecordExport';
+import { recordTeacherExport } from '../../utils/teacherAudit';
 import { TEACHER_TABLE_PAGE_SIZE } from '../../utils/teacherTable';
 
 // Component names offered in the Class Record "Component name" dropdown.
@@ -56,6 +57,8 @@ const ClassRecord = () => {
   const [page, setPage] = useState(1);
   const [componentModal, setComponentModal] = useState(null);
   const [componentDraft, setComponentDraft] = useState({ name: '', weight: '', is_attendance: false, activities: [] });
+  const [subcomponentToRemove, setSubcomponentToRemove] = useState(null);
+  const allowsAttendanceSubcomponent = componentDraft.name.trim().toLowerCase() === 'class standing';
   // false = preset dropdown, true = free-text name field with a back button.
   const [customNameMode, setCustomNameMode] = useState(false);
   const [showSubcomponentChoices, setShowSubcomponentChoices] = useState(false);
@@ -228,6 +231,7 @@ const ClassRecord = () => {
 
   const openAddComponent = () => {
     setError('');
+    setSubcomponentToRemove(null);
     setShowSubcomponentChoices(false);
     setCustomNameMode(false);
     setComponentDraft({ name: '', weight: '', is_attendance: false, activities: [] });
@@ -236,6 +240,7 @@ const ClassRecord = () => {
 
   const openEditComponent = (comp) => {
     setError('');
+    setSubcomponentToRemove(null);
     setShowSubcomponentChoices(false);
     // Known names open in the dropdown; anything else (legacy/custom) opens
     // straight into free-text mode so editing never rewrites the name.
@@ -272,14 +277,23 @@ const ClassRecord = () => {
     if (!componentDraft.is_attendance && componentDraft.activities.some((activity) =>
       !activity.is_attendance && (!activity.name.trim() || !Number.isFinite(Number(activity.max_score)) || Number(activity.max_score) <= 0)
     )) return setError('Each activity needs a name and a maximum score greater than 0.');
+    const normalizedSubcomponentNames = componentDraft.activities
+      .map((activity) => (activity.is_attendance ? 'Attendance' : activity.name).trim().toLowerCase())
+      .filter(Boolean);
+    if (new Set(normalizedSubcomponentNames).size !== normalizedSubcomponentNames.length) {
+      return setError('Subcomponent names must be unique within this component.');
+    }
     const draftAttendanceCount = componentDraft.activities.filter((activity) => activity.is_attendance).length;
+    if (draftAttendanceCount > 0 && !allowsAttendanceSubcomponent) {
+      return setError('Attendance can only be added as a subcomponent of Class Standing.');
+    }
     const otherAttendanceCount = components.reduce((count, component) => {
       if (component.id === existing?.id) return count;
       if (component.is_attendance) return count + 1;
       return count + (component.activities || []).filter((activity) => activity.is_attendance).length;
     }, 0);
     if (draftAttendanceCount > 1 || (draftAttendanceCount > 0 && otherAttendanceCount > 0) || (componentDraft.is_attendance && otherAttendanceCount > 0)) {
-      return setError('Attendance can only be used once per assignment and term, either as a main component or a subcomponent.');
+      return setError('Attendance can only be used once per assignment and term.');
     }
 
     setSavingComponent(true);
@@ -326,6 +340,7 @@ const ClassRecord = () => {
         }
       }
       setComponentModal(null);
+      setSubcomponentToRemove(null);
       await fetchGradeData();
     } catch (err) {
       setError(err.message || 'Network error. Please try again.');
@@ -333,6 +348,19 @@ const ClassRecord = () => {
     } finally {
       setSavingComponent(false);
     }
+  };
+
+  const confirmSubcomponentRemoval = () => {
+    if (!subcomponentToRemove) return;
+    setComponentDraft((draft) => ({
+      ...draft,
+      activities: draft.activities.filter((activity) => (
+        subcomponentToRemove.id
+          ? activity.id !== subcomponentToRemove.id
+          : activity.key !== subcomponentToRemove.key
+      )),
+    }));
+    setSubcomponentToRemove(null);
   };
 
   const copyFromPreviousTerm = async () => {
@@ -466,9 +494,10 @@ const ClassRecord = () => {
     const activities = comp.activities || [];
     let sum = 0;
     activities.forEach(a => {
+      const rawScore = a.is_attendance ? attendanceScores.scores[studentId] : scores[a.id]?.[studentId];
       const val = a.is_attendance
-        ? parseFloat(attendanceScores.scores[studentId] ?? 0)
-        : parseFloat(scores[a.id]?.[studentId]);
+        ? parseFloat(rawScore ?? 0)
+        : (rawScore === null || rawScore === undefined || rawScore === '' ? 0 : parseFloat(rawScore));
       if (!isNaN(val)) sum += val;
     });
     return sum;
@@ -582,6 +611,7 @@ const ClassRecord = () => {
     if (!weightsBalanced) { setExportError(exportBlockedMessage); return; }
     const exportSettings = await fetchExportSettings();
     await exportClassRecordExcel({ assignment: currentAssignment, term: selectedTerm, students, components, scores, attendanceScores, exportSettings, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename: getExportFilename('xlsx') });
+    await recordTeacherExport({ assignmentId: currentAssignment.id, reportType: 'Class Record', format: 'xlsx', term: selectedTerm, studentCount: students.length });
   };
 
   const handleExportPdf = async () => {
@@ -594,6 +624,7 @@ const ClassRecord = () => {
       const filteredStudents = query ? students.filter((student) => student.student_name?.toLowerCase().includes(query) || student.student_id?.toLowerCase().includes(query)) : students;
       const exportSettings = await fetchExportSettings();
       await exportClassRecordPdf({ assignment: currentAssignment, term: selectedTerm, students: filteredStudents, components, scores, attendanceScores, exportSettings, getComponentMaxTotal, getComponentTotal, getComponentEquiv, getComponentWeighted, getFinalGrade, filename: getExportFilename('pdf') });
+      await recordTeacherExport({ assignmentId: currentAssignment.id, reportType: 'Class Record', format: 'pdf', term: selectedTerm, studentCount: filteredStudents.length });
     } catch (err) {
       console.error(err);
       setExportError(err.message || 'PDF export failed. Please try again.');
@@ -776,7 +807,7 @@ const ClassRecord = () => {
                             {comp.is_attendance ? 'Attendance' : (comp.name || 'Untitled component')} ({comp.weight}%)
                           </span>
                           {!isReadOnly && <span className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                            <button type="button" onClick={() => openEditComponent(comp)} title={`Edit ${comp.name || 'component'}`} aria-label={`Edit ${comp.name || 'component'}`} className="inline-flex h-6 min-w-[3.5rem] items-center justify-center gap-1 rounded bg-white/10 px-1.5 text-[10px] font-bold hover:bg-white/20"><Pencil size={11} /> Edit</button>
+                            <button type="button" onClick={() => openEditComponent(comp)} title={`Modify ${comp.name || 'component'}`} aria-label={`Modify ${comp.name || 'component'}`} className="inline-flex h-6 min-w-[3.5rem] items-center justify-center gap-1 rounded bg-white/10 px-1.5 text-[10px] font-bold hover:bg-white/20"><Pencil size={11} /> Modify</button>
                             <button type="button" onClick={() => { setConfirmText(''); setDeleteModal({ type: 'component', id: comp.id }); }} title={`Delete ${comp.name || 'component'}`} aria-label={`Delete ${comp.name || 'component'}`} className="inline-flex h-6 min-w-[3.5rem] items-center justify-center gap-1 rounded-lg bg-white/10 px-1.5 text-[10px] font-bold hover:bg-red-500/80"><Trash2 size={11} /> Delete</button>
                           </span>}
                         </div>
@@ -966,14 +997,6 @@ const ClassRecord = () => {
               <button type="button" onClick={() => setComponentModal(null)} disabled={savingComponent} className="p-1.5 rounded-lg text-gray-900 hover:bg-gray-100 disabled:opacity-50" aria-label="Close"><X size={18} /></button>
             </div>
             <div className="p-5 overflow-y-auto space-y-4">
-              {!componentModal.componentId && (
-                <label className="block text-xs font-bold text-gray-900">Component type
-                  <select value={componentDraft.is_attendance ? 'attendance' : 'regular'} onChange={(e) => { setCustomNameMode(false); setComponentDraft((draft) => ({ ...draft, is_attendance: e.target.value === 'attendance', name: e.target.value === 'attendance' ? 'Attendance' : '' })); }} className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]">
-                    <option value="regular">Grading component</option>
-                    <option value="attendance" disabled={hasAttendance}>Attendance{hasAttendance ? ' (already added)' : ''}</option>
-                  </select>
-                </label>
-              )}
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
                 <label className="block text-xs font-bold text-gray-900">Component name
                   {componentDraft.is_attendance ? (
@@ -992,7 +1015,7 @@ const ClassRecord = () => {
                       <input
                         autoFocus
                         value={componentDraft.name}
-                        onChange={(e) => setComponentDraft((draft) => ({ ...draft, name: e.target.value }))}
+                        onChange={(e) => { setShowSubcomponentChoices(false); setComponentDraft((draft) => ({ ...draft, name: e.target.value })); }}
                         placeholder="Enter component name"
                         aria-label="Custom component name"
                         className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-sidebar focus:outline-none focus:ring-2 focus:ring-[#0c1925]"
@@ -1002,6 +1025,7 @@ const ClassRecord = () => {
                     <select
                       value={COMPONENT_NAME_PRESETS.includes(componentDraft.name) ? componentDraft.name : ''}
                       onChange={(e) => {
+                        setShowSubcomponentChoices(false);
                         const value = e.target.value;
                         if (value === COMPONENT_NAME_ADD_OPTION) {
                           setCustomNameMode(true);
@@ -1027,14 +1051,20 @@ const ClassRecord = () => {
               {!componentDraft.is_attendance && (
                 <section className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <div><h4 className="text-xs font-extrabold text-sidebar">Subcomponents</h4><p className="text-[11px] text-gray-900">Add an activity or include attendance.</p></div>
+                    <div><h4 className="text-xs font-extrabold text-sidebar">Subcomponents</h4><p className="text-[11px] text-gray-900">{allowsAttendanceSubcomponent ? 'Add an activity or include attendance.' : 'Add activities for this component.'}</p></div>
                     <div className="relative">
-                      <button type="button" onClick={() => setShowSubcomponentChoices((visible) => !visible)} aria-expanded={showSubcomponentChoices} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-sidebar text-xs font-bold hover:bg-gray-200"><Plus size={13} /> Add</button>
-                      {showSubcomponentChoices && (
-                        <div className="absolute right-0 top-full z-10 mt-1 w-40 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
-                          <button type="button" onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: '', max_score: '', is_attendance: false }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50">Activity</button>
-                          <button type="button" disabled={hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance)} onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: 'Attendance', max_score: '1', is_attendance: true }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-900 disabled:opacity-60">Attendance{hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance) ? ' (already used)' : ''}</button>
-                        </div>
+                      {allowsAttendanceSubcomponent ? (
+                        <>
+                          <button type="button" onClick={() => setShowSubcomponentChoices((visible) => !visible)} aria-expanded={showSubcomponentChoices} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-sidebar text-xs font-bold hover:bg-gray-200"><Plus size={13} /> Add</button>
+                          {showSubcomponentChoices && (
+                            <div className="absolute right-0 top-full z-10 mt-1 w-40 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+                              <button type="button" onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: '', max_score: '', is_attendance: false }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50">Subcomp</button>
+                              <button type="button" disabled={hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance)} onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: 'Attendance', max_score: '1', is_attendance: true }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-900 disabled:opacity-60">Attendance{hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance) ? ' (already used)' : ''}</button>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <button type="button" onClick={() => { setShowSubcomponentChoices(false); setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: '', max_score: '', is_attendance: false }] })); }} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-sidebar text-xs font-bold hover:bg-gray-200"><Plus size={13} /> Add</button>
                       )}
                     </div>
                   </div>
@@ -1060,7 +1090,7 @@ const ClassRecord = () => {
                           <input type="text" inputMode="decimal" value={activity.max_score} onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); const parts = raw.split('.'); const cleaned = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : raw; setComponentDraft((draft) => ({ ...draft, activities: draft.activities.map((item, i) => i === index ? { ...item, max_score: cleaned } : item) })); }} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-xs font-medium text-sidebar focus:outline-none focus:ring-1 focus:ring-[#0c1925]" />
                         </label>
                       )}
-                      <button type="button" onClick={() => setComponentDraft((draft) => ({ ...draft, activities: draft.activities.filter((_, i) => i !== index) }))} title="Remove subcomponent" aria-label="Remove subcomponent" className="mb-0.5 p-2 rounded-lg text-gray-900 hover:bg-red-50 hover:text-red-600"><Trash2 size={14} /></button>
+                      <button type="button" onClick={() => setSubcomponentToRemove({ id: activity.id || null, key: activity.key || null, name: activity.is_attendance ? 'Attendance' : activity.name.trim() || 'Subcomponent' })} title="Remove subcomponent" aria-label="Remove subcomponent" className="mb-0.5 p-2 rounded-lg text-gray-900 hover:bg-red-50 hover:text-red-600"><Trash2 size={14} /></button>
                     </div>
                   ))}
                 </section>
@@ -1073,6 +1103,18 @@ const ClassRecord = () => {
               </button>
             </div>
           </form>
+          {subcomponentToRemove && (
+            <div className="fixed inset-0 z-[80] flex items-center justify-center modal-backdrop p-4">
+              <section role="alertdialog" aria-modal="true" aria-labelledby="remove-subcomponent-title" className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl border border-gray-200">
+                <h3 id="remove-subcomponent-title" className="text-base font-extrabold text-gray-900">Remove subcomponent?</h3>
+                <p className="mt-2 text-sm text-gray-700">Remove <strong>{subcomponentToRemove.name}</strong>? This change will be applied when you save the grading component.</p>
+                <div className="mt-5 flex justify-end gap-2">
+                  <button type="button" onClick={() => setSubcomponentToRemove(null)} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-bold text-gray-800 hover:bg-gray-50">No</button>
+                  <button type="button" onClick={confirmSubcomponentRemoval} className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700">Yes, Remove</button>
+                </div>
+              </section>
+            </div>
+          )}
         </div>
       )}
       {confirmCopyPrelimsOpen && (

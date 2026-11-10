@@ -8,6 +8,7 @@ const router = express.Router();
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
+const normalizeActivityName = (value) => String(value ?? '').trim().toLowerCase();
 
 router.use(authenticateToken);
 
@@ -96,10 +97,10 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
   try {
     if (!(await canAccessComponent(component_id, req.user))) return res.status(403).json({ message: 'Access denied.' });
     // After authorization, fetch the component, active term, and sort order together.
-    const [compRes, termRes, maxOrderRes] = await Promise.all([
+    const [compRes, termRes, maxOrderRes, activitiesRes] = await Promise.all([
       supabase
         .from('grading_components')
-        .select('id, teacher_assignment_id')
+        .select('id, teacher_assignment_id, name')
         .eq('id', component_id)
         .maybeSingle(),
       supabase
@@ -114,11 +115,22 @@ router.post('/', authorizeRole('teacher'), async (req, res) => {
         .order('sort_order', { ascending: false })
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from('component_activities')
+        .select('name')
+        .eq('component_id', component_id),
     ]);
 
     const compRow = compRes.data;
     if (!compRow) {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
+    }
+    if (isAttendance && String(compRow.name || '').trim().toLowerCase() !== 'class standing') {
+      return res.status(400).json({ message: 'Attendance can only be added as a subcomponent of Class Standing.' });
+    }
+    if (activitiesRes.error) return sendServerError(res, activitiesRes.error);
+    if ((activitiesRes.data || []).some((activity) => normalizeActivityName(activity.name) === normalizeActivityName(activityName))) {
+      return res.status(400).json({ message: 'A subcomponent with this name already exists in this component.' });
     }
 
     const { data: assign } = await supabase
@@ -168,6 +180,19 @@ router.put('/:id', authorizeRole('teacher'), async (req, res) => {
 
     const comp = await verifyOwnership(act.component_id, req.user);
     if (!comp) return res.status(403).json({ message: 'Access denied.' });
+
+    if (name !== undefined) {
+      if (!normalizeActivityName(name)) return res.status(400).json({ message: 'Subcomponent name is required.' });
+      const { data: siblingActivities, error: siblingsError } = await supabase
+        .from('component_activities')
+        .select('id, name')
+        .eq('component_id', act.component_id)
+        .neq('id', act.id);
+      if (siblingsError) return sendServerError(res, siblingsError);
+      if ((siblingActivities || []).some((activity) => normalizeActivityName(activity.name) === normalizeActivityName(name))) {
+        return res.status(400).json({ message: 'A subcomponent with this name already exists in this component.' });
+      }
+    }
 
     const updates = {};
     if (name !== undefined) updates.name = name;

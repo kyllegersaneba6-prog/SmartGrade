@@ -228,6 +228,16 @@
     min-width: calc(var(--student-number-width) + var(--student-id-width) + var(--student-name-width));
     max-width: calc(var(--student-number-width) + var(--student-id-width) + var(--student-name-width));
   }
+  /* Keep the frozen student information headers above grade/analytics
+     columns as they move horizontally beneath the student section. */
+  .teacher-sticky-table-2rows > thead > tr:first-child > .sticky-student-header {
+    z-index: 60;
+  }
+  .teacher-sticky-table-2rows > thead > tr:nth-child(2) > .sticky-student-number,
+  .teacher-sticky-table-2rows > thead > tr:nth-child(2) > .sticky-student-id,
+  .teacher-sticky-table-2rows > thead > tr:nth-child(2) > .sticky-student-name {
+    z-index: 55;
+  }
   /* Frozen class-record columns must paint above horizontally scrolling
      component headers. Otherwise equal header z-index lets later component
      cells cover the Student Information group while the table scrolls. */

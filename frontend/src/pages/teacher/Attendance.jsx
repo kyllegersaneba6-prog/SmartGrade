@@ -52,6 +52,7 @@ const COMPONENT_COLORS = [
 const TERMS = ['PRELIMS', 'MIDTERMS', 'PRE-FINALS', 'FINALS'];
 
 const todayStr = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+const normalizeAttendanceScore = (score) => score === 0 || score === '0' ? null : score ?? null;
 
 const getColor = (idx) => COMPONENT_COLORS[idx % COMPONENT_COLORS.length];
 
@@ -94,7 +95,6 @@ const Attendance = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [error, setError] = useState('');
-  const [clampWarnings, setClampWarnings] = useState({});
   const [syncing, setSyncing] = useState(false);
   const datePickerRef = useRef(null);
   const saveTimerRef = useRef(null);
@@ -105,6 +105,10 @@ const Attendance = () => {
   const inputRefs = useRef({});
 
   const handleKeyDown = useCallback((e, studentId, colId, studentIndex, filteredStudents, editableIds) => {
+    if (e.key === '0') {
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault();
       const dir = e.shiftKey ? -1 : 1;
@@ -176,7 +180,7 @@ const Attendance = () => {
           records.forEach((r) => {
             const key = makeKey(r.date, r.session || 'AM', r.type || 'Lecture');
             if (!map[key]) map[key] = {};
-            map[key][r.student_id] = r.score ?? null;
+            map[key][r.student_id] = normalizeAttendanceScore(r.score);
             keySet.add(key);
           });
           setAttendanceMap(map);
@@ -216,7 +220,7 @@ const Attendance = () => {
         const { date, session, type } = parseKey(key);
         const records = students.map((s) => ({
           student_id: s.id,
-          score: pending[key]?.[s.id] ?? null,
+          score: normalizeAttendanceScore(pending[key]?.[s.id]),
         }));
         try {
           const res = await api('/api/attendance/bulk', {
@@ -242,7 +246,7 @@ const Attendance = () => {
         const { date, session, type } = parseKey(key);
         const records = students.map((s) => ({
           student_id: s.id,
-          score: pending[key]?.[s.id] ?? null,
+          score: normalizeAttendanceScore(pending[key]?.[s.id]),
         }));
         try {
           const res = await api('/api/attendance/bulk', {
@@ -351,17 +355,10 @@ const Attendance = () => {
   };
 
   const handleScoreChange = (key, studentId, value) => {
-    const raw = value === '' ? null : parseInt(value, 10);
-    const clamped = value === '' ? null : Math.max(0, Math.min(2, raw || 0));
-    if (raw !== null && raw !== clamped) {
-      const ck = `${key}-${studentId}`;
-      setClampWarnings(prev => ({ ...prev, [ck]: true }));
-      setTimeout(() => {
-        setClampWarnings(prev => { const c = { ...prev }; delete c[ck]; return c; });
-      }, 3000);
-    }
+    const score = value === '' ? null : Number(value);
+    if (score !== null && score !== 1 && score !== 2) return;
     setAttendanceMap((prev) => {
-      const next = { ...prev, [key]: { ...(prev[key] || {}), [studentId]: clamped } };
+      const next = { ...prev, [key]: { ...(prev[key] || {}), [studentId]: score } };
       persistKey(assignmentRef.current, selectedTerm, key, next[key]);
       scheduleAutoSave(next, selectedTerm);
       return next;
@@ -446,7 +443,7 @@ const Attendance = () => {
         <span>Attendance Key:</span>
         <span className="px-2 py-0.5 rounded-md bg-green-100 text-green-900 border border-green-200">2 = Present</span>
         <span className="px-2 py-0.5 rounded-md bg-yellow-100 text-yellow-900 border border-yellow-200">1 = Late</span>
-        <span className="px-2 py-0.5 rounded-md bg-red-100 text-red-900 border border-red-200">0 = Absent</span>
+        <span className="px-2 py-0.5 rounded-md bg-red-100 text-red-900 border border-red-200">Blank = Absent</span>
         {syncing && (
           <span className="ml-auto flex items-center gap-1.5 text-blue-700 bg-blue-100 border border-blue-200 px-3 py-0.5 rounded-md">
             <Cloud size={13} className="animate-pulse" />
@@ -640,8 +637,6 @@ const Attendance = () => {
                         <td className={`sticky-student-name px-2 py-1 sticky border-r-2 border-b border-border z-20 text-xs font-medium text-sidebar cursor-pointer select-none ${selectedRow === student.id ? 'bg-green-200' : 'bg-white'}`} onClick={() => setSelectedRow(student.id)}>{student.student_name}</td>
                         {columns.map((key) => {
                           const isSelected = selectedRow === student.id;
-                          const clampKey = `${key}-${student.id}`;
-                          const isClamped = clampWarnings[clampKey];
                           return (
                             <td key={key} className={`p-0.5 border-r border-b border-gray-200 ${isSelected ? 'bg-green-200' : 'bg-white'}`}>
                               <div className="relative">
@@ -654,17 +649,14 @@ const Attendance = () => {
                                     if (isReadOnly) return;
                                     const raw = e.target.value;
                                     if (raw === '') { handleScoreChange(key, student.id, ''); return; }
-                                    if (/^[0-2]$/.test(raw)) {
+                                    if (/^[12]$/.test(raw)) {
                                       handleScoreChange(key, student.id, parseInt(raw, 10));
                                     }
                                   }}
                                   onKeyDown={(e) => handleKeyDown(e, student.id, key, index, paginatedStudents, columns)}
-                                  className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${isClamped ? 'border-amber-300 bg-amber-50' : 'border-transparent'}`}
+                                  className="w-full text-center text-xs font-medium text-sidebar p-1 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                                   disabled={isReadOnly}
                                 />
-                                {isClamped && (
-                                  <div className="absolute -top-1 right-0 w-2 h-2 bg-amber-300 rounded-full" title="Value clamped to 0–2 range" />
-                                )}
                               </div>
                             </td>
                           );

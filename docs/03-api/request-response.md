@@ -420,9 +420,9 @@ Body: {
 201: { "assignment": {...}, "section": {...}, "subject": {...}, "added": [...], "skipped": [...] }
 ```
 
-The active term and a course belonging to the teacher's department are required. The server creates or reuses the section, subject, and assignment, then imports students into the shared section roster. IDs are validated; invalid rows and IDs already in the section are returned in `skipped`.
+The active term and a course belonging to the teacher's department are required. The server creates or reuses the section, subject, and assignment, then imports students into the shared section roster. IDs are validated; invalid rows and IDs already in the section are returned in `skipped`. After successful processing, the backend records the PDF format, class, subject code, school year, semester, and added/skipped counts in the audit log; student names, IDs, and grades are not included.
 
-The legacy `POST /api/assignments/:assignmentId/students/bulk` remains available for teachers importing into an existing assignment.
+The legacy `POST /api/assignments/:assignmentId/students/bulk` remains available for teachers importing into an existing assignment. Successfully processed requests with at least one valid roster row also produce the same PII-free import audit metadata.
 
 ## Delete Student
 
@@ -468,6 +468,24 @@ Body: {
 ```
 
 Missing `action` → `400 { "message": "action is required" }`. Any `user_name`/`department` values in the body are ignored.
+
+### Teacher Export Audit
+
+```text
+POST /api/activity/teacher-export
+Auth: teacher
+Body: {
+  "assignment_id": "uuid",
+  "report_type": "Class Record",
+  "format": "xlsx",
+  "term": "PRELIMS",
+  "student_count": 32
+}
+
+201: { "logged": true }
+```
+
+`report_type` is `Class Record` or `Grade Summary`; formats are `xlsx` or `pdf`. Class Record terms are `PRELIMS`, `MIDTERMS`, `PRE-FINALS`, or `FINALS`; Grade Summary uses `SEMESTER`. The assignment must belong to the authenticated teacher, and the count must be a non-negative integer no larger than the assigned section roster. The backend derives the actor, section, subject code, school year, and semester from verified account/assignment data. Only those metadata and the count are logged—never student names, IDs, or grades. Export pages call this endpoint only after client-side file generation succeeds.
 
 ## Attendance Computed Scores
 

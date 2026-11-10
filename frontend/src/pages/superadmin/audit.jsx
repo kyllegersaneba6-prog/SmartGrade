@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Filter, Download, Share2, FileText, Table2, BookOpen, ChevronLeft, ChevronRight, Info, Check, RefreshCw, AlertTriangle, Activity, History } from 'lucide-react';
+import { Filter, Search, Download, Share2, FileText, Table2, BookOpen, ChevronLeft, ChevronRight, Info, Check, AlertTriangle, Activity, History } from 'lucide-react';
 import api from '../../utils/api';
 import { splitUpdateDescription } from '../../utils/auditText';
 import { SkeletonTable } from '../../components/common/Skeleton';
@@ -22,14 +22,16 @@ const Audit = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
 
   const ACTION_FILTERS = [
     { value: 'ALL', label: 'ALL ACTIVITIES' },
     { value: 'CREATED', label: 'CREATED' },
     { value: 'UPDATED', label: 'UPDATED' },
     { value: 'DELETED', label: 'DELETED' },
+    { value: 'IMPORT', label: 'IMPORT' },
+    { value: 'EXPORT', label: 'EXPORT' },
     { value: 'FAILED', label: 'FAILED LOGINS' },
     { value: 'SUCCESSFUL', label: 'SUCCESSFUL LOGINS' },
     { value: 'BACKUP', label: 'BACKUP' },
@@ -95,12 +97,16 @@ const Audit = () => {
   }, []);
 
   const getRoleInfo = (userName) => {
-    const user = users.find(u => u.username === userName || u.full_name === userName);
+    const normalizedUserName = String(userName || '').trim().toLowerCase();
+    const user = users.find(u => (
+      String(u.username || '').trim().toLowerCase() === normalizedUserName
+      || String(u.full_name || '').trim().toLowerCase() === normalizedUserName
+    ));
     if (!user) return { role: 'system', color: '#0c1925', name: userName };
     switch (user.system_role) {
-      case 'superadmin': return { role: 'system', color: '#0c1925', name: user.full_name };
-      case 'admin': return { role: 'admin', color: '#e5e7eb', name: user.full_name };
-      case 'teacher': return { role: 'teacher', color: '#fbbf24', name: user.full_name };
+      case 'superadmin': return { role: 'super admin', color: '#000000', name: user.full_name };
+      case 'admin': return { role: 'admin', color: '#0D1E2D', name: user.full_name };
+      case 'teacher': return { role: 'teacher', color: '#e5e7eb', name: user.full_name };
       default: return { role: 'system', color: '#3b82f6', name: user.full_name };
     }
   };
@@ -117,21 +123,34 @@ const Audit = () => {
 
   const dynamicRows = logs.map(log => {
     const actionLower = String(log.action || '').toLowerCase();
-    // Login rows (failed, rate-limited, successful) show a dash for User and Role.
-    const isLoginRow = actionLower.includes('failed login') || actionLower.includes('rate limited') || actionLower.includes('successful login');
+    // Login audit entries are linked to existing accounts by username.
+    // Rate-limit events may identify an IP address, so keep those system-scoped.
+    const isRateLimitedRow = actionLower.includes('rate limited');
     const roleInfo = getRoleInfo(log.user_name);
     const critical = isCritical(log.action, log.details);
     const dateObj = new Date(log.created_at);
     const ts = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}\n${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')}`;
-    return { id: log.id, ts, user: isLoginRow ? '-' : roleInfo.name, role: isLoginRow ? '-' : roleInfo.role, roleColor: isLoginRow ? '' : roleInfo.color, action: formatAction(log.action), desc: log.details || 'No description provided', split: actionLower.includes('updat') ? splitUpdateDescription(log.details) : null, critical };
+    return { id: log.id, ts, user: isRateLimitedRow ? '-' : roleInfo.name, role: isRateLimitedRow ? '-' : roleInfo.role, roleColor: isRateLimitedRow ? '' : roleInfo.color, action: formatAction(log.action), desc: log.details || 'No description provided', split: actionLower.includes('updat') ? splitUpdateDescription(log.details) : null, critical };
   });
 
   const criticalCount = dynamicRows.filter(r => r.critical).length;
   const totalEvents = logs.length;
+  const teacherExportLogs = logs.filter((log) => {
+    const action = String(log.action || '').toLowerCase();
+    return action.includes('teacher') && action.includes('export')
+      && (action.includes('class record') || action.includes('grade summary'));
+  });
+  const exportFormats = teacherExportLogs.reduce((counts, log) => {
+    const format = String(log.details || '').match(/\((xlsx|pdf)\)/i)?.[1]?.toLowerCase();
+    if (format === 'xlsx') counts.xlsx += 1;
+    if (format === 'pdf') counts.pdf += 1;
+    return counts;
+  }, { xlsx: 0, pdf: 0 });
 
   const metrics = [
     { label: 'CRITICAL ALERTS', value: criticalCount.toString(), icon: AlertTriangle, tooltip: 'High-risk system activities requiring immediate administrator attention.' },
     { label: 'TOTAL LOGGED EVENTS', value: totalEvents.toLocaleString(), icon: Activity, tooltip: 'Total events recorded in the institutional audit trail.' },
+    { label: 'TEACHER DATA EXPORTS', value: teacherExportLogs.length.toLocaleString(), detail: `${exportFormats.xlsx} XLSX · ${exportFormats.pdf} PDF`, icon: Download, tooltip: 'Class Record and Grade Summary exports recorded in the audit trail. The count is independent of the current search and filter.' },
   ];
 
   const matchesActionFilter = (row) => {
@@ -139,6 +158,8 @@ const Audit = () => {
       case 'CREATED': return row.action.includes('CREAT');
       case 'UPDATED': return row.action.includes('UPDAT');
       case 'DELETED': return row.action.includes('DELET');
+      case 'IMPORT': return row.action.includes('IMPORT');
+      case 'EXPORT': return row.action.includes('EXPORT');
       case 'SUCCESSFUL': return row.action.includes('SUCCESS');
       case 'FAILED': return row.action.includes('FAIL') || row.action.includes('RATE');
       case 'BACKUP': return row.action.includes('BACKUP');
@@ -146,7 +167,13 @@ const Audit = () => {
       default: return true;
     }
   };
-  const filteredRows = dynamicRows.filter(matchesActionFilter);
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const filteredRows = dynamicRows.filter((row) => {
+    if (!matchesActionFilter(row)) return false;
+    if (!normalizedSearchQuery) return true;
+    return [row.ts, row.user, row.role, row.action, row.desc]
+      .some((value) => String(value || '').toLowerCase().includes(normalizedSearchQuery));
+  });
   const paginatedRows = filteredRows.slice((page - 1) * LOGS_PER_PAGE, page * LOGS_PER_PAGE);
   const handlePageChange = (nextPage) => {
     setPage(nextPage);
@@ -189,8 +216,8 @@ const Audit = () => {
         description="Review critical alerts and trace every system access in the institutional audit trail."
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
-        {metrics.map(({ label, value, icon: Icon, tooltip }) => (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {metrics.map(({ label, value, detail, icon: Icon, tooltip }) => (
           <div key={label} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-4 shadow-sm card-hover">
             <div>
               <div className="flex items-center gap-1.5 mb-1">
@@ -204,6 +231,7 @@ const Audit = () => {
                 </div>
               </div>
               <div className="text-2xl font-bold text-sidebar">{value}</div>
+              {detail && <p className="mt-0.5 text-[10px] font-semibold text-gray-500">{detail}</p>}
             </div>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sidebar bg-gray-100 shrink-0"><Icon size={16} strokeWidth={1.8} /></div>
           </div>
@@ -213,12 +241,20 @@ const Audit = () => {
       <div ref={auditSectionRef} className="w-full">
         <div>
           <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-sm bg-gray-900 text-white"><History size={15} strokeWidth={2} /></span><h2 className="text-[16px] font-bold text-gray-900">Institutional System Audit Trail (Root Access)</h2></div>
-              <div className="flex gap-2">
-                <button onClick={async () => { setRefreshing(true); try { await refreshQuiet(); } finally { setRefreshing(false); } }} disabled={refreshing} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50" title="Refresh audit trail">
-                  <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
-                </button>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-sm bg-gray-900 text-white"><History size={15} strokeWidth={2} /></span><h2 className="text-[16px] font-bold text-gray-900">System Audit Logs</h2></div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="relative">
+                  <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => { setSearchQuery(event.target.value); setPage(1); }}
+                    placeholder="Search audit logs"
+                    aria-label="Search audit logs"
+                    className="h-8 w-36 rounded-lg border border-gray-200 bg-white pl-8 pr-2 text-[11px] font-medium text-gray-700 shadow-sm outline-none placeholder:text-gray-400 focus:border-gray-400 sm:w-48"
+                  />
+                </label>
                 <div className="relative">
                   <button onClick={() => setFilterOpen(o => !o)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 text-[11px] font-semibold text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900" title="Filter by action">
                     <Filter size={14} className={actionFilter === 'ALL' ? 'text-gray-500' : 'text-sidebar'} />
@@ -249,12 +285,12 @@ const Audit = () => {
               <tbody>
                 {loading ? (
                   <tr><td colSpan="5" className="py-4"><div aria-busy="true"><SkeletonTable cols={5} rows={6} /></div></td></tr>
-                ) : filteredRows.length === 0 ? (<tr><td colSpan="5" className="py-8 text-center text-gray-500">No activity recorded yet.</td></tr>
+                ) : filteredRows.length === 0 ? (<tr><td colSpan="5" className="py-8 text-center text-gray-500">{normalizedSearchQuery ? 'No logs match your search.' : actionFilter !== 'ALL' ? 'No activity matches this filter.' : 'No activity recorded yet.'}</td></tr>
                 ) : paginatedRows.map((row, i) => (
                   <tr key={row.id || i} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-gray-50">
                     <td className="whitespace-pre px-3 py-3 font-mono text-[12px]" style={{ color: '#0c1925' }}>{row.ts}</td>
                     <td className="px-3 py-3 text-[12px] font-bold text-gray-800">{row.user === '-' ? <span className="text-gray-900">-</span> : row.user}</td>
-                    <td className="px-3 py-3">{row.role === '-' ? <span className="text-gray-900 font-semibold text-[12px]">-</span> : <span className={`px-2 py-0.5 rounded-md text-[12px] font-bold ${!row.role ? '' : row.role === 'admin' ? 'text-gray-700' : 'text-white'}`} style={row.role ? { background: row.roleColor } : undefined}>{row.role}</span>}</td>
+                    <td className="px-3 py-3">{row.role === '-' ? <span className="text-gray-900 font-semibold text-[12px]">-</span> : <span className={`px-2 py-0.5 rounded-md text-[12px] font-bold ${!row.role ? '' : row.role === 'teacher' ? 'text-black' : 'text-white'}`} style={row.role ? { background: row.roleColor } : undefined}>{row.role}</span>}</td>
                     <td className="px-3 py-3 font-mono text-[12px] font-bold" style={{ color: row.action.includes('DELET') || row.action.includes('FAIL') || row.action === 'RATE_LIMITED_LOGIN' ? '#dc2626' : row.action.includes('UPDAT') ? '#2563eb' : row.action.includes('CREAT') || row.action.includes('SUCCESS') ? '#16a34a' : '#4b5563' }}>{row.action}</td>
                     <td className="max-w-[300px] px-3 py-3 text-[12px] text-gray-700" title={row.desc}>
                       {row.split ? (

@@ -50,7 +50,7 @@ const buildTableData = ({ students, groups, scores, attendanceScores, getCompone
 
   groups.forEach((group, groupIndex) => {
     group.activities.forEach((activity) => {
-      header.push(activity.name || 'Activity');
+      header.push(activity.is_attendance ? 'Attend' : (activity.name || 'Activity'));
       maxScore.push(activity.is_attendance ? Number(attendanceScores?.max_total) || 0 : Number(activity.max_score) || 0);
       columns.push({ kind: 'activity', groupIndex, activity });
     });
@@ -272,7 +272,7 @@ export async function exportClassRecordPdf({ assignment, term, students, compone
     tableHead[0].push({ content: group.name?.toUpperCase() || 'COMPONENT', colSpan: group.activities.length + 2, styles: { fillColor: [34, 90, 165], textColor: [255, 255, 255] } });
     tableHead[0].push({ content: `${group.weight || 0}%`, rowSpan: 2, styles: { fillColor: [254, 242, 0], textColor: [0, 0, 0] } });
     group.activities.forEach((activity) => {
-      secondHead.push({ content: activity.name || 'Activity', styles: { fillColor: [255, 255, 255], textColor: [0, 0, 0] } });
+      secondHead.push({ content: activity.is_attendance ? 'Attend' : (activity.name || 'Activity'), styles: { fillColor: [255, 255, 255], textColor: [0, 0, 0] } });
       maxScoreHead.push({ content: activity.is_attendance ? Number(attendanceScores?.max_total) || 0 : Number(activity.max_score) || 0, styles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold' } });
     });
     secondHead.push(

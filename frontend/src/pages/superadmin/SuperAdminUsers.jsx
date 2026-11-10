@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Bolt, ChevronLeft, ChevronRight, UserPlus, Trash2, Pencil, Eye, EyeOff, CalendarX } from 'lucide-react';
+import { Bolt, UserPlus, Trash2, Pencil, Eye, EyeOff, CalendarX } from 'lucide-react';
 import CreateSuperAdminUser from './CreateSuperAdminUser';
 import api from '../../utils/api';
 import { displayStaffId, usernameFromLastNameAndId } from '../../utils/staffId';
 import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
 
-const USERS_PER_PAGE = 10;
+const formatAccountName = (firstName, lastName, fallback) => {
+  const first = String(firstName || '').trim();
+  const last = String(lastName || '').trim();
+  if (first || last) return [last, first].filter(Boolean).join(', ');
+  const parts = String(fallback || '').trim().split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? `${parts.slice(1).join(' ')}, ${parts[0]}` : (parts[0] || '—');
+};
 
 const SuperAdminUsers = () => {
   const [usersList, setUsersList] = useState([]);
@@ -16,7 +22,6 @@ const SuperAdminUsers = () => {
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-  const [userPage, setUserPage] = useState(1);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
   const [editForm, setEditForm] = useState({ first_name: '', last_name: '', department_id: '', username: '', password: '' });
@@ -197,7 +202,6 @@ const SuperAdminUsers = () => {
     finally { setDeleting(false); }
   };
 
-  const sortedUsers = usersList;
   const deptAbbrByName = {};
   departments.forEach((d) => {
     const abbr = d.abbr && String(d.abbr).trim() ? String(d.abbr).trim() : '';
@@ -211,9 +215,6 @@ const SuperAdminUsers = () => {
     return `${name} (${abbr})`;
   };
   const menuUser = usersList.find((x) => x.id === openMenuId) || null;
-  const totalUserPages = Math.max(1, Math.ceil(sortedUsers.length / USERS_PER_PAGE));
-  const paginatedUsers = sortedUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
-
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <SuperAdminPageHeading
@@ -242,17 +243,17 @@ const SuperAdminUsers = () => {
             </tr>
           </thead>
           <tbody>
-            {paginatedUsers.length === 0 && (
+            {usersList.length === 0 && (
               <tr>
                 <td colSpan={6} className="py-10 text-center text-xs text-gray-500">
                   No admins have been added yet. Click <strong>Add Admin</strong> to create the first account.
                 </td>
               </tr>
             )}
-            {paginatedUsers.map((u) => (
+            {usersList.map((u) => (
               <tr key={u.id} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-gray-50">
                 <td className="px-3 py-3 font-mono text-[12px] font-bold text-gray-900">{displayStaffId(u.staffId)}</td>
-                <td className="px-3 py-3 text-[12px] text-gray-900">{u.name}</td>
+                <td className="px-3 py-3 text-[12px] text-gray-900">{formatAccountName(u.firstName, u.lastName, u.name)}</td>
                 <td className="px-3 py-3 font-mono text-[12px] text-gray-900">{u.username}</td>
                 <td className="px-3 py-3 text-[12px] text-gray-900">{deptDisplay(u.dept)}</td>
                 <td className="px-3 py-3 text-[12px] text-gray-900">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</td>
@@ -264,14 +265,6 @@ const SuperAdminUsers = () => {
           </tbody>
         </table></div>
 
-        <div className="flex items-center justify-between mt-4 pt-3 border-t text-xs" style={{ borderColor: '#f0ede6' }}>
-          <span className="text-gray-900">Showing {Math.min((userPage - 1) * USERS_PER_PAGE + 1, usersList.length)}–{Math.min(userPage * USERS_PER_PAGE, usersList.length)} of {usersList.length}</span>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setUserPage(p => Math.max(1, p - 1))} disabled={userPage === 1} className="p-1.5 rounded-lg border text-gray-400 hover:text-sidebar hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed" style={{ borderColor: '#e5e0d5' }}><ChevronLeft size={14} /></button>
-            <span className="text-gray-900 font-medium">Page {userPage} of {totalUserPages}</span>
-            <button onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))} disabled={userPage === totalUserPages} className="p-1.5 rounded-lg border text-gray-400 hover:text-sidebar hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed" style={{ borderColor: '#e5e0d5' }}><ChevronRight size={14} /></button>
-          </div>
-        </div>
       </div>
 
       {openMenuId && menuUser && menuPos && createPortal(
@@ -326,7 +319,7 @@ const SuperAdminUsers = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Admin</h3>
-            <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{userToDelete?.name}</strong>? Existing teacher accounts in this department will be kept — only the admin account is removed. This action cannot be undone.</p>
+            <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{formatAccountName(userToDelete?.firstName, userToDelete?.lastName, userToDelete?.name)}</strong>? Existing teacher accounts in this department will be kept — only the admin account is removed. This action cannot be undone.</p>
             <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
               <input type="text" value={confirmText} onChange={(e) => { setConfirmText(e.target.value); setDeleteError(''); }} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
             </div>

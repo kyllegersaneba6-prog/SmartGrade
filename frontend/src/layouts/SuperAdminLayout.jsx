@@ -46,7 +46,7 @@ const SuperAdminLayout = () => {
             <h1 className="truncate text-sm font-bold text-sidebar sm:text-base">{getTitle()}</h1>
           </div>
         </header>
-        <main className="min-h-0 flex-1 overflow-auto">
+        <main className="min-h-0 flex-1 overflow-auto bg-gray-50">
           <div className="p-4 md:p-6 lg:p-8">
             <Outlet />
           </div>

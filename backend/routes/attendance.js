@@ -89,10 +89,10 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
     const invalidScore = records.some((r) => {
       if (r.score === null || r.score === undefined || r.score === '') return false;
       const score = Number(r.score);
-      return !Number.isFinite(score) || score < 0 || score > 2;
+      return !Number.isFinite(score) || (score !== 1 && score !== 2);
     });
     if (invalidScore) {
-      return res.status(400).json({ message: 'Attendance score must be between 0 and 2.' });
+      return res.status(400).json({ message: 'Attendance score must be 1 (late), 2 (present), or blank (absent).' });
     }
 
     if (await checkTermClosedByAssignment(teacher_assignment_id)) {
@@ -122,7 +122,7 @@ router.post('/bulk', authorizeRole('teacher'), async (req, res) => {
       .select();
     if (error) {
       if (error.code === '23514') {
-        return res.status(400).json({ message: 'Attendance score must be between 0 and 2.' });
+        return res.status(400).json({ message: 'Attendance score must be 1 (late), 2 (present), or blank (absent).' });
       }
       return sendServerError(res, error);
     }

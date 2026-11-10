@@ -106,8 +106,8 @@ There is **no** `POST /api/sections/seed` route (only the preview).
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
 | GET | `/api/assignments` | Teacher/Superadmin | Teacher sees own assignments; Admin receives 403 |
-| POST | `/api/assignments/import-class-list` | Teacher | `{ pdf_metadata, students[] }`; active term and department course checked; creates/reuses section, subject, assignment; validates section/course/year/term and student rows; duplicate IDs skipped |
-| POST | `/api/assignments/:assignmentId/students/bulk` | Teacher | `{ pdf_metadata, students: [...] }`; assignment must belong to the teacher and be in the active term; PDF subject/section/course/year metadata is matched to the assignment; inserts are scoped to the assignment section; IDs use `##-####-###`; duplicate IDs are skipped |
+| POST | `/api/assignments/import-class-list` | Teacher | `{ pdf_metadata, students[] }`; active term and department course checked; creates/reuses section, subject, assignment; validates section/course/year/term and student rows; duplicate IDs skipped; records a safe audit event after successful processing (PDF format, class/term, and added/skipped counts only) |
+| POST | `/api/assignments/:assignmentId/students/bulk` | Teacher | `{ pdf_metadata, students: [...] }`; assignment must belong to the teacher and be in the active term; PDF subject/section/course/year metadata is matched to the assignment; inserts are scoped to the assignment section; IDs use `##-####-###`; duplicate IDs are skipped; records the same safe import metadata after successful processing |
 | POST | `/api/assignments` | Admin blocked | Teacher PDF import creates assignments |
 | DELETE | `/api/assignments/:id` | Admin blocked | Assignment deletion is no longer available to Admin |
 
@@ -159,12 +159,13 @@ There is **no** `POST /api/sections/seed` route (only the preview).
 
 ## Activity Log
 
-Router guarded by `authenticateToken` only; no role checks.
+The router requires authentication. Audit reads are role-scoped; the generic write endpoint accepts any authenticated user, while the dedicated teacher export endpoint is role-restricted and assignment-scoped.
 
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
 | GET | `/api/activity` | Any auth | Superadmin: all; Admin: current department AND its usernames (superadmins excluded); Teacher: empty |
 | POST | `/api/activity` | Any auth | `{ action, details? }`; identity comes from the freshly verified account; body identity values ignored |
+| POST | `/api/activity/teacher-export` | Teacher | Validates report, format, term, count, and ownership of `assignment_id`; records safe export metadata only; student count cannot exceed the class roster |
 
 ## Notifications
 
