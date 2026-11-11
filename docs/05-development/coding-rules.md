@@ -51,7 +51,7 @@
 - Format constants live only in `services/backupFormat.js` (`SGBK`, version 1.0, table order, column allowlists).
 - Every table export is checksummed; validation must re-verify checksums and counts.
 - Encryption is AES-256-GCM with scrypt; passwords are at least 8 characters.
-- Destructive modes require a typed confirmation phrase and must never delete the caller's own superadmin row or the `activity_log`.
+- Destructive modes require explicit confirmation and must never delete the caller's own superadmin row or the `activity_log`. Admin/Teacher account deletion verifies the acting user's current password server-side; other destructive modes use a typed confirmation phrase where applicable.
 - Full restore must require every restorable table and run its deletes/inserts in one database transaction via the service-role-only RPC; never fall back to per-table writes.
 - `TABLE_COLUMNS` is an allowlist: new columns must be added there or they will silently not be backed up.
 

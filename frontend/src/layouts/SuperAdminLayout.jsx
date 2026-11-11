@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { Menu } from 'lucide-react';
+import { Archive, Menu } from 'lucide-react';
 import SuperAdminSidebar from '../components/superadmin/SuperAdminSidebar';
+import { SuperAdminProvider, useSuperAdmin } from '../contexts/SuperAdminContext';
 
-const SuperAdminLayout = () => {
+const SuperAdminLayoutInner = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('superadmin_sidebar_collapsed') === 'true');
+  const { isArchiveMode, currentTerm } = useSuperAdmin();
 
   useEffect(() => {
     localStorage.setItem('superadmin_sidebar_collapsed', String(sidebarCollapsed));
@@ -46,8 +48,16 @@ const SuperAdminLayout = () => {
             <h1 className="truncate text-sm font-bold text-sidebar sm:text-base">{getTitle()}</h1>
           </div>
         </header>
+        {isArchiveMode && currentTerm && (
+          <div className="flex shrink-0 items-center bg-amber-300 px-4 py-2 text-xs font-semibold text-gray-900 shadow-sm md:px-6 lg:px-8">
+            <div className="flex items-center gap-2">
+              <Archive size={14} />
+              <span>Viewing: <strong>{currentTerm.school_year} — {currentTerm.semester}</strong> — Read Only</span>
+            </div>
+          </div>
+        )}
         <main className="min-h-0 flex-1 overflow-auto bg-gray-50">
-          <div className="p-4 md:p-6 lg:p-8">
+          <div className={`p-4 md:p-6 lg:p-8 ${isArchiveMode ? 'archive-readonly-content' : ''}`}>
             <Outlet />
           </div>
         </main>
@@ -55,5 +65,11 @@ const SuperAdminLayout = () => {
     </div>
   );
 };
+
+const SuperAdminLayout = () => (
+  <SuperAdminProvider>
+    <SuperAdminLayoutInner />
+  </SuperAdminProvider>
+);
 
 export default SuperAdminLayout;

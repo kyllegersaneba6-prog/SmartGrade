@@ -1,5 +1,5 @@
 // AIService — provider-abstracted entry point.
-// BehavioralAnalytics.jsx must only call POST /api/ai/summarize-student,
+// DescriptiveAnalytics.jsx must only call POST /api/ai/summarize-student,
 // never OmniRoute/Combo/Claude details.
 const { SYSTEM_PROMPT, buildUserPrompt } = require('./aiPrompts');
 const provider = require('./omniRouteProvider');

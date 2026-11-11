@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Archive, BookOpen, Check, ChevronDown } from 'lucide-react';
+import { Archive, BookOpen, Check, ChevronDown, LoaderCircle } from 'lucide-react';
 
 const groupKey = (section) => `${section.school_year}|${section.semester}`;
 const getSectionDisplay = (section) => {
@@ -20,15 +20,17 @@ const FloatingSectionSelector = ({
   value,
   onChange,
   isArchiveMode = false,
-  onExitArchive,
+  isLoading = false,
 }) => {
   const [open, setOpen] = useState(false);
+  const [pendingSelection, setPendingSelection] = useState('');
+  const [loadingObserved, setLoadingObserved] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
     const handler = (event) => {
-      if (ref.current && !ref.current.contains(event.target)) setOpen(false);
-      if (event.key === 'Escape') setOpen(false);
+      if (!pendingSelection && ref.current && !ref.current.contains(event.target)) setOpen(false);
+      if (event.key === 'Escape' && !pendingSelection) setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     document.addEventListener('keydown', handler);
@@ -36,7 +38,20 @@ const FloatingSectionSelector = ({
       document.removeEventListener('mousedown', handler);
       document.removeEventListener('keydown', handler);
     };
-  }, []);
+  }, [pendingSelection]);
+
+  useEffect(() => {
+    if (!pendingSelection || String(value) !== pendingSelection) return;
+    if (isLoading) {
+      if (!loadingObserved) setLoadingObserved(true);
+      return;
+    }
+    if (loadingObserved) {
+      setPendingSelection('');
+      setLoadingObserved(false);
+      setOpen(false);
+    }
+  }, [isLoading, loadingObserved, pendingSelection, value]);
 
   const groups = {};
   sections.forEach((section) => {
@@ -53,12 +68,15 @@ const FloatingSectionSelector = ({
       <button
         id={id}
         type="button"
+        data-archive-navigation={isArchiveMode ? 'true' : undefined}
         aria-label="Select section"
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-        className={`flex h-12 w-72 sm:w-80 items-center gap-2 px-4 text-left text-xs bg-white border rounded-lg shadow-elevated transition-all focus:outline-none focus:ring-2 cursor-pointer ${
+        aria-busy={Boolean(pendingSelection)}
+        disabled={Boolean(pendingSelection)}
+        onClick={() => { if (!pendingSelection) setOpen((current) => !current); }}
+        className={`flex h-12 w-72 sm:w-80 items-center gap-2 px-4 text-left text-xs bg-white border rounded-lg shadow-elevated transition-all focus:outline-none focus:ring-2 cursor-pointer disabled:cursor-wait ${
           isArchiveMode
-            ? 'bg-amber-50 border-amber-300 focus:ring-amber-300/30'
+            ? 'bg-amber-50 border-gray-200 focus:ring-gray-300/30'
             : open
               ? 'border-[#0c1925] ring-2 ring-[#0c1925]/15'
               : 'border-gray-200 hover:border-[#0c1925]/50 focus:ring-[#0c1925]/30'
@@ -78,11 +96,20 @@ const FloatingSectionSelector = ({
           )}
         </span>
         {isArchiveMode && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-200 text-amber-800 uppercase shrink-0">ARCHIVE</span>}
-        <ChevronDown size={15} className={`shrink-0 text-gray-900 transition-transform duration-200 ${open ? 'rotate-180 text-[#0c1925]' : ''}`} />
+        {pendingSelection ? (
+          <LoaderCircle size={15} className="shrink-0 animate-spin text-amber-600" aria-hidden="true" />
+        ) : (
+          <ChevronDown size={15} className={`shrink-0 text-gray-900 transition-transform duration-200 ${open ? 'rotate-180 text-[#0c1925]' : ''}`} />
+        )}
       </button>
 
       {open && (
-        <div className="dropdown-pop absolute top-full left-0 mt-1.5 w-72 sm:w-80 bg-white border border-gray-100 rounded-xl shadow-2xl z-[100] max-h-80 overflow-y-auto origin-top">
+        <div aria-busy={Boolean(pendingSelection)} className="dropdown-pop absolute top-full left-0 mt-1.5 w-72 sm:w-80 bg-white border border-gray-100 rounded-xl shadow-2xl z-[100] max-h-80 overflow-y-auto origin-top">
+          {pendingSelection && (
+            <div role="status" aria-live="polite" className="flex items-center gap-2 border-b border-gray-100 bg-gray-50 px-3 py-2 text-[11px] font-semibold text-gray-600">
+              <LoaderCircle size={14} className="animate-spin" aria-hidden="true" /> {isArchiveMode ? 'Loading archived section...' : 'Loading section...'}
+            </div>
+          )}
           {groupKeys.length === 0 && <div className="px-3 py-5 text-[11px] text-gray-900 text-center">No sections found.</div>}
           {groupKeys.map((key) => {
             const group = groups[key];
@@ -95,15 +122,28 @@ const FloatingSectionSelector = ({
                     <button
                       key={`${section.section_id}-${section.school_year}-${section.semester}`}
                       type="button"
+                      data-archive-navigation={isArchiveMode ? 'true' : undefined}
                       role="option"
                       aria-selected={selected}
-                      onClick={() => { onChange(String(section.section_id)); setOpen(false); }}
+                      aria-disabled={Boolean(pendingSelection)}
+                      disabled={Boolean(pendingSelection)}
+                      onClick={() => {
+                        if (pendingSelection) return;
+                        const nextValue = String(section.section_id);
+                        onChange(nextValue);
+                        if (!selected) {
+                          setLoadingObserved(false);
+                          setPendingSelection(nextValue);
+                        } else {
+                          setOpen(false);
+                        }
+                      }}
                       className={`h-12 w-full text-left px-4 border-b last:border-0 border-gray-100 transition-colors flex items-center gap-2 cursor-pointer ${
                         selected ? 'bg-[#0c1925]/5' : 'hover:bg-gray-100'
                       }`}
                     >
                       <span className={`flex items-center justify-center w-7 h-7 rounded-md shrink-0 transition-colors ${selected ? 'text-amber-300' : 'text-gray-900 bg-gray-100'}`} style={selected ? { background: '#0c1925' } : {}}>
-                        {selected ? <Check size={15} /> : <BookOpen size={15} />}
+                        {selected ? <Check size={15} /> : isArchiveMode ? <Archive size={15} /> : <BookOpen size={15} />}
                       </span>
                       <span className="flex-1 min-w-0">
                         <span className={`block text-xs truncate ${selected ? 'font-bold text-[#0c1925]' : 'font-semibold text-gray-900'}`}>{display.title}</span>
@@ -115,15 +155,6 @@ const FloatingSectionSelector = ({
               </div>
             );
           })}
-          {isArchiveMode && onExitArchive && (
-            <button
-              type="button"
-              onClick={() => { onExitArchive(); setOpen(false); }}
-              className="w-full text-left px-4 py-2.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border-t border-amber-200 transition-colors flex items-center gap-2"
-            >
-              <Archive size={14} /> Exit Archive Mode
-            </button>
-          )}
         </div>
       )}
     </div>

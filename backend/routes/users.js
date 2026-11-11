@@ -6,6 +6,7 @@ const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { sendServerError } = require('../middleware/errors');
 const { accountDepartment } = require('../services/session');
 const { canAccessCourse } = require('../middleware/access');
+const { loadSuperAdminTermSnapshot } = require('../services/superAdminTermArchive');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -60,6 +61,13 @@ router.get('/', async (req, res) => {
   try {
     const { role, id: userId } = req.user;
 
+    if (role === 'superadmin') {
+      const archive = await loadSuperAdminTermSnapshot(supabase, req);
+      if (archive.error) return sendServerError(res, archive.error);
+      if (archive.requested && archive.status) return res.status(archive.status).json({ message: archive.message });
+      if (archive.requested) return res.json(archive.snapshot.staff_users || []);
+    }
+
     let query = supabase
       .from('staff_users')
       .select(`${USER_PUBLIC_COLUMNS}, courses(name)`)
@@ -83,14 +91,34 @@ router.get('/', async (req, res) => {
 
     let responseUsers = (users || []).map(omitPassword);
     if (role === 'admin' && responseUsers.length > 0) {
+      // Count only assignments for the semester being viewed. In normal mode
+      // this is the active semester; archive headers select a past semester.
+      let countTerm = null;
+      const viewSchoolYear = req.get('X-View-Term-School-Year');
+      const viewSemester = req.get('X-View-Term-Semester');
+      if (viewSchoolYear && viewSemester) {
+        countTerm = { school_year: viewSchoolYear, semester: viewSemester };
+      } else {
+        const { data: activeTerm, error: activeTermError } = await supabase
+          .from('academic_terms')
+          .select('school_year, semester')
+          .eq('is_active', true)
+          .maybeSingle();
+        if (activeTermError) return sendServerError(res, activeTermError);
+        countTerm = activeTerm;
+      }
+
       // The unique assignment key is teacher + section + subject + term, so
       // repeated imports of the same class do not increase this count.
       const assignmentCounts = await Promise.all(responseUsers.map(async (teacher) => {
+        if (!countTerm) return { teacherId: teacher.id, count: 0, error: null };
         const { count, error: countError } = await supabase
           .from('teacher_assignments')
           .select('id', { count: 'exact', head: true })
           .eq('teacher_id', teacher.id)
-          .eq('created_by', userId);
+          .eq('created_by', userId)
+          .eq('school_year', countTerm.school_year)
+          .eq('semester', countTerm.semester);
         return { teacherId: teacher.id, count, error: countError };
       }));
 
@@ -474,6 +502,11 @@ router.patch('/:id', authorizeRole('superadmin', 'admin'), async (req, res) => {
 router.delete('/:id', authorizeRole('superadmin', 'admin'), async (req, res) => {
   const { id } = req.params;
   const { role: requesterRole } = req.user;
+  const { password } = req.body || {};
+
+  if (typeof password !== 'string' || password.length === 0) {
+    return res.status(400).json({ message: 'Your password is required to delete this account.' });
+  }
 
   try {
     const { data: userToDelete } = await supabase
@@ -497,6 +530,19 @@ router.delete('/:id', authorizeRole('superadmin', 'admin'), async (req, res) => 
     }
     if (requesterRole === 'teacher') {
       return res.status(403).json({ message: 'Teachers cannot delete users.' });
+    }
+
+    const { data: requester, error: requesterError } = await supabase
+      .from('staff_users')
+      .select('password')
+      .eq('id', req.user.id)
+      .maybeSingle();
+    if (requesterError) return sendServerError(res, requesterError);
+    if (!requester?.password) {
+      return res.status(401).json({ message: 'Your account could not be verified. Please log in again.' });
+    }
+    if (!(await bcrypt.compare(password, requester.password))) {
+      return res.status(400).json({ message: 'Incorrect password.' });
     }
 
     // Allow deleting an admin even when teacher accounts (or sections /

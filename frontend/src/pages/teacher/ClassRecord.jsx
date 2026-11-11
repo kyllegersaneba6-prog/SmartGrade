@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { FileSpreadsheet, Plus, Trash2, Loader, Pencil, X, ChevronLeft } from 'lucide-react';
+import { Plus, Trash2, Loader, Pencil, X, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTeacher } from '../../contexts/TeacherContext';
 import AssignmentSelector from '../../components/common/FloatingAssignmentSelector';
@@ -39,6 +39,7 @@ const ClassRecord = () => {
     selectedAssignment,
     currentAssignment,
     isReadOnly,
+    isArchiveMode,
     loading: ctxLoading,
     refreshAssignments,
     gradingTerm: selectedTerm,
@@ -648,30 +649,21 @@ const ClassRecord = () => {
     }
   };
 
-  if (!currentAssignment && !ctxLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-        <FileSpreadsheet size={48} className="mb-3 opacity-30" />
-        <p className="text-sm font-medium">No class assignments yet.</p>
-        <p className="text-xs mt-1">Ask an admin to assign you to a class.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <TeacherPageHeading
         eyebrow="Grade management"
         title="Class Record"
         description="View and manage student grades, assessment components, and class performance."
-        actions={<ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} disabled={!weightsBalanced || ctxLoading || !currentAssignment} disabledReason={weightsBalanced ? '' : 'Export unlocks at 100% total weight.'} exporting={exporting} error={exportError} />}
+        actions={currentAssignment && <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} disabled={!weightsBalanced || ctxLoading} disabledReason={weightsBalanced ? '' : 'Export unlocks at 100% total weight.'} exporting={exporting} error={exportError} />}
       />
       <div className="flex flex-wrap items-center gap-3">
-        <AssignmentSelector />
+        <AssignmentSelector isLoading={dataLoading || ctxLoading} />
         <div className="flex h-11 items-center bg-bg-light border border-border rounded-lg p-1 shadow-elevated">
           {TERMS.map((t) => (
             <button
               key={t}
+              data-archive-navigation={isArchiveMode ? 'true' : undefined}
               onClick={() => setGradingTerm(t)}
               className={`h-full px-3 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 selectedTerm === t
@@ -686,47 +678,45 @@ const ClassRecord = () => {
         </div>
       </div>
 
-      {isReadOnly && (
-        <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs font-bold">
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10m9.364-9.364a9 9 0 11-12.728 0 9 9 0 0112.728 0z" /></svg>
-          <span>This term is closed. Viewing only.</span>
-        </div>
-      )}
-
       <div className="bg-white rounded-xl shadow-sm border border-border card-hover">
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-border bg-gray-50">
-          <div className="flex items-center gap-3 text-xs text-gray-600">
-            <span className="font-bold text-sidebar">Grading components</span>
-            <span className={`font-extrabold ${totalWeight === 100 ? 'text-green-700' : 'text-amber-700'}`}>Total weight: {totalWeight}%</span>
-          </div>
+          {currentAssignment && (
+            <div className="flex items-center gap-3 text-xs text-gray-600">
+              <span className="font-bold text-sidebar">Grading components</span>
+              <span className={`font-extrabold ${totalWeight === 100 ? 'text-green-700' : 'text-amber-700'}`}>Total weight: {totalWeight}%</span>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             {currentAssignment && !ctxLoading && TERMS.indexOf(selectedTerm) > 0 && !isReadOnly && !dataLoading && hasPreviousTermComponents && components.length === 0 && (
               <button onClick={() => setConfirmCopyPrelimsOpen(true)} disabled={copyingPrelims} className="px-3 py-2 text-xs font-bold text-amber-800 bg-amber-100 border border-amber-200 rounded-lg hover:bg-amber-200 disabled:opacity-50">
                 {copyingPrelims ? 'Copying...' : `Copy from ${TERMS[TERMS.indexOf(selectedTerm) - 1]}`}
               </button>
             )}
-            {currentAssignment && !ctxLoading && !isReadOnly && (
-              <button onClick={openAddComponent} disabled={totalWeight >= 100 || savingComponent} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-[#0c1925] rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
-                <Plus size={14} /> Add Component
-              </button>
-            )}
-            {currentAssignment && (
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search by name or ID..."
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                  className="w-56 pl-9 pr-8 py-2 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
-                />
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                {searchQuery && (
-                  <button onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                )}
-              </div>
-            )}
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openAddComponent}
+              disabled={!currentAssignment || ctxLoading || isReadOnly || totalWeight >= 100 || savingComponent}
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#0c1925] text-white border border-transparent rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Plus size={14} /> Add Component
+            </button>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by name or ID..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                className="w-56 pl-9 pr-8 py-2 text-xs border border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1925] focus:border-[#0c1925] bg-white"
+              />
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              {searchQuery && (
+                <button data-archive-navigation={isArchiveMode ? 'true' : undefined} onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              )}
+            </div>
           </div>
         </div>
         {components.length > 0 && totalWeight === 100 && !hasUnreadyActivity && (
@@ -749,6 +739,17 @@ const ClassRecord = () => {
         )}
         {ctxLoading || dataLoading ? (
           <SkeletonTable cols={6} rows={8} bare />
+        ) : !currentAssignment ? (
+          <table className="w-full text-xs">
+            <tbody>
+              <tr>
+                <td colSpan={colCount} className="px-6 py-10 text-center text-gray-900">
+                  <p className="font-semibold">No class assignments yet.</p>
+                  <p className="mt-1 text-gray-600">Ask an admin to assign you to a class.</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         ) : components.length === 0 ? (
           <div className="py-12 text-center text-gray-400">
             <p className="text-sm font-medium">Add grading components to set up the class record table.</p>
@@ -948,7 +949,7 @@ const ClassRecord = () => {
                                     }}
                                     onBlur={() => setScoreDrafts((prev) => { const next = { ...prev }; delete next[draftKey]; return next; })}
                                     onKeyDown={(e) => handleKeyDown(e, student.id, act.id, index, paginatedStudents, visibleActivityIds)}
-                                    className={`w-full text-center text-xs font-medium text-sidebar p-1 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed ${clampWarnings[`${act.id}-${student.id}`] ? 'border-amber-300 bg-amber-50' : 'border-transparent'}`}
+                                    className={`w-full text-center text-xs font-medium p-1 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:cursor-not-allowed ${isReadOnly ? 'text-gray-900 opacity-100' : 'text-sidebar disabled:opacity-40'} ${clampWarnings[`${act.id}-${student.id}`] ? 'border-amber-300 bg-amber-50' : 'border-transparent'}`}
                                     max={maxVal} />
                                   {clampWarnings[`${act.id}-${student.id}`] && (
                                     <div className="absolute -top-1 right-0 w-2 h-2 bg-amber-300 rounded-full" title={`Value clamped to max ${clampWarnings[`${act.id}-${student.id}`]}`} />
@@ -981,6 +982,7 @@ const ClassRecord = () => {
               onPageChange={setPage}
               totalItems={searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length}
               rowsPerPage={TEACHER_TABLE_PAGE_SIZE}
+              isArchiveMode={isArchiveMode}
             />
           </div>
         )}
@@ -1058,7 +1060,7 @@ const ClassRecord = () => {
                           <button type="button" onClick={() => setShowSubcomponentChoices((visible) => !visible)} aria-expanded={showSubcomponentChoices} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-sidebar text-xs font-bold hover:bg-gray-200"><Plus size={13} /> Add</button>
                           {showSubcomponentChoices && (
                             <div className="absolute right-0 top-full z-10 mt-1 w-40 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
-                              <button type="button" onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: '', max_score: '', is_attendance: false }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50">Subcomp</button>
+                              <button type="button" onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: '', max_score: '', is_attendance: false }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50">Sub-Comp</button>
                               <button type="button" disabled={hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance)} onClick={() => { setComponentDraft((draft) => ({ ...draft, activities: [...draft.activities, { key: `${Date.now()}-${Math.random()}`, name: 'Attendance', max_score: '1', is_attendance: true }] })); setShowSubcomponentChoices(false); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-900 disabled:opacity-60">Attendance{hasAttendance || componentDraft.activities.some((activity) => activity.is_attendance) ? ' (already used)' : ''}</button>
                             </div>
                           )}

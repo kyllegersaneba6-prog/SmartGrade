@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Archive, X } from 'lucide-react';
+import { Archive, CornerDownLeft } from 'lucide-react';
 import { useTeacher } from '../../contexts/TeacherContext';
 import { SkeletonSettingsCard } from '../../components/common/Skeleton';
 import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
@@ -8,7 +7,7 @@ import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
 const TeacherSettings = () => {
   const { activeTerm, allTerms, viewTerm, setViewTerm, isArchiveMode, loading } = useTeacher();
   const [confirmTerm, setConfirmTerm] = useState(null);
-  const navigate = useNavigate();
+  const [confirmCurrentTermReturn, setConfirmCurrentTermReturn] = useState(false);
 
   if (loading) {
     return (
@@ -27,23 +26,13 @@ const TeacherSettings = () => {
       />
 
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-50 card-hover">
-        <h2 className="text-sm font-bold text-gray-900 mb-4">Academic Term Information</h2>
+        <h2 className="text-sm font-bold text-gray-900 mb-4">{isArchiveMode ? 'Academic Term Management' : 'Academic Term Information'}</h2>
 
         {isArchiveMode && viewTerm && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Archive size={16} className="text-amber-600" />
-              <span className="text-sm font-semibold text-gray-800">
-                Currently viewing: <strong>{viewTerm.school_year} — {viewTerm.semester}</strong>
-              </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700">Read Only</span>
-            </div>
-            <button
-              onClick={() => { setViewTerm(null); navigate('/teacher/overview'); }}
-              className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-red-500/20 text-red-700 border border-red-200 hover:bg-red-500/30 transition-colors cursor-pointer"
-            >
-              <X size={12} /> Exit Archive
-            </button>
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-300 p-5">
+            <span className="inline-flex rounded-md bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">Archived Term · Read Only</span>
+            <p className="mt-2 text-lg font-extrabold text-gray-900">{viewTerm.school_year} — {viewTerm.semester}</p>
+            <p className="mt-1 text-xs text-gray-700">Class and term data cannot be changed while browsing a past semester.</p>
           </div>
         )}
 
@@ -69,35 +58,45 @@ const TeacherSettings = () => {
         {allTerms.length > 0 && (
           <div>
             <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">Term History</h3>
-            <p className="text-[10px] text-gray-900 mb-3">Click a past term to browse its data in read-only mode.</p>
-            <div className="space-y-2">
+            <p className="text-[10px] text-gray-900 mb-3">Select a closed term to browse its data; select the active term to return to the current semester.</p>
+            <div className="scrollbar-hidden max-h-[108px] space-y-2 overflow-y-auto pr-1">
               {allTerms.map(t => {
                 const isActive = t.is_active;
                 const isCurrentlyViewing = viewTerm && viewTerm.school_year === t.school_year && viewTerm.semester === t.semester;
+                const isSelectedTerm = Boolean(isCurrentlyViewing || (isActive && !isArchiveMode));
+                const canBrowse = Boolean(t.is_closed) && !isCurrentlyViewing;
+                const canReturnToCurrent = Boolean(isActive && isArchiveMode);
+                const isInteractive = canBrowse || canReturnToCurrent;
                 return (
                   <div
                     key={t.id}
-                    onClick={() => {
-                      if (isActive) {
-                        if (isArchiveMode) { setViewTerm(null); navigate('/teacher/overview'); }
-                      } else {
-                        setConfirmTerm(t);
+                    role={isInteractive ? 'button' : undefined}
+                    tabIndex={isInteractive ? 0 : undefined}
+                    onClick={isInteractive ? () => {
+                      if (canBrowse) setConfirmTerm(t);
+                      else setConfirmCurrentTermReturn(true);
+                    } : undefined}
+                    onKeyDown={isInteractive ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        if (canBrowse) setConfirmTerm(t);
+                        else setConfirmCurrentTermReturn(true);
                       }
-                    }}
-                    className={`flex items-center justify-between px-4 py-3 rounded-xl border cursor-pointer transition-colors ${
-                      isCurrentlyViewing ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-300' :
-                      isActive ? 'bg-amber-300 border-amber-200 hover:bg-amber-100' :
-                      'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                    }`}
+                    } : undefined}
+                    className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-150 ${
+                      isSelectedTerm ? 'bg-amber-300 border-amber-200' : 'bg-gray-150 border-gray-200'
+                    } ${isInteractive ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400' : 'cursor-default'} ${isInteractive && !isSelectedTerm ? 'hover:!bg-gray-300 hover:scale-[1.01]' : ''}`}
                   >
                     <div className="flex items-center gap-3">
-                      {isActive && <span className="w-2 h-2 rounded-full bg-amber-500" />}
-                      {isCurrentlyViewing && !isActive && <Archive size={14} className="text-amber-600" />}
-                      <span className={`text-sm font-semibold ${isActive ? 'text-gray-900' : isCurrentlyViewing ? 'text-amber-900' : 'text-gray-500'}`}>
+                      {isActive && <span className="h-[10px] w-[10px] rounded-full border border-black bg-green-500" />}
+                      {t.is_closed && <Archive size={14} className={isCurrentlyViewing ? 'text-amber-600' : 'text-gray-500'} />}
+                      <span className={`text-sm font-semibold ${isSelectedTerm ? 'text-gray-900' : 'text-gray-500'}`}>
                         {t.school_year} — {t.semester}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
+                      {canBrowse && <span className="text-[10px] font-semibold text-gray-500">View term archive</span>}
+                      {canReturnToCurrent && <span className="text-[10px] font-semibold text-gray-500">Return to current</span>}
                       {isCurrentlyViewing && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700">Viewing</span>
                       )}
@@ -125,12 +124,13 @@ const TeacherSettings = () => {
             <p className="text-sm text-gray-600 mb-2">
               View <strong>{confirmTerm.school_year} — {confirmTerm.semester}</strong>?
             </p>
-            <p className="text-xs text-gray-500 mb-5">
+            <p className="text-xs text-gray-900 mb-5">
               You will be redirected to this archived term. All pages will show data from this semester in <strong>read-only mode</strong>. You cannot add, edit, or delete any data while viewing a past term.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setConfirmTerm(null)}
+                data-archive-navigation="true"
                 className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 cursor-pointer"
               >
                 Cancel
@@ -139,12 +139,45 @@ const TeacherSettings = () => {
                 onClick={() => {
                   setViewTerm({ school_year: confirmTerm.school_year, semester: confirmTerm.semester });
                   setConfirmTerm(null);
-                  navigate('/teacher/overview');
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white rounded-lg shadow-sm hover:scale-105 transition-transform cursor-pointer"
-                style={{ background: '#f5a623' }}
+                data-archive-navigation="true"
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-900 rounded-lg shadow-sm bg-amber-300 hover:bg-amber-400 transition-colors cursor-pointer"
               >
                 <Archive size={14} /> View Archive
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmCurrentTermReturn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-amber-50"><CornerDownLeft size={20} className="text-amber-600" /></div>
+              <h3 className="text-lg font-bold text-gray-900">Return to Current Semester?</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-2">
+              Return from <strong>{viewTerm?.school_year} — {viewTerm?.semester}</strong> to the active semester <strong>{activeTerm?.school_year} — {activeTerm?.semester}</strong>?
+            </p>
+            <p className="text-xs text-gray-500 mb-5">Teacher pages will switch back to current semester data.</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmCurrentTermReturn(false)}
+                data-archive-navigation="true"
+                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setViewTerm(null);
+                  setConfirmCurrentTermReturn(false);
+                }}
+                data-archive-navigation="true"
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-900 rounded-lg shadow-sm bg-amber-300 hover:bg-amber-400 transition-colors cursor-pointer"
+              >
+                <CornerDownLeft size={14} /> Return to Current
               </button>
             </div>
           </div>

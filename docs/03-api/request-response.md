@@ -69,7 +69,7 @@ Reads are unaffected. Requests without the headers (normal, non-archive use) are
 
 ## In-App Notifications
 
-The notification router requires a valid JWT. Feed and read/dismiss operations use only the authenticated account's recipient rows. The notification endpoints are exempt from archived-term write blocking because notification state is account-level, not term data.
+The notification router requires a valid JWT. Feed and read/dismiss operations use only the authenticated account's recipient rows. Feed and read/dismiss operations remain available in archive mode because notification state is account-level; posting a broadcast is blocked while viewing a closed term.
 
 ### Get the current user's feed
 
@@ -95,6 +95,8 @@ Cache-Control: no-store
 
 `items` contains at most the 50 newest notifications not dismissed by this user. `unreadCount` counts all of this user's non-dismissed unread notifications, including items outside that 50-item feed.
 
+The feed remains available while browsing an archived term.
+
 ### Send a broadcast (superadmin only)
 
 ```text
@@ -118,6 +120,8 @@ Body: {
 ```
 
 `title` is 1–160 trimmed characters; `content` is 1–2000 trimmed characters; `urgency` is `Not Urgent` or `Urgent`; `audience` is a non-empty array containing `admin`, `teacher`, or both. Recipients are snapshotted from current accounts when sent. `400` indicates invalid fields or no users in the selected audience; `403` indicates a non-superadmin sender.
+
+Broadcast creation is rejected by the archive write guard while the caller is viewing a closed semester.
 
 ### Mark a notification read
 
@@ -172,7 +176,7 @@ Login lookup errors caused by a dropped connection are detected explicitly, so a
 
 ## List Managed Teachers (Admin)
 
-`GET /api/users` returns an array. For Admin, each managed teacher also includes `teacher_class_count`, the number of unique teacher/section/subject/school-year/semester assignments attributed to that admin. Re-importing the same class does not increase this count.
+`GET /api/users` returns an array. For Admin, each managed teacher also includes `teacher_class_count`, the number of unique teacher/section/subject assignments attributed to that admin for the active semester (or the selected archived semester when viewing an archive). Re-importing the same class does not increase this count.
 
 ```json
 [
@@ -487,6 +491,19 @@ Body: {
 
 `report_type` is `Class Record` or `Grade Summary`; formats are `xlsx` or `pdf`. Class Record terms are `PRELIMS`, `MIDTERMS`, `PRE-FINALS`, or `FINALS`; Grade Summary uses `SEMESTER`. The assignment must belong to the authenticated teacher, and the count must be a non-negative integer no larger than the assigned section roster. The backend derives the actor, section, subject code, school year, and semester from verified account/assignment data. Only those metadata and the count are logged—never student names, IDs, or grades. Export pages call this endpoint only after client-side file generation succeeds.
 
+### Superadmin Audit Log Scope
+
+```text
+GET /api/activity
+Auth: superadmin
+```
+
+Without query parameters, superadmin receives only current-semester audit rows (`archived_at IS NULL`). To browse a closed semester, pass both `school_year` and `semester`; the response includes only rows archived under that term. Open or unknown terms cannot be selected as archives. Other roles keep their existing activity-log scope.
+
+## Superadmin Semester Archives
+
+While browsing a closed semester, the Super Admin Dashboard, administrator list, and department/course lists read from that semester's saved snapshot. Pass both `school_year` and `semester` to `GET /api/users`, `GET /api/departments`, or `GET /api/courses`; the backend returns `404` if that closed term has no snapshot. Normal requests without those query parameters continue to return current records. These archive reads are restricted to superadmin accounts. Snapshots exclude password hashes.
+
 ## Attendance Computed Scores
 
 ```
@@ -581,6 +598,26 @@ Auth: any
   { "id": "uuid", "school_year": "2024-2025", "semester": "2nd Semester", "is_active": false, "is_closed": true }
 ]
 ```
+
+### End Semester and Archive Audit Logs
+
+```text
+POST /api/terms/end
+Auth: superadmin
+Body: {
+  "next_school_year": "2026-2027",
+  "next_semester": "2nd Semester",
+  "superadmin_password": "<current password>"
+}
+
+200: {
+  "closed": { "school_year": "2026-2027", "semester": "1st Semester", "is_closed": true },
+  "next": { "school_year": "2026-2027", "semester": "2nd Semester", "is_active": true },
+  "archived_logs": 123
+}
+```
+
+Closing a semester snapshots Super Admin global records, archives unarchived audit rows, and opens the next term in a single database transaction. Apply `backend/sql/archive_activity_logs.sql` and `backend/sql/archive_superadmin_term_snapshots.sql` before deploying this route.
 
 ## Error Bodies
 

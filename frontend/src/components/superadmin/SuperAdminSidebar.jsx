@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, ShieldCheck, Users, Building2, Settings, X, User, LogOut } from 'lucide-react';
 import clsx from 'clsx';
+import { useSuperAdmin } from '../../contexts/SuperAdminContext';
 
 const navItems = [
   { name: 'Dashboard', path: '/superadmin', icon: LayoutDashboard, exact: true },
@@ -13,6 +14,7 @@ const navItems = [
 
 const SuperAdminSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }) => {
   const location = useLocation();
+  const { archiveRoute } = useSuperAdmin();
   const [userData] = useState(() => {
     const userStr = localStorage.getItem('user');
     if (!userStr) return null;
@@ -23,6 +25,7 @@ const SuperAdminSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleColla
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('superadmin_view_term');
     window.location.href = '/login';
   };
 
@@ -80,7 +83,7 @@ const SuperAdminSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleColla
             return (
               <Link
                 key={item.name}
-                to={item.path}
+                to={archiveRoute(item.path)}
                 onClick={onClose}
                 aria-label={item.name}
                 aria-current={isActive ? 'page' : undefined}

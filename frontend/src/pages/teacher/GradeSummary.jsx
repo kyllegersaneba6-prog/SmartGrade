@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart3, Loader, Summary } from 'lucide-react';
+import { BarChart3, Loader } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTableImport from 'jspdf-autotable';
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
@@ -24,6 +24,7 @@ const autoTable = typeof autoTableImport === 'function' ? autoTableImport : auto
 const SEMESTER_TEMPLATE_PATH = `${import.meta.env.BASE_URL}templates/grade-summary-semester-template.xlsx`;
 const SEMESTER_TEMPLATE_FIRST_ROW = 23;
 const SEMESTER_TEMPLATE_LAST_ROW = 63;
+const SEMESTER_BLACK_SIGNATURE_NAME_STYLE = 23;
 
 const escapeXml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -38,13 +39,18 @@ const imageBytesToDataUrl = (bytes, mimeType) => {
   return `data:${mimeType};base64,${btoa(binary)}`;
 };
 
-const replaceCellValue = (rowXml, cellRef, value) => {
+const replaceCellValue = (rowXml, cellRef, value, styleId) => {
   let replaced = false;
   const nextRow = rowXml.replace(/<c\b[^>]*\/>|<c\b[^>]*>[\s\S]*?<\/c>/g, (cellXml) => {
     if (cellXml.match(/\br="([A-Z]+\d+)"/)?.[1] !== cellRef) return cellXml;
     replaced = true;
-    const attrs = (cellXml.match(/^<c\b([^>]*?)(?:\/>|>)/)?.[1] || '')
+    let attrs = (cellXml.match(/^<c\b([^>]*?)(?:\/>|>)/)?.[1] || '')
       .replace(/\s+t="[^"]*"/, '');
+    if (styleId !== undefined) {
+      attrs = /\bs="[^"]*"/.test(attrs)
+        ? attrs.replace(/\bs="[^"]*"/, `s="${styleId}"`)
+        : `${attrs} s="${styleId}"`;
+    }
     if (typeof value === 'string') {
       return `<c${attrs} t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`;
     }
@@ -55,13 +61,13 @@ const replaceCellValue = (rowXml, cellRef, value) => {
   return nextRow;
 };
 
-const updateWorksheetCell = (sheetXml, cellRef, value) => {
+const updateWorksheetCell = (sheetXml, cellRef, value, styleId) => {
   const targetRow = Number(cellRef.match(/\d+$/)?.[0]);
   let replaced = false;
   const nextSheet = sheetXml.replace(/<row\b[^>]*\br="(\d+)"[^>]*>[\s\S]*?<\/row>/g, (rowXml, rowNumber) => {
     if (Number(rowNumber) !== targetRow) return rowXml;
     replaced = true;
-    return replaceCellValue(rowXml, cellRef, value);
+    return replaceCellValue(rowXml, cellRef, value, styleId);
   });
   if (!replaced) throw new Error(`Missing template row ${targetRow}`);
   return nextSheet;
@@ -110,7 +116,7 @@ const hideEmptySemesterRows = (sheetXml, studentCount, extraRows) => {
 };
 
 const GradeSummary = () => {
-  const { selectedAssignment, currentAssignment, loading: ctxLoading } = useTeacher();
+  const { selectedAssignment, currentAssignment, isArchiveMode, loading: ctxLoading } = useTeacher();
 
   const [students, setStudents] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
@@ -201,16 +207,6 @@ const GradeSummary = () => {
 
   const hasAnyData = Object.values(termData).some(td => td?.components?.some(c => c.is_attendance || c.activities?.length > 0));
 
-  if (!currentAssignment && !ctxLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-        <Summary size={48} className="mb-3 opacity-30" />
-        <p className="text-sm font-medium">No class assignments yet.</p>
-        <p className="text-xs mt-1">Ask an admin to assign you to a class.</p>
-      </div>
-    );
-  }
-
   const getSummaryFiltered = () => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return studentRows;
@@ -240,7 +236,7 @@ const GradeSummary = () => {
     sheetXml = updateWorksheetCell(sheetXml, 'A17', `${currentAssignment.semester || '1st Semester'}, Academic Year ${currentAssignment.school_year || ''}`);
     const signatureNameRow = 70 + extended.extraRows;
     sheetXml = updateWorksheetCell(sheetXml, `A${signatureNameRow}`, currentAssignment.teacher?.full_name?.toUpperCase() || '');
-    sheetXml = updateWorksheetCell(sheetXml, `D${signatureNameRow}`, signatories.programHeadName);
+    sheetXml = updateWorksheetCell(sheetXml, `D${signatureNameRow}`, signatories.programHeadName, SEMESTER_BLACK_SIGNATURE_NAME_STYLE);
     sheetXml = updateWorksheetCell(sheetXml, `D${signatureNameRow + 1}`, signatories.programHeadRole);
     sheetXml = updateWorksheetCell(sheetXml, `I${signatureNameRow}`, signatories.deanName);
     sheetXml = updateWorksheetCell(sheetXml, `I${signatureNameRow + 1}`, signatories.deanRole);
@@ -459,7 +455,7 @@ const GradeSummary = () => {
         description="Review final grades and semester outcomes for your assigned classes."
         actions={hasAnyData && !dataLoading && !ctxLoading && currentAssignment && <ExportButtons onExcel={onExcelClick} onPdf={handleExportPdf} exporting={exporting} error={exportError} />}
       />
-      <AssignmentSelector />
+        <AssignmentSelector isLoading={dataLoading || ctxLoading} />
 
       <div className="mb-2 px-1 flex items-center justify-end">
         <div className="relative">
@@ -472,7 +468,7 @@ const GradeSummary = () => {
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           {searchQuery && (
-            <button onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <button data-archive-navigation={isArchiveMode ? 'true' : undefined} onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           )}
@@ -483,6 +479,17 @@ const GradeSummary = () => {
       <div className="bg-white rounded-xl shadow-sm border border-border card-hover">
         {ctxLoading || dataLoading ? (
           <SkeletonTable cols={8} rows={8} bare />
+        ) : !currentAssignment ? (
+          <table className="w-full text-xs">
+            <tbody>
+              <tr>
+                <td className="px-6 py-10 text-center text-gray-900">
+                  <p className="font-semibold">No class assignments yet.</p>
+                  <p className="mt-1 text-gray-600">Ask an admin to assign you to a class.</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         ) : !hasAnyData ? (
           <div className="py-12 text-center text-gray-500">
             <BarChart3 size={36} className="mx-auto mb-3 opacity-30" />
@@ -585,6 +592,7 @@ const GradeSummary = () => {
             onPageChange={setPage}
             totalItems={searchQuery ? studentRows.filter(r => r.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || r.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : studentRows.length}
             rowsPerPage={TEACHER_TABLE_PAGE_SIZE}
+            isArchiveMode={isArchiveMode}
           />
         )}
       </div>

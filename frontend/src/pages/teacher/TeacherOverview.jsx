@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, GraduationCap, Archive } from 'lucide-react';
+import { BookOpen, GraduationCap } from 'lucide-react';
 import { useTeacher } from '../../contexts/TeacherContext';
 import { SkeletonClassGrid } from '../../components/common/Skeleton';
 import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
@@ -8,7 +8,7 @@ const yearOrder = ['1st', '2nd', '3rd', '4th'];
 const yearLabels = { '1st': '1st Year', '2nd': '2nd Year', '3rd': '3rd Year', '4th': '4th Year' };
 
 const TeacherOverview = () => {
-  const { assignments, loading, activeTerm, setViewTerm, isArchiveMode } = useTeacher();
+  const { assignments, loading, activeTerm, isArchiveMode } = useTeacher();
   const [searchQuery, setSearchQuery] = useState('');
 
   const userStr = localStorage.getItem('user');
@@ -36,11 +36,6 @@ const TeacherOverview = () => {
         eyebrow={isArchiveMode ? 'Archived classes' : 'My classes'}
         title={`Welcome, ${userName}`}
         description="Manage your assigned classes, record grades, and track student performance."
-        actions={isArchiveMode && (
-          <button onClick={() => setViewTerm(null)} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100">
-            <Archive size={14} /> Exit archive
-          </button>
-        )}
       />
 
       <div>
@@ -83,18 +78,19 @@ const TeacherOverview = () => {
             <p className="text-xs mt-1">Try searching with a different subject or section name.</p>
           </div>
         ) : (
-          <div className="grid min-h-[430px] grid-cols-1 overflow-hidden rounded-xl border border-gray-300 bg-white shadow-lg sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 overflow-clip rounded-xl border border-gray-300 bg-white shadow-lg md:grid-cols-2 xl:grid-cols-4">
             {yearOrder.map((year, index) => {
               const items = groupedByYear[year] || [];
               const columnDivider = [
-                'flex min-h-[280px] flex-col px-6 py-6',
-                index < yearOrder.length - 1 ? 'border-b border-gray-200 sm:border-b-0' : '',
-                index % 2 === 0 ? 'sm:border-r sm:border-gray-300' : '',
-                index < yearOrder.length - 1 ? 'xl:border-r xl:border-gray-300' : 'xl:border-r-0',
+                'flex flex-col px-4 pb-5 sm:px-6 sm:pb-6',
+                index < yearOrder.length - 1 ? 'border-b border-gray-200 md:border-b-0' : '',
+                index < 2 ? 'md:border-b md:border-gray-200' : '',
+                index % 2 === 0 ? 'md:border-r md:border-gray-200' : '',
+                index < yearOrder.length - 1 ? 'xl:border-b-0 xl:border-r xl:border-gray-200' : 'xl:border-b-0 xl:border-r-0',
               ].join(' ');
               return (
                 <section key={year} aria-label={yearLabels[year]} className={columnDivider}>
-                  <div className="mb-4 flex items-center justify-between">
+                  <div className="sticky top-0 z-10 -mx-4 mb-4 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2 sm:-mx-6 sm:px-6">
                     <h4 className="text-sm font-bold uppercase tracking-wide text-gray-700">{yearLabels[year]}</h4>
                     <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-md bg-gray-100 px-2 text-sm font-bold text-gray-600">{items.length}</span>
                   </div>

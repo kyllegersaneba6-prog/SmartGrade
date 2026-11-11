@@ -101,29 +101,22 @@ router.post('/end', authorizeRole('superadmin'), async (req, res) => {
     if (fetchError) return sendServerError(res, fetchError);
     if (!active) return res.status(400).json({ message: 'No active term found.' });
 
-    const { error: closeError } = await supabase
-      .from('academic_terms')
-      .update({ is_active: false, is_closed: true })
-      .eq('id', active.id);
-    if (closeError) return sendServerError(res, closeError);
-
-    const { data: nextRow, error: upsertError } = await supabase
-      .from('academic_terms')
-      .upsert(
-        { school_year: nextSy, semester: nextSem, is_active: true, is_closed: false },
-        { onConflict: 'school_year,semester', ignoreDuplicates: false }
-      )
-      .select()
-      .single();
-    if (upsertError) {
-      const dbMessage = `${upsertError.message || ''} ${upsertError.details || ''} ${upsertError.hint || ''}`;
-      if (upsertError.code === '23505' && /one_active/i.test(dbMessage)) {
-        return res.status(400).json({ message: 'Another term is already active. Refresh and try again.' });
+    const { data, error: endError } = await supabase.rpc('end_semester_and_archive_logs', {
+      expected_active_id: active.id,
+      next_school_year: nextSy,
+      next_semester: nextSem,
+    });
+    if (endError) {
+      if (endError.code === '40001') {
+        return res.status(409).json({ message: 'The active term changed. Refresh and try again.' });
       }
-      return sendServerError(res, upsertError);
+      if (endError.code === '22023') {
+        return res.status(400).json({ message: 'Choose a new semester, not the current or a closed semester.' });
+      }
+      return sendServerError(res, endError);
     }
 
-    res.json({ closed: active, next: nextRow });
+    res.json(data);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

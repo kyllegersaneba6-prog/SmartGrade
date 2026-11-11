@@ -73,6 +73,7 @@ const Attendance = () => {
     selectedAssignment,
     currentAssignment,
     isReadOnly,
+    isArchiveMode,
     loading: ctxLoading,
     refreshAssignments,
     gradingTerm: selectedTerm,
@@ -397,16 +398,6 @@ const Attendance = () => {
     return sum;
   };
 
-  if (!currentAssignment && !ctxLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-        <CalendarCheck size={48} className="mb-3 opacity-30" />
-        <p className="text-sm font-medium">No class assignments yet.</p>
-        <p className="text-xs mt-1">Ask an admin to assign you to a class.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <TeacherPageHeading
@@ -415,11 +406,12 @@ const Attendance = () => {
         description="Record and review attendance for your assigned classes."
       />
       <div className="flex flex-wrap items-center gap-3">
-        <AssignmentSelector />
+        <AssignmentSelector isLoading={loading || ctxLoading} />
         <div className="flex h-11 items-center bg-bg-light border border-border rounded-lg p-1 shadow-elevated">
           {TERMS.map((t) => (
               <button
                 key={t}
+                data-archive-navigation={isArchiveMode ? 'true' : undefined}
                 onClick={() => { if (t !== selectedTerm) { setGradingTerm(t); setColumns([]); setAttendanceMap({}); } }}
                 className={`h-full px-3 rounded-md text-xs font-bold transition-all cursor-pointer ${
                   selectedTerm === t
@@ -433,12 +425,6 @@ const Attendance = () => {
           {loading && <Loader size={14} className="animate-spin text-sidebar/40 ml-2" />}
         </div>
       </div>
-      {isReadOnly && (
-        <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-xs font-bold">
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10m9.364-9.364a9 9 0 11-12.728 0 9 9 0 0112.728 0z" /></svg>
-          <span>This term is closed. Viewing only.</span>
-        </div>
-      )}
       <div className="flex items-center gap-4 text-sm font-bold px-4 py-2 border border-gray-50 rounded-xl text-amber-900">
         <span>Attendance Key:</span>
         <span className="px-2 py-0.5 rounded-md bg-green-100 text-green-900 border border-green-200">2 = Present</span>
@@ -455,7 +441,7 @@ const Attendance = () => {
       <div className="mb-2 px-1 flex flex-wrap items-center justify-end gap-3">
         <div className="flex items-center gap-3">
           <div className="relative" ref={datePickerRef}>
-            <button onClick={() => { setAddDateOpen(!addDateOpen); setNewDate(todayStr()); setNewSession('AM'); setNewType('Lecture'); setError(''); }} disabled={isReadOnly} className="flex items-center gap-1.5 px-3 py-2 bg-[#0c1925] text-white border border-transparent rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+            <button onClick={() => { setAddDateOpen(!addDateOpen); setNewDate(todayStr()); setNewSession('AM'); setNewType('Lecture'); setError(''); }} disabled={isReadOnly || !currentAssignment} className="flex items-center gap-1.5 px-3 py-2 bg-[#0c1925] text-white border border-transparent rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
               <Plus size={14} /> Add Date
             </button>
             {addDateOpen && (
@@ -515,7 +501,7 @@ const Attendance = () => {
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             {searchQuery && (
-              <button onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button data-archive-navigation={isArchiveMode ? 'true' : undefined} onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             )}
@@ -526,6 +512,17 @@ const Attendance = () => {
       <div className="bg-white rounded-xl shadow-sm border border-border card-hover">
         {ctxLoading || loading ? (
           <SkeletonTable cols={6} rows={8} bare />
+        ) : !currentAssignment ? (
+          <table className="w-full text-xs">
+            <tbody>
+              <tr>
+                <td className="px-6 py-10 text-center text-gray-900">
+                  <p className="font-semibold">No class assignments yet.</p>
+                  <p className="mt-1 text-gray-600">Ask an admin to assign you to a class.</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         ) : columns.length === 0 ? (
           <div className="py-12 text-center text-gray-500">
             <CalendarCheck size={36} className="mx-auto mb-3 opacity-30" />
@@ -597,7 +594,7 @@ const Attendance = () => {
                     return (
                       <td key={key} className="p-1 border-r border-b border-gray-200 bg-gray-50 relative z-0">
                         <input type="number" step="any" value={2}
-                          className="w-full text-center text-xs font-black text-gray-700 p-1 border border-transparent rounded-lg bg-transparent [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none opacity-40 cursor-default"
+                          className="w-full text-center text-xs font-black text-gray-700 p-1 border border-transparent rounded-lg bg-transparent [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none cursor-default"
                           disabled
                         />
                       </td>
@@ -654,7 +651,7 @@ const Attendance = () => {
                                     }
                                   }}
                                   onKeyDown={(e) => handleKeyDown(e, student.id, key, index, paginatedStudents, columns)}
-                                  className="w-full text-center text-xs font-medium text-sidebar p-1 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                  className={`w-full text-center text-xs font-medium p-1 border border-transparent rounded-lg focus:outline-none focus:ring-1 focus:ring-gold bg-transparent hover:bg-gray-100 focus:bg-white transition-all disabled:cursor-not-allowed ${isReadOnly ? 'text-gray-900 opacity-100' : 'text-sidebar disabled:opacity-40'}`}
                                   disabled={isReadOnly}
                                 />
                               </div>
@@ -679,6 +676,7 @@ const Attendance = () => {
             onPageChange={setPage}
             totalItems={searchQuery ? students.filter(s => s.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : students.length}
             rowsPerPage={TEACHER_TABLE_PAGE_SIZE}
+            isArchiveMode={isArchiveMode}
           />
         )}
       </div>

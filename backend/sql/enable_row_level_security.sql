@@ -20,6 +20,7 @@ alter table public.subjects             enable row level security;
 alter table public.teacher_assignments  enable row level security;
 alter table public.activity_log         enable row level security;
 alter table public.academic_terms       enable row level security;
+alter table public.superadmin_term_snapshots enable row level security;
 alter table public.grading_components   enable row level security;
 alter table public.component_activities enable row level security;
 alter table public.component_scores     enable row level security;

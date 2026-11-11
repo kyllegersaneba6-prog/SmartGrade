@@ -20,38 +20,50 @@ const parseGradingTerm = () => {
 export const TeacherProvider = ({ children }) => {
   const [assignments, setAssignments] = useState([]);
   const [selectedAssignment, setSelectedAssignmentState] = useState(() => localStorage.getItem(LS_KEY) || '');
-  const [loading, setLoading] = useState(true);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(true);
+  const [termsLoading, setTermsLoading] = useState(true);
   const [activeTerm, setActiveTerm] = useState(null);
   const [allTerms, setAllTerms] = useState([]);
   const [viewTerm, setViewTermState] = useState(parseViewTerm);
   const [gradingTerm, setGradingTermState] = useState(parseGradingTerm);
+  const loading = assignmentsLoading || termsLoading;
 
   useEffect(() => {
-    api('/api/terms/active')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => setActiveTerm(d))
-      .catch(() => {});
-    api('/api/terms')
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setAllTerms(d))
-      .catch(() => {});
+    let active = true;
+    const loadTerms = async () => {
+      try {
+        const [activeResponse, termsResponse] = await Promise.all([
+          api('/api/terms/active'),
+          api('/api/terms'),
+        ]);
+        const [activeData, termsData] = await Promise.all([
+          activeResponse.ok ? activeResponse.json() : null,
+          termsResponse.ok ? termsResponse.json() : [],
+        ]);
+        if (active) {
+          setActiveTerm(activeData);
+          setAllTerms(termsData);
+        }
+      } catch {
+        // Keep the empty term state when term data cannot be loaded.
+      } finally {
+        if (active) setTermsLoading(false);
+      }
+    };
+    loadTerms();
+    return () => { active = false; };
   }, []);
 
   const fetchAssignments = useCallback(async () => {
-    setLoading(true);
+    setAssignmentsLoading(true);
     try {
       const res = await api('/api/assignments');
       if (res.ok) {
         const data = await res.json();
         setAssignments(data);
-        const saved = localStorage.getItem(LS_KEY);
-        if (data.length > 0 && !saved) {
-          setSelectedAssignmentState(data[0].id);
-          localStorage.setItem(LS_KEY, data[0].id);
-        }
       }
     } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    finally { setAssignmentsLoading(false); }
   }, []);
 
   useEffect(() => {
@@ -62,19 +74,25 @@ export const TeacherProvider = ({ children }) => {
     ? assignments.filter(a => a.school_year === viewTerm.school_year && a.semester === viewTerm.semester)
     : activeTerm
       ? assignments.filter(a => a.school_year === activeTerm.school_year && a.semester === activeTerm.semester)
-      : assignments;
+      : [];
 
   const currentTerm = viewTerm || activeTerm;
 
+  const matchingAssignment = filteredAssignments.find((assignment) => String(assignment.id) === String(selectedAssignment));
+  const resolvedAssignmentId = matchingAssignment
+    ? String(matchingAssignment.id)
+    : String(filteredAssignments[0]?.id || '');
+
   useEffect(() => {
-    if (filteredAssignments.length > 0) {
-      const exists = filteredAssignments.find(a => String(a.id) === String(selectedAssignment));
-      if (!exists) {
-        setSelectedAssignmentState(filteredAssignments[0].id);
-        localStorage.setItem(LS_KEY, filteredAssignments[0].id);
-      }
+    if (loading) return;
+    if (resolvedAssignmentId) {
+      if (resolvedAssignmentId !== String(selectedAssignment)) setSelectedAssignmentState(resolvedAssignmentId);
+      localStorage.setItem(LS_KEY, resolvedAssignmentId);
+    } else {
+      if (selectedAssignment) setSelectedAssignmentState('');
+      localStorage.removeItem(LS_KEY);
     }
-  }, [filteredAssignments, selectedAssignment]);
+  }, [loading, resolvedAssignmentId, selectedAssignment]);
 
   const setViewTerm = useCallback((term) => {
     setViewTermState(term);
@@ -93,7 +111,7 @@ export const TeacherProvider = ({ children }) => {
     localStorage.setItem(LS_KEY, String(id));
   }, []);
 
-  const currentAssignment = filteredAssignments.find((a) => String(a.id) === String(selectedAssignment)) || null;
+  const currentAssignment = filteredAssignments.find((assignment) => String(assignment.id) === resolvedAssignmentId) || null;
 
   const isReadOnly = currentAssignment && (!activeTerm || activeTerm.school_year !== currentAssignment.school_year || activeTerm.semester !== currentAssignment.semester);
 
@@ -103,7 +121,7 @@ export const TeacherProvider = ({ children }) => {
     <TeacherContext.Provider value={{
       assignments: filteredAssignments,
       loading,
-      selectedAssignment,
+      selectedAssignment: resolvedAssignmentId,
       setSelectedAssignment,
       currentAssignment,
       activeTerm,

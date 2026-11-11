@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-import { ArrowRight, FileText, Cpu, Network, Shield, Users, UserGroup, GraduationCap, BookOpen, ShieldCheck, ShieldUser, Clock, Activity, Bell, DatabaseBackup, CheckCircle, Trash2, Megaphone, Send, AlertTriangle, RefreshCw, User, UserRoundCheck, UserRoundX, Equal } from 'lucide-react';
+import { ArrowRight, FileText, Cpu, Network, Shield, Users, UserGroup, GraduationCap, BookOpen, ShieldCheck, ShieldUser, Clock, Activity, Bell, DatabaseBackup, Download, FilePenLine, Import, CheckCircle, Trash2, Megaphone, Send, AlertTriangle, RefreshCw, User, UserRoundCheck, UserRoundX, Equal, Archive } from 'lucide-react';
 import api from '../../utils/api';
 import { splitUpdateDescription } from '../../utils/auditText';
 import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../components/common/Skeleton';
 import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
+import { useSuperAdmin } from '../../contexts/SuperAdminContext';
 
 const MetricCard = ({ title, value, icon: Icon, color, subtitle }) => (
   <div className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-300 card-hover hover:shadow-md">
@@ -22,6 +23,7 @@ const MetricCard = ({ title, value, icon: Icon, color, subtitle }) => (
 );
 
 const SuperAdminDashboard = () => {
+  const { isArchiveMode, currentTerm, archiveApiUrl } = useSuperAdmin();
   const [staffUsers, setStaffUsers] = useState([]);
   const [activityLog, setActivityLog] = useState([]);
   const [liveDeptNames, setLiveDeptNames] = useState(null);
@@ -38,19 +40,19 @@ const SuperAdminDashboard = () => {
       await Promise.all([
         (async () => {
           try {
-            const res = await api('/api/users');
+            const res = await api(archiveApiUrl('/api/users'));
             if (res.ok) { const data = await res.json(); setStaffUsers(data); }
           } catch (err) { console.error(err); }
         })(),
         (async () => {
           try {
-            const res = await api('/api/activity');
+            const res = await api(archiveApiUrl('/api/activity'));
             if (res.ok) { const data = await res.json(); setActivityLog(data); }
           } catch (err) { console.error(err); }
         })(),
         (async () => {
           try {
-            const res = await api('/api/departments');
+            const res = await api(archiveApiUrl('/api/departments'));
             if (res.ok) {
               const data = await res.json();
               setLiveDeptNames(new Set(data.map((d) => String(d.name || '').trim().toLowerCase())));
@@ -59,7 +61,7 @@ const SuperAdminDashboard = () => {
         })(),
       ]);
     } catch (err) { console.error(err); }
-  }, []);
+  }, [archiveApiUrl]);
 
   useEffect(() => { loadData().finally(() => setInitialLoading(false)); }, [loadData]);
 
@@ -125,7 +127,9 @@ const SuperAdminDashboard = () => {
     <SuperAdminPageHeading
       eyebrow="System overview"
       title="Dashboard"
-      description="Monitor registered users, department distribution, system activities, and broadcast announcements."
+      description={isArchiveMode
+        ? `Read-only overview for ${currentTerm?.school_year} — ${currentTerm?.semester}.`
+        : 'Monitor registered users, department distribution, system activities, and broadcast announcements.'}
     />
 
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
@@ -156,7 +160,6 @@ const SuperAdminDashboard = () => {
               <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Department User Overview</h2>
               <p className="text-[10px] text-gray-900 uppercase tracking-widest mt-0.5">Users per category by department</p>
             </div>
-            <span className="text-xs font-bold px-3 py-1 rounded-md text-white" style={{ background: '#0c1925' }}>{totalAccounts} TOTAL</span>
           </div>
           {departments.length === 0 ? (
             <p className="text-sm text-gray-500 italic py-6 text-center">No users registered yet.</p>
@@ -216,9 +219,12 @@ const SuperAdminDashboard = () => {
                 const isUpdate = log.action.toLowerCase().includes('updated');
                 const isNotificationBroadcast = log.action.toLowerCase() === 'notification broadcasted';
                 const isBackupAction = ['backup exported', 'backup imported', 'backup restored'].includes(log.action.toLowerCase());
-                const Icon = isBackupAction ? DatabaseBackup : isNotificationBroadcast ? Bell : isCreate ? CheckCircle : isDelete ? Trash2 : isFailed ? UserRoundX : isSuccess ? UserRoundCheck : isUpdate ? RefreshCw : Activity;
+                const isTeacherExport = /^teacher (class record|grade summary) exported$/i.test(log.action);
+                const isTeacherClassListImport = /^teacher class list imported$/i.test(log.action);
+                const isExportSignatoriesUpdate = log.action.toLowerCase() === 'export signatories updated';
+                const Icon = isBackupAction ? DatabaseBackup : isNotificationBroadcast ? Bell : isTeacherClassListImport ? Import : isTeacherExport ? Download : isExportSignatoriesUpdate ? FilePenLine : isCreate ? CheckCircle : isDelete ? Trash2 : isFailed ? UserRoundX : isSuccess ? UserRoundCheck : isUpdate ? RefreshCw : Activity;
                 const iconColor = isSuccess || isFailed ? '#000000' : isCreate ? '#22c55e' : isDelete ? '#ef4444' : isUpdate ? '#142a3f' : '#142a3f';
-                const bg = isSuccess || isFailed ? '#f3f4f6' : isCreate ? '#f0fdf4' : isDelete ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
+                const bg = isSuccess || isFailed || isTeacherExport || isTeacherClassListImport ? '#f3f4f6' : isCreate ? '#f0fdf4' : isDelete ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
                 const timeAgo = (() => {
                   const diff = Date.now() - new Date(log.created_at).getTime();
                   const mins = Math.floor(diff / 60000);
@@ -267,6 +273,14 @@ const SuperAdminDashboard = () => {
 
       <div className="flex flex-col gap-5">
         <div className="h-full rounded-xl border border-gray-100 bg-white p-5 shadow-sm card-hover">
+          {isArchiveMode ? (
+            <div className="flex h-full flex-col items-center justify-center py-10 text-center">
+              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-700"><Archive size={20} /></div>
+              <h2 className="text-sm font-bold text-gray-900">Archived View</h2>
+              <p className="mt-1 max-w-xs text-xs text-gray-600">Broadcast notifications are unavailable while viewing a past semester.</p>
+            </div>
+          ) : (
+          <>
           <div className="flex items-center gap-2 mb-4"><span className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50"><Megaphone size={16} className="text-sidebar" /></span><h2 className="text-sm font-bold" style={{ color: '#0c1925' }}>Broadcast Notification</h2></div>
           <p className="text-[11px] mb-5 text-slate-500">Send an update or alert to Users (Teachers, Admins).</p>
           <form onSubmit={handlePostNotification} className="flex flex-col gap-4">
@@ -300,6 +314,8 @@ const SuperAdminDashboard = () => {
             {notifError && <div role="alert" className="mt-2 rounded-lg border border-red-100 bg-red-50 p-2 text-xs font-medium text-red-700">{notifError}</div>}
             {notifSuccess && <div role="status" className="mt-2 flex items-center gap-2 rounded-lg border border-green-100 bg-green-50 p-2 text-xs font-medium text-green-700"><CheckCircle size={14} /> {notifSuccess}</div>}
           </form>
+          </>
+          )}
         </div>
       </div>
       </>

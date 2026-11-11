@@ -76,7 +76,7 @@ Defined in `frontend/src/App.jsx`:
 /teacher/attendance               → Attendance
 /teacher/class-record             → ClassRecord
 /teacher/my-class-list            → MyClassList
-/teacher/analytics                → BehavioralAnalytics
+/teacher/analytics                → DescriptiveAnalytics
 /teacher/grade-summary            → GradeSummary
 /teacher/settings                 → TeacherSettings
 ```

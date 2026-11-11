@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import TeacherOverview from './pages/teacher/TeacherOverview';
 import ClassRecord from './pages/teacher/ClassRecord';
 import Attendance from './pages/teacher/Attendance';
-import BehavioralAnalytics from './pages/teacher/BehavioralAnalytics';
+import DescriptiveAnalytics from './pages/teacher/DescriptiveAnalytics';
 import GradeSummary from './pages/teacher/GradeSummary';
 import TeacherSettings from './pages/teacher/TeacherSettings';
 import MyClassList from './pages/teacher/MyClassList';
@@ -125,7 +125,7 @@ function App() {
           <Route path="class-record" element={<ClassRecord />} />
           <Route path="my-class-list" element={<MyClassList />} />
           <Route path="attendance" element={<Attendance />} />
-          <Route path="analytics" element={<BehavioralAnalytics />} />
+          <Route path="analytics" element={<DescriptiveAnalytics />} />
           <Route path="grade-summary" element={<GradeSummary />} />
           <Route path="settings" element={<TeacherSettings />} />
         </Route>

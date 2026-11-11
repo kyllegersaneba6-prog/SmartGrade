@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Settings, X, Plus, ChevronDown, Check, CalendarDays } from 'lucide-react';
+import { Settings, X, Plus, ChevronDown, Check, CalendarDays, Archive, CornerDownLeft } from 'lucide-react';
 import api from '../../utils/api';
 import { SkeletonSettingsCard } from '../../components/common/Skeleton';
 import BackupRestore from '../../components/superadmin/BackupRestore';
 import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
+import { useSuperAdmin } from '../../contexts/SuperAdminContext';
 
 // Academic year starts in August: e.g. June 2026 → 2025-2026, Sept 2026 → 2026-2027.
 const getCurrentStartYear = () => {
@@ -12,8 +13,11 @@ const getCurrentStartYear = () => {
 };
 
 const SuperAdminSettings = () => {
+  const { isArchiveMode, currentTerm: viewedTerm, setViewTerm, clearArchive } = useSuperAdmin();
   const [activeTerm, setActiveTerm] = useState(null);
   const [allTerms, setAllTerms] = useState([]);
+  const [confirmArchiveTerm, setConfirmArchiveTerm] = useState(null);
+  const [confirmCurrentTermReturn, setConfirmCurrentTermReturn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [noActiveTerm, setNoActiveTerm] = useState(false);
   const [endSemesterOpen, setEndSemesterOpen] = useState(false);
@@ -91,6 +95,7 @@ const SuperAdminSettings = () => {
   }, [loadData]);
 
   const endSemester = async () => {
+    if (isArchiveMode) return;
     setEndingSemester(true);
     setEndSemesterError('');
     try {
@@ -112,6 +117,7 @@ const SuperAdminSettings = () => {
         setEndSemesterOpen(false);
         setConfirmEndText('');
         setSuperadminPassword('');
+        window.dispatchEvent(new CustomEvent('app:reload'));
       } else {
         const data = await res.json();
         setEndSemesterError(data.message || 'Failed to end semester');
@@ -126,6 +132,7 @@ const SuperAdminSettings = () => {
   };
 
   const createTerm = async () => {
+    if (isArchiveMode) return;
     setCreatingTerm(true);
     setCreateTermError('');
     try {
@@ -147,6 +154,7 @@ const SuperAdminSettings = () => {
         const nextSem = idx < order.length - 1 ? order[idx + 1] : '1st Semester';
         setNextSchoolYear(nextSy);
         setNextSemester(nextSem);
+        window.dispatchEvent(new CustomEvent('app:reload'));
       } else {
         const data = await res.json();
         setCreateTermError(data.message || 'Failed to create term');
@@ -171,13 +179,21 @@ const SuperAdminSettings = () => {
       <SuperAdminPageHeading
         eyebrow="Preferences"
         title="Settings"
-        description="Manage academic terms and system backups."
+        description={isArchiveMode
+          ? `Read-only settings view for ${viewedTerm?.school_year} — ${viewedTerm?.semester}.`
+          : 'Manage academic terms and system backups.'}
       />
 
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-50 card-hover">
         <h2 className="text-sm font-bold text-gray-900 mb-4">Academic Term Management</h2>
 
-        {noActiveTerm ? (
+        {isArchiveMode && viewedTerm ? (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-300 p-5">
+            <span className="inline-flex rounded-md bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">Archived Term · Read Only</span>
+            <p className="mt-2 text-lg font-extrabold text-gray-900">{viewedTerm.school_year} — {viewedTerm.semester}</p>
+            <p className="mt-1 text-xs text-gray-700">Term-management and backup actions are disabled while browsing a past semester.</p>
+          </div>
+        ) : noActiveTerm ? (
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 text-center">
             <p className="text-sm font-semibold text-gray-500 mb-1">No active term</p>
             <p className="text-xs text-gray-500 mb-4">Create the first academic term to get started.</p>
@@ -212,32 +228,135 @@ const SuperAdminSettings = () => {
         {allTerms.length > 0 && (
           <div>
             <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">Term History</h3>
-            <div className="space-y-2">
-              {allTerms.map(t => (
-                <div key={t.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border ${
-                  t.is_active ? 'bg-amber-300 border-amber-200' : 'bg-gray-50 border-gray-200'
-                }`}>
-                  <div className="flex items-center gap-3">
-                    {t.is_active && <span className="w-2 h-2 rounded-full bg-amber-500" />}
-                    <span className={`text-sm font-semibold ${t.is_active ? 'text-gray-900' : 'text-gray-500'}`}>
-                      {t.school_year} — {t.semester}
-                    </span>
+            <p className="text-[10px] text-gray-500 mb-3">Select a closed term to view its archived data across Super Admin pages; select the active term to return to current.</p>
+            <div className="scrollbar-hidden max-h-[108px] space-y-2 overflow-y-auto pr-1">
+              {allTerms.map((t) => {
+                const isViewingThisTerm = Boolean(isArchiveMode && viewedTerm?.school_year === t.school_year && viewedTerm?.semester === t.semester);
+                const isSelectedTerm = isViewingThisTerm || Boolean(t.is_active && !isArchiveMode);
+                const canBrowse = Boolean(t.is_closed) && !isViewingThisTerm;
+                const canReturnToCurrent = Boolean(t.is_active && isArchiveMode);
+                const interactive = canBrowse || canReturnToCurrent;
+                return (
+                  <div
+                    key={t.id}
+                    role={interactive ? 'button' : undefined}
+                    tabIndex={interactive ? 0 : undefined}
+                    onClick={canBrowse ? () => setConfirmArchiveTerm(t) : canReturnToCurrent ? () => setConfirmCurrentTermReturn(true) : undefined}
+                    onKeyDown={interactive ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        if (canBrowse) setConfirmArchiveTerm(t);
+                        else setConfirmCurrentTermReturn(true);
+                      }
+                    } : undefined}
+                    className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-150 ${
+                      isSelectedTerm ? 'bg-amber-300 border-amber-200' : 'bg-gray-150 border-gray-200'
+                    } ${interactive ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400' : ''} ${interactive && !isSelectedTerm ? 'hover:!bg-gray-300 hover:scale-[1.01]' : ''}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {t.is_active && <span className="h-[10px] w-[10px] rounded-full border border-black bg-green-500" />}
+                      {t.is_closed && (
+                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${
+                          isViewingThisTerm ? 'bg-amber-300 text-amber-700' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          <Archive size={12} />
+                        </span>
+                      )}
+                      <span className={`text-sm font-semibold ${isSelectedTerm ? 'text-gray-900' : 'text-gray-700'}`}>
+                        {t.school_year} — {t.semester}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {canBrowse && <span className="text-[10px] font-semibold text-gray-500">View term archive</span>}
+                      {isViewingThisTerm && <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700">Viewing</span>}
+                      {t.is_active && isArchiveMode && <span className="text-[10px] font-semibold text-gray-500">Return to current</span>}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                        t.is_active ? 'bg-amber-100 text-amber-700' : t.is_closed ? 'bg-gray-200 text-gray-500' : 'bg-green-100 text-green-700'
+                      }`}>
+                        {t.is_active ? 'Active' : t.is_closed ? 'Closed' : 'Open'}
+                      </span>
+                    </div>
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                    t.is_active ? 'bg-amber-100 text-amber-700' : t.is_closed ? 'bg-gray-200 text-gray-500' : 'bg-green-100 text-green-700'
-                  }`}>
-                    {t.is_active ? 'Active' : t.is_closed ? 'Closed' : 'Open'}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
       </div>
 
-      <BackupRestore />
+      {!isArchiveMode && <BackupRestore />}
 
-      {endSemesterOpen && (
+      {confirmArchiveTerm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-amber-50"><Archive size={20} className="text-amber-600" /></div>
+              <h3 className="text-lg font-bold text-gray-900">Browse Archived Term</h3>
+            </div>
+            <p className="text-sm text-gray-700 mb-2">
+              View all available Super Admin data for <strong>{confirmArchiveTerm.school_year} — {confirmArchiveTerm.semester}</strong>?
+            </p>
+            <p className="text-xs text-gray-500 mb-5">
+              Archived pages are read-only. The closed semester’s saved snapshot will be used across Super Admin pages.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmArchiveTerm(null)}
+                data-archive-navigation="true"
+                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setViewTerm(confirmArchiveTerm);
+                  setConfirmArchiveTerm(null);
+                }}
+                data-archive-navigation="true"
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-900 rounded-lg shadow-sm bg-amber-300 transition-colors hover:bg-amber-400"
+              >
+                <Archive size={14} /> View Archive
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmCurrentTermReturn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-amber-50"><CornerDownLeft size={20} className="text-amber-600" /></div>
+              <h3 className="text-lg font-bold text-gray-900">Return to Current Semester?</h3>
+            </div>
+            <p className="text-sm text-gray-700 mb-2">
+              Return from <strong>{viewedTerm?.school_year} — {viewedTerm?.semester}</strong> to the active semester <strong>{activeTerm?.school_year} — {activeTerm?.semester}</strong>?
+            </p>
+            <p className="text-xs text-gray-500 mb-5">Super Admin pages will switch back to current semester data.</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmCurrentTermReturn(false)}
+                data-archive-navigation="true"
+                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  clearArchive();
+                  setConfirmCurrentTermReturn(false);
+                }}
+                data-archive-navigation="true"
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-900 rounded-lg shadow-sm bg-amber-300 transition-colors hover:bg-amber-400"
+              >
+                <CornerDownLeft size={14} /> Return to Current
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!isArchiveMode && endSemesterOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
@@ -299,7 +418,7 @@ const SuperAdminSettings = () => {
         </div>
       )}
 
-      {createTermOpen && (
+      {!isArchiveMode && createTermOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <div className="flex items-center justify-between mb-4">

@@ -2,6 +2,7 @@ const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { sendServerError } = require('../middleware/errors');
+const { loadSuperAdminTermSnapshot } = require('../services/superAdminTermArchive');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -14,6 +15,16 @@ router.use(authenticateToken);
 router.get('/', async (req, res) => {
   try {
     const { department_id } = req.query;
+    if (req.user.role === 'superadmin') {
+      const archive = await loadSuperAdminTermSnapshot(supabase, req);
+      if (archive.error) return sendServerError(res, archive.error);
+      if (archive.requested && archive.status) return res.status(archive.status).json({ message: archive.message });
+      if (archive.requested) {
+        const courses = archive.snapshot.courses || [];
+        return res.json(department_id ? courses.filter((course) => course.department_id === department_id) : courses);
+      }
+    }
+
     let query = supabase
       .from('courses')
       .select('*, departments(name)')

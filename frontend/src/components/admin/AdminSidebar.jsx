@@ -106,11 +106,11 @@ const AdminSidebar = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }
         <div className={clsx('border-t border-white/15 p-3', isCollapsed && 'lg:p-2')}>
           <div className={clsx('flex min-w-0 items-center gap-3 rounded-xl px-2 py-2', isCollapsed && 'lg:flex-col lg:gap-1 lg:px-0')}>
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-300/15 ring-1 ring-amber-200/20">
-              <User size={16} aria-hidden="true" className="text-amber-300" />
+              <User size={17} aria-hidden="true" className="text-amber-300" />
             </div>
             <div className={clsx('min-w-0 flex-1', isCollapsed && 'lg:hidden')}>
-              <p className="break-words whitespace-normal text-xs font-semibold leading-tight text-white">{userData?.full_name || userData?.name || 'User'}</p>
-              <span className="mt-1 inline-block w-fit rounded-md bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300">
+              <p className="break-words whitespace-normal text-[13px] font-semibold leading-tight text-white">{userData?.full_name || userData?.name || 'User'}</p>
+              <span className="mt-1 inline-block w-fit rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300">
                 {userData?.system_role || userData?.role || 'Admin'}
               </span>
             </div>

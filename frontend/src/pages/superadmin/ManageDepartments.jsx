@@ -4,6 +4,7 @@ import { Bolt, Building2, Pencil, Plus, Trash2 } from 'lucide-react';
 import api from '../../utils/api';
 import { SkeletonList } from '../../components/common/Skeleton';
 import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
+import { useSuperAdmin } from '../../contexts/SuperAdminContext';
 
 const getDeptAbbr = (dept) => {
   if (dept.abbr && String(dept.abbr).trim()) return String(dept.abbr).trim();
@@ -11,7 +12,20 @@ const getDeptAbbr = (dept) => {
   return match ? match[1].trim() : '';
 };
 
+const departmentOptions = [
+  { name: 'College of Information and Communication Technology', abbr: 'CICT' },
+  { name: 'College of Arts and Sciences', abbr: 'CAS' },
+  { name: 'College of Education', abbr: 'CED' },
+  { name: 'College of Engineering', abbr: 'COE' },
+  { name: 'College of Business Management and Accountancy', abbr: 'CBMA' },
+  { name: 'College of Hospitality and Tourism Management', abbr: 'CHTM' },
+  { name: 'College of Criminal Justice Education', abbr: 'CCJE' },
+];
+
+const normalizeDeptName = (name) => String(name || '').trim().replace(/\s*\([^)]+\)\s*$/, '').toLowerCase();
+
 const ManageDepartments = () => {
+  const { isArchiveMode, currentTerm, archiveApiUrl } = useSuperAdmin();
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -20,6 +34,10 @@ const ManageDepartments = () => {
   const [deptName, setDeptName] = useState('');
   const [deptAbbreviation, setDeptAbbreviation] = useState('');
   const [addDeptLoading, setAddDeptLoading] = useState(false);
+  const isDepartmentCreated = (option) => departments.some((dept) => (
+    normalizeDeptName(dept.name) === option.name.toLowerCase()
+    || getDeptAbbr(dept).toLowerCase() === option.abbr.toLowerCase()
+  ));
 
   const [editDept, setEditDept] = useState(null);
   const [editDeptName, setEditDeptName] = useState('');
@@ -60,16 +78,16 @@ const ManageDepartments = () => {
 
   const fetchDepartments = useCallback(async () => {
     try {
-      const response = await api('/api/departments');
+      const response = await api(archiveApiUrl('/api/departments'));
       if (response.ok) setDepartments(await response.json());
     } catch (err) {
       console.error(err);
     }
-  }, []);
+  }, [archiveApiUrl]);
 
   useEffect(() => {
     let cancelled = false;
-    api('/api/departments')
+    api(archiveApiUrl('/api/departments'))
       .then(async (response) => {
         if (!response.ok) return;
         const data = await response.json();
@@ -78,9 +96,10 @@ const ManageDepartments = () => {
       .catch((err) => console.error(err))
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [archiveApiUrl]);
 
   const handleAddDept = async () => {
+    if (isArchiveMode) return;
     const name = deptName.trim();
     const abbreviation = deptAbbreviation.trim();
     if (!name || !abbreviation) return;
@@ -117,7 +136,7 @@ const ManageDepartments = () => {
   };
 
   const handleEditDept = async () => {
-    if (!editDept || !editDeptName.trim() || !editDeptAbbreviation.trim()) return;
+    if (isArchiveMode || !editDept || !editDeptName.trim() || !editDeptAbbreviation.trim()) return;
     const name = editDeptName.trim();
     const abbreviation = editDeptAbbreviation.trim();
     if (departments.some((dept) => dept.id !== editDept.id && dept.name.trim().toLowerCase() === name.toLowerCase())) {
@@ -152,7 +171,7 @@ const ManageDepartments = () => {
   };
 
   const handleDeleteDept = async () => {
-    if (!deleteDept || deleteDeptConfirmText !== 'Confirm') return;
+    if (isArchiveMode || !deleteDept || deleteDeptConfirmText !== 'Confirm') return;
     setDeleteDeptLoading(true);
     setError('');
     try {
@@ -190,17 +209,19 @@ const ManageDepartments = () => {
       <SuperAdminPageHeading
         eyebrow="Organization"
         title="Departments"
-        description="Create and maintain academic departments, then assign each admin to the department they oversee."
+        description={isArchiveMode
+          ? `Read-only department records for ${currentTerm?.school_year} — ${currentTerm?.semester}.`
+          : 'Create and maintain academic departments, then assign each admin to the department they oversee.'}
         actions={(
           <div className="flex items-center gap-3">
             <span className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-bold text-gray-700">{departments.length} departments</span>
-            <button
+            {!isArchiveMode && <button
               type="button"
               onClick={() => { setAddDeptOpen(true); setDeptName(''); setDeptAbbreviation(''); setError(''); }}
               className="inline-flex items-center gap-2 rounded-lg bg-[#0c1925] px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#142a3f]"
             >
               <Plus size={14} /> Add Department
-            </button>
+            </button>}
           </div>
         )}
       />
@@ -227,7 +248,7 @@ const ManageDepartments = () => {
                     {getDeptAbbr(dept) && <span className="mt-1 inline-flex rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-900">{getDeptAbbr(dept)}</span>}
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                {!isArchiveMode && <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={(event) => openMenuId === dept.id ? closeMenu() : openDeptMenu(dept, event)}
@@ -237,14 +258,14 @@ const ManageDepartments = () => {
                     className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 transition-colors hover:bg-gray-50"
                     title="Department actions"
                   ><Bolt size={18} /></button>
-                </div>
+                </div>}
               </article>
             ))}
           </div>
         )}
       </section>
 
-      {openMenuId && menuPos && createPortal(
+      {!isArchiveMode && openMenuId && menuPos && createPortal(
         <>
           <button type="button" aria-label="Close department actions" className="fixed inset-0 z-40 cursor-default" onClick={closeMenu} />
           <div role="menu" className="fixed z-50 w-36 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-xl" style={{ top: menuPos.top, left: menuPos.left }}>
@@ -273,18 +294,38 @@ const ManageDepartments = () => {
         document.body
       )}
 
-      {addDeptOpen && (
+      {!isArchiveMode && addDeptOpen && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
           <section role="dialog" aria-modal="true" aria-labelledby="add-department-title" className="modal-surface w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6">
             <h3 id="add-department-title" className="mb-4 text-lg font-bold text-gray-900">Add Department</h3>
             <div className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Department Name</label>
-                <input type="text" value={deptName} onChange={(event) => { setDeptName(event.target.value.replace(/[^A-Za-z\s]/g, '')); setError(''); }} placeholder="e.g. College of Information Technology" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#142a3f]" />
+                <label htmlFor="add-department-name" className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Department Name</label>
+                <select id="add-department-name" value={deptName} onChange={(event) => {
+                  const selectedDepartment = departmentOptions.find((option) => option.name === event.target.value);
+                  setDeptName(selectedDepartment?.name || '');
+                  setDeptAbbreviation(selectedDepartment?.abbr || '');
+                  setError('');
+                }} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#142a3f]">
+                  <option value="">Select department</option>
+                  {departmentOptions.map((option) => {
+                    const alreadyCreated = isDepartmentCreated(option);
+                    return (
+                      <option
+                        key={option.abbr}
+                        value={option.name}
+                        disabled={alreadyCreated}
+                        className={alreadyCreated ? 'bg-gray-200 font-semibold text-gray-500' : 'text-gray-900'}
+                      >
+                        {option.name}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">Abbreviation</label>
-                <input type="text" value={deptAbbreviation} onChange={(event) => { setDeptAbbreviation(event.target.value.toUpperCase().replace(/[^A-Z]/g, '')); setError(''); }} placeholder="e.g. CIT" maxLength={10} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-[#142a3f]" />
+                <input type="text" value={deptAbbreviation} readOnly placeholder="Select a department first" className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-900 uppercase focus:outline-none" />
               </div>
             </div>
             {error && <p role="alert" className="mt-4 text-sm font-semibold text-red-600">{error}</p>}
@@ -296,7 +337,7 @@ const ManageDepartments = () => {
         </div>
       )}
 
-      {editDept && (
+      {!isArchiveMode && editDept && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
           <section role="dialog" aria-modal="true" aria-labelledby="edit-department-title" className="modal-surface w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6">
             <h3 id="edit-department-title" className="mb-4 text-lg font-bold text-gray-900">Edit Department</h3>
@@ -319,16 +360,16 @@ const ManageDepartments = () => {
         </div>
       )}
 
-      {deleteDept && (
+      {!isArchiveMode && deleteDept && (
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
           <section role="dialog" aria-modal="true" aria-labelledby="delete-department-title" className="modal-surface w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6">
             <h3 id="delete-department-title" className="mb-2 text-lg font-bold text-gray-900">Delete Department</h3>
-            <p className="mb-4 text-sm text-gray-600">Are you sure you want to delete <strong>{deleteDept.name}</strong>? This cannot be undone.</p>
-            <label className="mb-1 block text-xs font-bold text-gray-700">Type <strong>Confirm</strong> to delete</label>
-            <input type="text" value={deleteDeptConfirmText} onChange={(event) => { setDeleteDeptConfirmText(event.target.value); setError(''); }} placeholder="Confirm" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+            <p className="mb-4 text-sm text-gray-900">Are you sure you want to delete <strong>{deleteDept.name}</strong>? This cannot be undone.</p>
+            <label className="mb-1 block text-xs font-bold text-gray-900">Type <strong>Confirm</strong> to delete</label>
+            <input type="text" value={deleteDeptConfirmText} onChange={(event) => { setDeleteDeptConfirmText(event.target.value); setError(''); }} placeholder="Confirm" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500" />
             {error && <p role="alert" className="mt-3 text-sm font-semibold text-red-600">{error}</p>}
             <div className="mt-5 flex justify-end gap-3">
-              <button type="button" onClick={closeDeleteModal} disabled={deleteDeptLoading} className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-200">Cancel</button>
+              <button type="button" onClick={closeDeleteModal} disabled={deleteDeptLoading} className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-200">Cancel</button>
               <button type="button" onClick={handleDeleteDept} disabled={deleteDeptConfirmText !== 'Confirm' || deleteDeptLoading} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-40">{deleteDeptLoading ? 'Deleting...' : 'Delete Department'}</button>
             </div>
           </section>

@@ -21,10 +21,10 @@ const avg = (arr) => arr.length === 0 ? 0 : arr.reduce((s, v) => s + v, 0) / arr
 const scoreOrZero = (value) => value === null || value === undefined || value === '' ? 0 : parseFloat(value);
 
 const TrendChart = ({ data }) => (
-  <div className="mt-4 rounded-xl border border-gray-200 bg-white p-3" role="img" aria-label="Activity scores and linear regression trend line">
-    <p className="mb-2 text-xs font-bold text-gray-700">Activity scores &amp; regression trend</p>
+  <div className="mt-4 rounded-xl border border-gray-200 bg-white p-3" role="img" aria-label="Sub-Comp scores and linear regression trend line">
+    <p className="mb-2 text-xs font-bold text-gray-700">Sub-Comp scores &amp; regression trend</p>
     <div className="mb-1 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-gray-600" aria-hidden="true">
-      <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4 bg-[#0c1925]" /><span className="h-1.5 w-1.5 rounded-full bg-[#0c1925]" />Activity score</span>
+      <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4 bg-[#0c1925]" /><span className="h-1.5 w-1.5 rounded-full bg-[#0c1925]" />Sub-Comp Score</span>
       <span className="inline-flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed border-amber-500" />Regression line</span>
     </div>
     <ResponsiveContainer width="100%" height={230}>
@@ -49,7 +49,7 @@ const TrendChart = ({ data }) => (
         <Line
           type="monotone"
           dataKey="scorePct"
-          name="Activity score"
+          name="Sub-Comp Score"
           stroke="#0c1925"
           strokeWidth={2}
           dot={{ r: 3, fill: '#0c1925' }}
@@ -74,12 +74,13 @@ const formatAiTimestamp = (value) => {
   return Number.isNaN(date.getTime()) ? null : date.toLocaleString();
 };
 
-const BehavioralAnalytics = () => {
+const DescriptiveAnalytics = () => {
   const navigate = useNavigate();
 
   const {
     selectedAssignment,
     currentAssignment,
+    isArchiveMode,
     loading: ctxLoading,
     gradingTerm: selectedTerm,
     setGradingTerm,
@@ -223,6 +224,17 @@ const BehavioralAnalytics = () => {
     return submitted / activities.length;
   };
 
+  const getStudentDetailComponentSubmissionRate = (studentId, comp) => {
+    if (comp.is_attendance) return null;
+    const activities = (comp.activities || []).filter((activity) => !activity.is_attendance);
+    if (activities.length === 0) return null;
+    const submitted = activities.filter((activity) => {
+      const value = scores[activity.id]?.[studentId];
+      return value !== null && value !== undefined && Number(value) !== 0;
+    }).length;
+    return submitted / activities.length;
+  };
+
   const getComponentTrendData = (studentId, comp) => {
     const scored = getComponentActivityScores(studentId, comp)
       .filter(({ activity }) => !activity.is_attendance);
@@ -253,6 +265,13 @@ const BehavioralAnalytics = () => {
     const validComps = components.filter(c => c.is_attendance || c.activities?.length > 0);
     if (validComps.length === 0) return 0;
     return avg(validComps.map(c => getComponentSubmissionRate(studentId, c)));
+  };
+
+  const getStudentDetailOverallSubmissionRate = (studentId) => {
+    const rates = components
+      .map((component) => getStudentDetailComponentSubmissionRate(studentId, component))
+      .filter((rate) => rate !== null);
+    return rates.length > 0 ? avg(rates) : 0;
   };
 
   const getAttendanceRate = (studentId) => {
@@ -302,6 +321,7 @@ const BehavioralAnalytics = () => {
           equiv: getComponentEquiv(s.id, c, scores, attendanceScores),
           weighted: getComponentWeighted(s.id, c, scores, attendanceScores),
           submissionRate: getComponentSubmissionRate(s.id, c),
+          detailSubmissionRate: getStudentDetailComponentSubmissionRate(s.id, c),
           performance: getComponentPerformance(s.id, c),
           trend: trendData.trend,
           trendChartData: trendData.chartData,
@@ -315,6 +335,7 @@ const BehavioralAnalytics = () => {
         components: componentData,
         finalGrade: getFinalGrade(s.id, components, scores, attendanceScores),
         overallSubRate: getOverallSubRate(s.id),
+        detailOverallSubRate: getStudentDetailOverallSubmissionRate(s.id),
         attendanceRate: getAttendanceRate(s.id),
         overallPerformance: getOverallPerformance(s.id),
       };
@@ -420,7 +441,7 @@ const BehavioralAnalytics = () => {
         weight: cd.weight,
         equivalent: Number(cd.equiv?.toFixed?.(2) ?? cd.equiv),
         performance: Number(cd.performance?.toFixed?.(1) ?? cd.performance),
-        submissionRate: cd.submissionRate,
+        submissionRate: cd.detailSubmissionRate,
         trend: cd.trend,
         total: cd.total,
         maxTotal: cd.maxTotal,
@@ -437,7 +458,7 @@ const BehavioralAnalytics = () => {
           final_grade: detailStudent.finalGrade,
           attendance_rate: detailStudent.attendanceRate,
           overall_performance: detailStudent.overallPerformance,
-          subject_rate: detailStudent.overallSubRate,
+          subject_rate: detailStudent.detailOverallSubRate,
         },
         categories,
         meta: { assignment_id: selectedAssignment, term: selectedTerm },
@@ -461,16 +482,6 @@ const BehavioralAnalytics = () => {
     }
   };
 
-  if (!currentAssignment && !ctxLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-        <BarChart3 size={48} className="mb-3 opacity-30" />
-        <p className="text-sm font-medium">No class assignments yet.</p>
-        <p className="text-xs mt-1">Ask an admin to assign you to a class.</p>
-      </div>
-    );
-  }
-
   const hasComponents = components.some(c => c.is_attendance || c.activities?.length > 0);
 
   return (
@@ -481,11 +492,12 @@ const BehavioralAnalytics = () => {
         description="Review class trends in attendance, submissions, and student performance."
       />
       <div className="flex flex-wrap items-center gap-3">
-        <AssignmentSelector />
+        <AssignmentSelector isLoading={dataLoading || ctxLoading} />
         <div className="flex h-11 items-center bg-bg-light border border-border rounded-lg p-1 shadow-elevated">
           {TERMS.map((t) => (
             <button
               key={t}
+              data-archive-navigation={isArchiveMode ? 'true' : undefined}
               onClick={() => changeTerm(t)}
               className={`h-full px-3 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 selectedTerm === t ? 'bg-sidebar text-white shadow-sm' : 'text-text-muted hover:text-sidebar'
@@ -538,7 +550,7 @@ const BehavioralAnalytics = () => {
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           {searchQuery && (
-            <button onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <button data-archive-navigation={isArchiveMode ? 'true' : undefined} onClick={() => { setSearchQuery(''); setPage(1); }} className="rounded-lg absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           )}
@@ -549,6 +561,17 @@ const BehavioralAnalytics = () => {
       <div className="bg-white rounded-xl shadow-sm border border-border card-hover">
         {ctxLoading || dataLoading ? (
           <SkeletonTable cols={7} rows={8} bare />
+        ) : !currentAssignment ? (
+          <table className="w-full text-xs">
+            <tbody>
+              <tr>
+                <td className="px-6 py-10 text-center text-gray-900">
+                  <p className="font-semibold">No class assignments yet.</p>
+                  <p className="mt-1 text-gray-600">Ask an admin to assign you to a class.</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         ) : !hasComponents ? (
           <div className="py-12 text-center text-gray-500">
             <BarChart3 size={36} className="mx-auto mb-3 opacity-30" />
@@ -656,6 +679,7 @@ const BehavioralAnalytics = () => {
             onPageChange={setPage}
             totalItems={searchQuery ? sortedStudents.filter(s => s.student.student_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.student.student_id?.toLowerCase().includes(searchQuery.toLowerCase())).length : sortedStudents.length}
             rowsPerPage={TEACHER_TABLE_PAGE_SIZE}
+            isArchiveMode={isArchiveMode}
           />
         )}
       </div>
@@ -667,7 +691,7 @@ const BehavioralAnalytics = () => {
             <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-100 bg-white">
               <div className="min-w-0">
                 <h3 className="text-xl font-bold text-gray-800 truncate">{detailStudent.student.student_name}</h3>
-                <p className="text-sm text-gray-500 mt-0.5">{detailStudent.student.student_id}</p>
+                <p className="text-sm text-gray-900 mt-0.5">{detailStudent.student.student_id}</p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <span className={`px-3 py-1.5 rounded-md text-base font-extrabold ${detailStudent.finalGrade < 75 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-800'}`}>
@@ -705,7 +729,7 @@ const BehavioralAnalytics = () => {
                     ) : (
                       <Sparkles size={16} className="text-amber-300" />
                     )}
-                    {aiLoading ? 'Analyzing student performance...' : showRetryLabel ? 'Retry AI Summary' : 'Summarize Student'}
+                    {aiLoading ? 'Analyzing student performance...' : showRetryLabel ? 'Retry AI Summary' : 'Summarize'}
                   </button>
                 </div>
 
@@ -792,7 +816,7 @@ const BehavioralAnalytics = () => {
                 <div className={`mt-1 text-2xl font-extrabold ${detailStudent.finalGrade < 75 ? 'text-red-600' : 'text-green-700'}`}>{detailStudent.finalGrade.toFixed(2)}</div>
               </div>
               <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-center">
-                <div className="text-xs font-bold text-gray-900 uppercase tracking-wide">Performance</div>
+                <div className="text-xs font-bold text-gray-900 uppercase tracking-wide">Overall Performance</div>
                 <div className="mt-1 text-2xl font-extrabold text-[#142a3f]">
                   {detailStudent.overallPerformance.toFixed(1)}%
                 </div>
@@ -802,8 +826,8 @@ const BehavioralAnalytics = () => {
                 <div className="mt-1 text-2xl font-extrabold text-[#142a3f]">{(detailStudent.attendanceRate * 100).toFixed(1)}%</div>
               </div>
               <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-center">
-                <div className="text-xs font-bold text-gray-900 uppercase tracking-wide">Submitted</div>
-                <div className="mt-1 text-2xl font-extrabold text-[#142a3f]">{(detailStudent.overallSubRate * 100).toFixed(1)}%</div>
+                <div className="text-xs font-bold text-gray-900 uppercase tracking-wide">Overall Submitted</div>
+                <div className="mt-1 text-2xl font-extrabold text-[#142a3f]">{(detailStudent.detailOverallSubRate * 100).toFixed(1)}%</div>
               </div>
             </div>
 
@@ -834,7 +858,7 @@ const BehavioralAnalytics = () => {
                       </div>
                       <div className="rounded-xl bg-gray-50 px-3 py-2">
                         <div className="text-xs font-semibold text-gray-900 uppercase tracking-wide">Submitted</div>
-                        <div className="mt-0.5 text-base font-bold text-gray-900">{(cd.submissionRate * 100).toFixed(0)}%</div>
+                        <div className="mt-0.5 text-base font-bold text-gray-900">{cd.detailSubmissionRate === null ? '—' : `${(cd.detailSubmissionRate * 100).toFixed(0)}%`}</div>
                       </div>
                     </div>
 
@@ -903,6 +927,6 @@ const BehavioralAnalytics = () => {
   );
 };
 
-export default BehavioralAnalytics;
+export default DescriptiveAnalytics;
 
 

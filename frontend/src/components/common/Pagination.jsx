@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const Pagination = ({ currentPage, totalPages, onPageChange, totalItems, rowsPerPage = 15, itemLabel = 'students' }) => {
+const Pagination = ({ currentPage, totalPages, onPageChange, totalItems, rowsPerPage = 15, itemLabel = 'students', isArchiveMode = false }) => {
   if (totalPages <= 1) return null;
 
   const startItem = (currentPage - 1) * rowsPerPage + 1;
@@ -32,6 +32,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, totalItems, rowsPer
       </span>
       <div className="flex items-center gap-1">
         <button
+          data-archive-navigation={isArchiveMode ? 'true' : undefined}
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
           className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer"
@@ -44,6 +45,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, totalItems, rowsPer
           ) : (
             <button
               key={p}
+              data-archive-navigation={isArchiveMode ? 'true' : undefined}
               onClick={() => onPageChange(p)}
               className={`min-w-[28px] h-7 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                 currentPage === p
@@ -56,6 +58,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange, totalItems, rowsPer
           )
         )}
         <button
+          data-archive-navigation={isArchiveMode ? 'true' : undefined}
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
           className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer"

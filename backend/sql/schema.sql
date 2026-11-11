@@ -84,6 +84,13 @@ CREATE TABLE IF NOT EXISTS public.academic_terms (
   UNIQUE(school_year, semester)
 );
 
+CREATE TABLE IF NOT EXISTS public.superadmin_term_snapshots (
+  term_id UUID PRIMARY KEY REFERENCES public.academic_terms(id) ON DELETE CASCADE,
+  snapshot JSONB NOT NULL,
+  snapshot_source TEXT NOT NULL CHECK (snapshot_source IN ('term_close', 'backfill_current_state')),
+  captured_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- 9. Subjects table
 CREATE TABLE IF NOT EXISTS public.subjects (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -197,6 +204,9 @@ CREATE TABLE IF NOT EXISTS public.activity_log (
   action TEXT NOT NULL,
   details TEXT,
   department TEXT,
+  archived_school_year TEXT,
+  archived_semester TEXT,
+  archived_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

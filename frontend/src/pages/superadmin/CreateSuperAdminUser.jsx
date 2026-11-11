@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, UserPlus, CheckCircle, Copy, Check } from 'lucide-react';
 import api from '../../utils/api';
 import { formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
+import { useSuperAdmin } from '../../contexts/SuperAdminContext';
 
 // Username is generated from last name + ID (lastname.4512@sg) and
 // validated by the backend on creation.
@@ -10,6 +11,7 @@ const previewUsername = (lastName, staffId) => usernameFromLastNameAndId(lastNam
 
 const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
   const navigate = useNavigate();
+  const { isArchiveMode, currentTerm, archiveRoute, archiveApiUrl } = useSuperAdmin();
   const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -43,8 +45,8 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
     const fetchData = async () => {
       try {
         const [deptRes, usersRes] = await Promise.all([
-          api('/api/departments'),
-          api('/api/users'),
+          api(archiveApiUrl('/api/departments')),
+          api(archiveApiUrl('/api/users')),
         ]);
         if (deptRes.ok) setDepartments(await deptRes.json());
         if (usersRes.ok) {
@@ -56,9 +58,10 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
       } catch (err) { console.error(err); }
     };
     fetchData();
-  }, []);
+  }, [archiveApiUrl]);
 
   const handleSubmit = async () => {
+    if (isArchiveMode) return;
     if (!firstName.trim() || !lastName.trim() || !departmentId || !password || !staffId.trim()) {
       setError('All required fields must be filled.');
       return;
@@ -109,13 +112,31 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
   const handleClose = () => {
     if (createdUsername && onSuccess) onSuccess();
     if (onClose) onClose();
-    else navigate('/superadmin/admins');
+    else navigate(archiveRoute('/superadmin/admins'));
   };
 
   const handleCancel = () => {
     if (onClose) onClose();
-    else navigate('/superadmin/admins');
+    else navigate(archiveRoute('/superadmin/admins'));
   };
+
+  if (isArchiveMode) {
+    return (
+      <div className={onClose ? 'fixed inset-0 z-50 flex items-center justify-center modal-backdrop' : 'mx-auto w-full max-w-2xl'}>
+        <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-white p-6 text-center shadow-sm">
+          <h1 className="text-lg font-bold text-gray-900">Archived Admin Records</h1>
+          <p className="mt-2 text-sm text-gray-600">Creating accounts is disabled while viewing {currentTerm?.school_year} — {currentTerm?.semester}.</p>
+          <button
+            type="button"
+            onClick={() => onClose ? onClose() : navigate(archiveRoute('/superadmin/admins'))}
+            className="mt-5 rounded-lg bg-[#142a3f] px-4 py-2 text-sm font-bold text-white"
+          >
+            Return to Admin Management
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (createdUsername) {
     return (

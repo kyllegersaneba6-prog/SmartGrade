@@ -6,6 +6,7 @@ import CreateSuperAdminUser from './CreateSuperAdminUser';
 import api from '../../utils/api';
 import { displayStaffId, usernameFromLastNameAndId } from '../../utils/staffId';
 import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
+import { useSuperAdmin } from '../../contexts/SuperAdminContext';
 
 const formatAccountName = (firstName, lastName, fallback) => {
   const first = String(firstName || '').trim();
@@ -16,10 +17,11 @@ const formatAccountName = (firstName, lastName, fallback) => {
 };
 
 const SuperAdminUsers = () => {
+  const { isArchiveMode, currentTerm, archiveApiUrl } = useSuperAdmin();
   const [usersList, setUsersList] = useState([]);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
-  const [confirmText, setConfirmText] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -63,6 +65,7 @@ const SuperAdminUsers = () => {
   }, [openMenuId]);
 
   const handleAddAdminClick = async () => {
+    if (isArchiveMode) return;
     setCheckingTerm(true);
     try {
       const res = await api('/api/terms/active');
@@ -83,7 +86,7 @@ const SuperAdminUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await api('/api/users');
+      const response = await api(archiveApiUrl('/api/users'));
       if (response.ok) {
         const data = await response.json();
         const dbUsers = data.filter(u => u.system_role === 'admin').map((u) => ({
@@ -107,7 +110,7 @@ const SuperAdminUsers = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await api('/api/departments');
+      const res = await api(archiveApiUrl('/api/departments'));
       if (res.ok) setDepartments(await res.json());
     } catch (err) { console.error(err); }
   };
@@ -116,13 +119,13 @@ const SuperAdminUsers = () => {
     await Promise.all([fetchUsers(), fetchDepartments()]);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [archiveApiUrl]);
 
   useEffect(() => {
     const handler = async () => { await loadData(); window.dispatchEvent(new CustomEvent('app:reload-done')); };
     window.addEventListener('app:reload', handler);
     return () => window.removeEventListener('app:reload', handler);
-  }, []);
+  }, [archiveApiUrl]);
 
   const openEditModal = (u) => {
     setUserToEdit(u);
@@ -152,7 +155,7 @@ const SuperAdminUsers = () => {
   };
 
   const handleEditSave = async () => {
-    if (!userToEdit?.rawId) return;
+    if (isArchiveMode || !userToEdit?.rawId) return;
     setEditLoading(true);
     setEditError('');
     try {
@@ -184,21 +187,25 @@ const SuperAdminUsers = () => {
   };
 
   const confirmDelete = async () => {
-    if (confirmText !== 'Confirm' || !userToDelete) return;
+    if (isArchiveMode || !deletePassword || !userToDelete) return;
     setDeleting(true);
     setDeleteError('');
     try {
-      const response = await api(`/api/users/${userToDelete.rawId}`, { method: 'DELETE' });
+      const response = await api(`/api/users/${userToDelete.rawId}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ password: deletePassword }),
+      });
       if (response.ok) {
         setUsersList(usersList.filter(u => u.rawId !== userToDelete.rawId));
         setDeleteModalOpen(false);
         setUserToDelete(null);
-        setConfirmText('');
+        setDeletePassword('');
       } else {
         const data = await response.json().catch(() => ({}));
         setDeleteError(data.message || data.error || 'Failed to delete admin. Please try again.');
+        setDeletePassword('');
       }
-    } catch (err) { console.error(err); setDeleteError('Network error. Please try again.'); }
+    } catch (err) { console.error(err); setDeleteError('Network error. Please try again.'); setDeletePassword(''); }
     finally { setDeleting(false); }
   };
 
@@ -220,7 +227,9 @@ const SuperAdminUsers = () => {
       <SuperAdminPageHeading
         eyebrow="Accounts"
         title="Admin Management"
-        description="Create, edit, and manage administrator accounts across all departments."
+        description={isArchiveMode
+          ? `Read-only administrator records for ${currentTerm?.school_year} — ${currentTerm?.semester}.`
+          : 'Create, edit, and manage administrator accounts across all departments.'}
         actions={(
           <span className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-[10px] font-bold text-gray-600 sm:text-xs">
             {usersList.length} ADMINS
@@ -232,7 +241,7 @@ const SuperAdminUsers = () => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-sidebar">Admin Accounts</h2>
           <div className="flex gap-2">
-            <button onClick={handleAddAdminClick} disabled={checkingTerm} className="px-3 h-8 rounded-lg border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform disabled:opacity-50" style={{ background: '#0c1925', borderColor: '#142a3f' }}><UserPlus size={14} /> {checkingTerm ? 'Checking…' : 'Add Admin'}</button>
+            {!isArchiveMode && <button onClick={handleAddAdminClick} disabled={checkingTerm} className="px-3 h-8 rounded-lg border flex items-center gap-1.5 text-white text-xs font-bold shadow-sm hover:scale-105 transition-transform disabled:opacity-50" style={{ background: '#0c1925', borderColor: '#142a3f' }}><UserPlus size={14} /> {checkingTerm ? 'Checking…' : 'Add Admin'}</button>}
           </div>
         </div>
 
@@ -246,7 +255,7 @@ const SuperAdminUsers = () => {
             {usersList.length === 0 && (
               <tr>
                 <td colSpan={6} className="py-10 text-center text-xs text-gray-500">
-                  No admins have been added yet. Click <strong>Add Admin</strong> to create the first account.
+                  {isArchiveMode ? 'No admin accounts were recorded for this semester.' : <>No admins have been added yet. Click <strong>Add Admin</strong> to create the first account.</>}
                 </td>
               </tr>
             )}
@@ -258,7 +267,7 @@ const SuperAdminUsers = () => {
                 <td className="px-3 py-3 text-[12px] text-gray-900">{deptDisplay(u.dept)}</td>
                 <td className="px-3 py-3 text-[12px] text-gray-900">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</td>
                 <td className="px-3 py-3 items-center">
-                  <button onClick={(e) => openMenu(u, e)} className="text-gray-900 hover:text-[#0c1925] transition-colors p-1 rounded-lg hover:bg-gray-100" title="Actions"><Bolt size={20} /></button>
+                  {!isArchiveMode && <button onClick={(e) => openMenu(u, e)} className="text-gray-900 hover:text-[#0c1925] transition-colors p-1 rounded-lg hover:bg-gray-100" title="Actions"><Bolt size={20} /></button>}
                 </td>
               </tr>
             ))}
@@ -267,18 +276,18 @@ const SuperAdminUsers = () => {
 
       </div>
 
-      {openMenuId && menuUser && menuPos && createPortal(
+      {!isArchiveMode && openMenuId && menuUser && menuPos && createPortal(
         <>
           <div className="fixed inset-0 z-40" onClick={closeMenu} />
           <div className="fixed z-50 w-40 rounded-xl border border-gray-100 bg-white shadow-xl py-1 overflow-hidden" style={{ top: menuPos.top, left: menuPos.left }}>
             <button onClick={() => { closeMenu(); openEditModal(menuUser); }} className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors"><Pencil size={13} className="text-blue-500" /> Edit</button>
-            <button onClick={() => { closeMenu(); setUserToDelete(menuUser); setConfirmText(''); setDeleteError(''); setDeleteModalOpen(true); }} className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 size={13} className="text-red-500" /> Delete</button>
+            <button onClick={() => { closeMenu(); setUserToDelete(menuUser); setDeletePassword(''); setDeleteError(''); setDeleteModalOpen(true); }} className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 size={13} className="text-red-500" /> Delete</button>
           </div>
         </>,
         document.body
       )}
 
-      {editModalOpen && (
+      {!isArchiveMode && editModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100" style={{ backgroundColor: '#f3f4f6' }}>
             <h3 className="text-lg font-bold text-gray-900 mb-4">Edit Admin</h3>
@@ -315,24 +324,24 @@ const SuperAdminUsers = () => {
         </div>
       )}
 
-      {deleteModalOpen && (
+      {!isArchiveMode && deleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Admin</h3>
             <p className="text-sm text-gray-900 mb-4">Are you sure you want to delete <strong>{formatAccountName(userToDelete?.firstName, userToDelete?.lastName, userToDelete?.name)}</strong>? Existing teacher accounts in this department will be kept — only the admin account is removed. This action cannot be undone.</p>
-            <div className="mb-4"><label className="block text-xs font-bold text-gray-900 mb-1">Type <strong>Confirm</strong> to delete</label>
-              <input type="text" value={confirmText} onChange={(e) => { setConfirmText(e.target.value); setDeleteError(''); }} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Confirm" />
+            <div className="mb-4"><label htmlFor="delete-admin-password" className="block text-xs font-bold text-gray-900 mb-1">Enter your password to confirm deletion</label>
+              <input id="delete-admin-password" type="password" autoComplete="current-password" value={deletePassword} onChange={(e) => { setDeletePassword(e.target.value); setDeleteError(''); }} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Your password" />
             </div>
             {deleteError && <p className="mb-4 text-sm font-semibold text-red-500">{deleteError}</p>}
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setDeleteModalOpen(false); setUserToDelete(null); setConfirmText(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deleting}>Cancel</button>
-              <button onClick={confirmDelete} disabled={confirmText !== 'Confirm' || deleting} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${confirmText === 'Confirm' && !deleting ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deleting ? 'Deleting...' : 'Delete'}</button>
+              <button onClick={() => { setDeleteModalOpen(false); setUserToDelete(null); setDeletePassword(''); setDeleteError(''); }} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200" disabled={deleting}>Cancel</button>
+              <button onClick={confirmDelete} disabled={!deletePassword || deleting} className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${deletePassword && !deleting ? 'bg-red-600 hover:bg-red-700 shadow-md' : 'bg-red-300 cursor-not-allowed'}`}>{deleting ? 'Deleting...' : 'Delete'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {noTermModalOpen && (
+      {!isArchiveMode && noTermModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
           <div className="bg-white rounded-2xl modal-surface p-6 max-w-sm w-full mx-4 border border-gray-100 text-center">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-100 mb-4">
@@ -348,7 +357,7 @@ const SuperAdminUsers = () => {
         </div>
       )}
 
-      {createModalOpen && <CreateSuperAdminUser onClose={() => setCreateModalOpen(false)} onSuccess={() => { setCreateModalOpen(false); fetchUsers(); }} />}
+      {!isArchiveMode && createModalOpen && <CreateSuperAdminUser onClose={() => setCreateModalOpen(false)} onSuccess={() => { setCreateModalOpen(false); fetchUsers(); }} />}
     </div>
   );
 };

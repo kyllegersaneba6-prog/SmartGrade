@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Activity, BookOpen, Clock, CheckCircle, Trash2, RefreshCw, UsersRound, UserRoundCheck, UserRoundX, Filter, Check } from 'lucide-react';
+import { Activity, Download, FilePenLine, Import, Clock, CheckCircle, Trash2, RefreshCw, UsersRound, UserRoundCheck, UserRoundX, Filter, Check } from 'lucide-react';
 import api from '../../utils/api';
 import { splitUpdateDescription, isSentenceDescription } from '../../utils/auditText';
 import { SkeletonMetricCards, SkeletonTable, SkeletonList } from '../../components/common/Skeleton';
@@ -13,6 +13,11 @@ const AdminDashboard = () => {
   const [activityLog, setActivityLog] = useState([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [currentTime] = useState(() => Date.now());
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const fullNameParts = String(currentUser.full_name || '').trim().split(/\s+/).filter(Boolean);
+  const welcomeName = currentUser.first_name?.trim()
+    || (fullNameParts.length > 1 ? fullNameParts.slice(0, -1).join(' ') : fullNameParts[0])
+    || 'Admin';
 
   const loadData = useCallback(async () => {
     try {
@@ -71,16 +76,20 @@ const AdminDashboard = () => {
     (currentActivityPage - 1) * ACTIVITY_PAGE_SIZE,
     currentActivityPage * ACTIVITY_PAGE_SIZE,
   );
-  const totalTeacherClasses = teachers.reduce(
-    (total, teacher) => total + (Number(teacher.teacher_class_count) || 0),
-    0,
-  );
+  const teacherExportLogs = activityLog.filter((log) => (
+    /^Teacher (Class Record|Grade Summary) Exported$/i.test(log.action || '')
+  ));
+  const exportFormats = teacherExportLogs.reduce((counts, log) => {
+    const format = String(log.details || '').match(/\((xlsx|pdf)\)/i)?.[1]?.toLowerCase();
+    if (format) counts[format] += 1;
+    return counts;
+  }, { xlsx: 0, pdf: 0 });
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <AdminPageHeading
         eyebrow="Dashboard"
-        title={`Welcome, ${JSON.parse(localStorage.getItem('user') || '{}')?.full_name || 'Admin'}`}
+        title={`Welcome, ${welcomeName}`}
         description="Manage teacher accounts and monitor activity logs."
       />
 
@@ -102,11 +111,11 @@ const AdminDashboard = () => {
 
         <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Total Teacher Classes</span>
-            <div className="text-3xl font-extrabold text-[#142a3f]">{totalTeacherClasses}</div>
-            <span className="text-[11px] text-gray-900">Unique class assignments</span>
+            <span className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Total Teacher Exports</span>
+            <div className="text-3xl font-extrabold text-[#142a3f]">{teacherExportLogs.length}</div>
+            <span className="text-[11px] text-gray-900">{exportFormats.xlsx} XLSX · {exportFormats.pdf} PDF</span>
           </div>
-          <div className="p-3.5 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#142a3f15', color: '#142a3f' }}><BookOpen size={24} /></div>
+          <div className="p-3.5 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#142a3f15', color: '#142a3f' }}><Download size={24} /></div>
         </div>
 
         <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 card-hover flex items-center justify-between hover:shadow-md transition-all duration-300">
@@ -129,7 +138,7 @@ const AdminDashboard = () => {
           </>
         ) : (
         <>
-        <div className="lg:col-span-4 rounded-xl p-5 shadow-sm border border-gray-200 card-hover bg-white flex flex-col h-[460px]">
+        <div className="lg:col-span-4 rounded-xl p-5 shadow-sm border border-gray-200 card-hover bg-white flex flex-col h-[580px]">
           <h2 className="text-base font-bold mb-4 shrink-0" style={{ color: '#0c1925' }}>Teacher Overview</h2>
           {teachers.length === 0 ? (
             <p className="text-sm text-gray-500 italic py-6 text-center">No teachers registered yet.</p>
@@ -158,7 +167,7 @@ const AdminDashboard = () => {
           {teachers.length > 0 && <p className="text-xs text-gray-400 mt-3 shrink-0">Total: {teachers.length} teachers</p>}
         </div>
 
-        <div className="lg:col-span-8 rounded-xl p-5 shadow-sm border border-gray-200 card-hover bg-white flex flex-col h-[460px]">
+        <div className="lg:col-span-8 rounded-xl p-5 shadow-sm border border-gray-200 card-hover bg-white flex flex-col h-[580px]">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold" style={{ color: '#0c1925' }}>Recent Activities</h2>
             <div className="relative">
@@ -209,15 +218,18 @@ const AdminDashboard = () => {
                 const isFailed = log.action.toLowerCase().includes('failed login');
                 const isSuccess = log.action.toLowerCase().includes('successful login');
                 const isUpdate = log.action.toLowerCase().includes('updated');
+                const isTeacherExport = /^teacher (class record|grade summary) exported$/i.test(log.action);
+                 const isTeacherClassListImport = /^teacher class list imported$/i.test(log.action);
+                const isExportSignatoriesUpdate = log.action.toLowerCase() === 'export signatories updated';
                 // The "You …" rewrite only reads correctly on the legacy
                 // verb-first format — sentence-style descriptions stand alone.
                 const actorText = isOwn && !isSentenceDescription(log.details)
                   ? `You ${String(log.details).charAt(0).toLowerCase() + String(log.details).slice(1)}`
                   : log.details;
                 const split = isUpdate ? splitUpdateDescription(actorText) : null;
-                const Icon = isCreate ? CheckCircle : isDelete ? Trash2 : isFailed ? UserRoundX : isSuccess ? UserRoundCheck : isUpdate ? RefreshCw : Activity;
+                const Icon = isTeacherClassListImport ? Import : isTeacherExport ? Download : isExportSignatoriesUpdate ? FilePenLine : isCreate ? CheckCircle : isDelete ? Trash2 : isFailed ? UserRoundX : isSuccess ? UserRoundCheck : isUpdate ? RefreshCw : Activity;
                 const iconColor = isSuccess || isFailed ? '#000000' : isCreate ? '#22c55e' : isDelete ? '#ef4444' : isUpdate ? '#142a3f' : '#142a3f';
-                const bg = isSuccess || isFailed ? '#f3f4f6' : isCreate ? '#f0fdf4' : isDelete ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
+                const bg = isSuccess || isFailed || isTeacherExport || isTeacherClassListImport ? '#f3f4f6' : isCreate ? '#f0fdf4' : isDelete ? '#fef2f2' : isUpdate ? '#e0f2fe' : '#e0f2fe';
 
                 return (
                   <div key={log.id} className="flex gap-3 p-3 rounded-xl border border-gray-200 card-hover shadow-sm hover:shadow-md transition-all duration-100">
@@ -235,7 +247,7 @@ const AdminDashboard = () => {
                             <span>{split.label} {split.tail}</span>
                           </>
                         ) : (
-                          <span className="block truncate">{actorText}</span>
+                          <span className="block whitespace-normal break-words">{actorText}</span>
                         )}
                       </p>
                     </div>

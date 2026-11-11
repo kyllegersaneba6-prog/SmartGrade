@@ -95,6 +95,28 @@ router.get('/', async (req, res) => {
     if (role === 'admin' && (typeof teacher_id !== 'string' || !teacher_id.trim())) {
       return res.status(403).json({ message: 'A teacher account is required to view class summaries.' });
     }
+
+    let assignmentSchoolYear = school_year;
+    let assignmentSemester = semester;
+    if (role === 'admin' && (!assignmentSchoolYear || !assignmentSemester)) {
+      const viewSchoolYear = req.get('X-View-Term-School-Year');
+      const viewSemester = req.get('X-View-Term-Semester');
+      if (viewSchoolYear && viewSemester) {
+        assignmentSchoolYear = viewSchoolYear;
+        assignmentSemester = viewSemester;
+      } else {
+        const { data: activeTerm, error: activeTermError } = await supabase
+          .from('academic_terms')
+          .select('school_year, semester')
+          .eq('is_active', true)
+          .maybeSingle();
+        if (activeTermError) return sendServerError(res, activeTermError);
+        if (!activeTerm) return res.json([]);
+        assignmentSchoolYear = activeTerm.school_year;
+        assignmentSemester = activeTerm.semester;
+      }
+    }
+
     let query = supabase.from('teacher_assignments');
     if (role === 'admin') {
       query = query.select('id, teacher_id, section_id, school_year, semester, sections(name, year_level, courses(abbreviation))');
@@ -106,8 +128,8 @@ router.get('/', async (req, res) => {
     if (role === 'teacher') query = query.eq('teacher_id', id);
 
     if (subject_id && role !== 'admin') query = query.eq('subject_id', subject_id);
-    if (school_year) query = query.eq('school_year', school_year);
-    if (semester) query = query.eq('semester', semester);
+    if (assignmentSchoolYear) query = query.eq('school_year', assignmentSchoolYear);
+    if (assignmentSemester) query = query.eq('semester', assignmentSemester);
 
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) return sendServerError(res, error);

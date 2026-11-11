@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { sendServerError } = require('../middleware/errors');
@@ -321,7 +322,7 @@ router.post('/:sectionId/students', authorizeRole('teacher'), async (req, res) =
 
 // DELETE /api/sections/:sectionId/students/bulk — delete selected students or the full class list
 router.delete('/:sectionId/students/bulk', authorizeRole('teacher'), async (req, res) => {
-  const { student_ids, delete_section } = req.body || {};
+  const { student_ids, delete_section, password } = req.body || {};
   if (!Array.isArray(student_ids) || (student_ids.length === 0 && delete_section !== true) || student_ids.length > 500
     || student_ids.some((id) => typeof id !== 'string' || !id.trim())) {
     return res.status(400).json({ message: 'Select between 1 and 500 valid student records to delete.' });
@@ -346,6 +347,24 @@ router.delete('/:sectionId/students/bulk', authorizeRole('teacher'), async (req,
     if (activeTermError) return sendServerError(res, activeTermError);
     if (!activeTerm || activeTerm.school_year !== section.school_year || activeTerm.semester !== section.semester) {
       return res.status(403).json({ message: 'This term is closed. No modifications allowed.' });
+    }
+
+    if (delete_section === true) {
+      if (typeof password !== 'string' || password.length === 0) {
+        return res.status(400).json({ message: 'Your password is required to delete the class list.' });
+      }
+      const { data: requester, error: requesterError } = await supabase
+        .from('staff_users')
+        .select('password')
+        .eq('id', req.user.id)
+        .maybeSingle();
+      if (requesterError) return sendServerError(res, requesterError);
+      if (!requester?.password) {
+        return res.status(401).json({ message: 'Your account could not be verified. Please log in again.' });
+      }
+      if (!(await bcrypt.compare(password, requester.password))) {
+        return res.status(400).json({ message: 'Incorrect password.' });
+      }
     }
 
     let selectedStudents = [];

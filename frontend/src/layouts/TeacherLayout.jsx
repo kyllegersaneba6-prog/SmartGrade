@@ -4,13 +4,13 @@ import { TeacherProvider, useTeacher } from '../contexts/TeacherContext';
 import Sidebar from '../components/teacher/TeacherSidebar';
 import NotificationDropdown from '../components/common/NotificationDropdown';
 import { useDeptLabel } from '../utils/deptLabel';
-import { Archive, X, Menu } from 'lucide-react';
+import { Archive, Menu } from 'lucide-react';
 
 const TeacherLayoutInner = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('teacher_sidebar_collapsed') === 'true');
-  const { isArchiveMode, currentTerm, setViewTerm } = useTeacher();
+  const { isArchiveMode, currentTerm } = useTeacher();
   const deptLabel = useDeptLabel();
 
   useEffect(() => {
@@ -53,9 +53,9 @@ const TeacherLayoutInner = () => {
             <div className="min-w-0">
               <h1 className="truncate text-sm font-bold text-sidebar sm:text-base">{getTitle()}</h1>
             </div>
-            <span className="hidden whitespace-nowrap rounded-md border border-[#0c1925] bg-[#0c1925] px-3 py-1 text-[12px] font-bold text-amber-300 sm:inline-flex">{deptLabel}</span>
+            <span className="hidden whitespace-nowrap rounded-md border border-gray-300 bg-gray-100 px-3 py-1 text-[12px] font-bold text-gray-900 sm:inline-flex">{deptLabel}</span>
             {currentTerm && (
-              <span className="hidden whitespace-nowrap rounded-md border border-[#0c1925] bg-[#0c1925] px-2.5 py-1 text-[12px] font-semibold tracking-wide text-amber-300 md:inline-flex">
+              <span className="hidden whitespace-nowrap rounded-md border border-gray-300 bg-gray-100 px-2.5 py-1 text-[12px] font-semibold tracking-wide text-gray-900 md:inline-flex">
                 {currentTerm.school_year} · {currentTerm.semester}
               </span>
             )}
@@ -65,21 +65,15 @@ const TeacherLayoutInner = () => {
           </div>
         </header>
         {isArchiveMode && currentTerm && (
-          <div className="bg-amber-600/90 text-white px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between text-xs font-semibold shadow-sm shrink-0">
+          <div className="bg-amber-300 text-gray-900 px-4 md:px-6 lg:px-8 py-2 flex items-center text-xs font-semibold shadow-sm shrink-0">
             <div className="flex items-center gap-2">
               <Archive size={14} />
               <span>Viewing: <strong>{currentTerm.school_year} — {currentTerm.semester}</strong> — Read Only</span>
             </div>
-            <button
-              onClick={() => setViewTerm(null)}
-              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 transition-colors cursor-pointer"
-            >
-              <X size={12} /> Exit Archive
-            </button>
           </div>
         )}
         <main className="min-h-0 flex-1 overflow-auto bg-gray-50">
-          <div className="p-4 md:p-6 lg:p-8">
+          <div className={`p-4 md:p-6 lg:p-8 ${isArchiveMode ? 'archive-readonly-content' : ''}`}>
             <Outlet />
           </div>
         </main>

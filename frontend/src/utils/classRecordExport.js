@@ -177,7 +177,7 @@ export async function exportClassRecordExcel({ assignment, term, students, compo
   styleCell(2, 0, { ...normalTitle, font: { ...normalTitle.font, sz: 14 } });
   styleCell(3, 0, { font: { name: 'Arial', color: { rgb: BLACK }, sz: 10 }, alignment: centered });
   styleCell(5, 0, { ...normalTitle, font: { ...normalTitle.font, sz: 12 } });
-  styleCell(7, 0, { font: { name: 'Arial', bold: true, color: { rgb: RED }, sz: 16 }, alignment: centered });
+  styleCell(7, 0, { font: { name: 'Arial', bold: true, color: { rgb: BLACK }, sz: 16 }, alignment: centered });
   styleCell(8, 0, { ...normalTitle, font: { ...normalTitle.font, sz: 14 } });
   styleCell(9, 0, { ...normalTitle, font: { ...normalTitle.font, sz: 11 } });
   const headerStyle = { fill: { fgColor: { rgb: BLUE } }, font: { name: 'Arial', bold: true, color: { rgb: 'FFFFFF' }, sz: 11 }, alignment: centered, border: thinBorder };
@@ -201,9 +201,9 @@ export async function exportClassRecordExcel({ assignment, term, students, compo
       styleCell(r, c, { fill: { fgColor: { rgb: r % 2 === 0 ? 'FFFFFF' : 'F7F7F7' } }, font: { name: 'Arial', bold: ['weighted', 'grade'].includes(columns[c]?.kind), color: { rgb: failedGrade ? RED : BLACK }, sz: 9 }, alignment: { horizontal: columns[c]?.kind === 'name' ? 'left' : 'center', vertical: 'center' }, border: thinBorder, numFmt: ['weighted', 'equiv', 'grade'].includes(columns[c]?.kind) ? '0.00' : 'General' });
     }
   }
-  signatureColumns.forEach((c, index) => {
+  signatureColumns.forEach((c) => {
     styleCell(signatureRow, c, { font: { name: 'Arial', sz: 10, color: { rgb: BLACK } } });
-    styleCell(signatureRow + 3, c, { font: { name: 'Arial', bold: true, sz: 11, color: { rgb: index === 1 ? RED : BLACK } } });
+    styleCell(signatureRow + 3, c, { font: { name: 'Arial', bold: true, sz: 11, color: { rgb: BLACK } } });
     styleCell(signatureRow + 4, c, { font: { name: 'Arial', sz: 9, color: { rgb: BLACK } } });
   });
 

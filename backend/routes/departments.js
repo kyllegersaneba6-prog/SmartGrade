@@ -2,6 +2,7 @@ const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { sendServerError } = require('../middleware/errors');
+const { loadSuperAdminTermSnapshot } = require('../services/superAdminTermArchive');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -13,6 +14,13 @@ router.use(authenticateToken);
 // GET /api/departments — list all departments
 router.get('/', async (req, res) => {
   try {
+    if (req.user.role === 'superadmin') {
+      const archive = await loadSuperAdminTermSnapshot(supabase, req);
+      if (archive.error) return sendServerError(res, archive.error);
+      if (archive.requested && archive.status) return res.status(archive.status).json({ message: archive.message });
+      if (archive.requested) return res.json(archive.snapshot.departments || []);
+    }
+
     const { data, error } = await supabase
       .from('departments')
       .select('*')
@@ -113,14 +121,6 @@ router.patch('/:id', authorizeRole('superadmin'), async (req, res) => {
 // DELETE /api/departments/:id — delete department (superadmin only)
 router.delete('/:id', authorizeRole('superadmin'), async (req, res) => {
   try {
-    const { data: courses } = await supabase
-      .from('courses')
-      .select('id')
-      .eq('department_id', req.params.id)
-      .limit(1);
-    if (courses && courses.length > 0) {
-      return res.status(400).json({ message: 'Cannot delete department with existing courses. Remove courses first.' });
-    }
     const { data: dept } = await supabase
       .from('departments')
       .select('id, name, abbr')
@@ -129,14 +129,20 @@ router.delete('/:id', authorizeRole('superadmin'), async (req, res) => {
     if (!dept) {
       return res.status(404).json({ message: 'Department not found.' });
     }
-    // Users carry the department as a plain name snapshot (no FK), so without
-    // this the deleted name would linger as a ghost row in Department User
-    // Overview. Move affected users to Unassigned instead.
-    const { error: clearError } = await supabase
+
+    const { data: assignedAccounts, error: accountsError } = await supabase
       .from('staff_users')
-      .update({ department: null })
-      .eq('department', dept.name);
-    if (clearError) return sendServerError(res, clearError);
+      .select('id')
+      .eq('department', dept.name)
+      .in('system_role', ['admin', 'teacher'])
+      .limit(1);
+    if (accountsError) return sendServerError(res, accountsError);
+    if (assignedAccounts?.length > 0) {
+      return res.status(400).json({
+        message: 'Cannot delete this department while Admin or Teacher accounts are assigned to it. Remove or reassign those accounts first.',
+      });
+    }
+
     const abbrSuffix = dept.abbr ? ` (${dept.abbr})` : '';
     const { error } = await supabase
       .from('departments')

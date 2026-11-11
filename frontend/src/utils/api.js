@@ -14,11 +14,14 @@ const getToken = () => localStorage.getItem('token');
 const getViewTerm = () => {
   try {
     const user = JSON.parse(localStorage.getItem('user') || 'null');
-    const key = user?.role === 'teacher'
+    const role = user?.role || user?.system_role;
+    const key = role === 'teacher'
       ? 'teacher_view_term'
-      : user?.role === 'admin'
+      : role === 'admin'
         ? 'admin_view_term'
-        : null;
+        : role === 'superadmin'
+          ? 'superadmin_view_term'
+          : null;
     return key ? JSON.parse(localStorage.getItem(key)) : null;
   } catch {
     return null;
@@ -32,6 +35,7 @@ const handle401 = () => {
   localStorage.removeItem('user');
   localStorage.removeItem('admin_view_term');
   localStorage.removeItem('teacher_view_term');
+  localStorage.removeItem('superadmin_view_term');
   if (window.location.pathname !== '/login') {
     window.location.href = '/login';
   }

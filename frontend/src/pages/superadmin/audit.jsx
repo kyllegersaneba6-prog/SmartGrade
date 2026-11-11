@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Filter, Search, Download, Share2, FileText, Table2, BookOpen, ChevronLeft, ChevronRight, Info, Check, AlertTriangle, Activity, History } from 'lucide-react';
 import api from '../../utils/api';
 import { splitUpdateDescription } from '../../utils/auditText';
 import { SkeletonTable } from '../../components/common/Skeleton';
 import Pagination from '../../components/common/Pagination';
 import SuperAdminPageHeading from '../../components/superadmin/SuperAdminPageHeading';
+import { useSuperAdmin } from '../../contexts/SuperAdminContext';
 
 const LOGS_PER_PAGE = 50;
 
@@ -15,6 +16,7 @@ const outputFormats = [
 ];
 
 const Audit = () => {
+  const { isArchiveMode, currentTerm, activeTerm, archiveApiUrl } = useSuperAdmin();
   const [page, setPage] = useState(1);
   const auditSectionRef = useRef(null);
   const scrollAnimationFrameRef = useRef(null);
@@ -24,6 +26,14 @@ const Audit = () => {
   const [actionFilter, setActionFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
+
+  const activityUrl = archiveApiUrl('/api/activity');
+  const isArchiveView = isArchiveMode;
+  const selectedArchive = isArchiveMode ? currentTerm : null;
+
+  useEffect(() => {
+    setPage(1);
+  }, [isArchiveMode, currentTerm?.school_year, currentTerm?.semester]);
 
   const ACTION_FILTERS = [
     { value: 'ALL', label: 'ALL ACTIVITIES' },
@@ -40,12 +50,12 @@ const Audit = () => {
 
 
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [activityRes, usersRes] = await Promise.all([
-        api('/api/activity'),
-        api('/api/users')
+        api(activityUrl),
+        api(archiveApiUrl('/api/users')),
       ]);
       const activityData = activityRes.ok ? await activityRes.json() : [];
       const usersData = usersRes.ok ? await usersRes.json() : [];
@@ -56,15 +66,15 @@ const Audit = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activityUrl, archiveApiUrl]);
 
   // Silent background refresh — updates the trail when new logs exist
   // without flashing the skeleton or resetting pagination.
-  const refreshQuiet = async () => {
+  const refreshQuiet = useCallback(async () => {
     try {
       const [activityRes, usersRes] = await Promise.all([
-        api('/api/activity'),
-        api('/api/users')
+        api(activityUrl),
+        api(archiveApiUrl('/api/users')),
       ]);
       if (activityRes.ok) {
         const activityData = await activityRes.json();
@@ -78,7 +88,7 @@ const Audit = () => {
     } catch (err) {
       console.error("Failed to refresh audit data", err);
     }
-  };
+  }, [activityUrl, archiveApiUrl]);
 
   useEffect(() => {
     fetchData();
@@ -94,7 +104,7 @@ const Audit = () => {
       window.removeEventListener('app:reload', handler);
       if (scrollAnimationFrameRef.current !== null) cancelAnimationFrame(scrollAnimationFrameRef.current);
     };
-  }, []);
+  }, [fetchData, refreshQuiet]);
 
   const getRoleInfo = (userName) => {
     const normalizedUserName = String(userName || '').trim().toLowerCase();
@@ -148,9 +158,9 @@ const Audit = () => {
   }, { xlsx: 0, pdf: 0 });
 
   const metrics = [
-    { label: 'CRITICAL ALERTS', value: criticalCount.toString(), icon: AlertTriangle, tooltip: 'High-risk system activities requiring immediate administrator attention.' },
-    { label: 'TOTAL LOGGED EVENTS', value: totalEvents.toLocaleString(), icon: Activity, tooltip: 'Total events recorded in the institutional audit trail.' },
-    { label: 'TEACHER DATA EXPORTS', value: teacherExportLogs.length.toLocaleString(), detail: `${exportFormats.xlsx} XLSX · ${exportFormats.pdf} PDF`, icon: Download, tooltip: 'Class Record and Grade Summary exports recorded in the audit trail. The count is independent of the current search and filter.' },
+    { label: 'CRITICAL ALERTS', value: criticalCount.toString(), icon: AlertTriangle, tooltip: 'High-risk system activities in the selected semester.' },
+    { label: 'TOTAL LOGGED EVENTS', value: totalEvents.toLocaleString(), icon: Activity, tooltip: 'Audit events recorded in the selected semester.' },
+    { label: 'TOTAL TEACHER EXPORTS', value: teacherExportLogs.length.toLocaleString(), detail: `${exportFormats.xlsx} XLSX · ${exportFormats.pdf} PDF`, icon: Download, tooltip: 'Class Record and Grade Summary exports in the selected semester. The count is independent of the current search and action filter.' },
   ];
 
   const matchesActionFilter = (row) => {
@@ -213,7 +223,11 @@ const Audit = () => {
       <SuperAdminPageHeading
         eyebrow="Security"
         title="Audit Logs"
-        description="Review critical alerts and trace every system access in the institutional audit trail."
+        description={selectedArchive
+          ? `Review archived audit activity for ${selectedArchive.school_year} — ${selectedArchive.semester}.`
+          : activeTerm
+            ? `Review audit activity for the current semester, ${activeTerm.school_year} — ${activeTerm.semester}.`
+            : 'Review audit activity for the current semester.'}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -285,7 +299,7 @@ const Audit = () => {
               <tbody>
                 {loading ? (
                   <tr><td colSpan="5" className="py-4"><div aria-busy="true"><SkeletonTable cols={5} rows={6} /></div></td></tr>
-                ) : filteredRows.length === 0 ? (<tr><td colSpan="5" className="py-8 text-center text-gray-500">{normalizedSearchQuery ? 'No logs match your search.' : actionFilter !== 'ALL' ? 'No activity matches this filter.' : 'No activity recorded yet.'}</td></tr>
+                ) : filteredRows.length === 0 ? (<tr><td colSpan="5" className="py-8 text-center text-gray-500">{normalizedSearchQuery ? 'No logs match your search.' : actionFilter !== 'ALL' ? 'No activity matches this filter.' : isArchiveView ? 'No audit activity is archived for this semester.' : 'No activity recorded for this semester yet.'}</td></tr>
                 ) : paginatedRows.map((row, i) => (
                   <tr key={row.id || i} className="border-b border-gray-100 transition-colors last:border-0 hover:bg-gray-50">
                     <td className="whitespace-pre px-3 py-3 font-mono text-[12px]" style={{ color: '#0c1925' }}>{row.ts}</td>
@@ -300,7 +314,7 @@ const Audit = () => {
                           <span>{row.split.label} {row.split.tail}</span>
                         </span>
                       ) : (
-                        <span className="block truncate">{row.desc}</span>
+                        <span className="block whitespace-normal break-words">{row.desc}</span>
                       )}
                     </td>
                   </tr>

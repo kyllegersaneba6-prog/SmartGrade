@@ -39,11 +39,14 @@ const rejectArchivedWrites = async (req, res, next) => {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
   // Export signatories are department-wide settings, not term data.
   if (req.method === 'PUT' && req.path === '/api/export-settings') return next();
-  // Notification reads/dismissals are account-level state, not term data.
-  if (req.path === '/api/notifications' || req.path.startsWith('/api/notifications/')) return next();
   const schoolYear = req.get('X-View-Term-School-Year');
   const semester = req.get('X-View-Term-Semester');
   if (!schoolYear && !semester) return next();
+  // Notification reads/dismissals are account-level state. Sending a new
+  // broadcast is a system change and stays blocked during archive browsing.
+  const isNotificationReadAction = req.path.startsWith('/api/notifications')
+    && !(req.method === 'POST' && req.path === '/api/notifications');
+  if (isNotificationReadAction) return next();
   try {
     const activeTerm = await getActiveTerm();
     if (!isActiveTerm(activeTerm, schoolYear, semester)) {

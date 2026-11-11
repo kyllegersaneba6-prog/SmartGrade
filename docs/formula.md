@@ -387,7 +387,7 @@ Step 7 — Grade Point:
 ## Implementation Reference
 
 All computation functions live in `frontend/src/utils/gradeCalculations.js`
-and are imported by `GradeSummary.jsx`, `ClassRecord.jsx`, and `BehavioralAnalytics.jsx`.
+and are imported by `GradeSummary.jsx`, `ClassRecord.jsx`, and `DescriptiveAnalytics.jsx`.
 
 | Function | Input | Output | Formula |
 |----------|-------|--------|---------|

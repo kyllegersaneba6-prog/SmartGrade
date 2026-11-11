@@ -15,6 +15,7 @@
   --color-bg-light: #ffffff;
   --color-card: #ffffff;
   --color-border: #e6e0d4;
+  --color-gray-150: #eceef0;
   --color-text-main: #333333;
   --color-text-muted: #6b7280;
   --color-green-valid: #22c55e;
@@ -67,6 +68,13 @@
   .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+  .scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
   }
   /* Match Tailwind gray-300 on the nested Teacher Overview scrollbar only. */
   .teacher-overview-scrollbar {
@@ -330,6 +338,12 @@
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* Archived content is read-only. Keep only the term-history transition
+   actions visible so users can browse another term or return to current. */
+.archive-readonly-content button:not([data-archive-navigation="true"]) {
+  display: none !important;
 }
 
 /* Custom dropdown panel entrance */

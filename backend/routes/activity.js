@@ -19,7 +19,30 @@ router.get('/', async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (role === 'superadmin') {
-      // superadmin sees all — no filter
+      const { school_year: archiveSchoolYear, semester: archiveSemester } = req.query;
+      if (archiveSchoolYear !== undefined || archiveSemester !== undefined) {
+        if (typeof archiveSchoolYear !== 'string' || typeof archiveSemester !== 'string'
+          || !archiveSchoolYear.trim() || !archiveSemester.trim()) {
+          return res.status(400).json({ message: 'Both school_year and semester are required to view an audit archive.' });
+        }
+
+        const { data: archiveTerm, error: archiveTermError } = await supabase
+          .from('academic_terms')
+          .select('is_closed')
+          .eq('school_year', archiveSchoolYear)
+          .eq('semester', archiveSemester)
+          .maybeSingle();
+        if (archiveTermError) return sendServerError(res, archiveTermError);
+        if (!archiveTerm) return res.status(404).json({ message: 'Academic term not found.' });
+        if (!archiveTerm.is_closed) return res.status(400).json({ message: 'Only closed semesters are available in the audit archive.' });
+
+        query = query
+          .eq('archived_school_year', archiveSchoolYear)
+          .eq('archived_semester', archiveSemester)
+          .not('archived_at', 'is', null);
+      } else {
+        query = query.is('archived_at', null);
+      }
     } else if (role === 'admin') {
       if (!req.user.department_id) return res.status(403).json({ message: 'A valid department is required.' });
       query = query.eq('department', department);
@@ -45,6 +68,34 @@ router.get('/', async (req, res) => {
         }
       } else {
         query = query.eq('user_name', username);
+      }
+
+      // Like the Super Admin dashboard, show only this term's activity by
+      // default. Archived term headers are attached by the shared API client
+      // when an Admin browses a past semester.
+      const archiveSchoolYear = req.get('X-View-Term-School-Year');
+      const archiveSemester = req.get('X-View-Term-Semester');
+      if (archiveSchoolYear || archiveSemester) {
+        if (!archiveSchoolYear?.trim() || !archiveSemester?.trim()) {
+          return res.status(400).json({ message: 'Both school year and semester are required to view an activity archive.' });
+        }
+
+        const { data: archiveTerm, error: archiveTermError } = await supabase
+          .from('academic_terms')
+          .select('is_closed')
+          .eq('school_year', archiveSchoolYear)
+          .eq('semester', archiveSemester)
+          .maybeSingle();
+        if (archiveTermError) return sendServerError(res, archiveTermError);
+        if (!archiveTerm) return res.status(404).json({ message: 'Academic term not found.' });
+        if (!archiveTerm.is_closed) return res.status(400).json({ message: 'Only closed semesters are available in the activity archive.' });
+
+        query = query
+          .eq('archived_school_year', archiveSchoolYear)
+          .eq('archived_semester', archiveSemester)
+          .not('archived_at', 'is', null);
+      } else {
+        query = query.is('archived_at', null);
       }
     } else {
       // teachers see nothing (future)

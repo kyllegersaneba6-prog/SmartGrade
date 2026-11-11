@@ -28,7 +28,8 @@ const AdminTeachers = () => {
   const [editLoading, setEditLoading] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [teacherToDelete, setTeacherToDelete] = useState(null);
-  const [confirmText, setConfirmText] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [classesTeacher, setClassesTeacher] = useState(null);
   const [teacherClasses, setTeacherClasses] = useState([]);
@@ -207,18 +208,23 @@ const AdminTeachers = () => {
   };
 
   const confirmDelete = async () => {
-    if (confirmText !== 'Confirm' || !teacherToDelete) return;
+    if (!deletePassword || !teacherToDelete) return;
     setDeleting(true);
+    setDeleteError('');
     try {
-      const response = await api(`/api/users/${teacherToDelete.id}`, { method: 'DELETE' });
+      const response = await api(`/api/users/${teacherToDelete.id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ password: deletePassword }),
+      });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || 'Failed to delete teacher.');
       setTeachers((current) => current.filter((teacher) => teacher.id !== teacherToDelete.id));
       setTeacherToDelete(null);
-      setConfirmText('');
+      setDeletePassword('');
+      setDeleteError('');
     } catch (error) {
-      setConfirmText('');
-      window.alert(error.message || 'Failed to delete teacher.');
+      setDeletePassword('');
+      setDeleteError(error.message || 'Failed to delete teacher.');
     } finally {
       setDeleting(false);
     }
@@ -315,7 +321,7 @@ const AdminTeachers = () => {
               <button
                 type="button"
                 role="menuitem"
-                onClick={() => { closeMenu(); setTeacherToDelete(menuTeacher); setConfirmText(''); }}
+                onClick={() => { closeMenu(); setTeacherToDelete(menuTeacher); setDeletePassword(''); setDeleteError(''); }}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-gray-700 transition-colors hover:bg-red-50 hover:text-red-600"
               ><Trash2 size={14} className="text-red-500" /> Delete</button>
             </div>
@@ -347,10 +353,11 @@ const AdminTeachers = () => {
         <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center">
           <div className="modal-surface mx-4 w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6">
             <h3 className="mb-2 text-lg font-bold text-gray-900">Delete Teacher</h3>
-            <p className="mb-4 text-sm text-gray-600">Are you sure you want to delete <strong>{formatAccountName(teacherToDelete.first_name, teacherToDelete.last_name, teacherToDelete.full_name)}</strong>?</p>
-            <label className="mb-1 block text-xs font-bold text-gray-700">Type <strong>Confirm</strong> to delete</label>
-            <input value={confirmText} onChange={(event) => setConfirmText(event.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Confirm" />
-            <div className="mt-5 flex justify-end gap-3"><button onClick={() => { setTeacherToDelete(null); setConfirmText(''); }} disabled={deleting} className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-200">Cancel</button><button onClick={confirmDelete} disabled={confirmText !== 'Confirm' || deleting} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{deleting ? 'Deleting…' : 'Delete'}</button></div>
+            <p className="mb-4 text-sm text-gray-900">Are you sure you want to delete <strong>{formatAccountName(teacherToDelete.first_name, teacherToDelete.last_name, teacherToDelete.full_name)}</strong>?</p>
+            <label htmlFor="delete-teacher-password" className="mb-1 block text-xs font-bold text-gray-700">Enter your password to confirm deletion</label>
+            <input id="delete-teacher-password" type="password" autoComplete="current-password" value={deletePassword} onChange={(event) => { setDeletePassword(event.target.value); setDeleteError(''); }} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Your password" />
+            {deleteError && <p role="alert" className="mt-2 text-sm font-semibold text-red-600">{deleteError}</p>}
+            <div className="mt-5 flex justify-end gap-3"><button onClick={() => { setTeacherToDelete(null); setDeletePassword(''); setDeleteError(''); }} disabled={deleting} className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-200">Cancel</button><button onClick={confirmDelete} disabled={!deletePassword || deleting} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{deleting ? 'Deleting…' : 'Delete'}</button></div>
           </div>
         </div>
       )}
