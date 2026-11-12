@@ -171,7 +171,7 @@ const AdminSettings = () => {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {canBrowse && <span className="text-[10px] font-semibold text-gray-500">View term archive</span>}
+                      {canBrowse && <span className="text-[10px] font-semibold text-gray-500">View Semester Archive</span>}
                       {canReturnToCurrent && <span className="text-[10px] font-semibold text-gray-500">Return to current</span>}
                       {isCurrentlyViewing && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700">Viewing</span>

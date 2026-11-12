@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Settings, X, Plus, ChevronDown, Check, CalendarDays, Archive, CornerDownLeft } from 'lucide-react';
+import { Settings, X, Plus, ChevronDown, Check, CalendarDays, Archive, CornerDownLeft, LoaderCircle } from 'lucide-react';
 import api from '../../utils/api';
 import { SkeletonSettingsCard } from '../../components/common/Skeleton';
 import BackupRestore from '../../components/superadmin/BackupRestore';
@@ -18,6 +18,7 @@ const SuperAdminSettings = () => {
   const [allTerms, setAllTerms] = useState([]);
   const [confirmArchiveTerm, setConfirmArchiveTerm] = useState(null);
   const [confirmCurrentTermReturn, setConfirmCurrentTermReturn] = useState(false);
+  const [termTransition, setTermTransition] = useState(null);
   const [loading, setLoading] = useState(true);
   const [noActiveTerm, setNoActiveTerm] = useState(false);
   const [endSemesterOpen, setEndSemesterOpen] = useState(false);
@@ -34,6 +35,25 @@ const SuperAdminSettings = () => {
   const [createTermError, setCreateTermError] = useState('');
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
   const yearDropdownRef = useRef(null);
+
+  const handleViewArchive = async () => {
+    if (!confirmArchiveTerm || termTransition) return;
+    const selectedTerm = confirmArchiveTerm;
+    setTermTransition('archive');
+    await new Promise((resolve) => window.setTimeout(resolve, 2000));
+    setViewTerm(selectedTerm);
+    setConfirmArchiveTerm(null);
+    setTermTransition(null);
+  };
+
+  const handleReturnToCurrent = async () => {
+    if (!confirmCurrentTermReturn || termTransition) return;
+    setTermTransition('current');
+    await new Promise((resolve) => window.setTimeout(resolve, 2000));
+    clearArchive();
+    setConfirmCurrentTermReturn(false);
+    setTermTransition(null);
+  };
 
   // Generated dynamically: current academic year + upcoming years, end = start + 1.
   const academicYearOptions = useMemo(() => {
@@ -267,7 +287,7 @@ const SuperAdminSettings = () => {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {canBrowse && <span className="text-[10px] font-semibold text-gray-500">View term archive</span>}
+                      {canBrowse && <span className="text-[10px] font-semibold text-gray-500">View Semester Archive</span>}
                       {isViewingThisTerm && <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-700">Viewing</span>}
                       {t.is_active && isArchiveMode && <span className="text-[10px] font-semibold text-gray-500">Return to current</span>}
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
@@ -288,70 +308,86 @@ const SuperAdminSettings = () => {
 
       {confirmArchiveTerm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-amber-50"><Archive size={20} className="text-amber-600" /></div>
-              <h3 className="text-lg font-bold text-gray-900">Browse Archived Term</h3>
-            </div>
-            <p className="text-sm text-gray-700 mb-2">
-              View all available Super Admin data for <strong>{confirmArchiveTerm.school_year} — {confirmArchiveTerm.semester}</strong>?
-            </p>
-            <p className="text-xs text-gray-500 mb-5">
-              Archived pages are read-only. The closed semester’s saved snapshot will be used across Super Admin pages.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setConfirmArchiveTerm(null)}
-                data-archive-navigation="true"
-                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setViewTerm(confirmArchiveTerm);
-                  setConfirmArchiveTerm(null);
-                }}
-                data-archive-navigation="true"
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-900 rounded-lg shadow-sm bg-amber-300 transition-colors hover:bg-amber-400"
-              >
-                <Archive size={14} /> View Archive
-              </button>
-            </div>
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full min-h-[220px] mx-4 border border-gray-100" aria-busy={termTransition === 'archive'}>
+            {termTransition === 'archive' ? (
+              <div role="status" aria-live="polite" className="flex min-h-[172px] flex-col items-center justify-center gap-3 text-center">
+                <LoaderCircle size={30} className="animate-spin text-amber-500" aria-hidden="true" />
+                <span className="text-sm font-semibold text-gray-700">Loading archived semester...</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 rounded-lg bg-amber-50"><Archive size={20} className="text-amber-600" /></div>
+                  <h3 className="text-lg font-bold text-gray-900">Browse Archived Term</h3>
+                </div>
+                <p className="text-sm text-gray-700 mb-2">
+                  View all available Super Admin data for <strong>{confirmArchiveTerm.school_year} — {confirmArchiveTerm.semester}</strong>?
+                </p>
+                <p className="text-xs text-gray-500 mb-5">
+                  Archived pages are read-only. The closed semester’s saved snapshot will be used across Super Admin pages.
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setConfirmArchiveTerm(null)}
+                    data-archive-navigation="true"
+                    disabled={Boolean(termTransition)}
+                    className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleViewArchive}
+                    data-archive-navigation="true"
+                    disabled={Boolean(termTransition)}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-900 rounded-lg shadow-sm bg-amber-300 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Archive size={14} /> View Archive
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
 
       {confirmCurrentTermReturn && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
-          <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full mx-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-amber-50"><CornerDownLeft size={20} className="text-amber-600" /></div>
-              <h3 className="text-lg font-bold text-gray-900">Return to Current Semester?</h3>
-            </div>
-            <p className="text-sm text-gray-700 mb-2">
-              Return from <strong>{viewedTerm?.school_year} — {viewedTerm?.semester}</strong> to the active semester <strong>{activeTerm?.school_year} — {activeTerm?.semester}</strong>?
-            </p>
-            <p className="text-xs text-gray-500 mb-5">Super Admin pages will switch back to current semester data.</p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setConfirmCurrentTermReturn(false)}
-                data-archive-navigation="true"
-                className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  clearArchive();
-                  setConfirmCurrentTermReturn(false);
-                }}
-                data-archive-navigation="true"
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-900 rounded-lg shadow-sm bg-amber-300 transition-colors hover:bg-amber-400"
-              >
-                <CornerDownLeft size={14} /> Return to Current
-              </button>
-            </div>
+          <div className="bg-white rounded-2xl modal-surface p-6 max-w-md w-full min-h-[220px] mx-4 border border-gray-100" aria-busy={termTransition === 'current'}>
+            {termTransition === 'current' ? (
+              <div role="status" aria-live="polite" className="flex min-h-[172px] flex-col items-center justify-center gap-3 text-center">
+                <LoaderCircle size={30} className="animate-spin text-amber-500" aria-hidden="true" />
+                <span className="text-sm font-semibold text-gray-700">Returning to current semester...</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 rounded-lg bg-amber-50"><CornerDownLeft size={20} className="text-amber-600" /></div>
+                  <h3 className="text-lg font-bold text-gray-900">Return to Current Semester?</h3>
+                </div>
+                <p className="text-sm text-gray-700 mb-2">
+                  Return from <strong>{viewedTerm?.school_year} — {viewedTerm?.semester}</strong> to the active semester <strong>{activeTerm?.school_year} — {activeTerm?.semester}</strong>?
+                </p>
+                <p className="text-xs text-gray-500 mb-5">Super Admin pages will switch back to current semester data.</p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setConfirmCurrentTermReturn(false)}
+                    data-archive-navigation="true"
+                    disabled={Boolean(termTransition)}
+                    className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleReturnToCurrent}
+                    data-archive-navigation="true"
+                    disabled={Boolean(termTransition)}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-900 rounded-lg shadow-sm bg-amber-300 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <CornerDownLeft size={14} /> Return to Current
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

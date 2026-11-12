@@ -88,9 +88,6 @@ const FloatingAssignmentSelector = ({ isLoading = false }) => {
             <span className="block font-semibold text-gray-900 truncate">Select Subject</span>
           )}
         </span>
-        {isArchiveMode && (
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-200 text-amber-800 uppercase shrink-0">ARCHIVE</span>
-        )}
         {pendingSelection ? (
           <LoaderCircle size={15} className="shrink-0 animate-spin text-amber-600" aria-hidden="true" />
         ) : (

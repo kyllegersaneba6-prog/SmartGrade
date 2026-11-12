@@ -65,7 +65,7 @@ const TeacherLayoutInner = () => {
           </div>
         </header>
         {isArchiveMode && currentTerm && (
-          <div className="bg-amber-300 text-gray-900 px-4 md:px-6 lg:px-8 py-2 flex items-center text-xs font-semibold shadow-sm shrink-0">
+          <div className="bg-amber-300 text-gray-900 px-4 md:px-6 lg:px-8 py-2 flex items-center text-[14px] leading-[18px] font-semibold shadow-sm shrink-0">
             <div className="flex items-center gap-2">
               <Archive size={14} />
               <span>Viewing: <strong>{currentTerm.school_year} — {currentTerm.semester}</strong> — Read Only</span>

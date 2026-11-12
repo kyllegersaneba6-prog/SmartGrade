@@ -64,7 +64,7 @@ const AdminLayoutInner = () => {
           </div>
         </header>
         {isArchiveMode && currentTerm && (
-          <div className="flex shrink-0 items-center bg-amber-300 px-4 py-2 text-xs font-semibold text-gray-900 shadow-sm md:px-6 lg:px-8">
+          <div className="flex shrink-0 items-center bg-amber-300 px-4 py-2 text-[14px] leading-[18px] font-semibold text-gray-900 shadow-sm md:px-6 lg:px-8">
             <div className="flex items-center gap-2">
               <Archive size={14} />
               <span>Viewing: <strong>{currentTerm.school_year} — {currentTerm.semester}</strong> — Read Only</span>

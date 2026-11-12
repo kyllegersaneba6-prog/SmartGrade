@@ -101,6 +101,8 @@ const MyClassList = () => {
   const students = rosterState.sectionId === rosterSectionId ? rosterState.students : [];
   const rosterError = rosterState.sectionId === rosterSectionId ? rosterState.error : '';
   const rosterLoading = assignmentsLoading || Boolean(rosterSectionId && rosterState.sectionId !== rosterSectionId);
+  const rosterComparisonLoading = Boolean(targetSectionId && (assignmentsLoading || rosterState.sectionId !== String(targetSectionId)));
+  const rosterComparisonError = Boolean(targetSectionId && rosterState.sectionId === String(targetSectionId) && rosterState.error);
   const selectedStudentIds = selectedBySection[rosterSectionId] || [];
   const selectedStudentIdSet = new Set(selectedStudentIds);
   const selectedRosterStudentIds = students.filter((student) => selectedStudentIdSet.has(studentKey(student))).map(studentKey);
@@ -248,7 +250,7 @@ const MyClassList = () => {
     if (!parsed) return [];
     const fileCounts = new Map();
     parsed.rows.forEach((row) => fileCounts.set(row.student_id, (fileCounts.get(row.student_id) || 0) + 1));
-    const existingIds = new Set(!importResult && targetSectionId && rosterState.sectionId === targetSectionId
+    const existingIds = new Set(!importResult && targetSectionId && rosterState.sectionId === String(targetSectionId) && !rosterState.error
       ? rosterState.students.map((student) => student.student_id)
       : []);
     return parsed.rows.map((row) => {
@@ -258,10 +260,16 @@ const MyClassList = () => {
       if (!row.last_name.trim()) issues.push('Missing Last Name');
       if (!normalizeGender(row.gender)) issues.push('Invalid Gender');
       if ((fileCounts.get(row.student_id) || 0) > 1) issues.push('Duplicate in PDF');
-      if (existingIds.has(row.student_id)) issues.push('Already in section');
+      if (existingIds.has(row.student_id)) issues.push('Already listed');
       return { ...row, gender: normalizeGender(row.gender), issues };
     });
   }, [parsed, rosterState, targetSectionId, importResult]);
+
+  const missingStudents = useMemo(() => {
+    if (!parsed || importResult || !targetSectionId || rosterState.sectionId !== String(targetSectionId) || rosterState.error) return [];
+    const pdfStudentIds = new Set(parsed.rows.map((row) => String(row.student_id || '').trim()).filter(Boolean));
+    return rosterState.students.filter((student) => !pdfStudentIds.has(String(student.student_id || '').trim()));
+  }, [parsed, importResult, targetSectionId, rosterState]);
 
   const includedCount = previewRows.filter((row) => row.included && row.issues.length === 0).length;
 
@@ -333,7 +341,7 @@ const MyClassList = () => {
   };
 
   const importStudents = async () => {
-    if (!currentParsed || isReadOnly || saving || metadataMismatches.length) return;
+    if (!currentParsed || isReadOnly || saving || metadataMismatches.length || rosterComparisonLoading || rosterComparisonError) return;
     const includedRows = previewRows.filter((row) => row.included && row.issues.length === 0);
     if (!includedRows.length) {
       setImportError('Select at least one valid student row.');
@@ -770,10 +778,13 @@ const MyClassList = () => {
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-gray-600">{includedCount} valid row(s) selected</p>
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={() => setAllValidRows(true)} disabled={Boolean(importResult)} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50">Select valid rows</button>
-                  <button type="button" onClick={() => setAllValidRows(false)} disabled={Boolean(importResult)} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50">Clear selection</button>
+                  <button type="button" onClick={() => setAllValidRows(true)} disabled={Boolean(importResult) || rosterComparisonLoading || rosterComparisonError} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50">Select valid rows</button>
+                  <button type="button" onClick={() => setAllValidRows(false)} disabled={Boolean(importResult) || rosterComparisonLoading || rosterComparisonError} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50">Clear selection</button>
                 </div>
               </div>
+              {rosterComparisonLoading && <p role="status" className="mb-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">Checking the existing section roster before review…</p>}
+              {rosterComparisonError && <p role="alert" className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">Could not compare the existing roster. Refresh the section and try again before importing.</p>}
+              {missingStudents.length > 0 && <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{missingStudents.length} existing student(s) are missing from the updated PDF. They will remain in the roster; this review does not remove students.</p>}
               <div className="overflow-auto rounded-xl border border-gray-200">
                 <table className="w-full min-w-[1000px] border-collapse text-left text-xs">
                   <thead className="sticky top-0 z-10 bg-[#142a3f] text-white">
@@ -792,7 +803,7 @@ const MyClassList = () => {
                   <tbody>
                     {previewRows.map((row) => (
                       <tr key={row.rowNum} className="border-b border-gray-100 align-top hover:bg-gray-50">
-                        <td className="px-3 py-2.5"><input type="checkbox" aria-label={`Import row ${row.rowNum}`} checked={Boolean(row.included && !row.issues.length)} disabled={row.issues.length > 0 || isReadOnly || metadataMismatches.length > 0 || Boolean(importResult)} onChange={(event) => toggleRow(row.rowNum, event.target.checked)} className="h-4 w-4 accent-[#0c1925]" /></td>
+                        <td className="px-3 py-2.5"><input type="checkbox" aria-label={`Import row ${row.rowNum}`} checked={Boolean(row.included && !row.issues.length)} disabled={row.issues.length > 0 || isReadOnly || metadataMismatches.length > 0 || Boolean(importResult) || rosterComparisonLoading || rosterComparisonError} onChange={(event) => toggleRow(row.rowNum, event.target.checked)} className="h-4 w-4 accent-[#0c1925]" /></td>
                         <td className="whitespace-nowrap px-3 py-2 font-mono text-gray-900">{row.student_id || '—'}</td>
                         <td className="max-w-48 break-words px-3 py-2 text-gray-900">{row.last_name || '—'}</td>
                         <td className="max-w-56 break-words px-3 py-2 text-gray-900">{row.first_name || '—'}</td>
@@ -801,8 +812,21 @@ const MyClassList = () => {
                         <td className="px-3 py-2 text-gray-900">{row.year_level}</td>
                         <td className="whitespace-nowrap px-3 py-2 text-gray-900">{row.gender || '—'}</td>
                         <td className="max-w-56 px-3 py-2.5">
-                          {row.issues.length ? <span className="rounded-md text-[10px] font-semibold text-amber-700">{row.issues.join(' · ')}</span> : <span className="rounded-md text-[10px] font-semibold text-green-700">Ready</span>}
+                          {row.issues.length ? <span className="rounded-md text-[10px] font-semibold text-amber-700">{row.issues.join(' · ')}</span> : rosterComparisonLoading ? <span className="rounded-md text-[10px] font-semibold text-gray-500">Checking roster…</span> : rosterComparisonError ? <span className="rounded-md text-[10px] font-semibold text-red-700">Comparison unavailable</span> : <span className="rounded-md text-[10px] font-semibold text-green-700">Verified</span>}
                         </td>
+                      </tr>
+                    ))}
+                    {missingStudents.map((student) => (
+                      <tr key={`missing-${student.student_id}`} className="border-b border-amber-100 bg-amber-50/60 align-top">
+                        <td className="px-3 py-2.5 text-gray-400">—</td>
+                        <td className="whitespace-nowrap px-3 py-2 font-mono text-gray-900">{student.student_id || '—'}</td>
+                        <td className="max-w-48 break-words px-3 py-2 text-gray-900">{student.last_name || '—'}</td>
+                        <td className="max-w-56 break-words px-3 py-2 text-gray-900">{student.first_name || '—'}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-gray-900">{student.mi || '—'}</td>
+                        <td className="px-3 py-2 text-gray-900">{currentParsed.metadata.course}</td>
+                        <td className="px-3 py-2 text-gray-900">{currentParsed.metadata.year_level}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-gray-900">{student.gender || '—'}</td>
+                        <td className="max-w-56 px-3 py-2.5"><span className="rounded-md text-[10px] font-semibold text-amber-800">Missing</span></td>
                       </tr>
                     ))}
                   </tbody>
@@ -837,7 +861,7 @@ const MyClassList = () => {
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={closePreview} disabled={saving} className="min-h-10 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50">{importResult ? 'Done' : 'Cancel'}</button>
                 {!importResult && (
-                  <button type="button" onClick={importStudents} disabled={!includedCount || saving || isReadOnly || metadataMismatches.length > 0} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
+                  <button type="button" onClick={importStudents} disabled={!includedCount || saving || isReadOnly || metadataMismatches.length > 0 || rosterComparisonLoading || rosterComparisonError} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
                     {saving && <LoaderCircle size={15} className="animate-spin" />}
                     {saving ? 'Importing...' : `Import ${includedCount} Student${includedCount === 1 ? '' : 's'}`}
                   </button>
