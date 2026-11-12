@@ -5,7 +5,7 @@ Base URL: `http://localhost:5000`. All responses are JSON, including unmatched r
 ## Authentication & Authorization
 
 - Header: `Authorization: Bearer <jwt>`.
-- Every router calls `router.use(authenticateToken)` **except** `/api/auth` (login is public); `GET /` and `GET /api/health` are also public application routes.
+- Every API route is authenticated except `POST /api/auth/login`, which is public; `POST /api/auth/change-password` authenticates its own request. `GET /` and `GET /api/health` are also public application routes.
 - Missing token → **401** `{ "message": "Access denied. No token provided." }`
 - Invalid/expired token → **401** `{ "message": "Invalid or expired token. Please log in again." }`
 - Wrong role → **403** `{ "message": "Access denied. Insufficient permissions." }`
@@ -14,8 +14,8 @@ Base URL: `http://localhost:5000`. All responses are JSON, including unmatched r
 - Deleted accounts, changed security fingerprints, or legacy JWTs without a fingerprint return **401**. Missing/nonexistent admin/teacher department returns **403**. Account/department verification failures return **503** without authenticating or clearing an existing frontend session.
 - Role strings: `superadmin`, `admin`, `teacher`.
 - Closed/past term mutation → **403** `{ "message": "This term is closed. No modifications allowed." }`
-- Archive guard: while an archived term is selected, the frontend sends `X-View-Term-School-Year` and `X-View-Term-Semester`. Any `POST`/`PUT`/`PATCH`/`DELETE` whose headers do not match the active term gets **403** from the global `rejectArchivedWrites` middleware, covering tables with no term column (`staff_users`, `departments`, `courses`).
-- `PUT /api/export-settings` is exempt from the archive guard because its department-wide signatories are not term data.
+- Archive guard: while an archived term is selected, the frontend sends `X-View-Term-School-Year` and `X-View-Term-Semester`. Mutating requests whose headers do not match the active term get **403** from the global `rejectArchivedWrites` middleware, covering tables with no term column (`staff_users`, `departments`, `courses`).
+- `PUT /api/export-settings` and `POST /api/auth/change-password` are exempt from the archive guard because department-wide signatories and account passwords are not term data.
 - Ownership checks on reads and writes (teacher owns assignment; admin created the row **and** relationships match their department) return **403**. Shared helpers live in `backend/middleware/access.js`. Student lookup hides inaccessible records as 404.
 - Unknown route → **404** `{ "message": "Route not found" }`.
 - Malformed JSON body → **400** `{ "message": "Invalid JSON body." }`.
@@ -35,6 +35,7 @@ Used by the global availability screen. Invalid JSON, another service's response
 | Method | Route | Auth | Notes |
 |---|---|---|---|
 | POST | `/api/auth/login` | Public | `{ username, password }` → `{ token, user }`; logs success/failure. Returns **503** with an offline message when Supabase is unreachable |
+| POST | `/api/auth/change-password` | Any authenticated role | `{ current_password, new_password }`; verifies the current password, applies the 12–72 UTF-8-byte rule, attempts a password-change audit event, and invalidates existing sessions for that account |
 
 Login lookup order: exact `staff_users.username` → legacy `USR-` + unique canonical UUID prefix (minimum four characters), also in `staff_users`. Ambiguous prefixes do not select the first account. Aliases share account-level failed-login limits in addition to username/IP limits. A dropped connection returns **503** instead of `401` "Invalid username".
 
@@ -45,11 +46,11 @@ All routes authenticate; mutations additionally use `authorizeRole('superadmin',
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
 | GET | `/api/users` | Any auth | Superadmin: all. Admin: teachers they created in their department, each with `teacher_class_count` for unique assignments scoped to that admin. Teacher: self. Responses never include `password` |
-| POST | `/api/users` | Superadmin → admin only; Admin → teacher only | Requires 9-digit `staff_id`; username auto-generated; enforces one-admin-per-department; response never includes `password` |
+| POST | `/api/users` | Superadmin → admin only; Admin → teacher only | Requires 9-digit `staff_id` and a 12–72 UTF-8-byte password; username auto-generated; enforces one-admin-per-department; response never includes `password` |
 | PATCH | `/api/users/:id` | Superadmin (admins); Admin (owned teachers in own department) | Updates names/password and allowed profile fields; staff ID, role, direct username, and creator are not editable; course/department references checked |
 | DELETE | `/api/users/:id` | Superadmin (admins); Admin (owned teachers in own department) | Nulls `created_by` references, then deletes; old sessions fail verification |
 
-PATCH accepts `full_name`, `first_name`, `last_name`, `course_id`, and `password`; superadmin may additionally send `department` for admin accounts. `staff_id` and other unsupported/protected fields return 403. POST accepts the provisioning fields, including `staff_id`, plus `system_role`, with only superadmin→admin and admin→teacher creation permitted.
+PATCH accepts `full_name`, `first_name`, `last_name`, `course_id`, and `password` (12–72 UTF-8 bytes); superadmin may additionally send `department` for admin accounts. `staff_id` and other unsupported/protected fields return 403. POST accepts the provisioning fields, including `staff_id`, plus `system_role`, with only superadmin→admin and admin→teacher creation permitted.
 
 ## Departments
 

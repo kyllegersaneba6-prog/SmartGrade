@@ -36,6 +36,7 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 - Department management; course records are matched or created by class-list imports
 - Admin accounts (one per department, enforced in app code + DB unique index)
 - Teacher accounts with 9-digit staff ID and auto-generated username
+- Role-wide self-service password change with current-password verification
 - Teacher class-list import creates or reuses a section, subject, and assignment for the active term
 - Student records with structured fields (First Name, Last Name, MI, Gender)
 - PDF class-list import for teachers, with metadata checks, preview, and duplicate detection
@@ -67,7 +68,7 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 Functional MVP. Core grading, attendance, and user management work end to end. Database access is locked down with RLS and service-role-only access; the new notification tables follow the same pattern when their migration is applied.
 
 Known gaps (see `05-development/notes.md`):
-- Phase 1 authorization hardening is implemented: protected account fields, same-department ownership, scoped rosters, relationship validation, and stale-session rejection. Provider-side Supabase/AI credential rotation remains an operator task.
+- Phase 1 authorization hardening and the 2026-11-12 high-priority fixes are implemented: protected account fields, same-department ownership, scoped rosters, relationship validation, stale-session rejection, non-seeded superadmin bootstrap, per-account password changes, and reduced AI provider data/logging. Provider-side Supabase/AI credential rotation remains an operator task.
 - `backend/.env` is no longer tracked; a sanitized `.env.example` is provided. Production dependency audits are clean; development-tool advisories remain.
 - No tests, no TypeScript, no centralized API client (pages call a thin `utils/api.js` wrapper with relative `/api/...` paths and a configurable base URL).
 - In-app broadcast notifications are implemented in code and `backend/sql/create_broadcast_notifications.sql` has been applied and read-only verified on the live database. Deploy the backend and frontend changes before using the feature in the hosted app.

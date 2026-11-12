@@ -7,6 +7,7 @@ const { sendServerError } = require('../middleware/errors');
 const { accountDepartment } = require('../services/session');
 const { canAccessCourse } = require('../middleware/access');
 const { loadSuperAdminTermSnapshot } = require('../services/superAdminTermArchive');
+const { getPasswordValidationError } = require('../services/passwordPolicy');
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -196,6 +197,8 @@ router.post('/', authorizeRole('superadmin', 'admin'), async (req, res) => {
   if (!resolvedFullName || !system_role || !password) {
     return res.status(400).json({ message: 'All required fields must be filled' });
   }
+  const passwordError = getPasswordValidationError(password);
+  if (passwordError) return res.status(400).json({ message: passwordError });
 
   try {
     // If admin creates teacher, inherit admin's department.
@@ -251,8 +254,7 @@ router.post('/', authorizeRole('superadmin', 'admin'), async (req, res) => {
       }
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     // Server-generated identity: fresh UUID becomes the record id; the
     // username is derived strictly from last name + staff ID (no silent fallback).
@@ -335,6 +337,10 @@ router.patch('/:id', authorizeRole('superadmin', 'admin'), async (req, res) => {
   const { id } = req.params;
   const { full_name, first_name, last_name, course_id, department, password } = req.body;
   const { role: requesterRole } = req.user;
+  if (password !== undefined) {
+    const passwordError = getPasswordValidationError(password);
+    if (passwordError) return res.status(400).json({ message: passwordError });
+  }
 
   try {
     const { data: targetUser } = await supabase
@@ -429,8 +435,7 @@ router.patch('/:id', authorizeRole('superadmin', 'admin'), async (req, res) => {
     if (course_id !== undefined) updates.course_id = course_id;
     if (department !== undefined) updates.department = department;
     if (password !== undefined && password.trim()) {
-      const salt = await bcrypt.genSalt(10);
-      updates.password = await bcrypt.hash(password, salt);
+      updates.password = await bcrypt.hash(password, 12);
     }
 
     const { data: updatedUser, error } = await supabase

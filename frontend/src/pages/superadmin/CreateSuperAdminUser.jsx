@@ -4,6 +4,7 @@ import { Eye, EyeOff, UserPlus, CheckCircle, Copy, Check } from 'lucide-react';
 import api from '../../utils/api';
 import { formatStaffId, isValidStaffId, staffIdToDigits, usernameFromLastNameAndId } from '../../utils/staffId';
 import { useSuperAdmin } from '../../contexts/SuperAdminContext';
+import { getPasswordValidationError } from '../../utils/passwordPolicy';
 
 // Username is generated from last name + ID (lastname.4512@sg) and
 // validated by the backend on creation.
@@ -19,7 +20,7 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
   const [departmentId, setDepartmentId] = useState('');
   const [departments, setDepartments] = useState([]);
   const [departmentsWithAdmin, setDepartmentsWithAdmin] = useState(new Set());
-  const [password, setPassword] = useState('smartgrade123');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [createdUsername, setCreatedUsername] = useState('');
@@ -68,6 +69,11 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
     }
     if (!isValidStaffId(staffId)) {
       setError('ID must contain exactly 9 digits (format 00000-0000).');
+      return;
+    }
+    const passwordError = getPasswordValidationError(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     const dept = departments.find(d => d.id === departmentId);
@@ -230,6 +236,7 @@ const CreateSuperAdminUser = ({ onClose, onSuccess }) => {
               <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className="w-full px-3 py-2 border border-[#e5e0d5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142a3f] bg-white text-sm pr-10" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="rounded-lg absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
             </div>
+            <p className="mt-1 text-[10px] text-gray-500">Use a unique password (12–72 UTF-8 bytes).</p>
           </div>
         </div>
 

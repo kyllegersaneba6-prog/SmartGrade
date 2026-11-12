@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { VALID_ROLES, sessionFingerprint, accountDepartment } = require('../services/session');
 const { createClient } = require('@supabase/supabase-js');
+const { authenticateToken } = require('../middleware/auth');
+const { getPasswordValidationError } = require('../services/passwordPolicy');
 const {
   checkIpLimit,
   recordIpAttempt,
@@ -257,6 +259,74 @@ router.post('/login', async (req, res) => {
       return res.status(503).json({ message: OFFLINE_MESSAGE });
     }
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/change-password', authenticateToken, async (req, res) => {
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)
+      || Object.keys(body).some((field) => !['current_password', 'new_password'].includes(field))) {
+    return res.status(400).json({ message: 'Current and new passwords are required.' });
+  }
+
+  const { current_password: currentPassword, new_password: newPassword } = body;
+  if (typeof currentPassword !== 'string' || !currentPassword || Buffer.byteLength(currentPassword, 'utf8') > 1024) {
+    return res.status(400).json({ message: 'Current and new passwords are required.' });
+  }
+  const passwordError = getPasswordValidationError(newPassword);
+  if (passwordError) return res.status(400).json({ message: passwordError });
+  if (currentPassword === newPassword) {
+    return res.status(400).json({ message: 'Choose a new password different from your current password.' });
+  }
+
+  const accountLimit = checkAccountLimit(req.user.id);
+  if (accountLimit.limited) {
+    res.set('Retry-After', String(accountLimit.retryAfterSeconds));
+    return res.status(429).json({ message: RATE_LIMIT_MESSAGE });
+  }
+
+  try {
+    const { data: account, error: accountError } = await supabase
+      .from('staff_users')
+      .select('id, username, department, password')
+      .eq('id', req.user.id)
+      .maybeSingle();
+    if (accountError) return res.status(503).json({ message: 'Unable to verify your account. Please try again.' });
+    if (!account?.password) return res.status(401).json({ message: 'Account changed or session expired. Please log in again.' });
+
+    if (!(await bcrypt.compare(currentPassword, account.password))) {
+      recordAccountFailure(account.id);
+      return res.status(400).json({ message: 'Current password is incorrect.' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    const { data: updated, error: updateError } = await supabase
+      .from('staff_users')
+      .update({ password: passwordHash })
+      .eq('id', account.id)
+      .eq('password', account.password)
+      .select('id')
+      .maybeSingle();
+    if (updateError) return res.status(503).json({ message: 'Unable to update your password. Please try again.' });
+    if (!updated) return res.status(409).json({ message: 'Account changed while updating. Please sign in again.' });
+
+    clearAccountFailures(account.id);
+    try {
+      const { error: auditError } = await supabase.from('activity_log').insert([{
+        user_name: account.username || req.user.username || 'System',
+        action: 'Password Changed',
+        details: 'The account password was changed.',
+        department: account.department || null,
+      }]);
+      if (auditError) console.error('Failed to audit password change.');
+    } catch {
+      console.error('Failed to audit password change.');
+    }
+
+    return res.json({ message: 'Password updated. Please sign in again.' });
+  } catch (error) {
+    console.error('Password change failed:', error.message);
+    return res.status(500).json({ message: 'Unable to update your password. Please try again.' });
   }
 });
 

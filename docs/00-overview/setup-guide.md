@@ -71,15 +71,19 @@ Pages call `api('/api/...')`; `frontend/src/utils/api.js` prefixes `API_BASE` (`
 2. For attendance, run `backend/sql/create_attendance_table.sql` (fresh database only) and then `backend/sql/migrate_attendance_final.sql`. The latter is idempotent and also fixes any database that ran the older attendance migration files. Apply the remaining change files in `backend/sql/` for features added after the base schema, including `archive_activity_logs.sql` and then `archive_superadmin_term_snapshots.sql` before deploying semester archive views, `create_atomic_full_backup_restore.sql` before deploying the backend's full-restore RPC, and `create_broadcast_notifications.sql` before deploying the notification API. The audit archive, Super Admin snapshot, and broadcast migrations are applied on the current live database; run them in other environments before deploying the related APIs there. There is **no migration runner**; the live project's Supabase migration history records the canonical files as a baseline.
 3. Confirm the final `attendance` unique constraint is the 6-column version `(teacher_assignment_id, student_id, date, session, type, term)`. `migrate_attendance_final.sql` guarantees this; the upsert in `routes/attendance.js` expects 6 columns. The old `alter_attendance_unique.sql` / `alter_attendance_term.sql` / `migrate_attendance_v2.sql` files are deprecated no-ops.
 4. Run `backend/sql/add_db_constraints.sql`. It is idempotent, adds the single-active-term and one-admin-per-department indexes, score/weight CHECKs, and the score/weight triggers. If existing rows violate a rule it stops with a message listing what to fix; it never rewrites data.
-5. Run `backend/sql/enable_row_level_security.sql`. It is idempotent and enables RLS (no policies, deny-all) on all public tables, including Super Admin term snapshots. The backend keeps working because the service-role key has `BYPASSRLS`; the anon/publishable key cannot read or write.
+5. Run `backend/sql/enable_row_level_security.sql`. It is idempotent and enables RLS (no policies, deny-all) on the 14 core tables, including Super Admin term snapshots. The department export-settings and broadcast-notification migrations also enable RLS on their tables. Verify that every public table has RLS enabled. The backend keeps working because the service-role key has `BYPASSRLS`; the anon/publishable key cannot read or write.
 
-### Seed credentials
+### Bootstrap account
 
-| Account | Username | Password |
-|---|---|---|
-| Superadmin | `admin` | `admin123` |
+`schema.sql` does not create a superadmin account. After applying the schema and configuring `backend/.env`, run this once from the `backend` directory in an interactive terminal:
 
-Admins and teachers are created in-app. New accounts default to password `smartgrade123` (teacher/admin creation forms).
+```bash
+npm run bootstrap:superadmin
+```
+
+The command prompts for account details and reads the password without echoing it. It requires the service-role credentials, enforces a 12–72 UTF-8-byte password, and refuses to run if a superadmin already exists. It is for initial account creation, not password reset. Existing deployments keep their current accounts when the schema file is updated; after deploying the password-change UI, an existing superadmin should sign in and use **Settings → Change Password** to replace any previously exposed credential. Password changes invalidate every existing session for that account.
+
+Admins and teachers are created in-app. Their forms start blank and require a unique password of 12–72 UTF-8 bytes. All roles can change their own password from Settings after verifying their current password.
 
 ## Running
 

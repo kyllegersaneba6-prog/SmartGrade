@@ -39,6 +39,8 @@ const rejectArchivedWrites = async (req, res, next) => {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
   // Export signatories are department-wide settings, not term data.
   if (req.method === 'PUT' && req.path === '/api/export-settings') return next();
+  // Account security settings are not scoped to an academic term.
+  if (req.method === 'POST' && req.path === '/api/auth/change-password') return next();
   const schoolYear = req.get('X-View-Term-School-Year');
   const semester = req.get('X-View-Term-Semester');
   if (!schoolYear && !semester) return next();

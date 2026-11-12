@@ -30,9 +30,6 @@ async function chatJson({ system, user }) {
         response_format: { type: 'json_object' },
       };
 
-  // DEBUGGING: Log the payload
-  console.log('Sending to OmniRoute:', JSON.stringify(payload, null, 2));
-
   try {
     const res = await fetch(`${base}/chat/completions`, {
       method: 'POST',
@@ -44,8 +41,7 @@ async function chatJson({ system, user }) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      const err = new Error(`OmniRoute HTTP ${res.status}: ${body.slice(0, 300)}`);
+      const err = new Error(`OmniRoute HTTP ${res.status}`);
       err.status = res.status;
       throw err;
     }

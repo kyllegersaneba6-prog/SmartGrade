@@ -228,21 +228,7 @@ UNION ALL
 SELECT 'Bachelor of Science in Information Systems', 'BSIS', dept.id FROM dept
 ON CONFLICT (name, department_id) DO NOTHING;
 
--- 3. Create Superadmin Account
--- Username: admin / Password: admin123 (bcrypt hash)
-INSERT INTO public.staff_users (first_name, last_name, full_name, username, department, system_role, password)
-VALUES (
-  'System',
-  'Administrator',
-  'System Administrator',
-  'admin',
-  'College of Information and Communication Technology (CICT)',
-  'superadmin',
-  '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmKNy5GgY7iJjhCVfZ2m' -- admin123
-)
-ON CONFLICT (username) DO NOTHING;
-
--- 4. Seed current academic term as active (only if no terms exist yet)
+-- 3. Seed current academic term as active (only if no terms exist yet)
 DO $$
 DECLARE
   term_count INT;
@@ -269,10 +255,9 @@ BEGIN
   VALUES (sy, sem, true);
 END $$;
 
--- 5. Sample Subjects per Year Level (only if no subjects exist yet)
+-- 4. Sample Subjects per Year Level (only if no subjects exist yet)
 DO $$
 DECLARE
-  admin_id UUID;
   subj_count INT;
   sy TEXT;
   sem TEXT;
@@ -280,8 +265,6 @@ DECLARE
 BEGIN
   SELECT COUNT(*) INTO subj_count FROM public.subjects;
   IF subj_count > 0 THEN RETURN; END IF;
-
-  SELECT id INTO admin_id FROM public.staff_users WHERE username = 'admin' LIMIT 1;
 
   m := EXTRACT(MONTH FROM NOW());
   IF m >= 8 THEN
@@ -296,19 +279,19 @@ BEGIN
   END IF;
 
   INSERT INTO public.subjects (name, code, year_level, school_year, semester, created_by) VALUES
-    ('Introduction to Computing', 'COMP1001', '1st', sy, sem, admin_id),
-    ('Computer Programming 1', 'COMP1002', '1st', sy, sem, admin_id),
-    ('Mathematics in the Modern World', 'MATH1001', '1st', sy, sem, admin_id),
-    ('Purposive Communication', 'COMM1001', '1st', sy, sem, admin_id),
-    ('Data Structures and Algorithms', 'COMP2001', '2nd', sy, sem, admin_id),
-    ('Object-Oriented Programming', 'COMP2002', '2nd', sy, sem, admin_id),
-    ('Database Management Systems', 'DBAS2001', '2nd', sy, sem, admin_id),
-    ('Discrete Mathematics', 'MATH2001', '2nd', sy, sem, admin_id),
-    ('Software Engineering', 'SOFT3001', '3rd', sy, sem, admin_id),
-    ('Information Management', 'INFO3001', '3rd', sy, sem, admin_id),
-    ('Networking and Communication', 'NETW3001', '3rd', sy, sem, admin_id),
-    ('Human-Computer Interaction', 'HCIS3001', '3rd', sy, sem, admin_id),
-    ('Capstone Project 1', 'CAPS4001', '4th', sy, sem, admin_id),
-    ('Professional Ethics', 'ETHC4001', '4th', sy, sem, admin_id),
-    ('Practicum / Internship', 'PRAC4001', '4th', sy, sem, admin_id);
+    ('Introduction to Computing', 'COMP1001', '1st', sy, sem, NULL),
+    ('Computer Programming 1', 'COMP1002', '1st', sy, sem, NULL),
+    ('Mathematics in the Modern World', 'MATH1001', '1st', sy, sem, NULL),
+    ('Purposive Communication', 'COMM1001', '1st', sy, sem, NULL),
+    ('Data Structures and Algorithms', 'COMP2001', '2nd', sy, sem, NULL),
+    ('Object-Oriented Programming', 'COMP2002', '2nd', sy, sem, NULL),
+    ('Database Management Systems', 'DBAS2001', '2nd', sy, sem, NULL),
+    ('Discrete Mathematics', 'MATH2001', '2nd', sy, sem, NULL),
+    ('Software Engineering', 'SOFT3001', '3rd', sy, sem, NULL),
+    ('Information Management', 'INFO3001', '3rd', sy, sem, NULL),
+    ('Networking and Communication', 'NETW3001', '3rd', sy, sem, NULL),
+    ('Human-Computer Interaction', 'HCIS3001', '3rd', sy, sem, NULL),
+    ('Capstone Project 1', 'CAPS4001', '4th', sy, sem, NULL),
+    ('Professional Ethics', 'ETHC4001', '4th', sy, sem, NULL),
+    ('Practicum / Internship', 'PRAC4001', '4th', sy, sem, NULL);
 END $$;

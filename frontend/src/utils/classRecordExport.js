@@ -251,7 +251,7 @@ export async function exportClassRecordPdf({ assignment, term, students, compone
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text('COLLEGE of INFORMATION and COMMUNICATIONS TECHNOLOGY', pageWidth / 2, 57, { align: 'center' });
-    doc.setTextColor(255, 31, 31);
+    doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
     doc.text(title.course, pageWidth / 2, 86, { align: 'center', maxWidth: pageWidth - 180 });
     doc.setTextColor(0, 0, 0);
@@ -343,7 +343,7 @@ export async function exportClassRecordPdf({ assignment, term, students, compone
     doc.text(label, x + 3, signatureY);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.setTextColor(index === 1 ? 255 : 0, index === 1 ? 31 : 0, index === 1 ? 31 : 0);
+    doc.setTextColor(0, 0, 0);
     doc.text(name, x + 3, signatureY + 48, { align: 'left', maxWidth: Math.max(40, blockWidth - 8) });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);

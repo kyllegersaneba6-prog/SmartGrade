@@ -395,8 +395,8 @@ const GradeSummary = () => {
         styles: {
           fontStyle: rowIndex === 1 ? 'bold' : 'normal',
           fontSize: rowIndex === 0 ? 8 : 8.5,
-          halign: rowIndex === 0 ? 'left' : 'center',
-          cellPadding: rowIndex === 0 ? { top: 2, bottom: 1, left: 4, right: 4 } : { top: 1, bottom: 1, left: 4, right: 4 },
+          halign: 'left',
+          cellPadding: rowIndex === 0 ? { top: 2, bottom: 9, left: 4, right: 4 } : { top: 1, bottom: 1, left: 4, right: 4 },
           lineWidth: 0,
         },
       })));

@@ -54,7 +54,7 @@ Names are limited to 1–160 characters. RLS is enabled with no user-facing poli
 
 **Indexes:** `idx_staff_users_username`, `idx_staff_users_role`, unique `idx_staff_users_staff_id`, unique partial `idx_staff_users_one_admin_per_department` on `lower(trim(department))` where `system_role = 'admin'`
 
-**API security:** Admin/teacher accounts require an existing department name; an optional course must belong to it. `system_role`, direct `username`, `id`, and `created_by` edits are not accepted by the account API. Current security fields are used for session-fingerprint verification; there is no added session column.
+**API security:** Admin/teacher accounts require an existing department name; an optional course must belong to it. Account creation and password changes enforce a 12–72 UTF-8-byte password. `system_role`, direct `username`, `id`, and `created_by` edits are not accepted by the account API. Current security fields are used for session-fingerprint verification; there is no added session column.
 
 ## sections
 
@@ -101,6 +101,17 @@ Names are limited to 1–160 characters. RLS is enabled with no user-facing poli
 | created_at | TIMESTAMPTZ | |
 
 **Constraints:** `UNIQUE(school_year, semester)` · unique partial `idx_academic_terms_one_active` on `((is_active)) WHERE is_active = true`
+
+## superadmin_term_snapshots
+
+| Column | Type | Notes |
+|---|---|---|
+| term_id | UUID | PK, FK → `academic_terms(id)` ON DELETE CASCADE |
+| snapshot | JSONB | NN; global staff, department, and course view without password hashes |
+| snapshot_source | TEXT | NN, CHECK `('term_close','backfill_current_state')` |
+| captured_at | TIMESTAMPTZ | NN, default `now()` |
+
+RLS is enabled with no client-role grants; the Express backend accesses this table with `service_role`.
 
 ## subjects
 
@@ -190,7 +201,7 @@ Names are limited to 1–160 characters. RLS is enabled with no user-facing poli
 
 **Indexes:** `idx_attendance_assignment_date(teacher_assignment_id, date)`, `idx_attendance_student(student_id)`
 
-**Unique constraint:** `UNIQUE(teacher_assignment_id, student_id, date, session, type, term)` — created by `create_attendance_table.sql` on a fresh database and guaranteed by `migrate_attendance_final.sql` on an existing one. NULL `session`/`type`/`term` values still make rows distinct in Postgres, so always send the term.
+**Unique constraint:** `UNIQUE(teacher_assignment_id, student_id, date, session, type, term)` — created by `create_attendance_table.sql` on a fresh database and guaranteed by `migrate_attendance_final.sql` on an existing one. PostgreSQL treats NULL values as distinct for this constraint. The current API accepts omitted `session`, `type`, or `term`, so requests with NULL key fields can create duplicate logical attendance rows; this needs API/database validation.
 
 ## activity_log
 
@@ -199,7 +210,7 @@ Names are limited to 1–160 characters. RLS is enabled with no user-facing poli
 | id | UUID | PK, default `gen_random_uuid()` |
 | user_name | TEXT | NN |
 | action | TEXT | NN, e.g. `User Created`, `Backup Exported`, `Failed Login`, `Teacher Class List Imported`, `Teacher Class Record Exported` |
-| details | TEXT | Nullable, human-readable; teacher import/export details contain only class/term/format/count metadata |
+| details | TEXT | Nullable, human-readable; dedicated teacher import/export routes use class/term/format/count metadata, while generic activity writes accept caller-supplied text |
 | department | TEXT | Nullable |
 | created_at | TIMESTAMPTZ | Default `now()` |
 

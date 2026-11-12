@@ -5,6 +5,7 @@ import { SkeletonSettingsCard } from '../../components/common/Skeleton';
 import AdminPageHeading from '../../components/admin/AdminPageHeading';
 import api from '../../utils/api';
 import { DEFAULT_EXPORT_SETTINGS } from '../../utils/exportSettings';
+import ChangePasswordForm from '../../components/common/ChangePasswordForm';
 
 const AdminSettings = () => {
   const { activeTerm, allTerms, viewTerm, setViewTerm, isArchiveMode, loading } = useAdmin();
@@ -219,6 +220,8 @@ const AdminSettings = () => {
         </div>
       </form>
       )}
+
+      <ChangePasswordForm />
 
       {confirmTerm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">

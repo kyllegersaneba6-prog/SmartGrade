@@ -59,13 +59,13 @@ The UI validates both fields, with 5 s polling and a 5 s timeout. When this endp
 
 ## Archive Write Guard
 
-While browsing an archived term, the client sends `X-View-Term-School-Year` and `X-View-Term-Semester` on every request. Any mutating method (`POST`, `PUT`, `PATCH`, `DELETE`) whose headers differ from the active term returns:
+While browsing an archived term, the client sends `X-View-Term-School-Year` and `X-View-Term-Semester` on every request. Mutating methods (`POST`, `PUT`, `PATCH`, `DELETE`) whose headers differ from the active term return:
 
 ```json
 403: { "message": "This term is closed. No modifications allowed." }
 ```
 
-Reads are unaffected. Requests without the headers (normal, non-archive use) are unaffected.
+Reads are unaffected. Requests without the headers (normal, non-archive use) are unaffected. `PUT /api/export-settings` and `POST /api/auth/change-password` remain available because they change account/department-level settings, not term data.
 
 ## In-App Notifications
 
@@ -145,22 +145,22 @@ Dismissal is per-user and removes that item from the caller's feed. Unknown IDs 
 
 ```
 POST /api/auth/login
-Body: { "username": "admin", "password": "admin123" }
+Body: { "username": "staff_username", "password": "<provided securely at runtime>" }
 
 200:
 {
   "token": "eyJ...",
   "user": {
     "id": "uuid",
-    "username": "admin",
-    "role": "superadmin",
-    "first_name": "System",
-    "last_name": "Administrator",
-    "full_name": "System Administrator",
-    "department": "College of Information and Communication Technology (CICT)",
+    "username": "staff_username",
+    "role": "teacher",
+    "first_name": "Example",
+    "last_name": "Teacher",
+    "full_name": "Example Teacher",
+    "department": "Example department",
     "course_id": null,
     "course_name": null,
-    "system_role": "superadmin"
+    "system_role": "teacher"
   }
 }
 ```
@@ -173,6 +173,19 @@ Failures:
 - Supabase unreachable (no internet) → `503 { "message": "You are currently offline. Please check your Wi-Fi or ethernet connection and try again." }`
 
 Login lookup errors caused by a dropped connection are detected explicitly, so an offline attempt never reports "Invalid username". Only an existing account's failed password attempt is written to the audit log.
+
+## Change Password
+
+All authenticated roles can change their own password. The endpoint requires the current password, checks the new password length (12–72 UTF-8 bytes), rejects reuse of the exact current password, and shares the account-level failed-password limit with login.
+
+```text
+POST /api/auth/change-password
+Body: { "current_password": "<current password>", "new_password": "<new password>" }
+
+200: { "message": "Password updated. Please sign in again." }
+```
+
+Incorrect current password returns 400; an account-level rate limit returns 429 with `Retry-After`. The UI clears the local session and redirects to login. The password hash is never returned; a changed security fingerprint rejects all existing tokens on subsequent API requests. The account-level operation remains available while viewing an archived term.
 
 ## List Managed Teachers (Admin)
 
@@ -203,7 +216,7 @@ Body:
   "full_name": "John Santos",      // optional; derived from first/last
   "system_role": "teacher",
   "staff_id": "123451234",
-  "password": "smartgrade123"
+  "password": "<set securely at runtime>"
 }
 
 201: { "id": "uuid", "full_name": "John Santos", "username": "santos.4512@sg", ... }
@@ -376,8 +389,12 @@ Body:
   ]
 }
 
-200: { "message": "Attendance saved", "count": 2 }
+200: [
+  { "id": "uuid", "teacher_assignment_id": "uuid", "student_id": "uuid", "date": "2025-09-01", "score": 2, "session": "AM", "type": "Lecture", "term": "PRELIMS" }
+]
 ```
+
+The current handler does not require `session`, `type`, or `term` even though they are part of the unique upsert key; omitting them writes NULL values and may permit duplicate logical rows.
 
 ## Delete Attendance Column
 
@@ -471,7 +488,7 @@ Body: {
 }
 ```
 
-Missing `action` → `400 { "message": "action is required" }`. Any `user_name`/`department` values in the body are ignored.
+Missing `action` → `400 { "message": "action is required" }`. Any `user_name`/`department` values in the body are ignored. `action` and `details` remain caller-controlled and have no allowlist or length limit, so this endpoint can produce misleading or oversized audit entries under the caller's own identity.
 
 ### Teacher Export Audit
 

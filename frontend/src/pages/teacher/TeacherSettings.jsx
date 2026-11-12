@@ -3,6 +3,7 @@ import { Archive, CornerDownLeft, LoaderCircle } from 'lucide-react';
 import { useTeacher } from '../../contexts/TeacherContext';
 import { SkeletonSettingsCard } from '../../components/common/Skeleton';
 import TeacherPageHeading from '../../components/teacher/TeacherPageHeading';
+import ChangePasswordForm from '../../components/common/ChangePasswordForm';
 
 const TeacherSettings = () => {
   const { activeTerm, allTerms, viewTerm, setViewTerm, isArchiveMode, loading } = useTeacher();
@@ -133,6 +134,8 @@ const TeacherSettings = () => {
           </div>
         )}
       </div>
+
+      <ChangePasswordForm />
 
       {confirmTerm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center modal-backdrop">

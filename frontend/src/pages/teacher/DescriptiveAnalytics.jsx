@@ -812,7 +812,7 @@ const DescriptiveAnalytics = () => {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-center">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Final Grade</div>
+                <div className="text-xs font-bold text-black uppercase tracking-wide">Final Grade</div>
                 <div className={`mt-1 text-2xl font-extrabold ${detailStudent.finalGrade < 75 ? 'text-red-600' : 'text-green-700'}`}>{detailStudent.finalGrade.toFixed(2)}</div>
               </div>
               <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-center">

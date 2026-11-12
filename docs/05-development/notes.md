@@ -9,6 +9,13 @@ Miscellaneous technical notes, known gaps, and follow-ups.
 | CORS | Local/LAN allowlist exists; deployments must set `CORS_ORIGINS` | Verify allowed origins rather than relying on development defaults |
 | Notifications | Live DB migration is applied and its tables, RLS, and service-role-only RPC permissions are verified; current code is in the working tree | Deploy the backend and frontend changes before using notifications in the hosted app; no test broadcast has been sent |
 | Credential exposure | Removing `backend/.env` from tracking does not erase Git history | Supabase/AI provider keys and deployment secrets still require operator rotation |
+| Bootstrap account | SQL seed removed; interactive bootstrap refuses an existing superadmin | Existing deployments retain their current account; deploy the password-change flow and rotate it in Settings. Bootstrap is for initial setup only |
+| Backup restore roles | Merge blocks role changes to existing accounts but can insert new accounts with payload-supplied roles; full restore imports account roles too | Do not restore untrusted files; enforce role policy in both restore modes |
+| AI privacy | Application logs omit provider request/error bodies; student identifiers and assignment/term metadata are excluded from provider payloads | Review provider-side data retention settings; aggregate performance data is still sent for analysis |
+| Password changes | New account/password-change values require 12–72 UTF-8 bytes; current password is verified and prior sessions are invalidated | Failed-password counters are process-local and shared with login; multi-instance deployments need shared rate-limit storage |
+| Attendance uniqueness | API accepts missing session/type/term; NULL values do not conflict under the current six-column unique constraint | Require metadata and enforce it at the database boundary to prevent duplicate logical rows |
+| Audit integrity | Generic activity writes accept caller-provided action/details without an allowlist or length cap | Restrict event types and bound payload sizes; caller identity is still server-derived |
+| Login throttling | Login counters are process-local | Use shared storage/rate limiting when running multiple backend instances |
 | Historical ownership | Creator-based ownership is retained, now with department checks | Replacing/deleting an admin can orphan access; repair/migration belongs to the history-preservation phase |
 
 ## Architecture Notes
@@ -24,7 +31,7 @@ Miscellaneous technical notes, known gaps, and follow-ups.
 - **Section term scope.** The live `sections` unique constraint is `(course_id, name, school_year, semester)` so a class can have a separate roster per semester. Existing rows were preserved.
 - **Excel/PDF is client-side.** No spreadsheet libraries exist in the backend.
 - **Backup restore locking.** Merge/replace use the in-process `restoreInProgress` flag. Full restore also takes a database advisory transaction lock and executes atomically through `restore_full_backup_atomic`; apply `sql/create_atomic_full_backup_restore.sql` before deploying that backend path.
-- **RLS is deny-all.** `sql/enable_row_level_security.sql` enables RLS on all 13 `public` tables with no policies. `anon` and `authenticated` also have no table grants, so the publishable/anon key gets `401 permission denied` from PostgREST (verified live). The backend is unaffected because `service_role` has `BYPASSRLS`. The Supabase `RLS Enabled No Policy` advisory is informational and expected. Trigger functions still have mutable `search_path` (advisor WARN) — candidate for a follow-up hardening pass.
+- **RLS is deny-all.** `sql/enable_row_level_security.sql` enables RLS on 14 core `public` tables; auxiliary migrations cover export settings and notifications. The live project has 17 public tables with RLS and no policies. `anon` and `authenticated` also have no table grants, so the publishable/anon key gets `401 permission denied` from PostgREST (verified live). The backend is unaffected because `service_role` has `BYPASSRLS`. The Supabase `RLS Enabled No Policy` advisory is informational and expected. Trigger functions still have mutable `search_path` (advisor WARN).
 
 ## Local Environment
 
@@ -34,7 +41,21 @@ Miscellaneous technical notes, known gaps, and follow-ups.
 - Frontend: `http://localhost:5173`.
 - AI gateway default: `http://localhost:20128/v1` (OmniRoute).
 - OpenCode V2 project instructions: `.opencode/opencode.json` loads `docs/AGENTS.md`.
-- Seed superadmin: `admin` / `admin123`.
+- `schema.sql` seeds no staff account. Use `npm run bootstrap:superadmin` for a fresh installation; existing deployments keep their existing account (see `00-overview/setup-guide.md`).
+
+## System Review — 2026-11-12
+
+- Read-only Supabase advisors: no health lints; security reports the expected RLS-enabled/no-policy state on 17 tables plus five trigger functions with mutable `search_path`; performance reports 11 unindexed foreign keys and one unused index.
+- `npm run lint` currently fails with 68 errors and 5 warnings across the frontend. The production build succeeds, with browser-polyfill/externalized-module warnings and a main JavaScript chunk over 2 MB.
+- All backend JavaScript files pass `node --check`. No maintained automated test suite is configured; no browser/E2E test was run for this review.
+- Review covered authentication/authorization, account and roster flows, grading/attendance, audit logging, AI, backup/restore, SQL migrations/RLS, frontend build, and current docs. No code or database changes were made.
+
+## High-Priority Security Remediation — 2026-11-12
+
+- **Implemented:** fixed superadmin seed removal, interactive one-time superadmin bootstrap, password policy and self-service password change, account-form password defaults removed, and AI provider payload/logging minimization.
+- Verification passed: all backend JavaScript syntax checks, isolated password-change API smoke test (current-password verification, archive-mode availability, hash update, stale-session rejection), provider-payload/error-body smoke test, password-policy boundaries, and frontend production build. The two new shared frontend files pass ESLint.
+- The bootstrap command was not run against a database, and no live database or provider credentials were changed. Existing deployed accounts are not altered by the schema-file update; the existing superadmin must change its password after the new application version is deployed. Supabase/AI provider-key rotation and checking provider-side retention remain operator tasks.
+- Full frontend lint still reports 68 errors and 5 warnings, matching the pre-existing system-review count; the reported violations are in existing files and were not addressed as part of this security scope.
 
 ## Phase 1 Verification — 2026-11-02
 

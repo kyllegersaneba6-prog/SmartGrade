@@ -12,6 +12,8 @@ Status values: **Done** · **In Progress** · **Planned** · **Not Wired** (UI e
 | Bulk student relationship checks | Done | Entire score/attendance batch rejected before writing if any student is outside its assignment section |
 | Login alias lockout | Done | Unique UUID-prefix aliases only; aliases share the account's failed-login bucket |
 | Account provisioning with 9-digit staff ID | Done | `staff_id` validated `^[0-9]{9}$`, unique |
+| Unique password creation and self-service password change | Done | 12–72 UTF-8 bytes; current password required; all existing sessions are invalidated |
+| Initial superadmin bootstrap | In Progress | Interactive command and schema seed removal are implemented; no database account was created during this code change |
 | Auto-generated username | Done | `lastname.<digits 3–7 of staff ID>@sg` |
 | One admin per department | Done | Enforced in `POST`/`PATCH /api/users` and by unique partial index `idx_staff_users_one_admin_per_department` |
 | Failed-login audit (deduped 60 s) | Done | Unknown usernames are not logged |

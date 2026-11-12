@@ -40,6 +40,7 @@ Notes:
 - Deleted/changed accounts return 401; missing/nonexistent admin/teacher department returns 403; account/department query failures return 503.
 - `USR-` UUID-prefix login requires at least four canonical UUID characters and exactly one database match. All aliases share one account lockout bucket as well as existing username/IP limits.
 - Wrong-password responses include remaining attempts from the tightest username/account/IP limit after recording the failure. The Login page displays this server-provided message directly. Successful login still clears username/account failures, while IP attempts expire via the existing sliding window; unknown-username/offline responses are unchanged.
+- Passwords for provisioned accounts and password changes require 12–72 UTF-8 bytes. The authenticated self-service endpoint verifies the current password, shares the per-account failed-password limit, and invalidates all existing sessions for that account after an update.
 
 ## Account Provisioning
 
@@ -49,7 +50,8 @@ Notes:
 - Username is re-derived when the last name changes on `PATCH /api/users/:id`; the staff ID remains unchanged.
 - Teachers inherit their admin's department; superadmin picks an existing department for each admin. A supplied course must belong to that department.
 - Editable account fields: names, course, and password; only superadmin may additionally change an admin's department. Staff ID, role, direct username, ID, and creator changes are rejected. Usernames remain server-derived.
-- Default password in the creation forms is `smartgrade123`.
+- Account creation forms start with a blank password and require 12–72 UTF-8 bytes; no shared starter password is used. Users can change their own password from each role's Settings page after verifying the current password. A successful change invalidates all sessions for that account; there is no forced first-login reset.
+- Fresh database setup has no seeded superadmin. `backend/scripts/bootstrapSuperadmin.js` is an interactive, one-time creation command that refuses to proceed when a superadmin already exists.
 - Deleting a user first nulls `created_by` references in `staff_users`, `sections`, `subjects`, and `teacher_assignments`.
 
 ### Structural and roster relationships
@@ -77,7 +79,7 @@ Notes:
   - teachers → `localStorage.teacher_view_term`
   - admins → `localStorage.admin_view_term`
 - Layouts render an amber banner: `Viewing: {school_year} — {semester} — Read Only` with an **Exit Archive** button.
-- Archive mode is enforced on both ends. The UI disables mutations, and `frontend/src/utils/api.js` attaches `X-View-Term-School-Year` / `X-View-Term-Semester` whenever a term is being viewed. The backend `rejectArchivedWrites` guard returns **403** when those headers do not match the active term, which also covers term-less tables (`staff_users`, `departments`, `courses`).
+- Archive mode is enforced on both ends. The UI disables term mutations, and `frontend/src/utils/api.js` attaches `X-View-Term-School-Year` / `X-View-Term-Semester` whenever a term is being viewed. The backend `rejectArchivedWrites` guard returns **403** when those headers do not match the active term, which also covers term-less tables (`staff_users`, `departments`, `courses`). Export signatories and password changes are account/department-level settings and remain available in archive mode.
 - Leaving archive mode removes the key; both sidebar logout and the 401 handler clear `teacher_view_term` / `admin_view_term` so a stale archive selection cannot block a later session.
 - In archive mode, mutate buttons are disabled with the tooltip "Cannot modify while viewing archives".
 
@@ -147,7 +149,8 @@ Notes:
 ## AI Student Summary
 
 - Trigger: "Summarize Student" in the analytics student modal → `POST /api/ai/summarize-student`.
-- Backend sanitizes the payload with an allowlist (`student{name,id}`, `performance`, `categories`, `meta{assignment_id,term}`) before sending.
+- Student identity and assignment/term metadata remain backend-only for cache scoping and local fallback. The provider receives only allowlisted aggregate metrics and category name/performance/trend data; full activity records are not sent.
+- Provider request bodies and provider error bodies are not written to application logs. Provider-side retention still depends on the configured service and its account settings.
 - Gateway: OmniRoute (OpenAI-compatible). Request uses `response_format: json_object` and an `AbortController` timeout (`AI_TIMEOUT_MS`).
 - Response is schema-validated (`aiValidator.js`): `summary`, `strengths[]`, `areas_of_attention[{area,observation,priority}]`, `suggested_actions[]`, `follow_up[]`, `overall_priority`.
 - Invalid JSON or validation failure → **502**; timeout → **504**; both surface as "Unable to generate the AI summary right now."
@@ -216,7 +219,7 @@ Shared UI: `frontend/src/components/teacher/ExportButtons.jsx` (per-format spinn
 - Preview reports per-table insert-vs-existing counts for `merge`, `replace`, or `full`.
 - After a backup file is attached, **Cancel** clears the file and resets restore validation, preview, confirmation, and completion state.
 - Restore requires a typed confirmation: `CONFIRM` (merge/replace) or `FULL RESTORE`.
-- Safety rules: an in-process lock rejects concurrent restores with **409**; merge blocks self-row edits and role escalation; replace never wipes `activity_log`; full restore rejects missing restorable tables before writing, replaces all restorable data in one database transaction, and preserves the caller's superadmin row and `activity_log`.
+- Safety rules: an in-process lock rejects concurrent restores with **409**; merge blocks self-row edits and role changes on existing accounts, but currently permits a new account row to specify `system_role`; full restore also imports account roles other than the preserved caller. Treat restore files as trusted-only until restore validation rejects unauthorized superadmin rows. Replace never wipes `activity_log`; full restore rejects missing restorable tables before writing, replaces all restorable data in one database transaction, and preserves the caller's superadmin row and `activity_log`.
 - Full restore calls the database function defined in `backend/sql/create_atomic_full_backup_restore.sql`. It is installed in the currently connected Supabase project; verify it separately in other target projects and ensure the backend RPC caller is deployed before attempting a restore.
 
 ## Audit Logging

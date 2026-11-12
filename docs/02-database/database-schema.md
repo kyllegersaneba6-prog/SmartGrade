@@ -2,7 +2,7 @@
 
 **Database:** PostgreSQL via Supabase
 **Schema:** `public`
-**Access:** backend only, using the service-role key (`BYPASSRLS`). RLS is enabled on every table with **no policies**, so `anon`/`authenticated` access is denied; the two roles also have no table grants.
+**Access:** backend only, using the service-role key (`BYPASSRLS`). The 14 core tables are covered by `enable_row_level_security.sql`; auxiliary migrations enable RLS on the export-settings and broadcast tables. The live project has 17 public tables with RLS enabled and **no policies**, so `anon`/`authenticated` access is denied; the two roles also have no table grants.
 
 All tables use `UUID PRIMARY KEY DEFAULT gen_random_uuid()` and `TIMESTAMPTZ DEFAULT now()` unless noted.
 
@@ -26,6 +26,7 @@ students ──< component_scores
 teacher_assignments ──< attendance
 students ──< attendance
 academic_terms   (standalone; matching is by school_year + semester text)
+academic_terms ── superadmin_term_snapshots (one historical global-record snapshot per term)
 activity_log     (standalone; no FKs)
 staff_users ──< broadcast_notifications (created_by)
 broadcast_notifications ──< broadcast_notification_recipients >── staff_users
@@ -43,6 +44,7 @@ broadcast_notifications ──< broadcast_notification_recipients >── staff_
 | `students` | Student roster per section |
 | `subjects` | Subjects per year level, optionally course- or department-wide |
 | `academic_terms` | School year + semester with `is_active` / `is_closed` |
+| `superadmin_term_snapshots` | Password-free global staff/department/course snapshot per closed term |
 | `teacher_assignments` | Teacher ↔ section ↔ subject per term |
 | `grading_components` | Weighted grading categories per assignment + term |
 | `component_activities` | Scored activities inside a component |
@@ -56,7 +58,7 @@ broadcast_notifications ──< broadcast_notification_recipients >── staff_
 
 | File | Purpose |
 |---|---|
-| `schema.sql` | Base tables, indexes, seed data (CICT department, courses, superadmin) |
+| `schema.sql` | Base tables, indexes, and non-account seed data (CICT department, courses, academic term, sample subjects) |
 | `create_department_export_settings.sql` | Per-department export signatories; RLS enabled and service-role-only grants |
 | `create_atomic_full_backup_restore.sql` | Service-role-only RPC for complete, transactional full restores; preserve the caller and audit log |
 | `create_broadcast_notifications.sql` | RLS-protected broadcast/recipient tables and service-role-only atomic create RPC |
@@ -113,12 +115,14 @@ The final shape is `UNIQUE(teacher_assignment_id, student_id, date, session, typ
 ### Login account source
 Login uses `staff_users` only. The legacy `USR-` alias resolves a unique UUID prefix in that same table.
 
+Superadmin credentials are not seeded in SQL. The interactive `backend/scripts/bootstrapSuperadmin.js` command creates the initial row in `staff_users`; no schema change is needed for password updates.
+
 ### Remaining no DB-level checks
 - Component weights must total exactly 100 before scores are entered — this stays a UI/workflow rule; the DB only caps the total at 100.
 - `students.gender` values
 
 ### Row Level Security
-`enable_row_level_security.sql` turns on RLS for all 13 `public` tables. No policies are defined, which is a deliberate deny-all: `anon` and `authenticated` cannot read or write through PostgREST, and they currently have no table grants either. The Express backend is unaffected because it connects with `service_role`, whose `rolbypassrls` is true. Supabase's `RLS Enabled No Policy` advisory (INFO) is expected. Any future direct-from-browser Supabase client would need policies and grants added first.
+`enable_row_level_security.sql` turns on RLS for the 14 core `public` tables; auxiliary migrations cover department export settings and broadcast notifications. The live project currently has 17 public tables with RLS enabled. No policies are defined, which is a deliberate deny-all: `anon` and `authenticated` cannot read or write through PostgREST, and they currently have no table grants either. The Express backend is unaffected because it connects with `service_role`, whose `rolbypassrls` is true. Supabase's `RLS Enabled No Policy` advisory (INFO) is expected. Any future direct-from-browser Supabase client would need policies and grants added first.
 
 ### Indexes beyond primary keys
 

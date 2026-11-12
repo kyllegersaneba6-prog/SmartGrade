@@ -7,7 +7,7 @@ const { validateReport } = require('./aiValidator');
 const { buildFallbackReport, classifyFailure } = require('./aiFallback');
 const { getCachedSummary, setCachedSummary } = require('./aiSummaryCache');
 
-// Allowlist the MVP payload: reuse frontend studentAnalytics, drop anything sensitive.
+// Allowlist the backend-local profile used for cache scoping and local fallback.
 function sanitizeProfile(input) {
   if (!input || typeof input !== 'object') {
     const err = new Error('Missing student profile payload');
@@ -15,20 +15,48 @@ function sanitizeProfile(input) {
     throw err;
   }
   const { student, performance, categories, meta } = input;
+  const metric = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
   return {
-    student: student ? { name: student.student_name || student.name, id: student.student_id || student.id } : undefined,
-    performance: performance || undefined,
-    categories: Array.isArray(categories) ? categories : [],
-    meta: meta ? { assignment_id: meta.assignment_id, term: meta.term } : undefined,
+    student: student ? {
+      name: String(student.student_name || student.name || '').slice(0, 160),
+      id: String(student.student_id || student.id || '').slice(0, 64),
+    } : undefined,
+    performance: performance && typeof performance === 'object' ? {
+      final_grade: metric(performance.final_grade),
+      attendance_rate: metric(performance.attendance_rate),
+      overall_performance: metric(performance.overall_performance),
+      subject_rate: metric(performance.subject_rate),
+      submission_rate: metric(performance.submission_rate),
+    } : undefined,
+    categories: Array.isArray(categories) ? categories.slice(0, 30).map((category) => ({
+      name: typeof category?.name === 'string' ? category.name.trim().slice(0, 80) : '',
+      performance: metric(category?.performance),
+      trend: ['improving', 'declining', 'stable'].includes(category?.trend) ? category.trend : undefined,
+    })) : [],
+    meta: meta ? {
+      assignment_id: String(meta.assignment_id || '').slice(0, 64),
+      term: String(meta.term || '').slice(0, 40),
+    } : undefined,
   };
 }
 
 async function generateStudentAnalysis(profile) {
   const sanitized = sanitizeProfile(profile);
   try {
+    // Provider gets only aggregate performance and category data. Student
+    // identifiers and assignment/term metadata stay inside the backend for
+    // local fallback and cache scoping.
+    const providerProfile = {
+      performance: sanitized.performance,
+      categories: sanitized.categories,
+    };
     const { raw, modelUsed } = await provider.chatJson({
       system: SYSTEM_PROMPT,
-      user: buildUserPrompt(sanitized),
+      user: buildUserPrompt(providerProfile),
     });
     let parsed;
     try {
@@ -36,7 +64,6 @@ async function generateStudentAnalysis(profile) {
     } catch {
       const err = new Error('AI returned invalid JSON');
       err.status = 502;
-      err.detail = raw.slice(0, 500);
       throw err;
     }
     const v = validateReport(parsed);
