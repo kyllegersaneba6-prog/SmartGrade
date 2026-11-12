@@ -20,7 +20,7 @@ const SuperAdminLayoutInner = () => {
       case '/superadmin/audit': return 'Audit Logs';
       case '/superadmin/admins': return 'Admin Management';
       case '/superadmin/admins/create': return 'Create New Admin';
-      case '/superadmin/departments': return 'Departments & Courses';
+      case '/superadmin/departments': return 'Departments';
       case '/superadmin/settings': return 'Settings';
       default: return 'Super Admin';
     }

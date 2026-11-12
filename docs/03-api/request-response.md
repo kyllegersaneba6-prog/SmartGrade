@@ -502,7 +502,7 @@ Without query parameters, superadmin receives only current-semester audit rows (
 
 ## Superadmin Semester Archives
 
-While browsing a closed semester, the Super Admin Dashboard, administrator list, and department/course lists read from that semester's saved snapshot. Pass both `school_year` and `semester` to `GET /api/users`, `GET /api/departments`, or `GET /api/courses`; the backend returns `404` if that closed term has no snapshot. Normal requests without those query parameters continue to return current records. These archive reads are restricted to superadmin accounts. Snapshots exclude password hashes.
+While browsing a closed semester, the Super Admin Dashboard, administrator list, and department/course read endpoints return data from that semester's saved snapshot. Pass both `school_year` and `semester` to `GET /api/users`, `GET /api/departments`, or `GET /api/courses`; the backend returns `404` if that closed term has no snapshot. Normal requests without those query parameters continue to return current records. These archive reads are restricted to superadmin accounts. Snapshots exclude password hashes.
 
 ## Attendance Computed Scores
 

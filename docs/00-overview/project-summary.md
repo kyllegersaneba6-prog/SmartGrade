@@ -26,14 +26,14 @@ Replace paper-based or spreadsheet-based grading with a centralized, role-based 
 
 | Role | Scope |
 |---|---|
-| Superadmin | Institution-wide. Departments, courses, admin accounts, academic terms, audit trail, backup/restore. |
+| Superadmin | Institution-wide. Departments, admin accounts, academic terms, audit trail, backup/restore. Course records are maintained through class-list imports rather than manual Superadmin management. |
 | Admin | One department. Teacher account creation and maintenance, settings, and activity monitoring. No section or student roster management. |
 | Teacher | Own imported classes only. Creates or reuses sections, subjects, and assignments by importing a class-list PDF; manages rosters, attendance, grading components, scores, analytics, and grade summaries. |
 
 ## Main Features
 
 **Organization & people**
-- Department + course management with abbreviations
+- Department management; course records are matched or created by class-list imports
 - Admin accounts (one per department, enforced in app code + DB unique index)
 - Teacher accounts with 9-digit staff ID and auto-generated username
 - Teacher class-list import creates or reuses a section, subject, and assignment for the active term

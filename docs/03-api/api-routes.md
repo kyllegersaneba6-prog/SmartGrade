@@ -65,9 +65,8 @@ PATCH accepts `full_name`, `first_name`, `last_name`, `course_id`, and `password
 | Method | Route | Allowed | Notes |
 |---|---|---|---|
 | GET | `/api/courses` | Any auth | Optional `?department_id=` only narrows scope; admins/teachers always restricted to their current department |
-| POST | `/api/courses` | Superadmin | Uppercases abbreviation |
-| PATCH | `/api/courses/:id` | Superadmin | Rename/abbr |
-| DELETE | `/api/courses/:id` | Superadmin | Blocked while users/sections reference it |
+
+Course records are matched or created by the teacher class-list import flow; there are no manual course mutation endpoints.
 
 ## Export Settings
 

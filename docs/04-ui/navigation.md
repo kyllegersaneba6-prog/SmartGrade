@@ -108,7 +108,7 @@ Unmatched URLs are handled by the top-level `*` route and render `NotFound` with
 | `/superadmin/audit` | Audit Logs |
 | `/superadmin/admins` | Admin Management |
 | `/superadmin/admins/create` | Create New Admin |
-| `/superadmin/departments` | Departments & Courses |
+| `/superadmin/departments` | Departments |
 | `/superadmin/settings` | Settings |
 | `/teacher` or `/teacher/overview` | Overview |
 | `/teacher/class-record` | Class Record |
